@@ -15,6 +15,7 @@
 
 #include <array>
 #include <cmath>
+#include <climits>
 #include <complex>
 #include <cstdint>
 #include <cstring>
@@ -77,7 +78,7 @@ namespace Persistence
 
 	struct BinaryEnvelopeReadResult
 	{
-		SerializeResult result;
+		IOResult result;
 		BinaryEnvelopeHeader header;
 	};
 
@@ -86,6 +87,15 @@ namespace Persistence
 		static inline constexpr uint16_t VERSION = 1;
 		static inline constexpr uint16_t HEADER_SIZE = 48;
 		static inline constexpr uint32_t ENDIAN_MARKER = 0x01020304;
+	}
+
+	namespace BinaryScalarEncoding
+	{
+		static_assert(CHAR_BIT == 8, "MML binary persistence requires 8-bit bytes");
+		inline constexpr uint32_t FLOAT32_BYTES = 4;
+		inline constexpr uint32_t FLOAT64_BYTES = 8;
+		// Class/sign/precision/exponent and a 128-bit significand, not native storage.
+		inline constexpr uint32_t LONG_DOUBLE_BYTES = 24;
 	}
 
 	inline const char* BinaryObjectCode(BinaryObjectKind kind)
@@ -135,11 +145,11 @@ namespace Persistence
 	{
 		switch (scalarType)
 		{
-		case BinaryScalarType::Float32: return 4;
-		case BinaryScalarType::Float64: return 8;
-		case BinaryScalarType::LongDouble: return 24;
-		case BinaryScalarType::ComplexFloat32: return 8;
-		case BinaryScalarType::ComplexFloat64: return 16;
+		case BinaryScalarType::Float32: return BinaryScalarEncoding::FLOAT32_BYTES;
+		case BinaryScalarType::Float64: return BinaryScalarEncoding::FLOAT64_BYTES;
+		case BinaryScalarType::LongDouble: return BinaryScalarEncoding::LONG_DOUBLE_BYTES;
+		case BinaryScalarType::ComplexFloat32: return 2 * BinaryScalarEncoding::FLOAT32_BYTES;
+		case BinaryScalarType::ComplexFloat64: return 2 * BinaryScalarEncoding::FLOAT64_BYTES;
 		default: return 0;
 		}
 	}
@@ -195,47 +205,45 @@ namespace Persistence
 		return value;
 	}
 
-	inline SerializeResult ValidateBinaryEnvelopeHeader(const BinaryEnvelopeHeader& header, const LoadOptions& options = {})
-	{
+	inline IOResult ValidateBinaryEnvelopeHeader(const BinaryEnvelopeHeader& header, const LoadOptions& options = {}) {
 		if (header.magic[0] != 'M' || header.magic[1] != 'M' || header.magic[2] != 'L' || header.magic[3] != '_')
-			return SerializeFailure(SerializeError::INVALID_FORMAT, "Binary magic must start with MML_");
+			return SerializeFailure(IOError::INVALID_FORMAT, "Binary magic must start with MML_");
 
 		const BinaryObjectKind magicKind = BinaryObjectKindFromCode(header.magic.data() + 4);
 		if (magicKind == BinaryObjectKind::Unknown)
-			return SerializeFailure(SerializeError::TYPE_MISMATCH, "Unknown binary object code in magic");
+			return SerializeFailure(IOError::TYPE_MISMATCH, "Unknown binary object code in magic");
 		if (magicKind != header.object_kind)
-			return SerializeFailure(SerializeError::TYPE_MISMATCH, "Binary magic object code and object-kind field disagree");
+			return SerializeFailure(IOError::TYPE_MISMATCH, "Binary magic object code and object-kind field disagree");
 		if (header.container_version != BinaryEnvelope::VERSION)
-			return SerializeFailure(SerializeError::UNSUPPORTED_VERSION, "Unsupported binary envelope version");
+			return SerializeFailure(IOError::UNSUPPORTED_VERSION, "Unsupported binary envelope version");
 		if (header.header_size < BinaryEnvelope::HEADER_SIZE)
-			return SerializeFailure(SerializeError::SCHEMA_MISMATCH, "Binary envelope header size is too small");
+			return SerializeFailure(IOError::SCHEMA_MISMATCH, "Binary envelope header size is too small");
 		if (header.endian_marker != BinaryEnvelope::ENDIAN_MARKER)
-			return SerializeFailure(SerializeError::ENDIAN_MISMATCH, "Binary envelope endian marker is invalid");
+			return SerializeFailure(IOError::ENDIAN_MISMATCH, "Binary envelope endian marker is invalid");
 		if (header.flags != 0)
-			return SerializeFailure(SerializeError::SCHEMA_MISMATCH, "Binary envelope v1 does not allow nonzero flags");
+			return SerializeFailure(IOError::SCHEMA_MISMATCH, "Binary envelope v1 does not allow nonzero flags");
 		if (static_cast<uint32_t>(header.sidecar_policy) > static_cast<uint32_t>(BinarySidecarPolicy::Required))
-			return SerializeFailure(SerializeError::SCHEMA_MISMATCH, "Binary envelope sidecar policy is invalid");
+			return SerializeFailure(IOError::SCHEMA_MISMATCH, "Binary envelope sidecar policy is invalid");
 		if (header.object_schema_version == 0)
-			return SerializeFailure(SerializeError::SCHEMA_MISMATCH, "Binary object schema version must be positive");
+			return SerializeFailure(IOError::SCHEMA_MISMATCH, "Binary object schema version must be positive");
 
 		const uint32_t expectedScalarBytes = ExpectedScalarByteSize(header.scalar_type);
 		if (expectedScalarBytes == 0)
-			return SerializeFailure(SerializeError::UNSUPPORTED_SCALAR, "Binary scalar type is unsupported");
+			return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Binary scalar type is unsupported");
 		if (header.scalar_byte_size != expectedScalarBytes)
-			return SerializeFailure(SerializeError::UNSUPPORTED_SCALAR, "Binary scalar byte size does not match scalar type");
+			return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Binary scalar byte size does not match scalar type");
 		if (header.payload_byte_count > options.max_allocation_bytes)
-			return SerializeFailure(SerializeError::ALLOCATION_LIMIT_EXCEEDED, "Binary payload exceeds configured allocation limit");
+			return SerializeFailure(IOError::ALLOCATION_LIMIT_EXCEEDED, "Binary payload exceeds configured allocation limit");
 		return SerializeSuccess();
 	}
 
-	inline SerializeResult WriteBinaryEnvelopeHeader(std::ostream& out, BinaryEnvelopeHeader header)
-	{
+	inline IOResult WriteBinaryEnvelopeHeader(std::ostream& out, BinaryEnvelopeHeader header) {
 		header.magic = BinaryMagic(header.object_kind);
 		header.container_version = BinaryEnvelope::VERSION;
 		header.header_size = BinaryEnvelope::HEADER_SIZE;
 		header.endian_marker = BinaryEnvelope::ENDIAN_MARKER;
 
-		SerializeResult validation = ValidateBinaryEnvelopeHeader(header);
+		IOResult validation = ValidateBinaryEnvelopeHeader(header);
 		if (!validation.success)
 			return validation;
 
@@ -252,7 +260,7 @@ namespace Persistence
 		WriteUInt32LE(out, static_cast<uint32_t>(header.sidecar_policy));
 
 		if (out.fail())
-			return SerializeFailure(SerializeError::WRITE_FAILED, "Failed to write binary envelope header");
+			return SerializeFailure(IOError::WRITE_FAILED, "Failed to write binary envelope header");
 		return SerializeSuccess();
 	}
 
@@ -263,7 +271,7 @@ namespace Persistence
 		in.read(bytes.data(), static_cast<std::streamsize>(bytes.size()));
 		if (in.gcount() != static_cast<std::streamsize>(bytes.size()))
 		{
-			read.result = SerializeFailure(SerializeError::TRUNCATED_INPUT, "Could not read complete binary envelope header");
+			read.result = SerializeFailure(IOError::TRUNCATED_INPUT, "Could not read complete binary envelope header");
 			return read;
 		}
 
@@ -286,6 +294,21 @@ namespace Persistence
 	namespace Detail
 	{
 		template<class Type>
+		constexpr bool HasPortableBinaryEncoding() {
+			if constexpr (std::is_same_v<Type, float>)
+				return sizeof(Type) == BinaryScalarEncoding::FLOAT32_BYTES &&
+					std::numeric_limits<Type>::is_iec559 && std::numeric_limits<Type>::radix == 2 &&
+					std::numeric_limits<Type>::digits == 24 && std::numeric_limits<Type>::max_exponent == 128;
+			else if constexpr (std::is_same_v<Type, double>)
+				return sizeof(Type) == BinaryScalarEncoding::FLOAT64_BYTES &&
+					std::numeric_limits<Type>::is_iec559 && std::numeric_limits<Type>::radix == 2 &&
+					std::numeric_limits<Type>::digits == 53 && std::numeric_limits<Type>::max_exponent == 1024;
+			else
+				return std::is_same_v<Type, long double> && std::numeric_limits<Type>::radix == 2 &&
+					std::numeric_limits<Type>::digits <= 128;
+		}
+
+		template<class Type>
 		constexpr BinaryScalarType BinaryScalarTypeFor()
 		{
 			if constexpr (std::is_same_v<Type, float>) return BinaryScalarType::Float32;
@@ -303,9 +326,9 @@ namespace Persistence
 		}
 
 		template<class Type>
-		SerializeResult WriteFloatingScalarLE(std::ostream& out, Type value)
-		{
+		IOResult WriteFloatingScalarLE(std::ostream& out, Type value) {
 			static_assert(std::is_same_v<Type, float> || std::is_same_v<Type, double> || std::is_same_v<Type, long double>);
+			static_assert(HasPortableBinaryEncoding<Type>(), "Unsupported host floating-point representation for MML binary encoding");
 			if constexpr (std::is_same_v<Type, float>)
 			{
 				uint32_t bits = 0;
@@ -351,18 +374,18 @@ namespace Persistence
 				WriteUInt64LE(out, significandLow);
 				WriteUInt64LE(out, significandHigh);
 			}
-			return out.fail() ? SerializeFailure(SerializeError::WRITE_FAILED, "Failed to write binary scalar") : SerializeSuccess();
+			return out.fail() ? SerializeFailure(IOError::WRITE_FAILED, "Failed to write binary scalar") : SerializeSuccess();
 		}
 
 		template<class Type>
-		SerializeResult ReadFloatingScalarLE(std::istream& in, Type& value)
-		{
+		IOResult ReadFloatingScalarLE(std::istream& in, Type& value) {
 			static_assert(std::is_same_v<Type, float> || std::is_same_v<Type, double> || std::is_same_v<Type, long double>);
-			constexpr std::size_t byteCount = std::is_same_v<Type, long double> ? 24 : sizeof(Type);
+			static_assert(HasPortableBinaryEncoding<Type>(), "Unsupported host floating-point representation for MML binary encoding");
+			constexpr std::size_t byteCount = BinaryScalarByteSize<Type>();
 			char bytes[byteCount]{};
 			in.read(bytes, byteCount);
 			if (in.gcount() != static_cast<std::streamsize>(byteCount))
-				return SerializeFailure(SerializeError::TRUNCATED_INPUT, "Truncated binary scalar");
+				return SerializeFailure(IOError::TRUNCATED_INPUT, "Truncated binary scalar");
 			if constexpr (std::is_same_v<Type, float>)
 			{
 				uint32_t bits = ReadUInt32LE(bytes);
@@ -383,42 +406,61 @@ namespace Persistence
 				const uint64_t significandLow = ReadUInt64LE(bytes + 8);
 				const uint64_t significandHigh = ReadUInt64LE(bytes + 16);
 				if (valueClass > 2 || sign > 1 || precision == 0 || precision > 128)
-					return SerializeFailure(SerializeError::INVALID_FORMAT, "Invalid canonical long-double scalar");
+					return SerializeFailure(IOError::INVALID_FORMAT, "Invalid canonical long-double scalar");
+				const bool zeroSignificand = significandLow == 0 && significandHigh == 0;
+				if (valueClass != 0 && (exponent != 0 || !zeroSignificand))
+					return SerializeFailure(IOError::INVALID_FORMAT, "Nonfinite canonical long double has a nonzero payload");
+				if (valueClass == 0 && zeroSignificand && exponent != 0)
+					return SerializeFailure(IOError::INVALID_FORMAT, "Canonical long-double zero has a nonzero exponent");
+				const bool excessBits = precision < 64 ? (significandHigh != 0 || (significandLow >> precision) != 0) :
+					precision == 64 ? significandHigh != 0 :
+					precision < 128 && (significandHigh >> (precision - 64)) != 0;
+				const bool leadingBit = precision <= 64 ? ((significandLow >> (precision - 1)) & 1) != 0 :
+					((significandHigh >> (precision - 65)) & 1) != 0;
+				if (valueClass == 0 && !zeroSignificand && (excessBits || !leadingBit))
+					return SerializeFailure(IOError::INVALID_FORMAT, "Canonical long-double significand is not normalized");
 				if (valueClass == 0 && precision > std::numeric_limits<long double>::digits)
-					return SerializeFailure(SerializeError::UNSUPPORTED_SCALAR, "Stored long double exceeds target precision");
+					return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Stored long double exceeds target precision");
 
+				long double decoded;
 				if (valueClass == 1)
-					value = std::numeric_limits<long double>::infinity();
+					decoded = std::numeric_limits<long double>::infinity();
 				else if (valueClass == 2)
-					value = std::numeric_limits<long double>::quiet_NaN();
+					decoded = std::numeric_limits<long double>::quiet_NaN();
+				else if (zeroSignificand)
+					decoded = 0;
 				else
 				{
-					value = std::ldexp(static_cast<long double>(significandHigh), 64);
-					value += static_cast<long double>(significandLow);
-					value = std::ldexp(value, exponent - precision);
+					if (exponent > std::numeric_limits<long double>::max_exponent ||
+						exponent < std::numeric_limits<long double>::min_exponent - std::numeric_limits<long double>::digits + 1)
+						return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Stored long double exceeds target exponent range");
+					long double significand = std::ldexp(static_cast<long double>(significandHigh), 64);
+					significand += static_cast<long double>(significandLow);
+					const long double fraction = std::ldexp(significand, -static_cast<int>(precision));
+					decoded = std::ldexp(fraction, exponent);
+					if (!std::isfinite(decoded) || decoded == 0 || std::ldexp(decoded, -exponent) != fraction)
+						return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Stored long double cannot be represented exactly on this host");
 				}
-				if (sign != 0) value = -value;
+				value = sign != 0 ? -decoded : decoded;
 			}
 			return SerializeSuccess();
 		}
 
 		template<class Type>
-		SerializeResult WriteBinaryScalarLE(std::ostream& out, const Type& value)
-		{
+		IOResult WriteBinaryScalarLE(std::ostream& out, const Type& value) {
 			static_assert(BinaryScalarTypeFor<Type>() != BinaryScalarType::Unknown,
 			              "Binary persistence supports float, double, long double, complex<float>, and complex<double>");
 			if constexpr (std::is_floating_point_v<Type>)
 				return WriteFloatingScalarLE(out, value);
 			else
 			{
-				SerializeResult result = WriteFloatingScalarLE(out, value.real());
+				IOResult result = WriteFloatingScalarLE(out, value.real());
 				return result.success ? WriteFloatingScalarLE(out, value.imag()) : result;
 			}
 		}
 
 		template<class Type>
-		SerializeResult ReadBinaryScalarLE(std::istream& in, Type& value)
-		{
+		IOResult ReadBinaryScalarLE(std::istream& in, Type& value) {
 			static_assert(BinaryScalarTypeFor<Type>() != BinaryScalarType::Unknown,
 			              "Binary persistence supports float, double, long double, complex<float>, and complex<double>");
 			if constexpr (std::is_floating_point_v<Type>)
@@ -427,7 +469,7 @@ namespace Persistence
 			{
 				typename Type::value_type real{};
 				typename Type::value_type imag{};
-				SerializeResult result = ReadFloatingScalarLE(in, real);
+				IOResult result = ReadFloatingScalarLE(in, real);
 				if (!result.success) return result;
 				result = ReadFloatingScalarLE(in, imag);
 				if (result.success) value = Type(real, imag);
@@ -436,10 +478,9 @@ namespace Persistence
 		}
 
 		template<class Type>
-		SerializeResult ValidateBinaryScalarType(BinaryScalarType scalarType, uint32_t scalarByteSize)
-		{
+		IOResult ValidateBinaryScalarType(BinaryScalarType scalarType, uint32_t scalarByteSize) {
 			if (scalarType != BinaryScalarTypeFor<Type>() || scalarByteSize != BinaryScalarByteSize<Type>())
-				return SerializeFailure(SerializeError::UNSUPPORTED_SCALAR, "Binary scalar metadata does not match target type");
+				return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Binary scalar metadata does not match target type");
 			return SerializeSuccess();
 		}
 	}

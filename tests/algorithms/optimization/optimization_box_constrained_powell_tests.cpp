@@ -29,47 +29,47 @@ namespace MML::Tests::Algorithms::Optimization
 
 	TEST_CASE("BoxConstrainedPowell - Finds interior optimum from infeasible start", "[Optimization][BoxPowell][Bounds]")
 	{
-		BoxPowellQuadratic2D objective(REAL(0.25), -REAL(0.5));
-		BoundConstraints bounds(Vector<Real>{ -REAL(1.0), -REAL(1.0) }, Vector<Real>{ REAL(1.0), REAL(1.0) });
+		BoxPowellQuadratic2D objective(static_cast<MML::Real>(0.25), -static_cast<MML::Real>(0.5));
+		BoundConstraints bounds(Vector<Real>{ -static_cast<MML::Real>(1.0), -static_cast<MML::Real>(1.0) }, Vector<Real>{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0) });
 		MultidimOptimizationConfig config;
-		config.tolerance = REAL(1e-8);
+		config.tolerance = static_cast<MML::Real>(1e-8);
 		config.max_iterations = 300;
 
-		auto result = BoxConstrainedPowellMinimize(objective, VectorN<Real, 2>{ REAL(5.0), REAL(5.0) }, bounds, config);
+		auto result = BoxConstrainedPowellMinimize(objective, VectorN<Real, 2>{ static_cast<MML::Real>(5.0), static_cast<MML::Real>(5.0) }, bounds, config);
 
 		REQUIRE(result.converged);
 		REQUIRE(result.status == AlgorithmStatus::Success);
-		REQUIRE(bounds.IsFeasible(result.xmin, REAL(1e-10)));
-		REQUIRE(result.xmin[0] == Catch::Approx(REAL(0.25)).margin(REAL(1e-5)));
-		REQUIRE(result.xmin[1] == Catch::Approx(-REAL(0.5)).margin(REAL(1e-5)));
-		REQUIRE(result.fmin < REAL(1e-10));
+		REQUIRE(bounds.IsFeasible(result.xmin, static_cast<MML::Real>(1e-10)));
+		REQUIRE(result.xmin[0] == Catch::Approx(static_cast<MML::Real>(0.25)).margin(static_cast<MML::Real>(1e-5)));
+		REQUIRE(result.xmin[1] == Catch::Approx(-static_cast<MML::Real>(0.5)).margin(static_cast<MML::Real>(1e-5)));
+		REQUIRE(result.fmin < static_cast<MML::Real>(1e-10));
 	}
 
 	TEST_CASE("BoxConstrainedPowell - Projects constrained optimum onto active bounds", "[Optimization][BoxPowell][Bounds]")
 	{
-		BoxPowellQuadratic2D objective(REAL(2.0), -REAL(3.0));
-		BoundConstraints bounds(Vector<Real>{ -REAL(1.0), -REAL(1.0) }, Vector<Real>{ REAL(1.0), REAL(1.0) });
+		BoxPowellQuadratic2D objective(static_cast<MML::Real>(2.0), -static_cast<MML::Real>(3.0));
+		BoundConstraints bounds(Vector<Real>{ -static_cast<MML::Real>(1.0), -static_cast<MML::Real>(1.0) }, Vector<Real>{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0) });
 		MultidimOptimizationConfig config;
-		config.tolerance = REAL(1e-8);
+		config.tolerance = static_cast<MML::Real>(1e-8);
 		config.max_iterations = 300;
 
-		auto result = BoxConstrainedPowellMinimize(objective, VectorN<Real, 2>{ REAL(0.0), REAL(0.0) }, bounds, config);
+		auto result = BoxConstrainedPowellMinimize(objective, VectorN<Real, 2>{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) }, bounds, config);
 
 		REQUIRE(result.converged);
-		REQUIRE(bounds.IsFeasible(result.xmin, REAL(1e-10)));
-		REQUIRE(result.xmin[0] == Catch::Approx(REAL(1.0)).margin(REAL(1e-5)));
-		REQUIRE(result.xmin[1] == Catch::Approx(-REAL(1.0)).margin(REAL(1e-5)));
-		REQUIRE(bounds.IsUpperActive(result.xmin, 0, REAL(1e-5)));
-		REQUIRE(bounds.IsLowerActive(result.xmin, 1, REAL(1e-5)));
+		REQUIRE(bounds.IsFeasible(result.xmin, static_cast<MML::Real>(1e-10)));
+		REQUIRE(result.xmin[0] == Catch::Approx(static_cast<MML::Real>(1.0)).margin(static_cast<MML::Real>(1e-5)));
+		REQUIRE(result.xmin[1] == Catch::Approx(-static_cast<MML::Real>(1.0)).margin(static_cast<MML::Real>(1e-5)));
+		REQUIRE(bounds.IsUpperActive(result.xmin, 0, static_cast<MML::Real>(1e-5)));
+		REQUIRE(bounds.IsLowerActive(result.xmin, 1, static_cast<MML::Real>(1e-5)));
 	}
 
 	TEST_CASE("BoxConstrainedPowell - Rejects invalid configuration", "[Optimization][BoxPowell][Bounds]")
 	{
 		MultidimOptimizationConfig config;
-		config.tolerance = REAL(0.0);
+		config.tolerance = static_cast<MML::Real>(0.0);
 		REQUIRE_THROWS_AS(BoxConstrainedPowell(config), MultidimOptimizationInputError);
 
-		config.tolerance = REAL(1e-8);
+		config.tolerance = static_cast<MML::Real>(1e-8);
 		config.max_iterations = 0;
 		REQUIRE_THROWS_AS(BoxConstrainedPowell(config), MultidimOptimizationInputError);
 	}

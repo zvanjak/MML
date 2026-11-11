@@ -21,8 +21,8 @@ TEST_CASE("PyramidEquilateral3D::Constructor", "[geometry][pyramidequilateral][c
         
         // Height should be a/sqrt(3) = 6/sqrt(3) = 2*sqrt(3)
         Real expected_height = 6.0 / std::sqrt(3.0);
-        REQUIRE_THAT(pyramid.GetHeight() , RealApprox(expected_height));
-        REQUIRE_THAT(pyramid.GetBaseSize() , RealApprox(6.0));
+        REQUIRE_THAT(pyramid.getHeight() , RealApprox(expected_height));
+        REQUIRE_THAT(pyramid.getBaseSize() , RealApprox(6.0));
     }
 
     SECTION("Equilateral pyramid at arbitrary position")
@@ -31,10 +31,10 @@ TEST_CASE("PyramidEquilateral3D::Constructor", "[geometry][pyramidequilateral][c
         PyramidEquilateral3D pyramid(9.0, baseCenter);
         
         Real expected_height = 9.0 / std::sqrt(3.0);
-        REQUIRE_THAT(pyramid.GetHeight() , RealApprox(expected_height));
-        REQUIRE_THAT(pyramid.GetBaseSize() , RealApprox(9.0));
+        REQUIRE_THAT(pyramid.getHeight() , RealApprox(expected_height));
+        REQUIRE_THAT(pyramid.getBaseSize() , RealApprox(9.0));
         
-        Vec3Cart center = pyramid.GetBaseCenter();
+        Vec3Cart center = pyramid.getBaseCenter();
         REQUIRE_THAT(center.X() , RealApprox(10.0));
         REQUIRE_THAT(center.Y() , RealApprox(20.0));
         REQUIRE_THAT(center.Z() , RealApprox(30.0));
@@ -82,7 +82,7 @@ TEST_CASE("PyramidEquilateral3D::GetCenter", "[geometry][pyramidequilateral][cen
     SECTION("Center at h/4 from base")
     {
         PyramidEquilateral3D pyramid(12.0);
-        Pnt3Cart center = pyramid.GetCenter();
+        Pnt3Cart center = pyramid.getCenter();
         
         // h = 12/sqrt(3) = 4*sqrt(3)
         // Centroid at h/4 = sqrt(3)
@@ -96,7 +96,7 @@ TEST_CASE("PyramidEquilateral3D::GetCenter", "[geometry][pyramidequilateral][cen
     {
         Vec3Cart baseCenter(5.0, 10.0, 15.0);
         PyramidEquilateral3D pyramid(6.0, baseCenter);
-        Pnt3Cart center = pyramid.GetCenter();
+        Pnt3Cart center = pyramid.getCenter();
         
         // h = 6/sqrt(3) = 2*sqrt(3), centroid at h/4 = sqrt(3)/2
         Real offset_z = 6.0 / (4.0 * std::sqrt(3.0));
@@ -111,7 +111,7 @@ TEST_CASE("PyramidEquilateral3D::GetBoundingBox", "[geometry][pyramidequilateral
     SECTION("Bounding box from base to apex")
     {
         PyramidEquilateral3D pyramid(8.0);
-        Box3D bbox = pyramid.GetBoundingBox();
+        Box3D bbox = pyramid.getBoundingBox();
         
         Real h = 8.0 / std::sqrt(3.0);
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-4.0));
@@ -129,7 +129,7 @@ TEST_CASE("PyramidEquilateral3D::GetBoundingSphere", "[geometry][pyramidequilate
     SECTION("Bounding sphere contains all vertices")
     {
         PyramidEquilateral3D pyramid(6.0);
-        BoundingSphere3D bsphere = pyramid.GetBoundingSphere();
+        BoundingSphere3D bsphere = pyramid.getBoundingSphere();
         
         Real h = 6.0 / std::sqrt(3.0);
         
@@ -144,7 +144,7 @@ TEST_CASE("PyramidEquilateral3D::GetBoundingSphere", "[geometry][pyramidequilate
     SECTION("Bounding sphere centered at centroid")
     {
         PyramidEquilateral3D pyramid(12.0);
-        BoundingSphere3D bsphere = pyramid.GetBoundingSphere();
+        BoundingSphere3D bsphere = pyramid.getBoundingSphere();
         
         Real h = 12.0 / std::sqrt(3.0);
         Real centroid_z = h / 4.0;
@@ -160,7 +160,7 @@ TEST_CASE("PyramidEquilateral3D::ToString", "[geometry][pyramidequilateral][stri
     SECTION("String contains pyramid info")
     {
         PyramidEquilateral3D pyramid(8.0);
-        std::string str = pyramid.ToString();
+        std::string str = pyramid.to_string();
         
         REQUIRE(str.find("PyramidEquilateral3D") != std::string::npos);
         REQUIRE(str.find("Equilateral") != std::string::npos);
@@ -174,7 +174,7 @@ TEST_CASE("PyramidEquilateral3D::ToString", "[geometry][pyramidequilateral][stri
     {
         Vec3Cart baseCenter(10.0, 20.0, 30.0);
         PyramidEquilateral3D pyramid(6.0, baseCenter);
-        std::string str = pyramid.ToString();
+        std::string str = pyramid.to_string();
         
         REQUIRE(str.find("6") != std::string::npos);  // BaseSize
     }
@@ -246,10 +246,10 @@ TEST_CASE("PyramidEquilateral3D::InheritedMethods", "[geometry][pyramidequilater
         // These should all work without error
         Real volume = pyramid.Volume();
         Real surfaceArea = pyramid.SurfaceArea();
-        Pnt3Cart center = pyramid.GetCenter();
-        Box3D bbox = pyramid.GetBoundingBox();
-        BoundingSphere3D bsphere = pyramid.GetBoundingSphere();
-        std::string str = pyramid.ToString();
+        Pnt3Cart center = pyramid.getCenter();
+        Box3D bbox = pyramid.getBoundingBox();
+        BoundingSphere3D bsphere = pyramid.getBoundingSphere();
+        std::string str = pyramid.to_string();
         
         REQUIRE(volume > 0);
         REQUIRE(surfaceArea > 0);
@@ -260,10 +260,10 @@ TEST_CASE("PyramidEquilateral3D::InheritedMethods", "[geometry][pyramidequilater
     {
         PyramidEquilateral3D pyramid(9.0);
         
-        REQUIRE_THAT(pyramid.GetBaseSize() , RealApprox(9.0));
-        REQUIRE_THAT(pyramid.GetHeight() , RealApprox(9.0 / std::sqrt(3.0)).epsilon(TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(pyramid.getBaseSize() , RealApprox(9.0));
+        REQUIRE_THAT(pyramid.getHeight() , RealApprox(9.0 / std::sqrt(3.0)).epsilon(TOL(1e-10, 1e-5)));
         
-        Vec3Cart baseCenter = pyramid.GetBaseCenter();
+        Vec3Cart baseCenter = pyramid.getBaseCenter();
         REQUIRE_THAT(baseCenter.X() , RealApprox(0.0));
         REQUIRE_THAT(baseCenter.Y() , RealApprox(0.0));
         REQUIRE_THAT(baseCenter.Z() , RealApprox(0.0));
@@ -277,7 +277,7 @@ TEST_CASE("PyramidEquilateral3D::GeometricProperties", "[geometry][pyramidequila
         for (Real a : {3.0, 6.0, 9.0, 12.0}) {
             PyramidEquilateral3D pyramid(a);
             Real expected_ratio = 1.0 / std::sqrt(3.0);
-            Real actual_ratio = pyramid.GetHeight() / pyramid.GetBaseSize();
+            Real actual_ratio = pyramid.getHeight() / pyramid.getBaseSize();
             REQUIRE_THAT(actual_ratio , RealApprox(expected_ratio));
         }
     }

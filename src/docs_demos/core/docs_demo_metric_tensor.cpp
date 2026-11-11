@@ -400,6 +400,23 @@ void Docs_Demo_VolumeElement()
 ///                           MAIN ENTRY POINT
 ///////////////////////////////////////////////////////////////////////////////////////
 
+void Docs_Demo_AnalyticalChristoffels() {
+	MetricTensorSpherical metric;
+	const MetricTensorField<3>& connection = metric;
+	VectorN<Real, 3> pos{5.0, Constants::PI / 4, Constants::PI / 3};
+	Real analytical = connection.GetChristoffelSymbolSecondKind(0, 1, 1, pos);
+	Real numerical = connection.GetChristoffelSymbolSecondKindNumerical(0, 1, 1, pos);
+	std::cout << "Gamma^r_theta_theta: " << analytical << " (numerical: " << numerical << ")\n";
+}
+
+void Docs_Demo_MatrixSingularityPolicy() {
+	MetricTensorSpherical metric;
+	auto inverseMetric = metric.GetContravariantMetric(VectorN<Real, 3>{0, 1, 0}, SingularityPolicy::ReturnNaN);
+	std::cout << "Singular inverse metric signals NaN: " << std::isnan(inverseMetric(0, 0)) << "\n";
+	auto inverseJac = CoordTransfSpherToCart.inverseJacobian(VectorN<Real, 3>{0, 0, 0}, SingularityPolicy::ReturnNaN);
+	std::cout << "Singular inverse Jacobian signals NaN: " << std::isnan(inverseJac(0, 0)) << "\n";
+}
+
 void Docs_Demo_Metric_Tensor()
 {
     std::cout << "***********************************************************" << std::endl;
@@ -417,8 +434,10 @@ void Docs_Demo_Metric_Tensor()
     
     // Christoffel symbols
     Docs_Demo_ChristoffelFirstKind();
-    
-    // Covariant derivatives
+		Docs_Demo_AnalyticalChristoffels();
+		Docs_Demo_MatrixSingularityPolicy();
+
+		// Covariant derivatives
     Docs_Demo_CovariantDerivative();
     
     // Geometric applications

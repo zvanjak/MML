@@ -2,6 +2,88 @@ project(MML_Tests VERSION 1.0)
 
 # Catch2 v3 is fetched in root CMakeLists.txt via FetchContent
 
+# Compile foundational headers in separate translation units, without Catch2 or
+# an umbrella header supplying dependencies before the header under test.
+set(MML_ISOLATED_HEADERS
+    mml/MMLBase.h
+    mml/MMLTypeDefs.h
+    mml/base/PrintFormatting.h
+    mml/algorithms/MatrixAlg/MatrixInversion.h
+    mml/algorithms/MatrixSingularity.h
+    mml/core/DifferentialGeometry/Metric.h
+    mml/algorithms/ImplicitNewtonMatrix.h
+    mml/MMLExceptions.h
+    mml/algorithms/Fourier/Fourier.h
+    mml/algorithms/Statistics.h
+    mml/algorithms/Statistics/Histogram.h
+    mml/algorithms/Statistics/Distributions.h
+    mml/algorithms/Statistics/DiscreteDistributions.h
+    mml/algorithms/CurveFitting.h
+    mml/MMLVisualizators.h
+    mml/base/Intervals.h
+    mml/base/Vector/Vector.h
+    mml/base/Vector/VectorN.h
+    mml/base/Vector/VectorTypes2D.h
+    mml/base/Vector/VectorTypes3D.h
+    mml/base/Vector/VectorTypes4D.h
+    mml/base/Matrix/Matrix.h
+    mml/base/Matrix/MatrixTriDiag.h
+    mml/base/Geometry/Geometry.h
+    mml/base/Geometry/GeometryBase/GeometryPoints.h
+    mml/base/Geometry/GeometryBase/Geometry2DShapes.h
+    mml/base/Geometry/GeometryBase/Geometry3DShapes.h
+    mml/interfaces/IFunction.h
+    mml/base/StandardFunctions.h
+    mml/core/DifferentialGeometry/Chart.h
+    mml/core/DifferentialGeometry/FieldOperations.h
+    mml/algorithms/Analyzers/FunctionsAnalyzer.h
+    mml/algorithms/Analyzers/MatrixAnalyzer.h
+    mml/tools/analyzers/FunctionAnalysisReports.h
+    mml/tools/analyzers/MatrixAnalysisReports.h
+    mml/tools/visualizers/VisualizerConfig.h
+    mml/tools/visualizers/VisualizerFiles.h
+    mml/tools/visualizers/VisualizerProcess.h
+    mml/tools/visualizers/VisualizerFacade.h
+    mml/tools/persistence/VectorIO.h
+    mml/tools/Visualizer.h
+    test_data/parametric_curves_defs.h
+    test_data/parametric_surfaces_defs.h
+    test_beds/parametric_curves_test_bed.h
+    test_beds/parametric_surfaces_test_bed.h
+)
+set(MML_ISOLATED_SOURCES)
+foreach(header IN LISTS MML_ISOLATED_HEADERS)
+    string(MAKE_C_IDENTIFIER "${header}" source_name)
+    set(source "${CMAKE_CURRENT_BINARY_DIR}/header_checks/${source_name}.cpp")
+    file(GENERATE OUTPUT "${source}" CONTENT "#include <${header}>\n")
+    list(APPEND MML_ISOLATED_SOURCES "${source}")
+endforeach()
+add_library(MML_HeaderChecks OBJECT ${MML_ISOLATED_SOURCES}
+    algorithms/analyzers/analyzer_boundary_checks.cpp
+    base/geometry/geometry_deprecation_checks.cpp
+    base/vector/vector_boundary_checks.cpp
+    base/exception_boundary_checks.cpp
+    base/matrix_algorithm_boundary_checks.cpp
+    tools/visualizer_boundary_checks.cpp)
+target_sources(MML_HeaderChecks PRIVATE base/namespace_collision_checks.cpp base/scalar_configuration_checks.cpp)
+target_sources(MML_HeaderChecks PRIVATE base/namespace_macro_collision_checks.cpp)
+target_sources(MML_HeaderChecks PRIVATE base/reserved_member_checks.cpp)
+target_sources(MML_HeaderChecks PRIVATE base/algebra/algebra_boundary_checks.cpp)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set_source_files_properties(base/reserved_member_checks.cpp PROPERTIES
+        COMPILE_OPTIONS "-Werror=reserved-identifier")
+endif()
+target_sources(MML_HeaderChecks PRIVATE core/showcase_boundary_checks.cpp)
+target_link_libraries(MML_HeaderChecks PRIVATE minimalmathlib::minimalmathlib)
+set_target_properties(MML_HeaderChecks PROPERTIES UNITY_BUILD OFF DISABLE_PRECOMPILE_HEADERS ON)
+if(MSVC)
+    set_source_files_properties(base/geometry/geometry_deprecation_checks.cpp PROPERTIES
+        COMPILE_OPTIONS "/w14996;/we4996")
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set_source_files_properties(base/geometry/geometry_deprecation_checks.cpp PROPERTIES
+        COMPILE_OPTIONS "-Werror=deprecated-declarations")
+endif()
+
 # =============================================================================
 # MML Core Tests - Tests for the core MML library
 # =============================================================================
@@ -11,6 +93,7 @@ project(MML_Tests VERSION 1.0)
 ###############################################################################
 file(GLOB BASE_TESTS 
     # Algebra foundations
+    "base/algebra/field_matrix_algorithms_tests.cpp"
     "base/algebra/algebra_traits_tests.cpp"
     "base/algebra/finite_groups_tests.cpp"
     "base/algebra/group_action_tests.cpp"
@@ -21,19 +104,29 @@ file(GLOB BASE_TESTS
     "base/algebra/rigid_motion_groups_tests.cpp"
     "base/algebra/permutation_tests.cpp"
     "base/base_math_formula_fixes_tests.cpp"
+    "base/header_hygiene_tests.cpp"
     "base/bugfix_epic_z5pg_tests.cpp"
     "base/bugfix_epic_i5u3_tests.cpp"
     "base/baseutils_tests.cpp"
+    "base/complex_instantiation_tests.cpp"
+    "base/degenerate_inputs_tests.cpp"
+    "base/matrix_naming_tests.cpp"
+    "base/vector_naming_tests.cpp"
+    "base/result_policy_tests.cpp"
+    "base/tolerance_policy_tests.cpp"
+    "base/tolerance_base_tests.cpp"
     "base/matrixops_tests.cpp"
     "base/chebyshev_approximation_tests.cpp"
     "base/dirac_delta_function_tests.cpp"
     "base/exception_tests.cpp"
+    "base/reserved_member_behavior_tests.cpp"
     "base/function_tests.cpp"
     "base/intervals_tests.cpp"
     "base/combinatorics_tests.cpp"
     "base/mml_concepts_tests.cpp"
     "base/number_theory_tests.cpp"
     "base/ode_system_tests.cpp"
+    "base/trajectory_storage_tests.cpp"
     "base/polynom_tests.cpp"
     "base/quaternion_tests.cpp"
     "base/random_tests.cpp"
@@ -77,10 +170,10 @@ file(GLOB BASE_TESTS
     "base/tensor/tensors_tests.cpp"
     # Vector tests
     "base/vector/vector_tests.cpp"
+    "base/vector/unsigned_vector_tests.cpp"
     "base/vector/vectorn_tests.cpp"
     "base/vector/vectorn_subtypes_tests.cpp"
     "base/vector/vector_types_tests.cpp"
-    "base/vector/vector_io_tests.cpp"
 )
 
 ###############################################################################
@@ -98,12 +191,19 @@ file(GLOB CORE_TESTS
     # Coordinate systems and transformations
     "core/coordinate_map_variance_tests.cpp"
     "core/coord_transf/coord_transf_tests.cpp"
+    "interfaces/icoord_transf_tests.cpp"
+    "interfaces/iparametrized_tests.cpp"
+    "interfaces/idiscrete_map_tests.cpp"
+    "interfaces/interface_naming_tests.cpp"
+    "interfaces/ijacobian_contract_tests.cpp"
+    "interfaces/default_implementation_tests.cpp"
     "core/coord_transf/coord_transf_quaternion_tests.cpp"
     "core/coord_transf/coord_transf_tensor_tests.cpp"
     "core/coord_transf/coord_transf_vector_tests.cpp"
     # Curves and surfaces
     "core/curves_tests.cpp"
     "core/surfaces_tests.cpp"
+    "core/showcase_geometry_tests.cpp"
     "core/differential_geometry/atlas_tests.cpp"
     "core/differential_geometry/chart_tests.cpp"
     "core/differential_geometry/form_integration_tests.cpp"
@@ -112,6 +212,8 @@ file(GLOB CORE_TESTS
     # Derivation
     "core/derivation/ad_consistency_tests.cpp"
     "core/derivation/ad_jacobians_tests.cpp"
+    "core/derivation/ad_adapters_tests.cpp"
+    "core/derivation/derivation_naming_tests.cpp"
     "core/derivation/derivation_characterization_tests.cpp"
     "core/derivation/derivation_tests.cpp"
      "core/derivation/first_derivative_stencil_tests.cpp"
@@ -128,21 +230,27 @@ file(GLOB CORE_TESTS
     # Function helpers
     "core/function_helpers_tests.cpp"
     # Function spaces
-    "core/function_spaces/function_spaces_tests.cpp"
     # Integration
     "core/integration/integration_tests.cpp"
     "core/integration/integration_2d_tests.cpp"
     "core/integration/integration_3d_tests.cpp"
     "core/integration/gauss_kronrod_tests.cpp"
+    "core/integration/gauss_kronrod_reference_tests.cpp"
     "core/integration/adaptive_integration_nd_tests.cpp"
     "core/integration/monte_carlo_integration_tests.cpp"
+    "core/integration/parallel_integration_tests.cpp"
     "core/integration/path_integration_tests.cpp"
     "core/integration/surface_integration_tests.cpp"
     # Linear algebra
     "core/lin_alg_solvers/iterative_linear_solvers_tests.cpp"
     "core/lin_alg_solvers/linear_alg_eq_solvers_tests.cpp"
      "core/sparse_solvers/sparse_solvers_tests.cpp"
+     "core/sparse_solvers/krylov_solvers_tests.cpp"
+     "core/result_honesty_tests.cpp"
+    "core/tolerance_core_tests.cpp"
     "core/metric_tensor_tests.cpp"
+    "core/singularity_policy_tests.cpp"
+    "core/mathematical_identity_tests.cpp"
     "core/typed_field_operations_tests.cpp"
     "core/typed_metric_adapters_tests.cpp"
     "core/hermitian_cholesky_tests.cpp"
@@ -171,15 +279,20 @@ file(GLOB CORE_TESTS
 file(GLOB ALGORITHMS_TESTS
     # Curve fitting and analysis
     "algorithms/curve_fitting_tests.cpp"
+    "algorithms/generalized_least_squares_tests.cpp"
+    "algorithms/domain_exception_tests.cpp"
     "algorithms/parametric_curve_analyzer_tests.cpp"
     # Eigensolvers
     "algorithms/complex_eigenanalysis_tests.cpp"
+    "algorithms/eigensolver_adversarial_tests.cpp"
     "algorithms/eigensolver_building_blocks_tests.cpp"
     "algorithms/eigensystem_solvers_tests.cpp"
     # Field analysis
     "algorithms/analyzers/field_analyzers_tests.cpp"
     "algorithms/analyzers/function_analyzer_tests.cpp"
     "algorithms/analyzers/matrix_analyzer_tests.cpp"
+    "algorithms/naming_honesty_tests.cpp"
+    "algorithms/tolerance_algorithms_tests.cpp"
     # Root finding
     "algorithms/root_finding/root_finding_tests.cpp"
     "algorithms/root_finding/advanced_root_finding_tests.cpp"
@@ -187,14 +300,20 @@ file(GLOB ALGORITHMS_TESTS
     "algorithms/root_finding/nonlinear_system_solvers_tests.cpp"
     # ODE solvers
     "algorithms/ode_solvers/ode_system_solvers_tests.cpp"
+    "algorithms/ode_solvers/stiff_benchmark_tests.cpp"
+    "algorithms/ode_solvers/implicit_retry_tests.cpp"
+    "algorithms/ode_solvers/trajectory_resource_tests.cpp"
+    "algorithms/ode_solvers/reverse_time_tests.cpp"
     "algorithms/ode_solvers/ode_step_calculators_tests.cpp"
     "algorithms/ode_solvers/ode_event_detection_tests.cpp"
     "algorithms/ode_solvers/bvp_shooting_method_tests.cpp"
     # DAE solvers
     "algorithms/dae_solvers/dae_solver_tests.cpp"
+    "algorithms/dae_solvers/rodas4_tests.cpp"
     "algorithms/dae_solvers/dae_event_detection_tests.cpp"
     # Matrix algorithms
     "algorithms/matrix_alg_tests.cpp"
+    "algorithms/matrix_inversion_consolidation_tests.cpp"
     # Graph algorithms
     "algorithms/graph_tests.cpp"
     # Computational geometry
@@ -227,6 +346,7 @@ file(GLOB ALGORITHMS_TESTS
     "algorithms/statistics/histogram_tests.cpp"
     # Fourier tests
     "algorithms/fourier/fourier_tests.cpp"
+    "algorithms/fourier/spectrum_layering_tests.cpp"
 )
 
 ###############################################################################
@@ -242,11 +362,16 @@ file(GLOB SYSTEMS_TESTS
 ###############################################################################
 file(GLOB TOOLS_TESTS
     "tools/console_printer_tests.cpp"
+    "tools/shared_print_formatting_tests.cpp"
+    "tools/analyzer_reports_tests.cpp"
     "tools/dataloader_tests.cpp"
     "tools/serializer_tests.cpp"
+    "tools/persistence_portability_tests.cpp"
+    "tools/vector_persistence_tests.cpp"
     "tools/timer_tests.cpp"
     "tools/threadpool_tests.cpp"
     "tools/visualizer_tests.cpp"
+    "tools/visualization_example_results_tests.cpp"
 )
 
 ###############################################################################
@@ -272,6 +397,19 @@ add_executable(MML_Tests
 target_link_libraries(MML_Tests PRIVATE 
     Catch2::Catch2WithMain
 )
+add_dependencies(MML_Tests MML_HeaderChecks)
+
+add_executable(MML_VisualizerProcessFixture tools/visualizer_process_fixture.cpp)
+function(configure_mml_launcher_fixture target)
+    add_dependencies(${target} MML_VisualizerProcessFixture)
+    target_compile_definitions(${target} PRIVATE
+        MML_VISUALIZER_PROCESS_FIXTURE="$<TARGET_FILE:MML_VisualizerProcessFixture>")
+endfunction()
+configure_mml_launcher_fixture(MML_Tests)
+
+add_executable(MML_StiffBenchmarks EXCLUDE_FROM_ALL
+    "${CMAKE_SOURCE_DIR}/testing/stiff_solver_benchmark.cpp")
+target_link_libraries(MML_StiffBenchmarks PRIVATE minimalmathlib::minimalmathlib)
 
 # Link libatomic on Linux for 128-bit atomics (needed by long double builds)
 if(UNIX AND NOT APPLE)
@@ -321,6 +459,7 @@ if(MML_BUILD_ALL_PRECISION_TESTS)
         ${INFRASTRUCTURE_TESTS}
     )
     target_link_libraries(MML_Tests_Float PRIVATE Catch2::Catch2WithMain)
+    configure_mml_launcher_fixture(MML_Tests_Float)
     if(UNIX AND NOT APPLE)
         target_link_libraries(MML_Tests_Float PRIVATE atomic)
     endif()
@@ -349,6 +488,7 @@ if(MML_BUILD_ALL_PRECISION_TESTS)
         ${INFRASTRUCTURE_TESTS}
     )
     target_link_libraries(MML_Tests_LongDbl PRIVATE Catch2::Catch2WithMain)
+    configure_mml_launcher_fixture(MML_Tests_LongDbl)
     if(UNIX AND NOT APPLE)
         target_link_libraries(MML_Tests_LongDbl PRIVATE atomic)
     endif()
@@ -393,6 +533,13 @@ if(BUILD_SINGLE_HEADER_TESTS)
     endfunction()
 
     add_mml_single_header_test(MML_SingleHeader_Tests MML.h)
+    target_sources(MML_SingleHeader_Tests PRIVATE single_header/test_showcase_fixtures.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE single_header/namespace_collision_single_header.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE single_header/algebra_boundary_checks.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE single_header/trajectory_storage_single_header.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE single_header/generalized_least_squares_single_header.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE single_header/parallel_integration_single_header.cpp)
+    target_include_directories(MML_SingleHeader_Tests PRIVATE ${CMAKE_SOURCE_DIR})
     add_mml_single_header_test(MML_SingleHeader_Float_Tests MML_float.h)
     target_compile_definitions(MML_SingleHeader_Float_Tests PRIVATE MML_SINGLE_HEADER_EXPECT_FLOAT)
     add_mml_single_header_test(MML_SingleHeader_LongDouble_Tests MML_long_double.h)
@@ -409,4 +556,3 @@ add_executable(GenerateSerializerRefFiles
     tools/generate_serializer_reference_files.cpp
 )
 target_include_directories(GenerateSerializerRefFiles PRIVATE ${CMAKE_SOURCE_DIR}/mml/single_header)
-

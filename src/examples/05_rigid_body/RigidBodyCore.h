@@ -302,7 +302,7 @@ namespace RigidBodySim
         [[nodiscard]] MatrixNM<Real, 3, 3> GetWorldInertiaTensor() const
         {
             MatrixNM<Real, 3, 3> R = _state.orientation.ToRotationMatrix();
-            MatrixNM<Real, 3, 3> Rt = R.transpose();
+            MatrixNM<Real, 3, 3> Rt = R.Transposed();
             return R * _inertiaTensorBody * Rt;
         }
 
@@ -311,7 +311,7 @@ namespace RigidBodySim
         [[nodiscard]] MatrixNM<Real, 3, 3> GetWorldInertiaTensorInv() const
         {
             MatrixNM<Real, 3, 3> R = _state.orientation.ToRotationMatrix();
-            MatrixNM<Real, 3, 3> Rt = R.transpose();
+            MatrixNM<Real, 3, 3> Rt = R.Transposed();
             return R * _inertiaTensorBodyInv * Rt;
         }
 

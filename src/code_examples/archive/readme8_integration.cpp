@@ -79,7 +79,7 @@ void Readme_Integration_precision()
 
 		double integral = f_int(x) - f_int(x1);
 
-		double int_trap = MML::IntegrateTrap(f, x1, x, 1e-3).value;
+		double int_trap = MML::IntegrateTrap(f, x1, x, 1e-3);
 
 		double err1 = int_trap - integral;
 

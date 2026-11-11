@@ -51,10 +51,10 @@ void Test_1D_AllIntegrators_SingleFunc(const std::string& funcName,
     double exact = f_int(b) - f_int(a);
     
     // Test with default tolerance
-    auto result_trap = IntegrateTrap(f, a, b);
-    auto result_simp = IntegrateSimpson(f, a, b);
-    auto result_romb = IntegrateRomberg(f, a, b);
-    auto result_gauss = IntegrateGauss10(f, a, b);
+    auto result_trap = IntegrateTrapDetailed(f, a, b);
+    auto result_simp = IntegrateSimpsonDetailed(f, a, b);
+    auto result_romb = IntegrateRombergDetailed(f, a, b);
+    auto result_gauss = IntegrateGauss10Detailed(f, a, b);
     
     PrecisionTestResult r_trap("Trapezoidal", funcName, exact, result_trap.value);
     r_trap.iterations = result_trap.iterations;
@@ -103,10 +103,10 @@ void Test_1D_AllFunctions_AllIntegrators()
         // Skip if interval is problematic
         if (!std::isfinite(exact) || std::abs(b - a) > 1e6) continue;
         
-        auto result_trap = IntegrateTrap(f, a, b);
-        auto result_simp = IntegrateSimpson(f, a, b);
-        auto result_romb = IntegrateRomberg(f, a, b);
-        auto result_gauss = IntegrateGauss10(f, a, b);
+        auto result_trap = IntegrateTrapDetailed(f, a, b);
+        auto result_simp = IntegrateSimpsonDetailed(f, a, b);
+        auto result_romb = IntegrateRombergDetailed(f, a, b);
+        auto result_gauss = IntegrateGauss10Detailed(f, a, b);
         
         suite.addResult("Trap", testFunc._funcName, exact, result_trap.value);
         suite.addResult("Simpson", testFunc._funcName, exact, result_simp.value);
@@ -139,8 +139,8 @@ void Test_1D_ToleranceSweep()
         std::ostringstream tolStr;
         tolStr << std::scientific << std::setprecision(0) << tol;
         
-        auto result_simp = IntegrateSimpson(f, a, b, tol);
-        auto result_romb = IntegrateRomberg(f, a, b, tol);
+        auto result_simp = IntegrateSimpsonDetailed(f, a, b, tol);
+        auto result_romb = IntegrateRombergDetailed(f, a, b, tol);
         
         PrecisionTestResult r_simp("Simpson", "tol=" + tolStr.str(), exact, result_simp.value);
         r_simp.iterations = result_simp.iterations;
@@ -229,33 +229,33 @@ void Test_1D_ChallengingFunctions()
     RealFunctionFromStdFunc f_osc([](Real x) { return sin(50*x); });
     double exact_osc = 0.0;
     
-    auto r_osc_trap = IntegrateTrap(f_osc, 0.0, 2*Constants::PI);
-    auto r_osc_simp = IntegrateSimpson(f_osc, 0.0, 2*Constants::PI);
-    auto r_osc_romb = IntegrateRomberg(f_osc, 0.0, 2*Constants::PI);
+    auto r_osc_trap = IntegrateTrapDetailed(f_osc, 0.0, 2*Constants::PI);
+    auto r_osc_simp = IntegrateSimpsonDetailed(f_osc, 0.0, 2*Constants::PI);
+    auto r_osc_romb = IntegrateRombergDetailed(f_osc, 0.0, 2*Constants::PI);
     
     suite.addResult("Trap", "sin(50x)", exact_osc, r_osc_trap.value);
     suite.addResult("Simpson", "sin(50x)", exact_osc, r_osc_simp.value);
     suite.addResult("Romberg", "sin(50x)", exact_osc, r_osc_romb.value);
     
     // 2. Peaked function: 1/(1+100x^2) on [-1, 1] (integral = 2*atan(10)/10)
-    RealFunctionFromStdFunc f_peak([](Real x) { return REAL(1.0) / (REAL(1.0) + 100*x*x); });
+    RealFunctionFromStdFunc f_peak([](Real x) { return static_cast<MML::Real>(1.0) / (static_cast<MML::Real>(1.0) + 100*x*x); });
     double exact_peak = 2.0 * atan(10.0) / 10.0;
     
-    auto r_peak_trap = IntegrateTrap(f_peak, -1.0, 1.0);
-    auto r_peak_simp = IntegrateSimpson(f_peak, -1.0, 1.0);
-    auto r_peak_romb = IntegrateRomberg(f_peak, -1.0, 1.0);
+    auto r_peak_trap = IntegrateTrapDetailed(f_peak, -1.0, 1.0);
+    auto r_peak_simp = IntegrateSimpsonDetailed(f_peak, -1.0, 1.0);
+    auto r_peak_romb = IntegrateRombergDetailed(f_peak, -1.0, 1.0);
     
     suite.addResult("Trap", "peaked", exact_peak, r_peak_trap.value);
     suite.addResult("Simpson", "peaked", exact_peak, r_peak_simp.value);
     suite.addResult("Romberg", "peaked", exact_peak, r_peak_romb.value);
     
     // 3. Near-singular: sqrt(x) on [0, 1] (integral = 2/3)
-    RealFunctionFromStdFunc f_sqrt([](Real x) { return (x > 1e-15) ? sqrt(x) : REAL(0.0); });
+    RealFunctionFromStdFunc f_sqrt([](Real x) { return (x > 1e-15) ? sqrt(x) : static_cast<MML::Real>(0.0); });
     double exact_sqrt = 2.0 / 3.0;
     
-    auto r_sqrt_trap = IntegrateTrap(f_sqrt, 0.0, 1.0);
-    auto r_sqrt_simp = IntegrateSimpson(f_sqrt, 0.0, 1.0);
-    auto r_sqrt_romb = IntegrateRomberg(f_sqrt, 0.0, 1.0);
+    auto r_sqrt_trap = IntegrateTrapDetailed(f_sqrt, 0.0, 1.0);
+    auto r_sqrt_simp = IntegrateSimpsonDetailed(f_sqrt, 0.0, 1.0);
+    auto r_sqrt_romb = IntegrateRombergDetailed(f_sqrt, 0.0, 1.0);
     
     suite.addResult("Trap", "sqrt(x)", exact_sqrt, r_sqrt_trap.value);
     suite.addResult("Simpson", "sqrt(x)", exact_sqrt, r_sqrt_simp.value);
@@ -265,9 +265,9 @@ void Test_1D_ChallengingFunctions()
     RealFunctionFromStdFunc f_gauss([](Real x) { return exp(-x*x); });
     double exact_gauss = 0.5 * sqrt(Constants::PI) * std::erf(5.0);
     
-    auto r_gauss_trap = IntegrateTrap(f_gauss, 0.0, 5.0);
-    auto r_gauss_simp = IntegrateSimpson(f_gauss, 0.0, 5.0);
-    auto r_gauss_romb = IntegrateRomberg(f_gauss, 0.0, 5.0);
+    auto r_gauss_trap = IntegrateTrapDetailed(f_gauss, 0.0, 5.0);
+    auto r_gauss_simp = IntegrateSimpsonDetailed(f_gauss, 0.0, 5.0);
+    auto r_gauss_romb = IntegrateRombergDetailed(f_gauss, 0.0, 5.0);
     
     suite.addResult("Trap", "exp(-x^2)", exact_gauss, r_gauss_trap.value);
     suite.addResult("Simpson", "exp(-x^2)", exact_gauss, r_gauss_simp.value);
@@ -300,8 +300,8 @@ void Test_1D_ExtendedTestBed()
         
         if (!std::isfinite(exact)) continue;
         
-        auto result_simp = IntegrateSimpson(f, a, b);
-        auto result_romb = IntegrateRomberg(f, a, b);
+        auto result_simp = IntegrateSimpsonDetailed(f, a, b);
+        auto result_romb = IntegrateRombergDetailed(f, a, b);
         
         suite.addResult("Simpson", testFunc._funcName, exact, result_simp.value);
         suite.addResult("Romberg", testFunc._funcName, exact, result_romb.value);
@@ -344,7 +344,7 @@ void Test_2D_SurfaceIntegration()
     ScalarFunctionFromStdFunc<2> f_xy([](const VectorN<Real, 2>& p) { return p[0] * p[1]; });
     double exact_xy = 0.25;
     
-    auto result_xy = Integrate2D(f_xy, IntegrationMethod::ROMBERG, 0.0, 1.0, ConstY0, ConstY1);
+    auto result_xy = Integrate2DDetailed(f_xy, IntegrationMethod::ROMBERG, 0.0, 1.0, ConstY0, ConstY1);
     PrecisionTestResult r_xy("Surface", "x*y [0,1]^2", exact_xy, result_xy.value);
     r_xy.converged = result_xy.converged;
     suite.addResult(r_xy);
@@ -353,7 +353,7 @@ void Test_2D_SurfaceIntegration()
     ScalarFunctionFromStdFunc<2> f_sincos([](const VectorN<Real, 2>& p) { return sin(p[0]) * cos(p[1]); });
     double exact_sincos = 2.0;
     
-    auto result_sincos = Integrate2D(f_sincos, IntegrationMethod::ROMBERG, 0.0, Constants::PI, ConstY0, ConstYPiHalf);
+    auto result_sincos = Integrate2DDetailed(f_sincos, IntegrationMethod::ROMBERG, 0.0, Constants::PI, ConstY0, ConstYPiHalf);
     PrecisionTestResult r_sincos("Surface", "sin*cos", exact_sincos, result_sincos.value);
     r_sincos.converged = result_sincos.converged;
     suite.addResult(r_sincos);
@@ -362,7 +362,7 @@ void Test_2D_SurfaceIntegration()
     ScalarFunctionFromStdFunc<2> f_circ([](const VectorN<Real, 2>& p) { return p[0]*p[0] + p[1]*p[1]; });
     double exact_circ = 2.0 / 3.0;
     
-    auto result_circ = Integrate2D(f_circ, IntegrationMethod::ROMBERG, 0.0, 1.0, ConstY0, ConstY1);
+    auto result_circ = Integrate2DDetailed(f_circ, IntegrationMethod::ROMBERG, 0.0, 1.0, ConstY0, ConstY1);
     PrecisionTestResult r_circ("Surface", "x^2+y^2", exact_circ, result_circ.value);
     r_circ.converged = result_circ.converged;
     suite.addResult(r_circ);
@@ -373,7 +373,7 @@ void Test_2D_SurfaceIntegration()
     double erf1 = std::erf(1.0);
     double exact_gauss2d = Constants::PI * erf1 * erf1;
     
-    auto result_gauss2d = Integrate2D(f_gauss2d, IntegrationMethod::ROMBERG, -1.0, 1.0, ConstYNeg1, ConstY1);
+    auto result_gauss2d = Integrate2DDetailed(f_gauss2d, IntegrationMethod::ROMBERG, -1.0, 1.0, ConstYNeg1, ConstY1);
     PrecisionTestResult r_gauss2d("Surface", "exp(-r^2)", exact_gauss2d, result_gauss2d.value);
     r_gauss2d.converged = result_gauss2d.converged;
     suite.addResult(r_gauss2d);
@@ -404,7 +404,7 @@ void Test_3D_VolumeIntegration()
     ScalarFunctionFromStdFunc<3> f_xyz([](const VectorN<Real, 3>& p) { return p[0] * p[1] * p[2]; });
     double exact_xyz = 1.0 / 8.0;
     
-    auto result_xyz = Integrate3D(f_xyz, IntegrationMethod::ROMBERG, 0.0, 1.0, ConstY0, ConstY1, ConstZ0, ConstZ1);
+    auto result_xyz = Integrate3DDetailed(f_xyz, IntegrationMethod::ROMBERG, 0.0, 1.0, ConstY0, ConstY1, ConstZ0, ConstZ1);
     PrecisionTestResult r_xyz("Volume", "xyz [0,1]^3", exact_xyz, result_xyz.value);
     r_xyz.converged = result_xyz.converged;
     suite.addResult(r_xyz);
@@ -413,16 +413,16 @@ void Test_3D_VolumeIntegration()
     ScalarFunctionFromStdFunc<3> f_r2([](const VectorN<Real, 3>& p) { return p[0]*p[0] + p[1]*p[1] + p[2]*p[2]; });
     double exact_r2 = 1.0;
     
-    auto result_r2 = Integrate3D(f_r2, IntegrationMethod::ROMBERG, 0.0, 1.0, ConstY0, ConstY1, ConstZ0, ConstZ1);
+    auto result_r2 = Integrate3DDetailed(f_r2, IntegrationMethod::ROMBERG, 0.0, 1.0, ConstY0, ConstY1, ConstZ0, ConstZ1);
     PrecisionTestResult r_r2("Volume", "r^2 [0,1]^3", exact_r2, result_r2.value);
     r_r2.converged = result_r2.converged;
     suite.addResult(r_r2);
     
     // 3. f(x,y,z) = 1 over [0,2]x[0,3]x[0,4] (integral = 24)
-    ScalarFunctionFromStdFunc<3> f_const([](const VectorN<Real, 3>& p) { return REAL(1.0); });
+    ScalarFunctionFromStdFunc<3> f_const([](const VectorN<Real, 3>& p) { return static_cast<MML::Real>(1.0); });
     double exact_const = 24.0;  // 2 * 3 * 4
     
-    auto result_const = Integrate3D(f_const, IntegrationMethod::ROMBERG, 0.0, 2.0, ConstY0, ConstY3, ConstZ0, ConstZ4);
+    auto result_const = Integrate3DDetailed(f_const, IntegrationMethod::ROMBERG, 0.0, 2.0, ConstY0, ConstY3, ConstZ0, ConstZ4);
     PrecisionTestResult r_const("Volume", "1 [0,2]x[0,3]x[0,4]", exact_const, result_const.value);
     r_const.converged = result_const.converged;
     suite.addResult(r_const);
@@ -464,10 +464,10 @@ void Test_Integration_ComprehensiveSummary()
         
         if (!std::isfinite(exact) || std::abs(b - a) > 1e6) continue;
         
-        auto result_trap = IntegrateTrap(f, a, b, 1e-10);
-        auto result_simp = IntegrateSimpson(f, a, b, 1e-10);
-        auto result_romb = IntegrateRomberg(f, a, b, 1e-10);
-        auto result_gauss = IntegrateGauss10(f, a, b);
+        auto result_trap = IntegrateTrapDetailed(f, a, b, 1e-10);
+        auto result_simp = IntegrateSimpsonDetailed(f, a, b, 1e-10);
+        auto result_romb = IntegrateRombergDetailed(f, a, b, 1e-10);
+        auto result_gauss = IntegrateGauss10Detailed(f, a, b);
         
         suite.addResult("Trap", testFunc._funcName, exact, result_trap.value);
         suite.addResult("Simpson", testFunc._funcName, exact, result_simp.value);

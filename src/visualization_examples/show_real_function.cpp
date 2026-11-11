@@ -6,6 +6,8 @@
  * Cross-platform: works on Windows, Linux, and macOS.
  */
 
+#include "VisualizationResult.h"
+
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
@@ -22,11 +24,9 @@ void Show_Real_Function_Examples()
     std::cout << "\n=== Real Function Visualization Examples ===\n\n";
 
     // Helper to check and report visualization result
-    auto checkResult = [](const VisualizerResult& result, const std::string& name) {
+    auto checkResult = [](const IOResult& result, const std::string& name) {
         if (!result.success) {
-            std::cerr << "  ERROR: " << result.errorMessage << "\n";
-            std::cerr << "  File: " << result.dataFilePath << "\n";
-            std::cerr << "  Exit code: " << result.exitCode << "\n";
+            Examples::ReportVisualizationResult(result, name);
         } else {
             std::cout << "  Visualization completed successfully.\n";
         }

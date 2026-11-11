@@ -12,7 +12,9 @@
 #if !defined MML_COORD_TRANSF_H
 #define MML_COORD_TRANSF_H
 
+#include <mml/algorithms/MatrixSingularity.h>
 #include <mml/MMLBase.h>
+#include <mml/MMLSingularityHandling.h>
 
 #include <mml/interfaces/ICoordTransf.h>
 
@@ -62,21 +64,29 @@ namespace MML
 	/// @tparam VectorFrom Source coordinate system vector type
 	/// @tparam VectorTo Target coordinate system vector type
 	/// @tparam N Dimension of coordinate space
-	template<typename VectorFrom, typename VectorTo, int N>
+	template<typename VectorFrom, typename VectorTo, int N = Detail::VectorDimension<VectorFrom>>
 	class CoordTransf : public virtual ICoordTransf<VectorFrom, VectorTo, N>
 	{
 	public:
-		/// @brief Transform coordinates from source to target system
+		using Base = ICoordTransf<VectorFrom, VectorTo, N>;
+		using Base::FromDim;   ///< Dimension of the source space (deduced from VectorFrom)
+		using Base::ToDim;     ///< Dimension of the target space (deduced from VectorTo)
+		/// Jacobian J_ij = dx'_i/dx_j of the forward map is ToDim x FromDim
+		using JacobianType        = MatrixNM<Real, ToDim, FromDim>;
+		/// Jacobian K_ij = dx_i/dx'_j of the inverse map is FromDim x ToDim
+		using InverseJacobianType = MatrixNM<Real, FromDim, ToDim>;
+
+		/// @brief Transform coordinates component-wise through coordTransfFunc(i)
 		/// @param x Position in source coordinate system
 		/// @return Position in target coordinate system
 		/// @note Must be consistent with transf() — both use coordTransfFunc(i)
-		VectorN<Real, N> operator()(const VectorN<Real, N>& x) const
-    {
-      VectorN<Real, N> ret;
-      for (int i = 0; i < N; i++)
-        ret[i] = this->coordTransfFunc(i)(x);
-      return ret;
-    }
+		VectorTo operator()(const VectorFrom& x) const override
+		{
+			VectorTo ret;
+			for (int i = 0; i < ToDim; i++)
+				ret[i] = this->coordTransfFunc(i)(x);
+			return ret;
+		}
 
 		/// @brief Get basis vector e_i at position (covariant basis)
 		/// @param ind Index of basis vector (0 to N-1)
@@ -87,7 +97,7 @@ namespace MML
 			const auto jac = jacobian(pos);
 			VectorTo ret;
 
-			for (int i = 0; i < N; i++)
+			for (int i = 0; i < ToDim; i++)
 				ret[i] = jac(i, ind);
 
 			return ret;
@@ -101,7 +111,7 @@ namespace MML
 			const auto jac = jacobian(pos);
 			VectorFrom ret;
 
-			for (int i = 0; i < N; i++)
+			for (int i = 0; i < FromDim; i++)
 				ret[i] = jac(ind, i);
 
 			return ret;
@@ -109,13 +119,13 @@ namespace MML
 
 		/// @brief Compute Jacobian matrix of transformation at position
 		/// @param pos Position in source coordinates
-		/// @return Jacobian matrix J_ij = ∂x'_i/∂x_j
-		virtual MatrixNM<Real, N, N> jacobian(const VectorN<Real, N>& pos) const
+		/// @return Jacobian matrix J_ij = ∂x'_i/∂x_j (ToDim x FromDim)
+		virtual JacobianType jacobian(const VectorN<Real, FromDim>& pos) const
 		{
-			MatrixNM<Real, N, N> jac;
+			JacobianType jac;
 
-			for (int i = 0; i < N; ++i)
-				for (int j = 0; j < N; ++j)
+			for (int i = 0; i < ToDim; ++i)
+				for (int j = 0; j < FromDim; ++j)
 				{
 					jac(i, j) = Derivation::NDer4Partial(this->coordTransfFunc(i), j, pos);
 				}
@@ -131,9 +141,9 @@ namespace MML
 		{
 			const auto jac = jacobian(pos);
 			VectorTo ret;
-			for (int i = 0; i < N; i++) {
+			for (int i = 0; i < ToDim; i++) {
 				ret[i] = 0;
-				for (int j = 0; j < N; j++)
+				for (int j = 0; j < FromDim; j++)
 					ret[i] += jac(i, j) * vec[j];
 			}
 			return ret;
@@ -146,10 +156,10 @@ namespace MML
 		{
 			const auto jac = jacobian(pos);
 			VectorFrom ret;
-			for (int i = 0; i < N; i++)
+			for (int i = 0; i < FromDim; i++)
 			{
 				ret[i] = 0;
-				for (int j = 0; j < N; j++)
+				for (int j = 0; j < ToDim; j++)
 					ret[i] += jac(j, i) * vec[j];
 			}
 			return ret;
@@ -163,35 +173,61 @@ namespace MML
 	/// @tparam VectorFrom Source coordinate system vector type
 	/// @tparam VectorTo Target coordinate system vector type
 	/// @tparam N Dimension of coordinate space
-	template<typename VectorFrom, typename VectorTo, int N>
+	template<typename VectorFrom, typename VectorTo, int N = Detail::VectorDimension<VectorFrom>>
 	class CoordTransfWithInverse : public virtual CoordTransf<VectorFrom, VectorTo, N>,
 																 public virtual ICoordTransfWithInverse<VectorFrom, VectorTo, N>
 	{
 	public:
+		using CoordTransf<VectorFrom, VectorTo, N>::FromDim;
+		using CoordTransf<VectorFrom, VectorTo, N>::ToDim;
+		using typename CoordTransf<VectorFrom, VectorTo, N>::InverseJacobianType;
+
 		/// @brief Compute Jacobian matrix of the inverse transformation at a target position
 		/// @param pos Position in target coordinates
-		/// @return Inverse Jacobian K_ij = ∂x_i/∂x'_j
-		virtual MatrixNM<Real, N, N> inverseJacobian(const VectorN<Real, N>& pos) const
+		/// @return Inverse Jacobian K_ij = ∂x_i/∂x'_j (FromDim x ToDim)
+		virtual InverseJacobianType inverseJacobian(const VectorN<Real, ToDim>& pos) const
 		{
-			MatrixNM<Real, N, N> jac;
+			Singularity::RequireFiniteCoordinates<ToDim>(pos, "Inverse Jacobian");
+			InverseJacobianType jac;
 
-			for (int i = 0; i < N; ++i)
-				for (int j = 0; j < N; ++j)
+			for (int i = 0; i < FromDim; ++i)
+				for (int j = 0; j < ToDim; ++j)
 					jac(i, j) = Derivation::NDer4Partial(this->inverseCoordTransfFunc(i), j, pos);
 
+			Singularity::RequireFiniteMatrix(jac, "Inverse Jacobian");
+			if constexpr (FromDim == ToDim)
+				(void)Singularity::InverseMatrix(jac);
 			return jac;
+		}
+
+		/// Explicit singular-matrix policy; retains dispatch to one-argument user overrides.
+		InverseJacobianType inverseJacobian(const VectorN<Real, ToDim>& pos, SingularityPolicy policy) const {
+			Singularity::RequireMatrixPolicy(policy);
+			Singularity::RequireFiniteCoordinates<ToDim>(pos, "Inverse Jacobian");
+			try {
+				const auto jac = inverseJacobian(pos);
+				Singularity::RequireFiniteMatrix(jac, "Inverse Jacobian");
+				return jac;
+			} catch (const SingularMatrixError&) {
+				if (policy == SingularityPolicy::Throw)
+					throw;
+				return Singularity::MatrixAtSingularity<InverseJacobianType>(policy, "Inverse Jacobian: singular parametrization");
+			}
 		}
 
 		/// @brief Get contravariant basis vector using inverse transformation
 		/// @param ind Index of basis vector (0 to N-1)
 		/// @param pos Position in target coordinates
 		/// @return Contravariant basis vector in source coordinates
-		virtual VectorFrom getContravarBasisVec(int ind, const VectorTo& pos) const
+		/// @note Row ind of K has ToDim entries but is returned as a VectorFrom; only meaningful
+		///       for square transformations (the original, unchanged semantics).
+		VectorFrom getContravarBasisVec(int ind, const VectorTo& pos) const
+			requires (FromDim == ToDim)
 		{
 			const auto jac = inverseJacobian(pos);
 			VectorFrom ret;
 
-			for (int i = 0; i < N; i++)
+			for (int i = 0; i < FromDim; i++)
 				ret[i] = jac(ind, i);
 
 			return ret;
@@ -200,12 +236,15 @@ namespace MML
 		/// @param ind Index of basis vector (0 to N-1)
 		/// @param pos Position in target coordinates
 		/// @return Contravariant basis vector in target coordinates
-		virtual VectorTo   getInverseContravarBasisVec(int ind, const VectorTo& pos) const
+		/// @note Column ind of K has FromDim entries but is returned as a VectorTo; only meaningful
+		///       for square transformations (the original, unchanged semantics).
+		VectorTo   getInverseContravarBasisVec(int ind, const VectorTo& pos) const
+			requires (FromDim == ToDim)
 		{
 			const auto jac = inverseJacobian(pos);
 			VectorTo ret;
 
-			for (int i = 0; i < N; i++)
+			for (int i = 0; i < ToDim; i++)
 				ret[i] = jac(i, ind);
 
 			return ret;
@@ -219,10 +258,10 @@ namespace MML
 		{
 			const auto jac = inverseJacobian(pos);
 			VectorTo ret;
-			for (int i = 0; i < N; i++)
+			for (int i = 0; i < ToDim; i++)
 			{
 				ret[i] = 0;
-				for (int j = 0; j < N; j++)
+				for (int j = 0; j < FromDim; j++)
 					ret[i] += jac(j, i) * vec[j];
 			}
 
@@ -236,10 +275,10 @@ namespace MML
 		{
 			const auto jac = inverseJacobian(pos);
 			VectorFrom ret;
-			for (int i = 0; i < N; i++)
+			for (int i = 0; i < FromDim; i++)
 			{
 				ret[i] = 0;
-				for (int j = 0; j < N; j++)
+				for (int j = 0; j < ToDim; j++)
 					ret[i] += jac(i, j) * vec[j];
 			}
 
@@ -251,13 +290,14 @@ namespace MML
 		/// @param pos Position in source coordinates
 		/// @return Transformed tensor in target coordinates
 		Tensor2<N> transfTensor2(const Tensor2<N>& tensor, const VectorFrom& pos) const
+			requires (FromDim == ToDim)
 		{
 			const auto forwardJac = this->jacobian(pos);
 			const auto inverseJac = inverseJacobian(this->transf(pos));
 			// Tensor ctor signature is (nCovar, nContravar); preserve per-slot variance of the input
-			Tensor2<N> ret(tensor.NumCovar(), tensor.NumContravar());
+			Tensor2<N> ret(tensor.numCovar(), tensor.numContravar());
 			for (int s = 0; s < 2; s++)
-				ret.setContravar(s, tensor.IsContravar(s));
+				ret.setContravar(s, tensor.isContravar(s));
 
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++)
@@ -267,12 +307,12 @@ namespace MML
 						for (int l = 0; l < N; l++)
 						{
               Real coef1, coef2;
-							if (tensor.IsContravar(0))
+							if (tensor.isContravar(0))
 								coef1 = forwardJac(i, k);
 							else
 								coef1 = inverseJac(k, i);
 
-							if (tensor.IsContravar(1))
+							if (tensor.isContravar(1))
 								coef2 = forwardJac(j, l);
 							else
 								coef2 = inverseJac(l, j);
@@ -288,13 +328,14 @@ namespace MML
 		/// @param pos Position in source coordinates
 		/// @return Transformed tensor in target coordinates
 		Tensor3<N> transfTensor3(const Tensor3<N>& tensor, const VectorFrom& pos) const
+			requires (FromDim == ToDim)
 		{
 			const auto forwardJac = this->jacobian(pos);
 			const auto inverseJac = inverseJacobian(this->transf(pos));
 			// Tensor ctor signature is (nCovar, nContravar); preserve per-slot variance of the input
-			Tensor3<N> ret(tensor.NumCovar(), tensor.NumContravar());
+			Tensor3<N> ret(tensor.numCovar(), tensor.numContravar());
 			for (int s = 0; s < 3; s++)
-				ret.setContravar(s, tensor.IsContravar(s));
+				ret.setContravar(s, tensor.isContravar(s));
 
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++)
@@ -306,17 +347,17 @@ namespace MML
 								for (int n = 0; n < N; n++)
 								{
 									Real coef1, coef2, coef3;
-									if (tensor.IsContravar(0))
+									if (tensor.isContravar(0))
 										coef1 = forwardJac(i, l);
 									else
 										coef1 = inverseJac(l, i);
 
-									if (tensor.IsContravar(1))
+									if (tensor.isContravar(1))
 										coef2 = forwardJac(j, m);
 									else
 										coef2 = inverseJac(m, j);
 
-									if (tensor.IsContravar(2))
+									if (tensor.isContravar(2))
 										coef3 = forwardJac(k, n);
 									else
 										coef3 = inverseJac(n, k);
@@ -332,13 +373,14 @@ namespace MML
 		/// @param pos Position in source coordinates
 		/// @return Transformed tensor in target coordinates
 		Tensor4<N> transfTensor4(const Tensor4<N>& tensor, const VectorFrom& pos) const
+			requires (FromDim == ToDim)
 		{
 			const auto forwardJac = this->jacobian(pos);
 			const auto inverseJac = inverseJacobian(this->transf(pos));
 			// Tensor ctor signature is (nCovar, nContravar); preserve per-slot variance of the input
-			Tensor4<N> ret(tensor.NumCovar(), tensor.NumContravar());
+			Tensor4<N> ret(tensor.numCovar(), tensor.numContravar());
 			for (int s = 0; s < 4; s++)
-				ret.setContravar(s, tensor.IsContravar(s));
+				ret.setContravar(s, tensor.isContravar(s));
 
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++)
@@ -352,22 +394,22 @@ namespace MML
 										for (int p = 0; p < N; p++)
 										{
 											Real coef1, coef2, coef3, coef4;
-											if (tensor.IsContravar(0))
+											if (tensor.isContravar(0))
 												coef1 = forwardJac(i, m);
 											else
 												coef1 = inverseJac(m, i);
 
-											if (tensor.IsContravar(1))
+											if (tensor.isContravar(1))
 												coef2 = forwardJac(j, n);
 											else
 												coef2 = inverseJac(n, j);
 
-											if (tensor.IsContravar(2))
+											if (tensor.isContravar(2))
 												coef3 = forwardJac(k, o);
 											else
 												coef3 = inverseJac(o, k);
 
-											if (tensor.IsContravar(3))
+											if (tensor.isContravar(3))
 												coef4 = forwardJac(l, p);
 											else
 												coef4 = inverseJac(p, l);
@@ -383,13 +425,14 @@ namespace MML
 		/// @param pos Position in source coordinates
 		/// @return Transformed tensor in target coordinates
 		Tensor5<N> transfTensor5(const Tensor5<N>& tensor, const VectorFrom& pos) const
+			requires (FromDim == ToDim)
 		{
 			const auto forwardJac = this->jacobian(pos);
 			const auto inverseJac = inverseJacobian(this->transf(pos));
 			// Tensor ctor signature is (nCovar, nContravar); preserve per-slot variance of the input
-			Tensor5<N> ret(tensor.NumCovar(), tensor.NumContravar());
+			Tensor5<N> ret(tensor.numCovar(), tensor.numContravar());
 			for (int s = 0; s < 5; s++)
-				ret.setContravar(s, tensor.IsContravar(s));
+				ret.setContravar(s, tensor.isContravar(s));
 
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++)
@@ -405,27 +448,27 @@ namespace MML
 												for (int r = 0; r < N; r++)
 												{
 														Real coef1, coef2, coef3, coef4, coef5;
-													if (tensor.IsContravar(0))
+													if (tensor.isContravar(0))
 													coef1 = forwardJac(i, n);
 													else
 													coef1 = inverseJac(n, i);
 
-													if (tensor.IsContravar(1))
+													if (tensor.isContravar(1))
 													coef2 = forwardJac(j, o);
 													else
 													coef2 = inverseJac(o, j);
 
-													if (tensor.IsContravar(2))
+													if (tensor.isContravar(2))
 													coef3 = forwardJac(k, p);
 													else
 													coef3 = inverseJac(p, k);
 
-													if (tensor.IsContravar(3))
+													if (tensor.isContravar(3))
 													coef4 = forwardJac(l, q);
 													else
 													coef4 = inverseJac(q, l);
 
-													if (tensor.IsContravar(4))
+													if (tensor.isContravar(4))
 												    coef5 = forwardJac(m, r);
 											    else
 												    coef5 = inverseJac(r, m);

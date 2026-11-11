@@ -44,7 +44,7 @@ namespace MML
 	///     Tensor5<3> t(3, 2);  // T_ijk^lm
 	///     
 	///     // Contract to get a Tensor3
-	///     Tensor3<3> contracted = t.Contract(0, 3);  // Contract first covariant with first contravariant
+	///     Tensor3<3> contracted = t.contract(0, 3);  // Contract first covariant with first contravariant
 	/// @endcode
 	template <int N>
 	class Tensor5 : public ITensor5<N>
@@ -97,16 +97,16 @@ namespace MML
 		///////////////////////////////////////////////////////////////////////
 
 		/// @brief Returns the number of contravariant (upper) indices.
-		int   NumContravar() const override { return _numContravar; }
+		int   numContravar() const override { return _numContravar; }
 
 		/// @brief Returns the number of covariant (lower) indices.
-		int   NumCovar()     const override { return _numCovar; }
+		int   numCovar()     const override { return _numCovar; }
 
 		/// @brief Checks if index i is contravariant (upper index).
-		bool IsContravar(int i) const override { return _isContravar[i]; }
+		bool isContravar(int i) const override { return _isContravar[i]; }
 
 		/// @brief Checks if index i is covariant (lower index).
-		bool IsCovar(int i) const { return !_isContravar[i]; }
+		bool isCovar(int i) const { return !_isContravar[i]; }
 
 		/// @brief Sets the variance of index i, keeping covariant/contravariant counts in sync.
 		void setContravar(int i, bool val)
@@ -198,7 +198,7 @@ namespace MML
 		/// @throws TensorIndexError if indices are out of range or equal
 		/// @note Index variance is explicitly propagated from the original tensor,
 		///       not reconstructed from covariant/contravariant counts.
-		Tensor3<N> Contract(int ind1, int ind2) const override
+		Tensor3<N> contract(int ind1, int ind2) const override
 		{
 			if (ind1 < 0 || ind1 > 4 || ind2 < 0 || ind2 > 4)
 				throw TensorIndexError("Tensor5 Contract, index out of range [0,4]");

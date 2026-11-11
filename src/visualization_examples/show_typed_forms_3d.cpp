@@ -3,13 +3,15 @@
  * @brief Visualizes typed differential forms with MML_WorldVisualizer
  */
 
+#include "VisualizationResult.h"
+
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
 #include <mml/MMLBase.h>
 #include <mml/base/DifferentialGeometry/DifferentialForm.h>
 #include <mml/base/DifferentialGeometry/Hodge.h>
-#include <mml/base/DifferentialGeometry/Metric.h>
+#include <mml/core/DifferentialGeometry/Metric.h>
 #include <mml/tools/Visualizer.h>
 #endif
 
@@ -151,9 +153,9 @@ namespace {
 			return;
 
 		TangentVector<3, Cartesian3> normal = Unit(vector);
-		TangentVector<3, Cartesian3> reference{ REAL(0.0), REAL(0.0), REAL(1.0) };
+		TangentVector<3, Cartesian3> reference{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0) };
 		if (std::abs(normal[2]) > 0.88)
-			reference = TangentVector<3, Cartesian3>{ REAL(1.0), REAL(0.0), REAL(0.0) };
+			reference = TangentVector<3, Cartesian3>{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
 		TangentVector<3, Cartesian3> tangentA = Unit(CrossEuclidean(normal, reference));
 		TangentVector<3, Cartesian3> tangentB = Unit(CrossEuclidean(normal, tangentA));
 
@@ -188,9 +190,9 @@ void Show_Typed_Forms_3D_Visualization()
 	Metric<3, Cartesian3> metric = Metric<3, Cartesian3>::Euclidean();
 	Orientation orientation = Orientation::Positive;
 
-	TangentVector<3, Cartesian3> velocity{ REAL(2.0), -REAL(1.0), REAL(3.0) };
-	TangentVector<3, Cartesian3> ru{ REAL(2.4), REAL(0.0), REAL(0.0) };
-	TangentVector<3, Cartesian3> rv{ REAL(0.0), REAL(1.7), REAL(0.0) };
+	TangentVector<3, Cartesian3> velocity{ static_cast<MML::Real>(2.0), -static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0) };
+	TangentVector<3, Cartesian3> ru{ static_cast<MML::Real>(2.4), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
+	TangentVector<3, Cartesian3> rv{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.7), static_cast<MML::Real>(0.0) };
 
 	Form1<3, Cartesian3> velocityFlat = ToForm(Flat(metric, velocity));
 	Form2<3, Cartesian3> fluxForm = hodge_star(velocityFlat, metric, orientation);
@@ -249,8 +251,7 @@ void Show_Typed_Forms_3D_Visualization()
 	}
 
 	auto result = Visualizer::VisualizeWorldSceneFromFile(path);
-	if (!result.success)
-		std::cerr << "World visualizer error: " << result.errorMessage << "\n";
+	Examples::ReportVisualizationResult(result, "Typed-forms world scene");
 }
 
 void Show_Typed_Forms_Vortex_Tube_Visualization()
@@ -307,8 +308,7 @@ void Show_Typed_Forms_Vortex_Tube_Visualization()
 	}
 
 	auto result = Visualizer::VisualizeWorldSceneFromFile(path);
-	if (!result.success)
-		std::cerr << "World visualizer error: " << result.errorMessage << "\n";
+	Examples::ReportVisualizationResult(result, "Vortex-tube world scene");
 }
 
 void Show_Typed_Forms_EM_Dipole_Visualization()
@@ -372,6 +372,5 @@ void Show_Typed_Forms_EM_Dipole_Visualization()
 	}
 
 	auto result = Visualizer::VisualizeWorldSceneFromFile(path);
-	if (!result.success)
-		std::cerr << "World visualizer error: " << result.errorMessage << "\n";
+	Examples::ReportVisualizationResult(result, "EM-dipole world scene");
 }

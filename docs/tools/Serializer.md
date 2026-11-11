@@ -8,7 +8,7 @@
 
 ## Overview
 
-The Serializer class provides comprehensive functionality for saving mathematical objects (functions, ODE solutions, parametric curves, vector fields) to files in formats suitable for visualization and analysis. These `.mml` files are presentation exports for visualizer workflows, not general object persistence files. All methods are static and return detailed error information through the `SerializeResult` structure.
+The Serializer class provides comprehensive functionality for saving mathematical objects (functions, ODE solutions, parametric curves, vector fields) to files in formats suitable for visualization and analysis. These `.mml` files are presentation exports for visualizer workflows, not general object persistence files. All methods are static and return detailed error information through the `IOResult` structure.
 
 All output files use the **MML serialization format** — a versioned text format where each file begins with an `MML_`-prefixed type identifier followed by a `VERSION:` line. Type string constants and the current version number are defined in the `FormatType` namespace (`SerializerBase.h`).
 
@@ -35,7 +35,7 @@ For round-trip object persistence of vectors and matrices, use `.mmlj` JSON or
 ## Highlights
 - Unified persistence for functions, fields, curves, particles, and ODE solutions.
 - Multiple output formats optimized for plotting and visualization pipelines.
-- Detailed `SerializeResult` for robust error handling and diagnostics.
+- Detailed `IOResult` for robust error handling and diagnostics.
 - Precision, thresholds, and sampling controls to tailor output size and quality.
 - Interoperable with Tools: Visualizers, ConsolePrinter, and ODE solvers.
 
@@ -107,10 +107,10 @@ auto result = Serializer::SaveAsParamCurve2D(
 
 ## Error Handling
 
-### SerializeError Enum
+### IOError Enum
 
 ```cpp
-enum class SerializeError {
+enum class IOError {
     OK,                   // Operation succeeded
     FILE_NOT_OPENED,      // Failed to open/create file
     INVALID_PARAMETERS,   // Invalid input parameters
@@ -118,15 +118,14 @@ enum class SerializeError {
 };
 ```
 
-### SerializeResult Structure
+### IOResult Structure
 
-```cpp
-struct SerializeResult {
-    bool success;             // true if successful
-    SerializeError error;     // Error code (if any)
-    std::string message;      // Human-readable error message
-};
-```
+`IOResult` is the shared `[[nodiscard]]` tools result, not a serializer-specific type.
+It carries `success`, `IOError error`, `message`, `filename`, `offset` and `offset_kind`.
+Use `if (result)` or `.success`; boolean conversion is explicit. Byte offsets are zero-based,
+line offsets are one-based, and `-1`/`Unknown` means unavailable (including open failures).
+File success checks flush and close. See [RESULT_POLICY.md](../RESULT_POLICY.md) for
+the common contract and migration aliases.
 
 ### Error Handling Pattern
 
@@ -134,13 +133,13 @@ struct SerializeResult {
 auto result = Serializer::SaveRealFunc(f, "data", 0, 1, 100, "out.mml");
 if (!result.success) {
     switch (result.error) {
-        case SerializeError::FILE_NOT_OPENED:
+        case IOError::FILE_NOT_OPENED:
             std::cerr << "Cannot create file: " << result.message << std::endl;
             break;
-        case SerializeError::INVALID_PARAMETERS:
+        case IOError::INVALID_PARAMETERS:
             std::cerr << "Bad parameters: " << result.message << std::endl;
             break;
-        case SerializeError::WRITE_FAILED:
+        case IOError::WRITE_FAILED:
             std::cerr << "Write error: " << result.message << std::endl;
             break;
     }
@@ -160,7 +159,7 @@ if (!result.success) {
     logfile << "Failed to save " << fileName << ": " << result.message << std::endl;
     
     // Retry or fallback
-    if (result.error == SerializeError::FILE_NOT_OPENED) {
+    if (result.error == IOError::FILE_NOT_OPENED) {
         // Try alternative location
         result = Serializer::SaveRealFunc(f, title, x1, x2, n, "backup/" + fileName);
     }
@@ -178,7 +177,7 @@ if (!result.success) {
 Save a real function evaluated at equally-spaced points.
 
 ```cpp
-static SerializeResult SaveRealFunc(
+static IOResult SaveRealFunc(
     const IRealFunction& f,       // Function to serialize
     std::string title,            // Display title for data
     Real x1,                      // Start of range
@@ -223,7 +222,7 @@ auto result = Serializer::SaveRealFunc(
 Save a real function evaluated at specified (non-equally-spaced) points.
 
 ```cpp
-static SerializeResult SaveRealFunc(
+static IOResult SaveRealFunc(
     const IRealFunction& f,       // Function to serialize
     std::string title,            // Display title
     Vector<Real> points,          // X-coordinates to evaluate
@@ -250,7 +249,7 @@ auto result = Serializer::SaveRealFunc(
 Save only function values (space-optimized, no x-coordinates in output).
 
 ```cpp
-static SerializeResult SaveRealFuncEquallySpaced(
+static IOResult SaveRealFuncEquallySpaced(
     const IRealFunction& f,
     std::string title,
     Real x1, Real x2, int numPoints,
@@ -288,7 +287,7 @@ Save multiple functions to one file for comparison plots.
 #### SaveRealMultiFunc (Function Pointers)
 
 ```cpp
-static SerializeResult SaveRealMultiFunc(
+static IOResult SaveRealMultiFunc(
     const std::vector<IRealFunction*>& funcs,  // Functions to save
     std::string title,                         // Display title
     Real x1, Real x2, int numPoints,           // Range and sampling
@@ -332,15 +331,15 @@ Specialized versions for interpolated function types:
 
 ```cpp
 // Linear interpolation
-static SerializeResult SaveRealMultiFunc(
+static IOResult SaveRealMultiFunc(
     const std::vector<LinearInterpRealFunc>& funcs, ...);
 
 // Polynomial interpolation
-static SerializeResult SaveRealMultiFunc(
+static IOResult SaveRealMultiFunc(
     const std::vector<PolynomInterpRealFunc>& funcs, ...);
 
 // Spline interpolation
-static SerializeResult SaveRealMultiFunc(
+static IOResult SaveRealMultiFunc(
     const std::vector<SplineInterpRealFunc>& funcs, ...);
 ```
 
@@ -353,7 +352,7 @@ static SerializeResult SaveRealMultiFunc(
 Save a 2D parametric curve from coordinate vectors.
 
 ```cpp
-static SerializeResult SaveAsParamCurve2D(
+static IOResult SaveAsParamCurve2D(
     const Vector<Real>& vec_x,     // X-coordinates
     const Vector<Real>& vec_y,     // Y-coordinates
     std::string title,             // Curve title
@@ -394,7 +393,7 @@ auto result = Serializer::SaveAsParamCurve2D(x, y, "Circle", "circle.mml", 0.0, 
 Save 2D parametric curve from function.
 
 ```cpp
-static SerializeResult SaveParamCurveCartesian2D(
+static IOResult SaveParamCurveCartesian2D(
     const IRealToVectorFunction<2>& f,
     std::string title,
     Real t1, Real t2,
@@ -420,7 +419,7 @@ Serializer::SaveParamCurveCartesian2D(
 Save 3D parametric curve.
 
 ```cpp
-static SerializeResult SaveParamCurveCartesian3D(
+static IOResult SaveParamCurveCartesian3D(
     const IRealToVectorFunction<3>& f,
     std::string title,
     Real t1, Real t2,
@@ -438,7 +437,7 @@ static SerializeResult SaveParamCurveCartesian3D(
 Save 2D scalar field data on a Cartesian grid.
 
 ```cpp
-static SerializeResult SaveScalarFunc2DCartesian(
+static IOResult SaveScalarFunc2DCartesian(
     const IScalarFunction<2>& f,
     std::string title,
     Real x1, Real x2, int numPointsX,
@@ -480,7 +479,7 @@ auto result = Serializer::SaveScalarFunc2DCartesian(
 Save 3D scalar field data on a Cartesian grid.
 
 ```cpp
-static SerializeResult SaveScalarFunc3DCartesian(
+static IOResult SaveScalarFunc3DCartesian(
     const IScalarFunction<3>& f,
     std::string title,
     Real x1, Real x2, int numPointsX,
@@ -505,7 +504,7 @@ static SerializeResult SaveScalarFunc3DCartesian(
 Save 2D vector field data.
 
 ```cpp
-static SerializeResult SaveVectorFunc2DCartesian(
+static IOResult SaveVectorFunc2DCartesian(
     const IVectorFunction<2>& f,
     std::string title,
     Real x1, Real x2, int numPointsX,
@@ -517,7 +516,7 @@ static SerializeResult SaveVectorFunc2DCartesian(
 **With Magnitude Threshold:**
 
 ```cpp
-static SerializeResult SaveVectorFunc2DCartesian(
+static IOResult SaveVectorFunc2DCartesian(
     const IVectorFunction<2>& f,
     std::string title,
     Real x1, Real x2, int numPointsX,
@@ -572,7 +571,7 @@ Serializer::SaveVectorFunc2DCartesian(
 Save 3D vector field data.
 
 ```cpp
-static SerializeResult SaveVectorFunc3DCartesian(
+static IOResult SaveVectorFunc3DCartesian(
     const IVectorFunction<3>& f,
     std::string title,
     Real x1, Real x2, int numPointsX,
@@ -582,7 +581,7 @@ static SerializeResult SaveVectorFunc3DCartesian(
 );
 
 // With threshold variant
-static SerializeResult SaveVectorFunc3DCartesian(
+static IOResult SaveVectorFunc3DCartesian(
     const IVectorFunction<3>& f,
     std::string title,
     Real x1, Real x2, int numPointsX,
@@ -602,7 +601,7 @@ static SerializeResult SaveVectorFunc3DCartesian(
 Save all components of an ODE solution as a multi-function.
 
 ```cpp
-static SerializeResult SaveODESolutionAsMultiFunc(
+static IOResult SaveODESolutionAsMultiFunc(
     const ODESystemSolution& sol,
     std::string title,
     std::vector<std::string> legend,  // Component names
@@ -625,7 +624,7 @@ auto result = Serializer::SaveODESolutionAsMultiFunc(
 Save a single component of the solution.
 
 ```cpp
-static SerializeResult SaveODESolutionComponentAsFunc(
+static IOResult SaveODESolutionComponentAsFunc(
     const ODESystemSolution& sol,
     int compInd,                      // Component index
     std::string compName,             // Component name
@@ -646,7 +645,7 @@ auto result = Serializer::SaveODESolutionComponentAsFunc(
 Save trajectory in phase space (2D).
 
 ```cpp
-static SerializeResult SaveODESolAsParametricCurve2D(
+static IOResult SaveODESolAsParametricCurve2D(
     const ODESystemSolution& sol,
     std::string fileName,
     int comp_ind_x,                   // Index of x-component
@@ -670,7 +669,7 @@ auto result = Serializer::SaveODESolAsParametricCurve2D(
 Save trajectory in 3D space.
 
 ```cpp
-static SerializeResult SaveODESolAsParametricCurve3D(
+static IOResult SaveODESolAsParametricCurve3D(
     const ODESystemSolution& sol,
     std::string fileName,
     int comp_ind_x, int comp_ind_y, int comp_ind_z,
@@ -701,7 +700,7 @@ auto result = Serializer::SaveODESolAsParametricCurve3D(
 Save 2D particle animation data.
 
 ```cpp
-static SerializeResult SaveParticleSimulation2D(
+static IOResult SaveParticleSimulation2D(
     std::string fileName,
     int numBalls,
     Real width, Real height,
@@ -764,7 +763,7 @@ auto result = Serializer::SaveParticleSimulation2D(
 Save 3D particle animation data.
 
 ```cpp
-static SerializeResult SaveParticleSimulation3D(
+static IOResult SaveParticleSimulation3D(
     std::string fileName,
     int numBalls,
     Real width, Real height, Real depth,
@@ -1225,7 +1224,7 @@ All formats are self-describing with metadata in headers. See [SerializerFormats
 The **Serializer** class provides:
 
 ✅ **Comprehensive Coverage** - 23 methods for 12+ data types  
-✅ **Robust Error Handling** - SerializeResult pattern with detailed messages  
+✅ **Robust Error Handling** - IOResult pattern with detailed messages
 ✅ **Flexible Precision** - Configurable decimal places (1-15+ digits)  
 ✅ **Cartesian Coordinates** - Consistent coordinate system throughout  
 ✅ **Threshold Filtering** - Avoid singularities in vector field visualization  

@@ -62,15 +62,17 @@ namespace MML
 		/// @brief Gets vertex 3 (mutable)
 		Pnt3Cart& Pnt3()			 { return _pnt3; }
 
-		/// @brief Calculates the area using Heron's formula
+		/// @brief Calculates the area as half the magnitude of the edge cross product.
+		/// @note Heron's formula s(s-a)(s-b)(s-c) goes slightly negative in floating point for
+		///       needle-like or degenerate triangles and produced NaN (analysis v4, BASE D11);
+		///       the cross-product form is exact for degenerate input (0) and better conditioned.
 		Real Area() const
 		{
-			Real s = (A() + B() + C()) / 2.0;
-			return sqrt(s * (s - A()) * (s - B()) * (s - C()));
+			return 0.5 * VectorProduct(Vec3Cart(_pnt1, _pnt2), Vec3Cart(_pnt1, _pnt3)).NormL2();
 		}
 
 		/// @brief Tests if this is a right triangle
-		bool IsRight(Real eps = Defaults::Triangle3DIsRightTolerance) const
+		bool IsRight(Real eps = Precision::Triangle3DIsRightTolerance) const
 		{
 			// Check if a^2 + b^2 = c^2 (Pythagorean theorem) with tolerance
 			Real a = A(), b = B(), c = C();
@@ -80,14 +82,14 @@ namespace MML
 		}
 		
 		/// @brief Tests if this is an isosceles triangle (two equal sides)
-		bool IsIsosceles(Real eps = Defaults::Triangle3DIsIsoscelesTolerance) const
+		bool IsIsosceles(Real eps = Precision::Triangle3DIsIsoscelesTolerance) const
 		{
 			Real a = A(), b = B(), c = C();
 			return (std::abs(a - b) < eps) || (std::abs(a - c) < eps) || (std::abs(b - c) < eps);
 		}
 		
 		/// @brief Tests if this is an equilateral triangle (all sides equal)
-		bool IsEquilateral(Real eps = Defaults::Triangle3DIsEquilateralTolerance) const
+		bool IsEquilateral(Real eps = Precision::Triangle3DIsEquilateralTolerance) const
 		{
 			Real a = A(), b = B(), c = C();
 			return (std::abs(a - b) < eps) && (std::abs(a - c) < eps);
@@ -107,15 +109,26 @@ namespace MML
 
 		/// @brief Tests if a point is inside the triangle
 		/// @param pnt The point to test
-		/// @param eps Tolerance for boundary cases
-		/// @details Uses barycentric coordinates for containment testing
-		bool IsPointInside(const Pnt3Cart& pnt, Real eps = Defaults::Triangle3DIsPointInsideTolerance) const
+		/// @param eps Tolerance: maximum distance from the triangle's plane, and slack on the
+		///            barycentric boundary tests
+		/// @details The point must lie in the plane of the triangle (within eps) AND have
+		///          barycentric coordinates in [0, 1]. Without the plane test every point whose
+		///          projection falls inside the triangle was reported inside (analysis v4, BASE D11).
+		bool IsPointInside(const Pnt3Cart& pnt, Real eps = Precision::Triangle3DIsPointInsideTolerance) const
 		{
-			// check if point is inside triangle using barycentric coordinates
 			Vec3Cart v0 = Vec3Cart(_pnt1, _pnt2);
 			Vec3Cart v1 = Vec3Cart(_pnt1, _pnt3);
 			Vec3Cart v2 = Vec3Cart(_pnt1, pnt);
-			
+
+			// Plane test: distance of pnt from the plane spanned by v0, v1
+			const Vec3Cart normal = VectorProduct(v0, v1);
+			const Real normalLength = normal.NormL2();
+			if (normalLength == 0.0)
+				return false; // degenerate triangle
+			if (std::abs(ScalarProduct(normal, v2)) / normalLength > eps)
+				return false;
+
+			// Barycentric coordinates within the plane
 			Real d00 = ScalarProduct(v0, v0);
 			Real d01 = ScalarProduct(v0, v1);
 			Real d11 = ScalarProduct(v1, v1);
@@ -127,13 +140,11 @@ namespace MML
 				return false; // degenerate triangle
 			
 			Real v = (d11 * d20 - d01 * d21) / denom;
-			
-			if (v < 0.0 || v > 1.0)
+			if (v < -eps || v > 1.0 + eps)
 				return false;
 			
 			Real w = (d00 * d21 - d01 * d20) / denom;
-			
-			if (w < 0.0 || w > 1.0)
+			if (w < -eps || w > 1.0 + eps)
 				return false;
 			
 			return (v + w <= 1.0 + eps); // allow for small numerical errors
@@ -197,14 +208,14 @@ namespace MML
 
 			// calculate local coordinate system
 			// we will take x-axis to be from pnt1 to pnt2
-			_localX = Vec3Cart(pnt1, pnt2).GetAsUnitVector();
+			_localX = Vec3Cart(pnt1, pnt2).Normalized();
 
 			// we will calculate y-axis as following
 			// calculate perpendicular vector to x-axis, that goes through pnt3
 			Line3D	 lineX(pnt1, pnt2);
 			Pnt3Cart pntOnLine = lineX.NearestPointOnLine(pnt3);
 
-			_localY = Vec3Cart(pntOnLine, pnt3).GetAsUnitVector();
+			_localY = Vec3Cart(pntOnLine, pnt3).Normalized();
 
 			_minX = 0.0;
 			_maxX = pnt1.Dist(pnt2);
@@ -212,7 +223,7 @@ namespace MML
 			_maxY = pntOnLine.Dist(pnt3);
 			_pnt3XCoord = pntOnLine.Dist(pnt1);
 
-			_normal = VectorProduct(_localX, _localY).GetAsUnitVector();
+			_normal = VectorProduct(_localX, _localY).Normalized();
 
 			_origin = pnt1;
 		}
@@ -286,8 +297,8 @@ namespace MML
 			_center = (_pnt1 + _pnt2 + _pnt3 + _pnt4) / 4.0;
 
 			// calculate local coordinate system
-			_localX = Vec3Cart(_pnt1, _pnt2).GetAsUnitVector();
-			_localY = Vec3Cart(_pnt1, _pnt4).GetAsUnitVector();
+			_localX = Vec3Cart(_pnt1, _pnt2).Normalized();
+			_localY = Vec3Cart(_pnt1, _pnt4).Normalized();
 		}
 
 		/// @brief Gets minimum u parameter
@@ -301,7 +312,7 @@ namespace MML
 
 		/// @brief Gets the surface normal vector
 		Vec3Cart getNormal() const {
-			return VectorProduct(Vec3Cart(_pnt1, _pnt2), Vec3Cart(_pnt1, _pnt4)).GetAsUnitVector();
+			return VectorProduct(Vec3Cart(_pnt1, _pnt2), Vec3Cart(_pnt1, _pnt4)).Normalized();
 		}
 		
 		/// @brief Gets the center point

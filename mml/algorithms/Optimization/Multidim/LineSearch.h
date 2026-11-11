@@ -117,10 +117,15 @@ namespace MML::Optimization {
 	///                      Line Minimization                              ///
 	///////////////////////////////////////////////////////////////////////////
 	/**
-     * @brief Line minimization helper for N-dimensional optimization
+     * @brief Exact line minimization helper for N-dimensional direction-set methods (Powell, CG)
      * 
-     * Given a point p and direction xi, finds the minimum along the line
-     * p + t*xi using Brent's method, then updates p and xi.
+     * Given a point p and direction xi, finds the minimum of f along the line p + t*xi with
+     * Brent's one-dimensional method (bracketing + parabolic interpolation), then updates p and xi.
+     *
+     * This is an *exact* line minimization, not an inexact Wolfe/Armijo line search: it spends
+     * O(10-30) function evaluations to locate the 1-D minimum to tolerance. That is what Powell's
+     * direction-set method and nonlinear CG need; quasi-Newton methods (BFGS) that only require
+     * sufficient-decrease/curvature conditions are better served by a backtracking search.
      */
 	class LineMinimizer {
 	public:

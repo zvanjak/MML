@@ -69,7 +69,7 @@ namespace MML::Optimization {
          * @throws MultidimOptimizationInputError if inputs are invalid
          */
 		template<int N>
-		MultidimMinimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start) {
+		MultidimOptimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start) {
 			// Validate inputs
 			ValidateVectorFinite<N>(start, "Powell::Minimize starting point");
 			ValidateMultidimTolerance(_ftol, "Powell");
@@ -89,7 +89,7 @@ namespace MML::Optimization {
          * @throws MultidimOptimizationInputError if inputs are invalid
          */
 		template<int N>
-		MultidimMinimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Matrix<Real>& ximat) {
+		MultidimOptimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Matrix<Real>& ximat) {
 			// Validate inputs
 			ValidateVectorFinite<N>(start, "Powell::Minimize starting point");
 			ValidateMultidimTolerance(_ftol, "Powell");
@@ -103,7 +103,7 @@ namespace MML::Optimization {
 				}
 			}
 			
-			const Real TINY = 1.0e-25;
+			const Real TINY = Precision::DivisionSafetyThreshold;
 
 			VectorN<Real, N> p = start;
 			VectorN<Real, N> pt, ptt, xi;
@@ -141,7 +141,7 @@ namespace MML::Optimization {
 					Vector<Real> result(N);
 					for (int j = 0; j < N; ++j)
 						result[j] = p[j];
-					return MultidimMinimizationResult(result, _fret, _iter + 1, true);
+					return MultidimOptimizationResult(result, _fret, _iter + 1, true);
 				}
 
 				// Construct extrapolated point and new direction
@@ -172,7 +172,7 @@ namespace MML::Optimization {
 			Vector<Real> result(N);
 			for (int j = 0; j < N; ++j)
 				result[j] = p[j];
-			return MultidimMinimizationResult(result, _fret, _iter, false);
+			return MultidimOptimizationResult(result, _fret, _iter, false);
 		}
 	};
 

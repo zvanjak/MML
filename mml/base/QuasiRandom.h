@@ -16,6 +16,8 @@
 #include <mml/MMLBase.h>
 #include <mml/base/Vector/VectorN.h>
 
+#include <string>
+
 namespace MML
 {
 	///////////////////////////////////////////////////////////////////////////
@@ -57,8 +59,8 @@ namespace MML
 		/// @brief Van der Corput radical inverse of `i` in the given base.
 		static Real RadicalInverse(long i, int base)
 		{
-			Real f = REAL(1.0) / base;
-			Real r = REAL(0.0);
+			Real f = static_cast<MML::Real>(1.0) / base;
+			Real r = static_cast<MML::Real>(0.0);
 			while (i > 0) { r += f * (i % base); i /= base; f /= base; }
 			return r;
 		}
@@ -71,10 +73,14 @@ namespace MML
 		}
 
 		/// @brief Return the next point as a fixed-size vector (N must equal dim()).
+		/// @throws ArgumentError if N != dim(): Next(Real*) writes dim() values, so a mismatch
+		///         would write past the end of the vector (analysis v4, BASE D4).
 		template<int N>
 		VectorN<Real, N> Next()
 		{
 			static_assert(N >= 1, "HaltonSequence::Next<N> requires N >= 1");
+			if (N != _dim)
+				throw ArgumentError("HaltonSequence::Next<N>: N (" + std::to_string(N) + ") must equal dim() (" + std::to_string(_dim) + ")");
 			VectorN<Real, N> v;
 			Next(&v[0]);
 			return v;
@@ -114,7 +120,7 @@ namespace MML
 			for (int i = 0; i < 24; ++i) _iv[i] = iv0[i];
 			for (int k = 0; k < kMaxDim; ++k) _ix[k] = 0;
 			_in = 0;
-			_fac = REAL(1.0) / (unsigned(1) << kMaxBit);
+			_fac = static_cast<MML::Real>(1.0) / (unsigned(1) << kMaxBit);
 
 			// _iv[j*kMaxDim + k] is direction number for bit row j, dimension k.
 			for (int k = 0; k < kMaxDim; ++k)
@@ -167,11 +173,13 @@ namespace MML
 			}
 		}
 
-		/// @brief Return the next point as a fixed-size vector (1 <= N <= 6).
+		/// @brief Return the next point as a fixed-size vector (1 <= N <= 6, N must equal dim()).
 		template<int N>
 		VectorN<Real, N> Next()
 		{
 			static_assert(N >= 1 && N <= kMaxDim, "SobolSequence::Next<N> requires 1 <= N <= 6");
+			if (N != _dim)
+				throw ArgumentError("SobolSequence::Next<N>: N (" + std::to_string(N) + ") must equal dim() (" + std::to_string(_dim) + ")");
 			VectorN<Real, N> v;
 			Next(&v[0]);
 			return v;

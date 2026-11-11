@@ -90,7 +90,7 @@ TEST_CASE("Torus3D::GetCenter", "[geometry][torus][center]")
     SECTION("Torus centered at origin")
     {
         Torus3D torus(5.0, 2.0);
-        Pnt3Cart center = torus.GetCenter();
+        Pnt3Cart center = torus.getCenter();
         REQUIRE_THAT(center.X() , RealApprox(0.0));
         REQUIRE_THAT(center.Y() , RealApprox(0.0));
         REQUIRE_THAT(center.Z() , RealApprox(0.0));
@@ -100,7 +100,7 @@ TEST_CASE("Torus3D::GetCenter", "[geometry][torus][center]")
     {
         Pnt3Cart expected(10.0, 20.0, 30.0);
         Torus3D torus(5.0, 2.0, expected);
-        Pnt3Cart center = torus.GetCenter();
+        Pnt3Cart center = torus.getCenter();
         REQUIRE_THAT(center.X() , RealApprox(10.0));
         REQUIRE_THAT(center.Y() , RealApprox(20.0));
         REQUIRE_THAT(center.Z() , RealApprox(30.0));
@@ -112,7 +112,7 @@ TEST_CASE("Torus3D::GetBoundingBox", "[geometry][torus][bounding]")
     SECTION("Torus centered at origin with R=3, r=1")
     {
         Torus3D torus(3.0, 1.0);
-        Box3D bbox = torus.GetBoundingBox();
+        Box3D bbox = torus.getBoundingBox();
         
         // Outer radius = R + r = 4, extends ±4 in XY, ±r in Z
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-4.0));
@@ -128,7 +128,7 @@ TEST_CASE("Torus3D::GetBoundingBox", "[geometry][torus][bounding]")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         Torus3D torus(5.0, 2.0, center);
-        Box3D bbox = torus.GetBoundingBox();
+        Box3D bbox = torus.getBoundingBox();
         
         // Outer radius = 7, so XY extends ±7 from center, Z extends ±2
         REQUIRE_THAT(bbox.Min().X() , RealApprox(3.0));
@@ -143,7 +143,7 @@ TEST_CASE("Torus3D::GetBoundingBox", "[geometry][torus][bounding]")
     SECTION("Bounding box dimensions")
     {
         Torus3D torus(6.0, 2.0);
-        Box3D bbox = torus.GetBoundingBox();
+        Box3D bbox = torus.getBoundingBox();
         Real width = bbox.Max().X() - bbox.Min().X();
         Real depth = bbox.Max().Y() - bbox.Min().Y();
         Real height = bbox.Max().Z() - bbox.Min().Z();
@@ -159,7 +159,7 @@ TEST_CASE("Torus3D::GetBoundingSphere", "[geometry][torus][bounding]")
     SECTION("Bounding sphere for torus at origin")
     {
         Torus3D torus(3.0, 1.0);
-        BoundingSphere3D bsphere = torus.GetBoundingSphere();
+        BoundingSphere3D bsphere = torus.getBoundingSphere();
         
         REQUIRE_THAT(bsphere.Center().X() , RealApprox(0.0));
         REQUIRE_THAT(bsphere.Center().Y() , RealApprox(0.0));
@@ -173,7 +173,7 @@ TEST_CASE("Torus3D::GetBoundingSphere", "[geometry][torus][bounding]")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         Torus3D torus(5.0, 2.0, center);
-        BoundingSphere3D bsphere = torus.GetBoundingSphere();
+        BoundingSphere3D bsphere = torus.getBoundingSphere();
         
         REQUIRE_THAT(bsphere.Center().X() , RealApprox(10.0));
         REQUIRE_THAT(bsphere.Center().Y() , RealApprox(20.0));
@@ -186,7 +186,7 @@ TEST_CASE("Torus3D::GetBoundingSphere", "[geometry][torus][bounding]")
     SECTION("Bounding sphere contains outermost points")
     {
         Torus3D torus(4.0, 1.5);
-        BoundingSphere3D bsphere = torus.GetBoundingSphere();
+        BoundingSphere3D bsphere = torus.getBoundingSphere();
         
         // Outermost point in XY plane at distance R+r from center
         Pnt3Cart outerPoint(5.5, 0.0, 0.0);
@@ -203,7 +203,7 @@ TEST_CASE("Torus3D::ToString", "[geometry][torus][string]")
     SECTION("Torus at origin")
     {
         Torus3D torus(5.0, 2.0);
-        std::string str = torus.ToString();
+        std::string str = torus.to_string();
         
         REQUIRE(str.find("Torus3D") != std::string::npos);
         REQUIRE(str.find("Center") != std::string::npos);
@@ -217,7 +217,7 @@ TEST_CASE("Torus3D::ToString", "[geometry][torus][string]")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         Torus3D torus(3.0, 1.5, center);
-        std::string str = torus.ToString();
+        std::string str = torus.to_string();
         
         REQUIRE(str.find("3") != std::string::npos);   // Major radius
         REQUIRE(str.find("1.5") != std::string::npos); // Minor radius
@@ -229,22 +229,22 @@ TEST_CASE("Torus3D::Getters", "[geometry][torus][getters]")
     SECTION("GetMajorRadius and GetMinorRadius")
     {
         Torus3D torus(7.5, 2.5);
-        REQUIRE_THAT(torus.GetMajorRadius() , RealApprox(7.5));
-        REQUIRE_THAT(torus.GetMinorRadius() , RealApprox(2.5));
+        REQUIRE_THAT(torus.getMajorRadius() , RealApprox(7.5));
+        REQUIRE_THAT(torus.getMinorRadius() , RealApprox(2.5));
     }
 
     SECTION("GetNumU and GetNumV with custom tessellation")
     {
         Torus3D torus(5.0, 2.0, 32, 16);
-        REQUIRE(torus.GetNumU() == 32);
-        REQUIRE(torus.GetNumV() == 16);
+        REQUIRE(torus.getNumU() == 32);
+        REQUIRE(torus.getNumV() == 16);
     }
 
     SECTION("GetNumU and GetNumV with default tessellation")
     {
         Torus3D torus(5.0, 2.0);
-        REQUIRE(torus.GetNumU() == 20);
-        REQUIRE(torus.GetNumV() == 12);
+        REQUIRE(torus.getNumU() == 20);
+        REQUIRE(torus.getNumV() == 12);
     }
 }
 

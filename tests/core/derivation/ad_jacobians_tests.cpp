@@ -18,7 +18,7 @@ namespace MML::Tests::Core::Derivation::ADJacobiansTests
             };
         };
 
-        auto jac = jacobianForwardAD(func, std::vector<double>{ 3.0, 4.0 });
+        auto jac = CalcJacobianForwardAD(func, std::vector<double>{ 3.0, 4.0 });
 
         REQUIRE(jac.rows() == 2);
         REQUIRE(jac.cols() == 2);
@@ -38,7 +38,7 @@ namespace MML::Tests::Core::Derivation::ADJacobiansTests
         };
 
         Vector<Real> point{ 3.0, 4.0 };
-        auto jac = jacobianReverseAD(func, point);
+        auto jac = CalcJacobianReverseAD(func, point);
 
         REQUIRE(jac.rows() == 2);
         REQUIRE(jac.cols() == 2);
@@ -55,7 +55,7 @@ namespace MML::Tests::Core::Derivation::ADJacobiansTests
             return v[0] * v[0] + Dual2(2.0) * v[0] * v[1] + Dual2(3.0) * v[1] * v[1];
         };
 
-        auto hessian = hessianForwardAD(func, std::vector<double>{ 1.0, 1.0 });
+        auto hessian = CalcHessianForwardAD(func, std::vector<double>{ 1.0, 1.0 });
 
         REQUIRE(hessian.rows() == 2);
         REQUIRE(hessian.cols() == 2);

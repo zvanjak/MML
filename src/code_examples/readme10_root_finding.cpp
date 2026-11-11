@@ -51,7 +51,7 @@ void Readme_RootFinding()
     config.f_tolerance = 1e-14;
     config.max_iterations = 100;
     
-    auto result = RootFinding::FindRootBrent(f, 2.0, 3.0, config);
+    auto result = RootFinding::FindRootBrentDetailed(f, 2.0, 3.0, config);
     std::cout << std::endl << "Brent with detailed config:" << std::endl;
     std::cout << "  Root:       " << result.root << std::endl;
     std::cout << "  Iterations: " << result.iterations_used << std::endl;

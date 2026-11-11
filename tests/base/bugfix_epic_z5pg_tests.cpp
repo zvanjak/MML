@@ -65,20 +65,20 @@ TEST_CASE("BugFix_z5pg.34 - VectorN::isNearZero with near-zero values", "[bugfix
 	VectorN<Real, 3> v({tiny, -tiny, tiny});
 
 	// Near-zero values smaller than tolerance should be considered near-zero
-	REQUIRE(v.isNearZero());
-	REQUIRE_FALSE(v.isZero());   // contract policy: isZero is exact
+	REQUIRE(v.IsNearZero());
+	REQUIRE_FALSE(v.IsZero());   // contract policy: isZero is exact
 }
 
 TEST_CASE("BugFix_z5pg.34 - VectorN::isZero with non-zero values", "[bugfix][z5pg][vector]")
 {
 	VectorN<Real, 3> v({0.0, 0.0, 1.0});
-	REQUIRE_FALSE(v.isZero());
+	REQUIRE_FALSE(v.IsZero());
 }
 
 TEST_CASE("BugFix_z5pg.34 - VectorN::isZero exact zero", "[bugfix][z5pg][vector]")
 {
 	VectorN<Real, 3> v({0.0, 0.0, 0.0});
-	REQUIRE(v.isZero());
+	REQUIRE(v.IsZero());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -90,7 +90,7 @@ TEST_CASE("BugFix_z5pg.35 - GetValues with numPnt=1 throws", "[bugfix][z5pg][fun
 	RealFunctionFromStdFunc f([](Real x) { return x * x; });
 	Vector<Real> outX, outY;
 	
-	REQUIRE_THROWS_AS(f.GetValues(0.0, 1.0, 1, outX, outY), std::invalid_argument);
+	REQUIRE_THROWS_AS(f.getValues(0.0, 1.0, 1, outX, outY), std::invalid_argument);
 }
 
 TEST_CASE("BugFix_z5pg.35 - GetValues with numPnt=0 throws", "[bugfix][z5pg][function]")
@@ -98,7 +98,7 @@ TEST_CASE("BugFix_z5pg.35 - GetValues with numPnt=0 throws", "[bugfix][z5pg][fun
 	RealFunctionFromStdFunc f([](Real x) { return x * x; });
 	Vector<Real> outX, outY;
 	
-	REQUIRE_THROWS_AS(f.GetValues(0.0, 1.0, 0, outX, outY), std::invalid_argument);
+	REQUIRE_THROWS_AS(f.getValues(0.0, 1.0, 0, outX, outY), std::invalid_argument);
 }
 
 TEST_CASE("BugFix_z5pg.35 - GetValues with numPnt=2 succeeds", "[bugfix][z5pg][function]")
@@ -106,7 +106,7 @@ TEST_CASE("BugFix_z5pg.35 - GetValues with numPnt=2 succeeds", "[bugfix][z5pg][f
 	RealFunctionFromStdFunc f([](Real x) { return x * x; });
 	Vector<Real> outX, outY;
 	
-	f.GetValues(0.0, 1.0, 2, outX, outY);
+	f.getValues(0.0, 1.0, 2, outX, outY);
 	REQUIRE(outX.size() == 2);
 	REQUIRE(outY.size() == 2);
 	REQUIRE(outX[0] == Catch::Approx(0.0));
@@ -238,8 +238,9 @@ TEST_CASE("BugFix_z5pg.45 - IntegrationResult value access", "[bugfix][z5pg][int
 	REQUIRE(res.iterations == 5);
 	REQUIRE(res.converged);
 	
-	// Implicit conversion to Real still works
-	Real val = res;
+	// Conversion to Real is explicit since analysis v4 (it discards converged / error_estimate)
+	static_assert(!std::is_convertible_v<IntegrationResult, Real>, "IntegrationResult must not convert implicitly");
+	Real val = static_cast<Real>(res);
 	REQUIRE(val == Catch::Approx(3.14));
 }
 

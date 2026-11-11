@@ -24,7 +24,7 @@ namespace MML
 		/// @brief Active right-handed planar rotation represented by a normalized angle.
 		class SO2
 		{
-			Real _angle = REAL(0.0);
+			Real _angle = static_cast<MML::Real>(0.0);
 
 		public:
 			SO2() = default;

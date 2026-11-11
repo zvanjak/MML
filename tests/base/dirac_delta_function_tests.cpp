@@ -32,15 +32,15 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 	{
 			TEST_PRECISION_INFO();
 		DiracStep delta(10);
-		Real halfInterval = REAL(1.0) / (2 * 10);  // REAL(0.05)
+		Real halfInterval = static_cast<MML::Real>(1.0) / (2 * 10);  // static_cast<MML::Real>(0.05)
 		
 		// Should be zero outside [-1/(2N), 1/(2N)]
-		REQUIRE_THAT(delta(-REAL(0.1)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta(-halfInterval - REAL(0.01)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta(halfInterval + REAL(0.01)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta(REAL(0.1)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta(REAL(1.0)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta(-REAL(1.0)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(-static_cast<MML::Real>(0.1)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(-halfInterval - static_cast<MML::Real>(0.01)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(halfInterval + static_cast<MML::Real>(0.01)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(static_cast<MML::Real>(0.1)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(-static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("DiracStep::NonzeroInsideInterval", "[DiracDeltaFunction][DiracStep]")
@@ -49,11 +49,11 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracStep delta(10);
 		
 		// Should be N inside the interval
-		REQUIRE_THAT(delta(REAL(0.0)), WithinAbs(REAL(10.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta(REAL(0.01)), WithinAbs(REAL(10.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta(-REAL(0.01)), WithinAbs(REAL(10.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta(REAL(0.049)), WithinAbs(REAL(10.0), TOL(1e-10, 1e-5)));  // Just inside
-		REQUIRE_THAT(delta(-REAL(0.049)), WithinAbs(REAL(10.0), TOL(1e-10, 1e-5))); // Just inside
+		REQUIRE_THAT(delta(static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(10.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(static_cast<MML::Real>(0.01)), WithinAbs(static_cast<MML::Real>(10.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(-static_cast<MML::Real>(0.01)), WithinAbs(static_cast<MML::Real>(10.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(static_cast<MML::Real>(0.049)), WithinAbs(static_cast<MML::Real>(10.0), TOL(1e-10, 1e-5)));  // Just inside
+		REQUIRE_THAT(delta(-static_cast<MML::Real>(0.049)), WithinAbs(static_cast<MML::Real>(10.0), TOL(1e-10, 1e-5))); // Just inside
 	}
 
 	TEST_CASE("DiracStep::IncreasingN", "[DiracDeltaFunction][DiracStep]")
@@ -64,12 +64,12 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracStep delta100(100);
 		
 		// At x=0, height increases with N
-		REQUIRE_THAT(delta10(REAL(0.0)), WithinAbs(REAL(10.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta100(REAL(0.0)), WithinAbs(REAL(100.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta10(static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(10.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta100(static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(100.0), TOL(1e-10, 1e-5)));
 		
 		// Width decreases with N
-		REQUIRE_THAT(delta10(REAL(0.06)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));   // Outside for N=10
-		REQUIRE_THAT(delta100(REAL(0.006)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));  // Outside for N=100
+		REQUIRE_THAT(delta10(static_cast<MML::Real>(0.06)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));   // Outside for N=10
+		REQUIRE_THAT(delta100(static_cast<MML::Real>(0.006)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));  // Outside for N=100
 	}
 
 	/*********************************************************************/
@@ -89,15 +89,15 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracExp delta(10);
 		
 		// Maximum should be at x=0
-		Real valCenter = delta(REAL(0.0));
-		Real valLeft = delta(-REAL(0.01));
-		Real valRight = delta(REAL(0.01));
+		Real valCenter = delta(static_cast<MML::Real>(0.0));
+		Real valLeft = delta(-static_cast<MML::Real>(0.01));
+		Real valRight = delta(static_cast<MML::Real>(0.01));
 		
 		REQUIRE(valCenter > valLeft);
 		REQUIRE(valCenter > valRight);
 		
 		// Value at origin: N / sqrt(2*PI) * exp(0) = N / sqrt(2*PI)
-		Real expected = REAL(10.0) / std::sqrt(2 * Constants::PI);
+		Real expected = static_cast<MML::Real>(10.0) / std::sqrt(2 * Constants::PI);
 		REQUIRE_THAT(valCenter, WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 
@@ -107,9 +107,9 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracExp delta(10);
 		
 		// Should be symmetric around x=0
-		REQUIRE_THAT(delta(REAL(0.1)), WithinAbs(delta(-REAL(0.1)), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta(REAL(0.5)), WithinAbs(delta(-REAL(0.5)), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta(REAL(1.0)), WithinAbs(delta(-REAL(1.0)), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(static_cast<MML::Real>(0.1)), WithinAbs(delta(-static_cast<MML::Real>(0.1)), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(static_cast<MML::Real>(0.5)), WithinAbs(delta(-static_cast<MML::Real>(0.5)), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(static_cast<MML::Real>(1.0)), WithinAbs(delta(-static_cast<MML::Real>(1.0)), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("DiracExp::DecaysAwayFromOrigin", "[DiracDeltaFunction][DiracExp]")
@@ -118,15 +118,15 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracExp delta(10);
 		
 		// Should decay exponentially
-		Real val0 = delta(REAL(0.0));
-		Real val1 = delta(REAL(0.1));
-		Real val2 = delta(REAL(0.2));
-		Real val3 = delta(REAL(0.5));
+		Real val0 = delta(static_cast<MML::Real>(0.0));
+		Real val1 = delta(static_cast<MML::Real>(0.1));
+		Real val2 = delta(static_cast<MML::Real>(0.2));
+		Real val3 = delta(static_cast<MML::Real>(0.5));
 		
 		REQUIRE(val0 > val1);
 		REQUIRE(val1 > val2);
 		REQUIRE(val2 > val3);
-		REQUIRE(val3 > REAL(0.0));
+		REQUIRE(val3 > static_cast<MML::Real>(0.0));
 	}
 
 	TEST_CASE("DiracExp::IncreasingN", "[DiracDeltaFunction][DiracExp]")
@@ -136,11 +136,11 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracExp delta100(100);
 		
 		// Peak height increases with N
-		REQUIRE(delta100(REAL(0.0)) > delta10(REAL(0.0)));
+		REQUIRE(delta100(static_cast<MML::Real>(0.0)) > delta10(static_cast<MML::Real>(0.0)));
 		
 		// Width decreases with N (narrower peak)
 		// At same distance from origin, larger N should have smaller value
-		REQUIRE(delta100(REAL(0.1)) < delta10(REAL(0.1)));
+		REQUIRE(delta100(static_cast<MML::Real>(0.1)) < delta10(static_cast<MML::Real>(0.1)));
 	}
 
 	/*********************************************************************/
@@ -160,13 +160,13 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracSqr delta(10);
 		
 		// Maximum at x=0: N / PI / (1 + 0) = N / PI
-		Real valCenter = delta(REAL(0.0));
-		Real expected = REAL(10.0) / Constants::PI;
+		Real valCenter = delta(static_cast<MML::Real>(0.0));
+		Real expected = static_cast<MML::Real>(10.0) / Constants::PI;
 		REQUIRE_THAT(valCenter, WithinAbs(expected, TOL(1e-10, 1e-5)));
 		
 		// Should be maximum
-		REQUIRE(valCenter > delta(REAL(0.01)));
-		REQUIRE(valCenter > delta(REAL(0.1)));
+		REQUIRE(valCenter > delta(static_cast<MML::Real>(0.01)));
+		REQUIRE(valCenter > delta(static_cast<MML::Real>(0.1)));
 	}
 
 	TEST_CASE("DiracSqr::Symmetry", "[DiracDeltaFunction][DiracSqr]")
@@ -175,9 +175,9 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracSqr delta(10);
 		
 		// Lorentzian is symmetric
-		REQUIRE_THAT(delta(REAL(0.1)), WithinAbs(delta(-REAL(0.1)), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta(REAL(0.5)), WithinAbs(delta(-REAL(0.5)), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta(REAL(1.0)), WithinAbs(delta(-REAL(1.0)), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(static_cast<MML::Real>(0.1)), WithinAbs(delta(-static_cast<MML::Real>(0.1)), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(static_cast<MML::Real>(0.5)), WithinAbs(delta(-static_cast<MML::Real>(0.5)), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(static_cast<MML::Real>(1.0)), WithinAbs(delta(-static_cast<MML::Real>(1.0)), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("DiracSqr::DecaysAwayFromOrigin", "[DiracDeltaFunction][DiracSqr]")
@@ -186,15 +186,15 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracSqr delta(10);
 		
 		// Lorentzian decay: 1/(1+x^2)
-		Real val0 = delta(REAL(0.0));
-		Real val1 = delta(REAL(0.1));
-		Real val2 = delta(REAL(0.5));
-		Real val3 = delta(REAL(1.0));
+		Real val0 = delta(static_cast<MML::Real>(0.0));
+		Real val1 = delta(static_cast<MML::Real>(0.1));
+		Real val2 = delta(static_cast<MML::Real>(0.5));
+		Real val3 = delta(static_cast<MML::Real>(1.0));
 		
 		REQUIRE(val0 > val1);
 		REQUIRE(val1 > val2);
 		REQUIRE(val2 > val3);
-		REQUIRE(val3 > REAL(0.0));
+		REQUIRE(val3 > static_cast<MML::Real>(0.0));
 	}
 
 	TEST_CASE("DiracSqr::IncreasingN", "[DiracDeltaFunction][DiracSqr]")
@@ -204,10 +204,10 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracSqr delta100(100);
 		
 		// Peak height increases with N
-		REQUIRE(delta100(REAL(0.0)) > delta10(REAL(0.0)));
+		REQUIRE(delta100(static_cast<MML::Real>(0.0)) > delta10(static_cast<MML::Real>(0.0)));
 		
 		// Narrower peak with larger N
-		REQUIRE(delta100(REAL(0.1)) < delta10(REAL(0.1)));
+		REQUIRE(delta100(static_cast<MML::Real>(0.1)) < delta10(static_cast<MML::Real>(0.1)));
 	}
 
 	/*********************************************************************/
@@ -228,11 +228,11 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		
 		// At x=0, sinc function has limit: sin(Nx)/(PI*x) -> N/PI as x->0
 		// Need to test near zero due to singularity
-		Real valNearZero = delta(REAL(0.001));
-		Real expected = REAL(10.0) / Constants::PI;
+		Real valNearZero = delta(static_cast<MML::Real>(0.001));
+		Real expected = static_cast<MML::Real>(10.0) / Constants::PI;
 		
 		// Should be close to N/PI for small x
-		REQUIRE_THAT(valNearZero, WithinAbs(expected, REAL(0.01)));
+		REQUIRE_THAT(valNearZero, WithinAbs(expected, static_cast<MML::Real>(0.01)));
 	}
 
 	TEST_CASE("DiracSin::Oscillatory", "[DiracDeltaFunction][DiracSin]")
@@ -242,10 +242,10 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		
 		// Sinc function oscillates and decays
 		// Zero crossings at x = k*PI/N for integer k
-		Real zeroCrossing = Constants::PI / REAL(10.0);
+		Real zeroCrossing = Constants::PI / static_cast<MML::Real>(10.0);
 		
-		REQUIRE_THAT(delta(zeroCrossing), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta(2 * zeroCrossing), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(zeroCrossing), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(2 * zeroCrossing), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("DiracSin::DecaysAwayFromOrigin", "[DiracDeltaFunction][DiracSin]")
@@ -254,9 +254,9 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracSin delta(10);
 		
 		// Overall envelope should decay like 1/x
-		Real val1 = std::abs(delta(REAL(0.1)));
-		Real val2 = std::abs(delta(REAL(0.5)));
-		Real val3 = std::abs(delta(REAL(1.0)));
+		Real val1 = std::abs(delta(static_cast<MML::Real>(0.1)));
+		Real val2 = std::abs(delta(static_cast<MML::Real>(0.5)));
+		Real val3 = std::abs(delta(static_cast<MML::Real>(1.0)));
 		
 		// Magnitude should generally decrease (ignoring oscillations)
 		REQUIRE(val1 > val3);
@@ -269,8 +269,8 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracSin delta100(100);
 		
 		// Peak height increases with N (near origin)
-		Real val10 = delta10(REAL(0.001));
-		Real val100 = delta100(REAL(0.001));
+		Real val10 = delta10(static_cast<MML::Real>(0.001));
+		Real val100 = delta100(static_cast<MML::Real>(0.001));
 		
 		REQUIRE(val100 > val10);
 	}
@@ -285,22 +285,22 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracExp deltaExp(10);
 		DiracSqr deltaSqr(10);
 		
-		Real smallStep = REAL(0.001);
+		Real smallStep = static_cast<MML::Real>(0.001);
 		Real valLeftExp = deltaExp(-smallStep);
 		Real valRightExp = deltaExp(smallStep);
-		Real valCenterExp = deltaExp(REAL(0.0));
+		Real valCenterExp = deltaExp(static_cast<MML::Real>(0.0));
 		
 		// Exponential should be smooth
-		REQUIRE(std::abs(valCenterExp - valLeftExp) < REAL(0.5));
-		REQUIRE(std::abs(valCenterExp - valRightExp) < REAL(0.5));
+		REQUIRE(std::abs(valCenterExp - valLeftExp) < static_cast<MML::Real>(0.5));
+		REQUIRE(std::abs(valCenterExp - valRightExp) < static_cast<MML::Real>(0.5));
 		
 		Real valLeftSqr = deltaSqr(-smallStep);
 		Real valRightSqr = deltaSqr(smallStep);
-		Real valCenterSqr = deltaSqr(REAL(0.0));
+		Real valCenterSqr = deltaSqr(static_cast<MML::Real>(0.0));
 		
 		// Lorentzian should be smooth
-		REQUIRE(std::abs(valCenterSqr - valLeftSqr) < REAL(0.5));
-		REQUIRE(std::abs(valCenterSqr - valRightSqr) < REAL(0.5));
+		REQUIRE(std::abs(valCenterSqr - valLeftSqr) < static_cast<MML::Real>(0.5));
+		REQUIRE(std::abs(valCenterSqr - valRightSqr) < static_cast<MML::Real>(0.5));
 	}
 
 	TEST_CASE("Integration::AllFunctionsPositive", "[DiracDeltaFunction][Integration]")
@@ -311,10 +311,10 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracExp deltaExp(10);
 		DiracSqr deltaSqr(10);
 		
-		for (Real x = -REAL(1.0); x <= REAL(1.0); x += REAL(0.1)) {
-			REQUIRE(deltaStep(x) >= REAL(0.0));
-			REQUIRE(deltaExp(x) >= REAL(0.0));
-			REQUIRE(deltaSqr(x) >= REAL(0.0));
+		for (Real x = -static_cast<MML::Real>(1.0); x <= static_cast<MML::Real>(1.0); x += static_cast<MML::Real>(0.1)) {
+			REQUIRE(deltaStep(x) >= static_cast<MML::Real>(0.0));
+			REQUIRE(deltaExp(x) >= static_cast<MML::Real>(0.0));
+			REQUIRE(deltaSqr(x) >= static_cast<MML::Real>(0.0));
 		}
 	}
 
@@ -328,7 +328,7 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracSqr deltaSqr1(10);
 		DiracSqr deltaSqr2(100);
 		
-		Real testPoint = REAL(0.2);
+		Real testPoint = static_cast<MML::Real>(0.2);
 		
 		// Larger N should give smaller values away from origin
 		REQUIRE(deltaExp2(testPoint) < deltaExp1(testPoint));
@@ -347,12 +347,12 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracSin delta100(100);
 		
 		// Exact x=0 should return N/PI
-		REQUIRE_THAT(delta10(REAL(0.0)), WithinAbs(REAL(10.0) / Constants::PI, TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta100(REAL(0.0)), WithinAbs(REAL(100.0) / Constants::PI, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta10(static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(10.0) / Constants::PI, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta100(static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(100.0) / Constants::PI, TOL(1e-10, 1e-5)));
 		
 		// Very small x should also be close to N/PI
-		REQUIRE_THAT(delta10(TOL(1e-15, 1e-5)), WithinAbs(REAL(10.0) / Constants::PI, TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(delta10(-TOL(1e-15, 1e-5)), WithinAbs(REAL(10.0) / Constants::PI, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta10(TOL(1e-15, 1e-5)), WithinAbs(static_cast<MML::Real>(10.0) / Constants::PI, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta10(-TOL(1e-15, 1e-5)), WithinAbs(static_cast<MML::Real>(10.0) / Constants::PI, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("DiracExp::GaussianFormula", "[DiracDeltaFunction][DiracExp]")
@@ -361,15 +361,15 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		// Verify formula: N / sqrt(2*PI) * exp(-N^2 * x^2 / 2)
 		DiracExp delta(10);
 		
-		Real x = REAL(0.1);
-		Real N = REAL(10.0);
+		Real x = static_cast<MML::Real>(0.1);
+		Real N = static_cast<MML::Real>(10.0);
 		Real expected = N / std::sqrt(2 * Constants::PI) * std::exp(-N * N * x * x / 2);
 		
 		REQUIRE_THAT(delta(x), WithinAbs(expected, TOL(1e-12, 1e-5)));
 		
 		// At x=0, should equal N / sqrt(2*PI)
 		Real peak_expected = N / std::sqrt(2 * Constants::PI);
-		REQUIRE_THAT(delta(REAL(0.0)), WithinAbs(peak_expected, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(delta(static_cast<MML::Real>(0.0)), WithinAbs(peak_expected, TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("DiracSqr::LorentzianFormula", "[DiracDeltaFunction][DiracSqr]")
@@ -378,14 +378,14 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		// Verify formula: N / (PI * (1 + N^2 * x^2))
 		DiracSqr delta(10);
 		
-		Real x = REAL(0.1);
-		Real N = REAL(10.0);
+		Real x = static_cast<MML::Real>(0.1);
+		Real N = static_cast<MML::Real>(10.0);
 		Real expected = N / (Constants::PI * (1 + N * N * x * x));
 		
 		REQUIRE_THAT(delta(x), WithinAbs(expected, TOL(1e-12, 1e-5)));
 		
 		// At x = 1/N, should be N / (2*PI) (half maximum)
-		Real x_half = REAL(1.0) / N;
+		Real x_half = static_cast<MML::Real>(1.0) / N;
 		Real half_expected = N / (2 * Constants::PI);
 		REQUIRE_THAT(delta(x_half), WithinAbs(half_expected, TOL(1e-12, 1e-5)));
 	}
@@ -398,11 +398,11 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		int N = 10;
 		DiracStep delta(N);
 		
-		Real height = delta(REAL(0.0));  // Should be N
-		Real width = REAL(1.0) / N;      // Interval is [-1/(2N), 1/(2N)], width = 1/N
+		Real height = delta(static_cast<MML::Real>(0.0));  // Should be N
+		Real width = static_cast<MML::Real>(1.0) / N;      // Interval is [-1/(2N), 1/(2N)], width = 1/N
 		Real area = height * width;
 		
-		REQUIRE_THAT(area, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(area, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("DecayComparison::GaussianVsLorentzian", "[DiracDeltaFunction][Comparison]")
@@ -413,18 +413,18 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracSqr lorentzian(10);
 		
 		// At origin, they're both peaked (different heights)
-		Real gaussPeak = gaussian(REAL(0.0));
-		Real lorentzPeak = lorentzian(REAL(0.0));
+		Real gaussPeak = gaussian(static_cast<MML::Real>(0.0));
+		Real lorentzPeak = lorentzian(static_cast<MML::Real>(0.0));
 		
 		// Both should be positive
-		REQUIRE(gaussPeak > REAL(0.0));
-		REQUIRE(lorentzPeak > REAL(0.0));
+		REQUIRE(gaussPeak > static_cast<MML::Real>(0.0));
+		REQUIRE(lorentzPeak > static_cast<MML::Real>(0.0));
 		
 		// At moderate distance, normalize and compare decay
 		// Gaussian: exp(-50*x^2), Lorentzian: 1/(1 + 100*x^2)
 		// At x=0.5, Gaussian ~ exp(-12.5) << Lorentzian ~ 1/26
-		Real gaussFar = gaussian(REAL(0.5));
-		Real lorentzFar = lorentzian(REAL(0.5));
+		Real gaussFar = gaussian(static_cast<MML::Real>(0.5));
+		Real lorentzFar = lorentzian(static_cast<MML::Real>(0.5));
 		
 		// Gaussian normalized decay is much smaller
 		Real gaussDecay = gaussFar / gaussPeak;
@@ -439,23 +439,35 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		DiracSin delta(10);
 		
 		// Sinc oscillates: positive at 0, negative between first and second zero
-		Real peak = delta(REAL(0.0));
-		REQUIRE(peak > REAL(0.0));
+		Real peak = delta(static_cast<MML::Real>(0.0));
+		REQUIRE(peak > static_cast<MML::Real>(0.0));
 		
 		// First zero at x = PI/N
-		Real firstZero = Constants::PI / REAL(10.0);
-		REQUIRE_THAT(delta(firstZero), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		Real firstZero = Constants::PI / static_cast<MML::Real>(10.0);
+		REQUIRE_THAT(delta(firstZero), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 		
 		// Negative between first and second zero
-		Real midpoint = REAL(1.5) * Constants::PI / REAL(10.0);
-		REQUIRE(delta(midpoint) < REAL(0.0));
+		Real midpoint = static_cast<MML::Real>(1.5) * Constants::PI / static_cast<MML::Real>(10.0);
+		REQUIRE(delta(midpoint) < static_cast<MML::Real>(0.0));
 		
 		// Second zero at x = 2*PI/N
-		Real secondZero = 2 * Constants::PI / REAL(10.0);
-		REQUIRE_THAT(delta(secondZero), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		Real secondZero = 2 * Constants::PI / static_cast<MML::Real>(10.0);
+		REQUIRE_THAT(delta(secondZero), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 		
 		// Positive between second and third zero
-		Real midpoint2 = REAL(2.5) * Constants::PI / REAL(10.0);
-		REQUIRE(delta(midpoint2) > REAL(0.0));
+		Real midpoint2 = static_cast<MML::Real>(2.5) * Constants::PI / static_cast<MML::Real>(10.0);
+		REQUIRE(delta(midpoint2) > static_cast<MML::Real>(0.0));
+	}
+
+	TEST_CASE("DiracFunction::RejectsNonPositiveN", "[DiracDeltaFunction][wewi.1.13]")
+	{
+		TEST_PRECISION_INFO();
+		// N = 0 gave division by zero (step width 1/(2N)), N < 0 a negative "delta"
+		REQUIRE_THROWS_AS(DiracStep(0), ArgumentError);
+		REQUIRE_THROWS_AS(DiracStep(-3), ArgumentError);
+		REQUIRE_THROWS_AS(DiracExp(0), ArgumentError);
+		REQUIRE_THROWS_AS(DiracSqr(-1), ArgumentError);
+		REQUIRE_THROWS_AS(DiracSin(0), ArgumentError);
+		REQUIRE_NOTHROW(DiracStep(1));
 	}
 }

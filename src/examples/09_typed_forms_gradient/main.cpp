@@ -14,7 +14,7 @@
 #include <MML.h>
 #else
 #include <mml/MMLBase.h>
-#include <mml/base/DifferentialGeometry/Metric.h>
+#include <mml/core/DifferentialGeometry/Metric.h>
 #include <mml/base/DifferentialGeometry/TypedFields.h>
 #include <mml/core/DifferentialGeometry/FieldOperations.h>
 #endif
@@ -29,7 +29,7 @@ class TemperatureField : public IScalarField<3, Cartesian3>
 public:
 	Real operator()(const Point<Real, 3, Cartesian3>& point) const override
 	{
-		return point[0] * point[0] + REAL(2.0) * point[1] - point[2];
+		return point[0] * point[0] + static_cast<MML::Real>(2.0) * point[1] - point[2];
 	}
 };
 
@@ -64,8 +64,8 @@ int main()
 
 	TemperatureField temperature;
 	Metric<3, Cartesian3> metric = Metric<3, Cartesian3>::Euclidean();
-	Point<Real, 3, Cartesian3> point{ REAL(1.0), REAL(2.0), REAL(3.0) };
-	TangentVector<3, Cartesian3> direction{ REAL(0.5), -REAL(1.0), REAL(2.0) };
+	Point<Real, 3, Cartesian3> point{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) };
+	TangentVector<3, Cartesian3> direction{ static_cast<MML::Real>(0.5), -static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0) };
 
 	Form1<3, Cartesian3> df = exterior_derivative(temperature)(point);
 	Covector<3, Cartesian3> dfCovector = ToCovector(df);
@@ -84,7 +84,7 @@ int main()
 	std::cout << "\nExpected for f=x^2+2y-z at (1,2,3): df=(2,2,-1), grad=(2,2,-1).\n";
 
 	PlanarOneFormField alpha;
-	Point<Real, 2, Cartesian2> planarPoint{ REAL(2.0), REAL(3.0) };
+	Point<Real, 2, Cartesian2> planarPoint{ static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) };
 	Form2<2, Cartesian2> dAlpha = exterior_derivative(alpha)(planarPoint);
 
 	std::cout << "\nExterior derivative of alpha = xy dx + (x^2+y) dy at (2,3):\n";

@@ -13,6 +13,7 @@
 #define MML_STATISTICS_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/MMLExceptions.h>
 
 #include <mml/base/Vector/Vector.h>
@@ -746,7 +747,7 @@ namespace MML {
 			if (!std::isfinite(correlation))
 				throw StatisticsError("Non-finite result in WeightedPearsonCorrelation");
 
-			return std::clamp(correlation, REAL(-1.0), REAL(1.0));
+			return std::clamp(correlation, static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1.0));
 		}
 
 		/// @brief Result structure for correlation with significance test
@@ -913,7 +914,7 @@ namespace MML {
 					Real correlation = covMatrix(j1, j2) / stdDevs[j1] / stdDevs[j2];
 					if (!std::isfinite(correlation))
 						throw StatisticsError("Non-finite result in CorrelationMatrix");
-					correlation = std::clamp(correlation, REAL(-1.0), REAL(1.0));
+					correlation = std::clamp(correlation, static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1.0));
 					corrMatrix(j1, j2) = correlation;
 					corrMatrix(j2, j1) = correlation;
 				}

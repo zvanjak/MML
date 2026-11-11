@@ -62,6 +62,14 @@ void Print();  // Formatted console output
 
 ### Usage Examples
 
+ThreadPool is execution infrastructure in `mml/base/ThreadPool.h`, not a tools-layer
+dependency. The old tools header is removed without a forwarding shim. Worker
+startup failure joins workers already created before rethrowing.
+
+Its first numerical consumers are [parallel integration and Monte Carlo](../algorithms/ParallelIntegration.md).
+The runnable `MML_DocsApp --parallel-integration` demonstrates both with a private
+pool and deterministic indexed reduction.
+
 #### Basic Timing
 
 ```cpp
@@ -287,7 +295,7 @@ bool has_tasks();                           // Check if tasks pending
 #### Basic Parallel Execution
 
 ```cpp
-#include <mml/tools/ThreadPool.h>
+#include <mml/base/ThreadPool.h>
 
 ThreadPool pool(4);  // 4 worker threads
 

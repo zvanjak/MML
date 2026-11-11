@@ -13,7 +13,7 @@
 
 #include <mml/MMLBase.h>
 
-#include <mml/base/DifferentialGeometry/Metric.h>
+#include <mml/core/DifferentialGeometry/Metric.h>
 #include <mml/core/MetricTensor.h>
 
 namespace MML

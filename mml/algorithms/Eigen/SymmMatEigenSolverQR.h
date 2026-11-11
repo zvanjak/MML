@@ -71,14 +71,19 @@ namespace MML {
 			Result result(n);
 
 			if (n == 0) {
-				result.converged = true;
+				// Empty problem: nothing to iterate or check (RESULT_POLICY: Completed)
+				result.converged = false;
+				result.status = AlgorithmStatus::Completed;
+				result.residual = NoEstimate;
 				return result;
 			}
 
 			if (n == 1) {
+				// Closed form: residual (off-diagonal norm) is exactly 0 - the criterion is checked and met
 				result.eigenvalues[0] = A(0, 0);
 				result.eigenvectors(0, 0) = 1.0;
-				result.converged = true;
+				result.residual = 0.0;
+				result.converged = result.residual <= tol;
 				return result;
 			}
 

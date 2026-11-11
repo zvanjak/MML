@@ -60,7 +60,7 @@ namespace MML::Tests::Core::HermitianCholeskyTests
 
 		REQUIRE_THROWS_AS(CholeskySolver<Complex>(semidefinite), SingularMatrixError);
 		REQUIRE_THROWS_AS(CholeskySolver<Complex>(indefinite), SingularMatrixError);
-		REQUIRE_THROWS_AS(CholeskySolver<Complex>(nonHermitian), MatrixDimensionError);
+		REQUIRE_THROWS_AS(CholeskySolver<Complex>(nonHermitian), DomainError);
 	}
 
 	TEST_CASE("MatrixAlg exposes complex Hermitian Cholesky and definiteness",
@@ -94,8 +94,8 @@ namespace MML::Tests::Core::HermitianCholeskyTests
 	{
 		const Real tolerance = TOL(1e-8, 1e-4);
 		const Matrix<Complex> nearlyHermitian{2, 2, {
-			Complex{3.0, tolerance * REAL(0.25)}, Complex{1.0, 2.0},
-			Complex{1.0, REAL(-2.0) + tolerance * REAL(0.25)}, Complex{4.0, 0.0}
+			Complex{3.0, tolerance * static_cast<MML::Real>(0.25)}, Complex{1.0, 2.0},
+			Complex{1.0, static_cast<MML::Real>(-2.0) + tolerance * static_cast<MML::Real>(0.25)}, Complex{4.0, 0.0}
 		}};
 		REQUIRE(MatrixAlg::ClassifyDefiniteness(nearlyHermitian, tolerance) == MatrixAlg::Definiteness::PositiveDefinite);
 

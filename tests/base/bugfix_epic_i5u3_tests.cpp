@@ -30,7 +30,6 @@
 #include <mml/base/ODESystem.h>
 #include <mml/base/DAESystem.h>
 #include <mml/base/StandardFunctions.h>
-#include <mml/base/Algebra/ModInt.h>
 #include <mml/base/ChebyshevApproximation.h>
 #include <mml/core/Derivation.h>
 #include <mml/core/CoordTransf/CoordTransfSpherical.h>
@@ -51,7 +50,7 @@
 #include <mml/core/Integration/Integration2DAdaptive.h>
 #include <mml/core/Derivation/ADJacobians.h>
 #include <mml/tools/Timer.h>
-#include <mml/tools/ThreadPool.h>
+#include <mml/base/ThreadPool.h>
 #include <mml/tools/CsvUtils.h>
 #include <mml/tools/ConsolePrinter.h>
 #include <mml/tools/serializer/SerializerBase.h>
@@ -60,9 +59,9 @@ using namespace MML;
 
 namespace
 {
-	constexpr Real LinearSolveTolerance = MML::Testing::Tol(REAL(1e-10), REAL(1e-6));
-	constexpr Real OneSidedDerivativeTolerance = MML::Testing::Tol(REAL(1e-3), REAL(3e-2));
-	constexpr Real EllipticIntegralTolerance = MML::Testing::Tol(REAL(1e-9), REAL(1e-6));
+	constexpr Real LinearSolveTolerance = MML::Testing::Tol(static_cast<MML::Real>(1e-10), static_cast<MML::Real>(1e-6));
+	constexpr Real OneSidedDerivativeTolerance = MML::Testing::Tol(static_cast<MML::Real>(1e-3), static_cast<MML::Real>(3e-2));
+	constexpr Real EllipticIntegralTolerance = MML::Testing::Tol(static_cast<MML::Real>(1e-9), static_cast<MML::Real>(1e-6));
 }
 
 namespace MML::Tests::BugfixI5u3 {
@@ -171,7 +170,7 @@ TEST_CASE("BugFix_i5u3.1.3 - Algorithm parameter Defaults are per-thread too", "
 	Real workerSeen = 0.0;
 
 	std::thread worker([&]() {
-		Defaults::TrapezoidIntegrationEPS = REAL(1.0e-9);
+		Defaults::TrapezoidIntegrationEPS = static_cast<MML::Real>(1.0e-9);
 		workerSeen = Defaults::TrapezoidIntegrationEPS;
 	});
 	worker.join();
@@ -194,10 +193,10 @@ TEST_CASE("BugFix_i5u3.1.4 - transfTensor2 preserves (0,2) covariant variance", 
 
 	Tensor2<3> result = transf.transfTensor2(covariant, pos);
 
-	REQUIRE(result.NumCovar() == 2);
-	REQUIRE(result.NumContravar() == 0);
-	REQUIRE_FALSE(result.IsContravar(0));
-	REQUIRE_FALSE(result.IsContravar(1));
+	REQUIRE(result.numCovar() == 2);
+	REQUIRE(result.numContravar() == 0);
+	REQUIRE_FALSE(result.isContravar(0));
+	REQUIRE_FALSE(result.isContravar(1));
 }
 
 TEST_CASE("BugFix_i5u3.1.4 - transfTensor2 preserves (2,0) contravariant variance", "[bugfix][i5u3][tensor]")
@@ -210,10 +209,10 @@ TEST_CASE("BugFix_i5u3.1.4 - transfTensor2 preserves (2,0) contravariant varianc
 
 	Tensor2<3> result = transf.transfTensor2(contravariant, pos);
 
-	REQUIRE(result.NumCovar() == 0);
-	REQUIRE(result.NumContravar() == 2);
-	REQUIRE(result.IsContravar(0));
-	REQUIRE(result.IsContravar(1));
+	REQUIRE(result.numCovar() == 0);
+	REQUIRE(result.numContravar() == 2);
+	REQUIRE(result.isContravar(0));
+	REQUIRE(result.isContravar(1));
 }
 
 TEST_CASE("BugFix_i5u3.1.4 - transfTensor2 preserves mixed per-slot variance order", "[bugfix][i5u3][tensor]")
@@ -223,15 +222,15 @@ TEST_CASE("BugFix_i5u3.1.4 - transfTensor2 preserves mixed per-slot variance ord
 
 	Tensor2<3> mixed(1, 1);        // ctor default: slot 0 covariant, slot 1 contravariant
 	mixed(0, 0) = 1.0; mixed(1, 2) = 0.5;
-	REQUIRE_FALSE(mixed.IsContravar(0));
-	REQUIRE(mixed.IsContravar(1));
+	REQUIRE_FALSE(mixed.isContravar(0));
+	REQUIRE(mixed.isContravar(1));
 
 	Tensor2<3> result = transf.transfTensor2(mixed, pos);
 
-	REQUIRE(result.NumCovar() == 1);
-	REQUIRE(result.NumContravar() == 1);
-	REQUIRE_FALSE(result.IsContravar(0));  // per-slot order preserved
-	REQUIRE(result.IsContravar(1));
+	REQUIRE(result.numCovar() == 1);
+	REQUIRE(result.numContravar() == 1);
+	REQUIRE_FALSE(result.isContravar(0));  // per-slot order preserved
+	REQUIRE(result.isContravar(1));
 }
 
 TEST_CASE("BugFix_i5u3.1.4 - transfTensor3 preserves (3,0) covariant variance", "[bugfix][i5u3][tensor]")
@@ -244,11 +243,11 @@ TEST_CASE("BugFix_i5u3.1.4 - transfTensor3 preserves (3,0) covariant variance", 
 
 	Tensor3<3> result = transf.transfTensor3(covariant, pos);
 
-	REQUIRE(result.NumCovar() == 3);
-	REQUIRE(result.NumContravar() == 0);
-	REQUIRE_FALSE(result.IsContravar(0));
-	REQUIRE_FALSE(result.IsContravar(1));
-	REQUIRE_FALSE(result.IsContravar(2));
+	REQUIRE(result.numCovar() == 3);
+	REQUIRE(result.numContravar() == 0);
+	REQUIRE_FALSE(result.isContravar(0));
+	REQUIRE_FALSE(result.isContravar(1));
+	REQUIRE_FALSE(result.isContravar(2));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -427,13 +426,13 @@ TEST_CASE("BugFix_i5u3.1.8 - Complex CSR Frobenius norm uses |v|^2", "[bugfix][i
 	coo.addEntry(1, 1, Complex(0.0, 2.0));   // |v| = 2
 	SparseMatrix::SparseMatrixCSR<Complex> csr(coo);
 
-	Real frob = csr.normFrobenius();   // sqrt(25 + 4) = sqrt(29)
+	Real frob = csr.NormFrobenius();   // sqrt(25 + 4) = sqrt(29)
 	REQUIRE(frob == Catch::Approx(std::sqrt(29.0)));
 
-	Real inf = csr.normInf();          // max(5, 2) = 5
+	Real inf = csr.NormInf();          // max(5, 2) = 5
 	REQUIRE(inf == Catch::Approx(5.0));
 
-	Real one = csr.norm1();            // max col sums: max(5, 2) = 5
+	Real one = csr.Norm1();            // max col sums: max(5, 2) = 5
 	REQUIRE(one == Catch::Approx(5.0));
 }
 
@@ -445,9 +444,9 @@ TEST_CASE("BugFix_i5u3.1.8 - Real CSR norms unchanged", "[bugfix][i5u3][sparse]"
 	coo.addEntry(1, 1, 12.0);
 	SparseMatrix::SparseMatrixCSR<Real> csr(coo);
 
-	REQUIRE(csr.normFrobenius() == Catch::Approx(13.0));  // sqrt(9+16+144)
-	REQUIRE(csr.normInf() == Catch::Approx(12.0));         // max(3+4, 12)
-	REQUIRE(csr.norm1() == Catch::Approx(16.0));           // max(3, 4+12)
+	REQUIRE(csr.NormFrobenius() == Catch::Approx(13.0));  // sqrt(9+16+144)
+	REQUIRE(csr.NormInf() == Catch::Approx(12.0));         // max(3+4, 12)
+	REQUIRE(csr.Norm1() == Catch::Approx(16.0));           // max(3, 4+12)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -575,11 +574,11 @@ TEST_CASE("BugFix_i5u3.1.12 - isSymmetric cache is keyed on tolerance", "[bugfix
 	Systems::LinearSystem<Real> sys(A, Vector<Real>{1.0, 1.0});
 
 	// Strict tolerance first: not symmetric
-	REQUIRE(sys.IsSymmetric({REAL(1e-9), REAL(0.0)}) == false);
+	REQUIRE(sys.IsSymmetric({static_cast<MML::Real>(1e-9), static_cast<MML::Real>(0.0)}) == false);
 	// Loose tolerance afterwards must recompute, not return the cached strict result
-	REQUIRE(sys.IsSymmetric({REAL(1e-3), REAL(0.0)}) == true);
+	REQUIRE(sys.IsSymmetric({static_cast<MML::Real>(1e-3), static_cast<MML::Real>(0.0)}) == true);
 	// And back again
-	REQUIRE(sys.IsSymmetric({REAL(1e-9), REAL(0.0)}) == false);
+	REQUIRE(sys.IsSymmetric({static_cast<MML::Real>(1e-9), static_cast<MML::Real>(0.0)}) == false);
 }
 
 TEST_CASE("BugFix_i5u3.1.12 - IsPositiveDefinite respects the requested tolerance", "[bugfix][i5u3][systems]")
@@ -589,8 +588,8 @@ TEST_CASE("BugFix_i5u3.1.12 - IsPositiveDefinite respects the requested toleranc
 	                       1.0, 3.0 });
 	Systems::LinearSystem<Real> sys(A, Vector<Real>{1.0, 1.0});
 
-	REQUIRE_THROWS_AS(sys.IsPositiveDefinite(REAL(1e-9)), MatrixDimensionError);
-	REQUIRE(sys.IsPositiveDefinite(REAL(1e-3)) == true);
+	REQUIRE_THROWS_AS(sys.IsPositiveDefinite(static_cast<MML::Real>(1e-9)), MatrixDimensionError);
+	REQUIRE(sys.IsPositiveDefinite(static_cast<MML::Real>(1e-3)) == true);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -610,35 +609,35 @@ TEST_CASE("BugFix_i5u3.1.14 - stepper interfaces have virtual destructors", "[bu
 TEST_CASE("BugFix_i5u3.1.15 - Tensor2 setContravar keeps counts in sync", "[bugfix][i5u3][tensor]")
 {
 	Tensor2<3> t(2, 0);   // both indices covariant
-	REQUIRE(t.NumCovar() == 2);
-	REQUIRE(t.NumContravar() == 0);
+	REQUIRE(t.numCovar() == 2);
+	REQUIRE(t.numContravar() == 0);
 
 	t.setContravar(0, true);
-	REQUIRE(t.IsContravar(0) == true);
-	REQUIRE(t.NumContravar() == 1);   // previously stayed 0 - desynced
-	REQUIRE(t.NumCovar() == 1);
+	REQUIRE(t.isContravar(0) == true);
+	REQUIRE(t.numContravar() == 1);   // previously stayed 0 - desynced
+	REQUIRE(t.numCovar() == 1);
 
 	t.setContravar(0, false);
-	REQUIRE(t.NumContravar() == 0);
-	REQUIRE(t.NumCovar() == 2);
+	REQUIRE(t.numContravar() == 0);
+	REQUIRE(t.numCovar() == 2);
 }
 
 TEST_CASE("BugFix_i5u3.1.15 - Tensor3 setContravar keeps counts in sync", "[bugfix][i5u3][tensor]")
 {
 	Tensor3<3> t(3, 0);
 	t.setContravar(1, true);
-	REQUIRE(t.NumContravar() == 1);
-	REQUIRE(t.NumCovar() == 2);
+	REQUIRE(t.numContravar() == 1);
+	REQUIRE(t.numCovar() == 2);
 }
 
 TEST_CASE("BugFix_i5u3.1.15 - MatrixNM unary minus works on const object", "[bugfix][i5u3][matrix]")
 {
 	const MatrixNM<Real, 2, 2> m({ 1.0, -2.0, 3.0, -4.0 });
 	MatrixNM<Real, 2, 2> neg = -m;   // previously did not compile: operator-() was non-const
-	REQUIRE(neg(0, 0) == REAL(-1.0));
-	REQUIRE(neg(0, 1) == REAL(2.0));
-	REQUIRE(neg(1, 0) == REAL(-3.0));
-	REQUIRE(neg(1, 1) == REAL(4.0));
+	REQUIRE(neg(0, 0) == static_cast<MML::Real>(-1.0));
+	REQUIRE(neg(0, 1) == static_cast<MML::Real>(2.0));
+	REQUIRE(neg(1, 0) == static_cast<MML::Real>(-3.0));
+	REQUIRE(neg(1, 1) == static_cast<MML::Real>(4.0));
 }
 
 TEST_CASE("BugFix_i5u3.1.15 - Vector::erase validates position and range", "[bugfix][i5u3][vector]")
@@ -652,8 +651,8 @@ TEST_CASE("BugFix_i5u3.1.15 - Vector::erase validates position and range", "[bug
 
 	v.erase(1);   // valid erase still works
 	REQUIRE(v.size() == 2);
-	REQUIRE(v[0] == REAL(1.0));
-	REQUIRE(v[1] == REAL(3.0));
+	REQUIRE(v[0] == static_cast<MML::Real>(1.0));
+	REQUIRE(v[1] == static_cast<MML::Real>(3.0));
 
 	v.erase(0, 2);
 	REQUIRE(v.size() == 0);
@@ -728,29 +727,29 @@ TEST_CASE("BugFix_i5u3.1.16 - stepper interpolate clamps outside last step", "[b
 TEST_CASE("Task_i5u3.3.2 - PI step controller is configurable and resettable", "[ODE][i5u3][step-controller]")
 {
 	StepSizeControllerConfig config;
-	config.safety = REAL(0.8);
-	config.alpha = REAL(0.25);
-	config.beta = REAL(0.1);
-	config.minFactor = REAL(0.1);
-	config.maxFactor = REAL(4.0);
-	config.errorFloor = REAL(1e-6);
+	config.safety = static_cast<MML::Real>(0.8);
+	config.alpha = static_cast<MML::Real>(0.25);
+	config.beta = static_cast<MML::Real>(0.1);
+	config.minFactor = static_cast<MML::Real>(0.1);
+	config.maxFactor = static_cast<MML::Real>(4.0);
+	config.errorFloor = static_cast<MML::Real>(1e-6);
 
 	StepSizeController controller(config);
-	Real first = controller.acceptedStep(REAL(2.0), REAL(0.25));
-	REQUIRE(first == Catch::Approx(REAL(2.0) * REAL(0.8) * std::pow(REAL(0.25), REAL(-0.25))));
-	REQUIRE(controller.previousError() == Catch::Approx(REAL(0.25)));
+	Real first = controller.acceptedStep(static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.25));
+	REQUIRE(first == Catch::Approx(static_cast<MML::Real>(2.0) * static_cast<MML::Real>(0.8) * std::pow(static_cast<MML::Real>(0.25), static_cast<MML::Real>(-0.25))));
+	REQUIRE(controller.previousError() == Catch::Approx(static_cast<MML::Real>(0.25)));
 
-	Real second = controller.acceptedStep(REAL(2.0), REAL(0.25));
-	REQUIRE(second == Catch::Approx(first * std::pow(REAL(0.25), REAL(0.1))));
-
-	controller.reset();
-	REQUIRE(controller.acceptedStep(REAL(2.0), REAL(0.25)) == Catch::Approx(first));
-	REQUIRE(controller.rejectedStep(REAL(-2.0), REAL(16.0)) < 0);
+	Real second = controller.acceptedStep(static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.25));
+	REQUIRE(second == Catch::Approx(first * std::pow(static_cast<MML::Real>(0.25), static_cast<MML::Real>(0.1))));
 
 	controller.reset();
-	Real orderSpecific = controller.acceptedStep(REAL(2.0), REAL(0.25), REAL(0.5));
-	REQUIRE(orderSpecific == Catch::Approx(REAL(2.0) * REAL(0.8) * std::pow(REAL(0.25), REAL(-0.5))));
-	REQUIRE_THROWS_AS(controller.rejectedStep(REAL(2.0), REAL(2.0), REAL(0.0)), ODESolverError);
+	REQUIRE(controller.acceptedStep(static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.25)) == Catch::Approx(first));
+	REQUIRE(controller.rejectedStep(static_cast<MML::Real>(-2.0), static_cast<MML::Real>(16.0)) < 0);
+
+	controller.reset();
+	Real orderSpecific = controller.acceptedStep(static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.25), static_cast<MML::Real>(0.5));
+	REQUIRE(orderSpecific == Catch::Approx(static_cast<MML::Real>(2.0) * static_cast<MML::Real>(0.8) * std::pow(static_cast<MML::Real>(0.25), static_cast<MML::Real>(-0.5))));
+	REQUIRE_THROWS_AS(controller.rejectedStep(static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0)), ODESolverError);
 }
 
 TEST_CASE("Task_i5u3.3.2 - Hermite interpolator validates state and clamps both step directions", "[ODE][i5u3][interpolation]")
@@ -758,23 +757,23 @@ TEST_CASE("Task_i5u3.3.2 - Hermite interpolator validates state and clamps both 
 	HermiteInterpolator interpolator;
 	REQUIRE_THROWS_AS(interpolator.interpolate(0), ODESolverError);
 
-	Vector<Real> x0({ REAL(0.0) });
-	Vector<Real> x1({ REAL(2.0) });
-	Vector<Real> dx0({ REAL(1.0) });
-	Vector<Real> dx1({ REAL(1.0) });
-	interpolator.setStep(REAL(0.0), REAL(2.0), x0, x1, dx0, dx1);
+	Vector<Real> x0({ static_cast<MML::Real>(0.0) });
+	Vector<Real> x1({ static_cast<MML::Real>(2.0) });
+	Vector<Real> dx0({ static_cast<MML::Real>(1.0) });
+	Vector<Real> dx1({ static_cast<MML::Real>(1.0) });
+	interpolator.setStep(static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), x0, x1, dx0, dx1);
 
-	REQUIRE(interpolator.interpolate(REAL(1.0))[0] == Catch::Approx(REAL(1.0)));
-	REQUIRE(interpolator.interpolate(REAL(-10.0))[0] == Catch::Approx(REAL(0.0)));
-	REQUIRE(interpolator.interpolate(REAL(10.0))[0] == Catch::Approx(REAL(2.0)));
+	REQUIRE(interpolator.interpolate(static_cast<MML::Real>(1.0))[0] == Catch::Approx(static_cast<MML::Real>(1.0)));
+	REQUIRE(interpolator.interpolate(static_cast<MML::Real>(-10.0))[0] == Catch::Approx(static_cast<MML::Real>(0.0)));
+	REQUIRE(interpolator.interpolate(static_cast<MML::Real>(10.0))[0] == Catch::Approx(static_cast<MML::Real>(2.0)));
 
-	interpolator.setStep(REAL(2.0), REAL(-2.0), x1, x0, dx1, dx0);
-	REQUIRE(interpolator.interpolate(REAL(1.0))[0] == Catch::Approx(REAL(1.0)));
-	REQUIRE(interpolator.interpolate(REAL(10.0))[0] == Catch::Approx(REAL(2.0)));
-	REQUIRE(interpolator.interpolate(REAL(-10.0))[0] == Catch::Approx(REAL(0.0)));
+	interpolator.setStep(static_cast<MML::Real>(2.0), static_cast<MML::Real>(-2.0), x1, x0, dx1, dx0);
+	REQUIRE(interpolator.interpolate(static_cast<MML::Real>(1.0))[0] == Catch::Approx(static_cast<MML::Real>(1.0)));
+	REQUIRE(interpolator.interpolate(static_cast<MML::Real>(10.0))[0] == Catch::Approx(static_cast<MML::Real>(2.0)));
+	REQUIRE(interpolator.interpolate(static_cast<MML::Real>(-10.0))[0] == Catch::Approx(static_cast<MML::Real>(0.0)));
 
 	interpolator.reset();
-	REQUIRE_THROWS_AS(interpolator.interpolate(REAL(1.0)), ODESolverError);
+	REQUIRE_THROWS_AS(interpolator.interpolate(static_cast<MML::Real>(1.0)), ODESolverError);
 }
 
 TEST_CASE("BugFix_i5u3.1.16 - serializer sanitizes newlines in titles", "[bugfix][i5u3][tools]")
@@ -814,12 +813,12 @@ TEST_CASE("Contract_i5u3.2.2 - Vector operator== returns false on size mismatch"
 TEST_CASE("Contract_i5u3.2.2 - VectorN isZero is exact, isNearZero has tolerance", "[bugfix][i5u3][contract]")
 {
 	VectorN<Real, 3> tiny({ 1e-14, 0.0, 0.0 });
-	REQUIRE_FALSE(tiny.isZero());       // previously true (hidden epsilon*100 tolerance)
-	REQUIRE(tiny.isNearZero(REAL(1e-13)));
+	REQUIRE_FALSE(tiny.IsZero());       // previously true (hidden epsilon*100 tolerance)
+	REQUIRE(tiny.IsNearZero(static_cast<MML::Real>(1e-13)));
 
 	VectorN<Real, 3> zero({ 0.0, 0.0, 0.0 });
-	REQUIRE(zero.isZero());
-	REQUIRE(zero.isNearZero());
+	REQUIRE(zero.IsZero());
+	REQUIRE(zero.IsNearZero());
 }
 
 TEST_CASE("Contract_i5u3.2.2 - Vec2/Vec3 normalization throws on near-zero", "[bugfix][i5u3][contract]")
@@ -828,16 +827,16 @@ TEST_CASE("Contract_i5u3.2.2 - Vec2/Vec3 normalization throws on near-zero", "[b
 	Vector3Cartesian z3(0.0, 0.0, 0.0);
 
 	REQUIRE_THROWS_AS(z2.Normalized(), VectorDimensionError);       // previously returned zero vector
-	REQUIRE_THROWS_AS(z2.GetAsUnitVector(), VectorDimensionError);
+	REQUIRE_THROWS_AS(z2.Normalized(), VectorDimensionError);
 	REQUIRE_THROWS_AS(z3.Normalized(), VectorDimensionError);
-	REQUIRE_THROWS_AS(z3.GetAsUnitVector(), VectorDimensionError);
+	REQUIRE_THROWS_AS(z3.Normalized(), VectorDimensionError);
 
 	// Explicit fallback variant preserves the old behavior under an honest name
-	REQUIRE(z3.GetAsUnitVectorOrZero().isZero());
+	REQUIRE(z3.NormalizedOrZero().IsZero());
 
 	Vector3Cartesian v(3.0, 0.0, 4.0);
 	REQUIRE(v.Normalized().NormL2() == Catch::Approx(1.0));
-	REQUIRE(v.GetAsUnitVectorOrZero().NormL2() == Catch::Approx(1.0));
+	REQUIRE(v.NormalizedOrZero().NormL2() == Catch::Approx(1.0));
 }
 
 TEST_CASE("Contract_i5u3.2.2 - DAESystem null callbacks throw NotImplementedError", "[bugfix][i5u3][contract]")
@@ -856,7 +855,7 @@ TEST_CASE("Contract_i5u3.2.2 - SparseMatrix throws MML exceptions", "[bugfix][i5
 	REQUIRE_THROWS_AS(m(5, 0), MatrixAccessBoundsError);
 
 	std::vector<Real> wrongSize(3), out;
-	REQUIRE_THROWS_AS(m.multiply(wrongSize, out), VectorDimensionError);
+	REQUIRE_THROWS_AS(m.Multiply(wrongSize, out), VectorDimensionError);
 }
 
 TEST_CASE("Contract_i5u3.2.2 - StandardFunctions throw MML DomainError", "[bugfix][i5u3][contract]")
@@ -885,7 +884,7 @@ TEST_CASE("Contract_i5u3.2.3 - GetValues throws MML ArgumentError", "[bugfix][i5
 {
 	RealFunctionFromStdFunc f([](Real x) { return x; });
 	Vector<Real> outX, outY;
-	REQUIRE_THROWS_AS(f.GetValues(0.0, 1.0, 1, outX, outY), ArgumentError);
+	REQUIRE_THROWS_AS(f.getValues(0.0, 1.0, 1, outX, outY), ArgumentError);
 }
 
 TEST_CASE("Contract_i5u3.2.3 - LUSolver::Solve throws on dimension mismatch", "[bugfix][i5u3][contract]")
@@ -918,14 +917,14 @@ TEST_CASE("Contract_i5u3.2.3 - LP Steepest pivot rule throws NotImplementedError
 
 TEST_CASE("Contract_i5u3.2.3 - root finding verbose output goes to config stream", "[bugfix][i5u3][contract]")
 {
-	RealFunctionFromStdFunc f([](Real x) -> Real { return x * x - REAL(2.0); });
+	RealFunctionFromStdFunc f([](Real x) -> Real { return x * x - static_cast<MML::Real>(2.0); });
 
 	std::ostringstream log;
 	RootFinding::RootFindingConfig config;
 	config.verbose = true;
 	config.verboseStream = &log;
 
-	auto result = RootFinding::FindRootBisection(f, 0.0, 2.0, config);
+	auto result = RootFinding::FindRootBisectionDetailed(f, 0.0, 2.0, config);
 	REQUIRE(result.converged);
 	REQUIRE(log.str().find("Bisection iter") != std::string::npos);
 }
@@ -939,7 +938,7 @@ TEST_CASE("Contract_i5u3.2.3 - 2D adaptive integration rejects unimplemented GK 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-///  Task i5u3.2.4 — Reverse-time integration policy: validate and reject loudly      ///
+///  Task i5u3.2.4 — Time-direction and step-size contracts (extended by wewi.7.1)    ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 namespace ReverseTimeDetail {
@@ -958,15 +957,18 @@ namespace ReverseTimeDetail {
 	};
 }
 
-TEST_CASE("Contract_i5u3.2.4 - DAE solvers reject reverse time and bad step size", "[bugfix][i5u3][contract]")
+TEST_CASE("Contract_i5u3.2.4 - DAE solvers support reverse time and reject bad step size", "[bugfix][i5u3][contract][reverse-time]")
 {
 	ReverseTimeDetail::SimpleDAE sys;
 	Vector<Real> x0({ 1.0 }), y0({ 0.0 });
 
-	// Reverse time: previously silently returned an empty/undefined result
-	REQUIRE_THROWS_AS(SolveDAEBDF2(sys, 1.0, x0, y0, 0.0), ArgumentError);
-	REQUIRE_THROWS_AS(SolveDAEBackwardEuler(sys, 1.0, x0, y0, 0.0), ArgumentError);
-	REQUIRE_THROWS_AS(SolveDAERODAS(sys, 1.0, x0, y0, 0.0), ArgumentError);
+	for (const auto& result : { SolveDAEBDF2(sys, 1.0, x0, y0, 0.0),
+		SolveDAEBackwardEuler(sys, 1.0, x0, y0, 0.0),
+		SolveDAELinearlyImplicit(sys, 1.0, x0, y0, 0.0) }) {
+		REQUIRE(result.status == AlgorithmStatus::Success);
+		REQUIRE(result.solution.size() > 1);
+		REQUIRE(result.solution.getTValue(result.solution.size() - 1) == Catch::Approx(0.0));
+	}
 
 	// Non-positive step size
 	DAESolverConfig badStep;
@@ -978,7 +980,7 @@ TEST_CASE("Contract_i5u3.2.4 - DAE solvers reject reverse time and bad step size
 	REQUIRE(result.solution.getTotalSavedSteps() > 0);
 }
 
-TEST_CASE("Contract_i5u3.2.4 - stiff ODE solvers reject reverse time", "[bugfix][i5u3][contract]")
+TEST_CASE("Contract_i5u3.2.4 - stiff ODE solvers support reverse time and reject bad step size", "[bugfix][i5u3][contract][reverse-time]")
 {
 	// y' = -y with analytic Jacobian
 	ODESystemWithJacobianFromStdFunc sys(1,
@@ -986,9 +988,13 @@ TEST_CASE("Contract_i5u3.2.4 - stiff ODE solvers reject reverse time", "[bugfix]
 		[](Real, const Vector<Real>& y, Vector<Real>& dydt, Matrix<Real>& J) { dydt[0] = -y[0]; J(0, 0) = -1.0; });
 	Vector<Real> y0({ 1.0 });
 
-	REQUIRE_THROWS_AS(SolveBackwardEuler(sys, 1.0, y0, 0.0, 0.1), ODESolverError);
-	REQUIRE_THROWS_AS(SolveBDF2(sys, 1.0, y0, 0.0, 0.1), ODESolverError);
+	for (const auto& solution : { SolveBackwardEuler(sys, 1.0, y0, 0.0, 0.1),
+		SolveBDF2(sys, 1.0, y0, 0.0, 0.1) }) {
+		REQUIRE(solution.size() > 1);
+		REQUIRE(solution.getTValue(solution.size() - 1) == Catch::Approx(0.0));
+	}
 	REQUIRE_THROWS_AS(SolveBackwardEuler(sys, 0.0, y0, 1.0, -0.1), ODESolverError);
+	REQUIRE_THROWS_AS(SolveBDF2(sys, 1.0, y0, 0.0, 0.0), ODESolverError);
 }
 
 TEST_CASE("Contract_i5u3.2.4 - systems analyzers reject reverse time and bad steps", "[bugfix][i5u3][contract]")
@@ -1051,7 +1057,7 @@ TEST_CASE("Contract_i5u3.2.6 - AD lives in MML::AD on Real", "[bugfix][i5u3][con
 	STATIC_REQUIRE(std::is_same_v<decltype(std::declval<AD::TapeEntry>().value), Real>);
 
 	// Reverse-mode gradient of f(x,y) = x*y + sin(x) at (2, 3)
-	auto grad = AD::gradientReverse(
+	auto grad = AD::CalcGradientReverseAD(
 		[](const std::vector<AD::ADVar>& v) { return v[0] * v[1] + AD::sin(v[0]); },
 		std::vector<Real>{ 2.0, 3.0 });
 	REQUIRE(grad[0] == Catch::Approx(3.0 + std::cos(2.0)));
@@ -1059,7 +1065,7 @@ TEST_CASE("Contract_i5u3.2.6 - AD lives in MML::AD on Real", "[bugfix][i5u3][con
 
 	// Backward-compat alias still works
 	MML::AD::Dual<> d(1.0, 1.0);
-	REQUIRE(d.value == REAL(1.0));
+	REQUIRE(d.value == static_cast<MML::Real>(1.0));
 }
 
 TEST_CASE("Contract_i5u3.2.6 - exception payloads carry Real", "[bugfix][i5u3][contract]")
@@ -1079,7 +1085,6 @@ TEST_CASE("Contract_i5u3.2.7 - containers constrained with Field, solvers with M
 	STATIC_REQUIRE(Field<Real>);
 	STATIC_REQUIRE(Field<Complex>);
 	STATIC_REQUIRE(Field<int>);
-	STATIC_REQUIRE(Field<Algebra::PrimeFieldElement<5>>);
 	// ...and rejects non-arithmetic types (Matrix/MatrixNM/MatrixSym now require Field,
 	// so Matrix<std::string> fails with a one-line concept error instead of a template wall)
 	STATIC_REQUIRE_FALSE(Field<std::string>);
@@ -1092,7 +1097,6 @@ TEST_CASE("Contract_i5u3.2.7 - containers constrained with Field, solvers with M
 	// Positive instantiations still work
 	STATIC_REQUIRE(requires { typename Matrix<Real>; });
 	STATIC_REQUIRE(requires { typename Matrix<Complex>; });
-	STATIC_REQUIRE(requires { typename MatrixNM<Algebra::PrimeFieldElement<5>, 2, 2>; });
 	STATIC_REQUIRE(requires { typename QRSolver<Real>; });
 	STATIC_REQUIRE(requires { typename SVDecompositionSolver<Real>; });
 	// LU stays generic - complex LU is legitimate and used

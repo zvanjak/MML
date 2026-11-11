@@ -24,6 +24,7 @@
 #include <mml/base/Geometry/Geometry3D.h>
 
 #include <mml/core/Derivation.h>
+#include <mml/core/Derivation/DerivativeProviders.h>
 #include <mml/core/Integration/PathIntegration.h>
 
 
@@ -44,8 +45,8 @@ namespace MML
 		/// @return Scalar curvature at parameter t
 		inline Real getCurvature2D(const IParametricCurve<2>& curve, Real t)
 		{
-			Vec2Cart r_prime = Derivation::DeriveCurve<2>(curve, t, nullptr);
-			Vec2Cart r_double_prime = Derivation::DeriveCurveSec<2>(curve, t, nullptr);
+			Vec2Cart r_prime = Differential::CurveDerivative<2>(curve, t, 1);
+			Vec2Cart r_double_prime = Differential::CurveDerivative<2>(curve, t, 2);
 
 			Real x_prime = r_prime[0];
 			Real y_prime = r_prime[1];
@@ -73,8 +74,8 @@ namespace MML
 		/// @return Signed curvature at parameter t
 		inline Real getSignedCurvature2D(const IParametricCurve<2>& curve, Real t)
 		{
-			Vec2Cart r_prime = Derivation::DeriveCurve<2>(curve, t, nullptr);
-			Vec2Cart r_double_prime = Derivation::DeriveCurveSec<2>(curve, t, nullptr);
+			Vec2Cart r_prime = Differential::CurveDerivative<2>(curve, t, 1);
+			Vec2Cart r_double_prime = Differential::CurveDerivative<2>(curve, t, 2);
 
 			Real x_prime = r_prime[0];
 			Real y_prime = r_prime[1];
@@ -103,8 +104,8 @@ namespace MML
 		{
 			// For polar curve, output is (r, θ)
 			Vec2Cart vals = curve(t);
-			Vec2Cart derivs = Derivation::DeriveCurve<2>(curve, t, nullptr);
-			Vec2Cart derivs2 = Derivation::DeriveCurveSec<2>(curve, t, nullptr);
+			Vec2Cart derivs = Differential::CurveDerivative<2>(curve, t, 1);
+			Vec2Cart derivs2 = Differential::CurveDerivative<2>(curve, t, 2);
 
 			Real r = vals[0];
 			Real theta = vals[1];
@@ -141,21 +142,15 @@ namespace MML
 		class ICurveCartesian2D : public IParametricCurve<2>
 		{
 		public:
-			Vec2Cart getTangent(Real t)
-			{
-				return Derivation::DeriveCurve<2>(*this, t, nullptr);
-			}
+			Vec2Cart getTangent(Real t) { return Differential::CurveDerivative<2>(*this, t, 1); }
 			Vec2Cart getTangentUnit(Real t)
 			{
-				return getTangent(t).GetAsUnitVector();
+				return getTangent(t).Normalized();
 			}
-			Vec2Cart getNormal(Real t)
-			{
-				return Derivation::DeriveCurveSec<2>(*this, t, nullptr);
-			}
+			Vec2Cart getNormal(Real t) { return Differential::CurveDerivative<2>(*this, t, 2); }
 			Vec2Cart getNormalUnit(Real t)
 			{
-				return getNormal(t).GetAsUnitVector();
+				return getNormal(t).Normalized();
 			}
 
 			/// @brief Get scalar curvature κ(t) = |x'y'' - y'x''| / (x'² + y'²)^(3/2)
@@ -220,64 +215,13 @@ namespace MML
 			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(exp(_lambda * t)* cos(t)), static_cast<Real>(exp(_lambda * t)* sin(t))}; }
 		};
 
-		/// @brief Lemniscate of Gerono curve (figure-eight curve)
-		/// @details Parametrized as (cos(t)/(1+sin²(t)), sin(t)cos(t)/(1+sin²(t)))
-		class LemniscateCurve : public ICurveCartesian2D
-		{
-		public:
-			Real getMinT() const { return Constants::NegInf; }
-			Real getMaxT() const { return Constants::PosInf; }
 
-			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(cos(t) / (1 + sin(t) * sin(t))), static_cast<Real>(sin(t)* cos(t) / (1 + sin(t) * sin(t)))}; }
-		};
 
-		/// @brief Deltoid (tricuspid hypocycloid) curve
-		/// @details Three-cusped curve traced by point on circle rolling inside larger circle
-		class DeltoidCurve : public ICurveCartesian2D
-		{
-			int _n;
-		public:
-			DeltoidCurve() : _n(1) {}
-			DeltoidCurve(int n) : _n(n) {}
 
-			Real getMinT() const { return Constants::NegInf; }
-			Real getMaxT() const { return Constants::PosInf; }
 
-			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(2 * _n * cos(t) * (1 + cos(t))), static_cast<Real>(2 * _n * sin(t) * (1 - cos(t)))}; }
-		};
 
-		/// @brief Astroid (four-cusped hypocycloid) curve
-		/// @details Star-shaped curve with parametrization (c·cos³(t), c·sin³(t)), c > 0
-		class AstroidCurve : public ICurveCartesian2D
-		{
-			Real _c;
-		public:
-			AstroidCurve() : _c(1) {}
-			AstroidCurve(Real c) : _c(c) {
-				if (c <= 0) throw ArgumentError("AstroidCurve: c must be positive.");
-			}
 
-			Real getMinT() const { return Constants::NegInf; }
-			Real getMaxT() const { return Constants::PosInf; }
 
-			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(_c* cos(t)* cos(t)* cos(t)), static_cast<Real>(_c* sin(t)* sin(t)* sin(t))}; }
-		};
-
-		/// @brief Epitrochoid curve (generalized epicycloid)
-		/// @details Curve traced by point attached to circle rolling outside another circle
-		class EpitrochoidCurve : public ICurveCartesian2D
-		{
-			Real _radius, _c;
-			int _n;
-		public:
-			EpitrochoidCurve() : _radius(1), _c(1), _n(1) {}
-			EpitrochoidCurve(Real radius, Real c, int n) : _radius(radius), _c(c), _n(n) {}
-
-			Real getMinT() const { return Constants::NegInf; }
-			Real getMaxT() const { return Constants::PosInf; }
-
-			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(cos(t) - _c * cos(_n * t)), static_cast<Real>(sin(t) - _c * sin(_n * t)) }; }
-		};
 
 		/// @brief Archimedean spiral curve
 		/// @details Linear spiral with constant separation between turns, r = a·t
@@ -294,28 +238,7 @@ namespace MML
 			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(_a* t* cos(t)), static_cast<Real>(_a* t* sin(t))}; }
 		};
 
-		/// @brief Butterfly curve (Temple H. Fay)
-		/// @details A beautiful transcendental plane curve discovered by Temple H. Fay.
-		///          Parametric equations:
-		///            x(t) = sin(t) · (e^cos(t) - 2·cos(4t) - sin⁵(t/12))
-		///            y(t) = cos(t) · (e^cos(t) - 2·cos(4t) - sin⁵(t/12))
-		///          Best visualized for t ∈ [0, 12π]
-		class ButterflyCurve : public ICurveCartesian2D
-		{
-			Real _scale;
-		public:
-			ButterflyCurve() : _scale(1.0) {}
-			ButterflyCurve(Real scale) : _scale(scale) {}
 
-			Real getMinT() const { return 0.0; }
-			Real getMaxT() const { return 12.0 * Constants::PI; }
-
-			VectorN<Real, 2> operator()(Real t) const {
-				Real sin_t12_5 = std::pow(std::sin(t / 12.0), 5);
-				Real r = std::exp(std::cos(t)) - 2.0 * std::cos(4.0 * t) - sin_t12_5;
-				return MML::VectorN<Real, 2>{ _scale * std::sin(t) * r, _scale * std::cos(t) * r };
-			}
-		};
 
 
 		/////////////////////////////               POLAR PLANAR CURVES                  ///////////////////////////////
@@ -342,8 +265,8 @@ namespace MML
 			Vec2Cart getTangent(Real t)
 			{
 				VectorN<Real, 2> polar = (*this)(t);
-				Vec2Cart derivs = Derivation::DeriveCurve<2>(*this, t, nullptr);
-				
+				Vec2Cart derivs = Differential::CurveDerivative<2>(*this, t, 1);
+
 				Real r = polar[0];
 				Real theta = polar[1];
 				Real r_prime = derivs[0];      // dr/dt
@@ -357,7 +280,7 @@ namespace MML
 
 			Vec2Cart getTangentUnit(Real t)
 			{
-				return getTangent(t).GetAsUnitVector();
+				return getTangent(t).Normalized();
 			}
 
 			/// @brief Get normal vector (perpendicular to tangent, rotated 90° CCW)
@@ -369,7 +292,7 @@ namespace MML
 
 			Vec2Cart getNormalUnit(Real t)
 			{
-				return getNormal(t).GetAsUnitVector();
+				return getNormal(t).Normalized();
 			}
 
 			/// @brief Get curvature using polar formula κ = |r² + 2r'² - r·r''| / (r² + r'²)^(3/2)
@@ -419,21 +342,15 @@ namespace MML
 			/// @brief Get tangent vector at parameter t
 			/// @param t Parameter value
 			/// @return Tangent vector r'(t)
-			Vec3Cart getTangent(Real t) const
-			{
-				return Derivation::DeriveCurve<3>(*this, t, nullptr);
-			}
+			Vec3Cart getTangent(Real t) const { return Differential::CurveDerivative<3>(*this, t, 1); }
 			/// @brief Get unit tangent vector T(t) = r'(t)/|r'(t)|
 			Vec3Cart getTangentUnit(Real t) const
 			{
-				return getTangent(t).GetAsUnitVector();
+				return getTangent(t).Normalized();
 			}
 			/// @brief Get second derivative (acceleration) vector r''(t)
 			/// @details This is the acceleration, NOT the Frenet principal normal
-			Vec3Cart getSecondDerivative(Real t) const
-			{
-				return Derivation::DeriveCurveSec<3>(*this, t, nullptr);
-			}
+			Vec3Cart getSecondDerivative(Real t) const { return Differential::CurveDerivative<3>(*this, t, 2); }
 			/// @brief Get Frenet principal normal unit vector N(t)
 			/// @details N = (T'/|T'|) - perpendicular to tangent, points toward center of curvature
 			/// @note Returns unit vector by definition of Frenet frame
@@ -485,7 +402,7 @@ namespace MML
 			{
 				Vec3Cart r_prime = getTangent(t);
 				Vec3Cart r_double_prime = getSecondDerivative(t);
-				Vec3Cart r_triple_prime = Derivation::DeriveCurveThird<3>(*this, t, nullptr);
+				Vec3Cart r_triple_prime = Differential::CurveDerivative<3>(*this, t, 3);
 
 				Vec3Cart cross_product = VectorProduct(r_prime, r_double_prime);
 				Real denominator = std::pow(cross_product.NormL2(), 2);
@@ -500,18 +417,18 @@ namespace MML
 			/// @details The osculating plane is perpendicular to the binormal
 			virtual Plane3D getOsculationPlane(Real t) const
 			{
-				return Plane3D(Vector3Cartesian((*this)(t)).getAsPoint(), Vector3Cartesian(getBinormal(t)));
+				return Plane3D(Vector3Cartesian((*this)(t)).ToPoint(), Vector3Cartesian(getBinormal(t)));
 			}
 			/// @brief Get normal plane at t (perpendicular to tangent)
 			virtual Plane3D getNormalPlane(Real t) const
 			{
-				return Plane3D(Vector3Cartesian((*this)(t)).getAsPoint(), Vector3Cartesian(getTangentUnit(t)));
+				return Plane3D(Vector3Cartesian((*this)(t)).ToPoint(), Vector3Cartesian(getTangentUnit(t)));
 			}
 			/// @brief Get rectifying plane at t (contains tangent and binormal)
 			/// @details The rectifying plane is perpendicular to the principal normal
 			virtual Plane3D getRectifyingPlane(Real t) const
 			{
-				return Plane3D(Vector3Cartesian((*this)(t)).getAsPoint(), Vector3Cartesian(getNormal(t)));
+				return Plane3D(Vector3Cartesian((*this)(t)).ToPoint(), Vector3Cartesian(getNormal(t)));
 			}
 
 			/// @brief Get Frenet-Serret moving frame (T, N, B) at parameter t
@@ -575,7 +492,7 @@ namespace MML
 			LineCurve(Real t1, const Point3Cartesian& pnt1, Real t2, const Point3Cartesian& pnt2)
 			{
 				Vec3Cart dir = Vec3Cart(pnt1, pnt2);
-				_line.Direction() = dir.NormL2() / (t2 - t1) * dir.GetAsUnitVector();
+				_line.Direction() = dir.NormL2() / (t2 - t1) * dir.Normalized();
 				_line.StartPoint() = pnt1 + (-t1) * _line.Direction();
 				_minT = t1;
 				_maxT = t2;
@@ -659,7 +576,7 @@ namespace MML
 				: _radius(radius), _normal(normal), _center(center) 
 			{
 				if (normal.NormL2() == 0.0) throw ArgumentError("Circle3D: normal must not be zero vector.");
-				_normal = normal.GetAsUnitVector();
+				_normal = normal.Normalized();
 			}
 
 			Real getMinT() const { return 0.0; }
@@ -701,35 +618,9 @@ namespace MML
 			Real getTorsion(Real t) const { return _b / (POW2(_radius) + POW2(_b)); }
 		};
 
-		/// @brief Twisted cubic space curve
-		/// @details Parametrized as (t, t², t³), simplest non-planar algebraic curve
-		class TwistedCubicCurve : public ICurveCartesian3D
-		{
-		public:
-			Real getMinT() const { return Constants::NegInf; }
-			Real getMaxT() const { return Constants::PosInf; }
 
-			VectorN<Real, 3> operator()(Real t) const { return MML::VectorN<Real, 3>{t, t* t, t* t* t}; }
-		};
 
-		/// @brief Toroidal spiral curve winding around a torus
-		/// @details Parametrized curve on torus surface with n windings
-		class ToroidalSpiralCurve : public ICurveCartesian3D
-		{
-			int _n;
-			Real _scale = 1.0;
 
-		public:
-			ToroidalSpiralCurve() : _n(1) {}
-			ToroidalSpiralCurve(int n) : _n(n) {}
-			ToroidalSpiralCurve(Real scale) : _n(1), _scale(scale) {}
-			ToroidalSpiralCurve(int n, Real scale) : _n(n), _scale(scale) {}
-
-			Real getMinT() const { return Constants::NegInf; }
-			Real getMaxT() const { return Constants::PosInf; }
-
-			VectorN<Real, 3> operator()(Real t) const { return MML::VectorN<Real, 3>{static_cast<Real>((_scale* (4 + sin(_n * t))* cos(t))), static_cast<Real>(_scale* (4 + sin(_n * t))* sin(t)), static_cast<Real>(_scale* cos(_n* t))}; }
-		};
 	}
 }
 

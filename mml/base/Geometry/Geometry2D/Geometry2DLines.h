@@ -24,9 +24,9 @@ namespace MML
 	/// @brief Helper function for floating-point comparisons with tolerance
 	/// @param a First value
 	/// @param b Second value
-	/// @param eps Tolerance (default: GEOMETRY_EPSILON)
+	/// @param eps Tolerance (default: Precision::GeometryEpsilon)
 	/// @return True if |a - b| < eps
-	inline bool AreEqual(Real a, Real b, Real eps = Constants::GEOMETRY_EPSILON) {
+	inline bool AreEqual(Real a, Real b, Real eps = Precision::GeometryEpsilon) {
 		return std::abs(a - b) < eps;
 	}
 
@@ -104,7 +104,7 @@ namespace MML
 		Line2D(const Point2Cartesian& pnt, const Vector2Cartesian& dir)
 		{
 			_point = pnt;
-			_direction = dir.GetAsUnitVector();
+			_direction = dir.Normalized();
 		}
 
 		/// @brief Constructs a line through two points
@@ -114,7 +114,7 @@ namespace MML
 		{
 			Vector2Cartesian dir(a, b);
 			_point = a;
-			_direction = dir.GetAsUnitVector();
+			_direction = dir.Normalized();
 		}
 
 		/// @brief Gets the start point (const version)
@@ -292,12 +292,12 @@ namespace MML
 			Vector2Cartesian w(_point1, p);
 			
 			Real lenSq = v.NormL2() * v.NormL2();
-			if (lenSq < Constants::GEOMETRY_EPSILON)
+			if (lenSq < Precision::GeometryEpsilon)
 				return _point1.Dist(p); // Degenerate segment
 			
 			// Project w onto v
 			Real t = (w.X() * v.X() + w.Y() * v.Y()) / lenSq;
-			t = std::clamp(t, REAL(0.0), REAL(1.0)); // Clamp to segment
+			t = std::clamp(t, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)); // Clamp to segment
 			
 			Point2Cartesian projection = _point1 + v * t;
 			return p.Dist(projection);
@@ -312,11 +312,11 @@ namespace MML
 			Vector2Cartesian w(_point1, p);
 			
 			Real lenSq = v.NormL2() * v.NormL2();
-			if (lenSq < Constants::GEOMETRY_EPSILON)
+			if (lenSq < Precision::GeometryEpsilon)
 				return _point1; // Degenerate segment
 			
 			Real t = (w.X() * v.X() + w.Y() * v.Y()) / lenSq;
-			t = std::clamp(t, REAL(0.0), REAL(1.0));
+			t = std::clamp(t, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0));
 			
 			return _point1 + v * t;
 		}
@@ -329,10 +329,10 @@ namespace MML
 
 		/// @brief Check if point q lies on segment pr (assuming collinearity)
 		static bool OnSegment(const Point2Cartesian& p, const Point2Cartesian& q, const Point2Cartesian& r) {
-			return q.X() <= std::max(p.X(), r.X()) + Constants::GEOMETRY_EPSILON && 
-			       q.X() >= std::min(p.X(), r.X()) - Constants::GEOMETRY_EPSILON &&
-			       q.Y() <= std::max(p.Y(), r.Y()) + Constants::GEOMETRY_EPSILON && 
-			       q.Y() >= std::min(p.Y(), r.Y()) - Constants::GEOMETRY_EPSILON;
+			return q.X() <= std::max(p.X(), r.X()) + Precision::GeometryEpsilon &&
+			       q.X() >= std::min(p.X(), r.X()) - Precision::GeometryEpsilon &&
+			       q.Y() <= std::max(p.Y(), r.Y()) + Precision::GeometryEpsilon &&
+			       q.Y() >= std::min(p.Y(), r.Y()) - Precision::GeometryEpsilon;
 		}
 
 	public:
@@ -343,7 +343,7 @@ namespace MML
 		SegmentIntersection Intersection(const SegmentLine2D& other) const
 		{
 			SegmentIntersection result;
-			constexpr Real EPSILON = Constants::GEOMETRY_EPSILON;
+			constexpr Real EPSILON = Precision::GeometryEpsilon;
 
 			const Point2Cartesian& p1 = _point1;
 			const Point2Cartesian& q1 = _point2;

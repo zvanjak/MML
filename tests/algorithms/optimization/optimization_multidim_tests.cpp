@@ -24,9 +24,9 @@ using namespace MML::Testing;
 class Rosenbrock2D : public IScalarFunction<2> {
 public:
 	Real operator()(const VectorN<Real, 2>& x) const override {
-		Real a = REAL(REAL(1.0)) - x[0];
+		Real a = static_cast<MML::Real>(static_cast<MML::Real>(1.0)) - x[0];
 		Real b = x[1] - x[0] * x[0];
-		return a * a + REAL(REAL(100.0)) * b * b;
+		return a * a + static_cast<MML::Real>(static_cast<MML::Real>(100.0)) * b * b;
 	}
 };
 
@@ -42,9 +42,9 @@ public:
 class EllipticParaboloid2D : public IScalarFunction<2> {
 public:
 	Real operator()(const VectorN<Real, 2>& x) const override {
-		Real dx = x[0] - REAL(REAL(1.0));
-		Real dy = x[1] + REAL(REAL(1.0));
-		return dx * dx + REAL(REAL(2.0)) * dy * dy;
+		Real dx = x[0] - static_cast<MML::Real>(static_cast<MML::Real>(1.0));
+		Real dy = x[1] + static_cast<MML::Real>(static_cast<MML::Real>(1.0));
+		return dx * dx + static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * dy * dy;
 	}
 };
 
@@ -60,20 +60,20 @@ public:
 class OffsetQuadratic3D : public IScalarFunction<3> {
 public:
 	Real operator()(const VectorN<Real, 3>& x) const override {
-		return (x[0] - REAL(REAL(1.0))) * (x[0] - REAL(REAL(1.0))) + (x[1] - REAL(REAL(2.0))) * (x[1] - REAL(REAL(2.0))) +
-					 (x[2] - REAL(REAL(3.0))) * (x[2] - REAL(REAL(3.0)));
+		return (x[0] - static_cast<MML::Real>(static_cast<MML::Real>(1.0))) * (x[0] - static_cast<MML::Real>(static_cast<MML::Real>(1.0))) + (x[1] - static_cast<MML::Real>(static_cast<MML::Real>(2.0))) * (x[1] - static_cast<MML::Real>(static_cast<MML::Real>(2.0))) +
+					 (x[2] - static_cast<MML::Real>(static_cast<MML::Real>(3.0))) * (x[2] - static_cast<MML::Real>(static_cast<MML::Real>(3.0)));
 	}
 };
 
 // Beale's function (classic test)
-// f(x,y) = (REAL(REAL(1.5)) - x + xy)^2 + (REAL(REAL(2.25)) - x + xy^2)^2 + (REAL(REAL(2.625)) - x + xy^3)^2
-// Minimum at (3, REAL(REAL(0.5))) with value 0
+// f(x,y) = (static_cast<MML::Real>(static_cast<MML::Real>(1.5)) - x + xy)^2 + (static_cast<MML::Real>(static_cast<MML::Real>(2.25)) - x + xy^2)^2 + (static_cast<MML::Real>(static_cast<MML::Real>(2.625)) - x + xy^3)^2
+// Minimum at (3, static_cast<MML::Real>(static_cast<MML::Real>(0.5))) with value 0
 class BealeFunction : public IScalarFunction<2> {
 public:
 	Real operator()(const VectorN<Real, 2>& x) const override {
-		Real a = REAL(REAL(1.5)) - x[0] + x[0] * x[1];
-		Real b = REAL(REAL(2.25)) - x[0] + x[0] * x[1] * x[1];
-		Real c = REAL(REAL(2.625)) - x[0] + x[0] * x[1] * x[1] * x[1];
+		Real a = static_cast<MML::Real>(static_cast<MML::Real>(1.5)) - x[0] + x[0] * x[1];
+		Real b = static_cast<MML::Real>(static_cast<MML::Real>(2.25)) - x[0] + x[0] * x[1] * x[1];
+		Real c = static_cast<MML::Real>(static_cast<MML::Real>(2.625)) - x[0] + x[0] * x[1] * x[1] * x[1];
 		return a * a + b * b + c * c;
 	}
 };
@@ -84,8 +84,8 @@ public:
 class BoothFunction : public IScalarFunction<2> {
 public:
 	Real operator()(const VectorN<Real, 2>& x) const override {
-		Real a = x[0] + REAL(REAL(2.0)) * x[1] - REAL(REAL(7.0));
-		Real b = REAL(REAL(2.0)) * x[0] + x[1] - REAL(REAL(5.0));
+		Real a = x[0] + static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * x[1] - static_cast<MML::Real>(static_cast<MML::Real>(7.0));
+		Real b = static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * x[0] + x[1] - static_cast<MML::Real>(static_cast<MML::Real>(5.0));
 		return a * a + b * b;
 	}
 };
@@ -93,12 +93,12 @@ public:
 // Himmelblau's function (multiple minima)
 // f(x,y) = (x^2 + y - 11)^2 + (x + y^2 - 7)^2
 // Four minima at approximately:
-// (3, 2), (-REAL(REAL(2.805)), REAL(REAL(3.131))), (-REAL(REAL(3.779)), -REAL(REAL(3.283))), (REAL(REAL(3.584)), -REAL(REAL(1.848)))
+// (3, 2), (-static_cast<MML::Real>(static_cast<MML::Real>(2.805)), static_cast<MML::Real>(static_cast<MML::Real>(3.131))), (-static_cast<MML::Real>(static_cast<MML::Real>(3.779)), -static_cast<MML::Real>(static_cast<MML::Real>(3.283))), (static_cast<MML::Real>(static_cast<MML::Real>(3.584)), -static_cast<MML::Real>(static_cast<MML::Real>(1.848)))
 class HimmelblauFunction : public IScalarFunction<2> {
 public:
 	Real operator()(const VectorN<Real, 2>& x) const override {
-		Real a = x[0] * x[0] + x[1] - REAL(REAL(11.0));
-		Real b = x[0] + x[1] * x[1] - REAL(REAL(7.0));
+		Real a = x[0] * x[0] + x[1] - static_cast<MML::Real>(static_cast<MML::Real>(11.0));
+		Real b = x[0] + x[1] * x[1] - static_cast<MML::Real>(static_cast<MML::Real>(7.0));
 		return a * a + b * b;
 	}
 };
@@ -108,7 +108,7 @@ public:
 class WeightedSumSquares4D : public IScalarFunction<4> {
 public:
 	Real operator()(const VectorN<Real, 4>& x) const override {
-		Real sum = REAL(REAL(0.0));
+		Real sum = static_cast<MML::Real>(static_cast<MML::Real>(0.0));
 		for (int i = 0; i < 4; ++i)
 			sum += (i + 1) * x[i] * x[i];
 		return sum;
@@ -120,7 +120,7 @@ class NegativeQuadratic2D : public IScalarFunction<2> {
 public:
 	Real operator()(const VectorN<Real, 2>& x) const override {
 		// Maximum at (2, 3) with value 0
-		return -((x[0] - REAL(REAL(2.0))) * (x[0] - REAL(REAL(2.0))) + (x[1] - REAL(REAL(3.0))) * (x[1] - REAL(REAL(3.0))));
+		return -((x[0] - static_cast<MML::Real>(static_cast<MML::Real>(2.0))) * (x[0] - static_cast<MML::Real>(static_cast<MML::Real>(2.0))) + (x[1] - static_cast<MML::Real>(static_cast<MML::Real>(3.0))) * (x[1] - static_cast<MML::Real>(static_cast<MML::Real>(3.0))));
 	}
 };
 
@@ -130,131 +130,131 @@ public:
 
 TEST_CASE("NelderMead - Simple 2D quadratic", "[NelderMead][2D]") {
 	SimpleQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(5.0)), REAL(REAL(5.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(5.0)), static_cast<MML::Real>(static_cast<MML::Real>(5.0))};
 
 	NelderMead optimizer;
-	auto result = optimizer.Minimize(func, start, REAL(REAL(1.0)));
+	auto result = optimizer.Minimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(1.0)));
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("NelderMead - Elliptic paraboloid", "[NelderMead][2D]") {
 	EllipticParaboloid2D func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
-	auto result = NelderMeadMinimize(func, start, REAL(REAL(1.0)));
+	auto result = NelderMeadMinimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(1.0)));
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("NelderMead - Rosenbrock banana function", "[NelderMead][2D][Rosenbrock]") {
 	Rosenbrock2D func;
-	VectorN<Real, 2> start{-REAL(REAL(1.0)), REAL(REAL(1.0))};
+	VectorN<Real, 2> start{-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), static_cast<MML::Real>(static_cast<MML::Real>(1.0))};
 
 	// Rosenbrock is notoriously difficult - use tighter tolerance
 	NelderMead optimizer(TOL(1e-10, 1e-5), 10000);
-	auto result = optimizer.Minimize(func, start, REAL(REAL(0.5)));
+	auto result = optimizer.Minimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(0.5)));
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("NelderMead - Beale's function", "[NelderMead][2D]") {
 	BealeFunction func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	NelderMead optimizer(TOL(1e-10, 1e-5), 5000);
-	auto result = optimizer.Minimize(func, start, REAL(REAL(1.0)));
+	auto result = optimizer.Minimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(1.0)));
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(3.0)), 1e-4));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.5)), 1e-4));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.5)), 1e-4));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("NelderMead - Booth's function", "[NelderMead][2D]") {
 	BoothFunction func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	auto result = NelderMeadMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(3.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("NelderMead - Himmelblau's function (find one minimum)", "[NelderMead][2D]") {
 	HimmelblauFunction func;
-	VectorN<Real, 2> start{REAL(REAL(2.0)), REAL(REAL(2.0))}; // Near the (3, 2) minimum
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(2.0)), static_cast<MML::Real>(static_cast<MML::Real>(2.0))}; // Near the (3, 2) minimum
 
 	auto result = NelderMeadMinimize(func, start);
 
 	REQUIRE(result.converged);
 	// Should find the (3, 2) minimum from this starting point
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(3.0)), 1e-4));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(2.0)), 1e-4));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), 1e-4));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("NelderMead - 3D quadratic at origin", "[NelderMead][3D]") {
 	SimpleQuadratic3D func;
-	VectorN<Real, 3> start{REAL(REAL(2.0)), -REAL(REAL(3.0)), REAL(REAL(4.0))};
+	VectorN<Real, 3> start{static_cast<MML::Real>(static_cast<MML::Real>(2.0)), -static_cast<MML::Real>(static_cast<MML::Real>(3.0)), static_cast<MML::Real>(static_cast<MML::Real>(4.0))};
 
 	auto result = NelderMeadMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("NelderMead - 3D offset quadratic", "[NelderMead][3D]") {
 	OffsetQuadratic3D func;
-	VectorN<Real, 3> start{REAL(REAL(0.0)), REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 3> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	auto result = NelderMeadMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(2.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(3.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("NelderMead - 4D weighted sum of squares", "[NelderMead][4D]") {
 	WeightedSumSquares4D func;
-	VectorN<Real, 4> start{REAL(REAL(1.0)), REAL(REAL(1.0)), REAL(REAL(1.0)), REAL(REAL(1.0))};
+	VectorN<Real, 4> start{static_cast<MML::Real>(static_cast<MML::Real>(1.0)), static_cast<MML::Real>(static_cast<MML::Real>(1.0)), static_cast<MML::Real>(static_cast<MML::Real>(1.0)), static_cast<MML::Real>(static_cast<MML::Real>(1.0))};
 
 	NelderMead optimizer(TOL(1e-10, 1e-5));
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
 	for (int i = 0; i < 4; ++i) {
-		REQUIRE_THAT(result.xmin[i], RealWithinAbs(REAL(REAL(0.0)), 1e-5));
+		REQUIRE_THAT(result.xmin[i], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
 	}
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-8, 1e-4)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("NelderMead - Custom per-dimension deltas", "[NelderMead][2D]") {
 	EllipticParaboloid2D func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
-	Vector<Real> deltas({REAL(REAL(0.5)), REAL(REAL(2.0))}); // Different scale in each dimension
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
+	Vector<Real> deltas({static_cast<MML::Real>(static_cast<MML::Real>(0.5)), static_cast<MML::Real>(static_cast<MML::Real>(2.0))}); // Different scale in each dimension
 
 	auto result = NelderMeadMinimize(func, start, deltas);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("NelderMead - From explicit simplex", "[NelderMead][2D]") {
@@ -262,77 +262,77 @@ TEST_CASE("NelderMead - From explicit simplex", "[NelderMead][2D]") {
 
 	// Create a custom initial simplex
 	Matrix<Real> simplex(3, 2);
-	simplex(0, 0) = REAL(REAL(5.0));
-	simplex(0, 1) = REAL(REAL(0.0));
-	simplex(1, 0) = REAL(REAL(0.0));
-	simplex(1, 1) = REAL(REAL(5.0));
-	simplex(2, 0) = -REAL(REAL(3.0));
-	simplex(2, 1) = -REAL(REAL(3.0));
+	simplex(0, 0) = static_cast<MML::Real>(static_cast<MML::Real>(5.0));
+	simplex(0, 1) = static_cast<MML::Real>(static_cast<MML::Real>(0.0));
+	simplex(1, 0) = static_cast<MML::Real>(static_cast<MML::Real>(0.0));
+	simplex(1, 1) = static_cast<MML::Real>(static_cast<MML::Real>(5.0));
+	simplex(2, 0) = -static_cast<MML::Real>(static_cast<MML::Real>(3.0));
+	simplex(2, 1) = -static_cast<MML::Real>(static_cast<MML::Real>(3.0));
 
 	NelderMead optimizer;
 	auto result = optimizer.Minimize<2>(func, simplex);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("NelderMead - Maximization", "[NelderMead][2D][Maximize]") {
 	NegativeQuadratic2D func; // Maximum at (2, 3)
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	auto result = NelderMeadMaximize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(2.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(3.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("NelderMead - Starting at minimum", "[NelderMead][2D][EdgeCase]") {
 	SimpleQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))}; // Already at minimum
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))}; // Already at minimum
 
-	auto result = NelderMeadMinimize(func, start, REAL(REAL(0.1)));
+	auto result = NelderMeadMinimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(0.1)));
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("NelderMead - Very small initial simplex", "[NelderMead][2D][EdgeCase]") {
 	EllipticParaboloid2D func;
-	VectorN<Real, 2> start{REAL(REAL(0.9)), -REAL(REAL(0.9))}; // Near minimum
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.9)), -static_cast<MML::Real>(static_cast<MML::Real>(0.9))}; // Near minimum
 
-	auto result = NelderMeadMinimize(func, start, REAL(REAL(0.01))); // Tiny simplex
+	auto result = NelderMeadMinimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(0.01))); // Tiny simplex
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-5));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
 }
 
 TEST_CASE("NelderMead - Large initial simplex", "[NelderMead][2D][EdgeCase]") {
 	SimpleQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
-	auto result = NelderMeadMinimize(func, start, REAL(REAL(100.0))); // Huge simplex
+	auto result = NelderMeadMinimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(100.0))); // Huge simplex
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-5));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
 }
 
 TEST_CASE("NelderMead - Function evaluation count", "[NelderMead][2D]") {
 	SimpleQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(5.0)), REAL(REAL(5.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(5.0)), static_cast<MML::Real>(static_cast<MML::Real>(5.0))};
 
 	NelderMead optimizer;
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
 	REQUIRE(result.iterations > 0);
-	REQUIRE(optimizer.getNumFuncEvals() == result.iterations);
+	REQUIRE(optimizer.getNumFuncEvals() == result.function_evaluations);
 	INFO("Function evaluations: " << result.iterations);
 }
 
@@ -353,17 +353,17 @@ TEST_CASE("NelderMead - Different starting points find same minimum", "[NelderMe
 	BoothFunction func;
 
 	// Try from multiple starting points
-	std::vector<VectorN<Real, 2>> starts = {{REAL(REAL(0.0)), REAL(REAL(0.0))},
-																					{-REAL(REAL(5.0)), -REAL(REAL(5.0))},
-																					{REAL(REAL(10.0)), -REAL(REAL(10.0))},
-																					{-REAL(REAL(3.0)), REAL(REAL(8.0))}};
+	std::vector<VectorN<Real, 2>> starts = {{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))},
+																					{-static_cast<MML::Real>(static_cast<MML::Real>(5.0)), -static_cast<MML::Real>(static_cast<MML::Real>(5.0))},
+																					{static_cast<MML::Real>(static_cast<MML::Real>(10.0)), -static_cast<MML::Real>(static_cast<MML::Real>(10.0))},
+																					{-static_cast<MML::Real>(static_cast<MML::Real>(3.0)), static_cast<MML::Real>(static_cast<MML::Real>(8.0))}};
 
 	for (const auto& start : starts) {
-		auto result = NelderMeadMinimize(func, start, REAL(REAL(2.0)));
+		auto result = NelderMeadMinimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(2.0)));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-5));
-		REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(3.0)), 1e-5));
+		REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
+		REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-5));
 	}
 }
 
@@ -383,8 +383,8 @@ TEST_CASE("NelderMead - Invalid simplex dimensions throw", "[NelderMead][Excepti
 
 TEST_CASE("NelderMead - Invalid deltas dimension throw", "[NelderMead][Exception]") {
 	SimpleQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
-	Vector<Real> badDeltas({REAL(REAL(1.0)), REAL(REAL(1.0)), REAL(REAL(1.0))}); // 3 deltas for 2D problem
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
+	Vector<Real> badDeltas({static_cast<MML::Real>(static_cast<MML::Real>(1.0)), static_cast<MML::Real>(static_cast<MML::Real>(1.0)), static_cast<MML::Real>(static_cast<MML::Real>(1.0))}); // 3 deltas for 2D problem
 
 	NelderMead optimizer;
 	REQUIRE_THROWS_AS(optimizer.Minimize(func, start, badDeltas), MultidimOptimizationError);
@@ -392,7 +392,7 @@ TEST_CASE("NelderMead - Invalid deltas dimension throw", "[NelderMead][Exception
 
 TEST_CASE("NelderMead - Get final simplex", "[NelderMead][API]") {
 	SimpleQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(5.0)), REAL(REAL(5.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(5.0)), static_cast<MML::Real>(static_cast<MML::Real>(5.0))};
 
 	NelderMead optimizer;
 	auto result = optimizer.Minimize(func, start);
@@ -408,36 +408,36 @@ TEST_CASE("NelderMead - Get final simplex", "[NelderMead][API]") {
 
 	// All values should be near minimum
 	for (int i = 0; i < 3; ++i) {
-		REQUIRE_THAT(finalValues[i], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(finalValues[i], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 	}
 }
 
 TEST_CASE("NelderMead - Tight convergence tolerance", "[NelderMead][2D]") {
 	SimpleQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(1.0)), REAL(REAL(1.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(1.0)), static_cast<MML::Real>(static_cast<MML::Real>(1.0))};
 
 	// Nelder-Mead is a derivative-free method, so very tight tolerances
 	// may not achieve extreme precision, but should still converge well
 	// Use larger delta to ensure simplex can explore the search space
 	NelderMead optimizer(TOL(1e-12, 1e-5), 10000);
-	auto result = optimizer.Minimize(func, start, REAL(REAL(0.5)));
+	auto result = optimizer.Minimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(0.5)));
 
 	REQUIRE(result.converged);
 	// Reasonable precision for a derivative-free method
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("NelderMead - Rosenbrock from difficult start", "[NelderMead][2D][Rosenbrock]") {
 	Rosenbrock2D func;
-	VectorN<Real, 2> start{-REAL(REAL(5.0)), -REAL(REAL(5.0))}; // Far from minimum
+	VectorN<Real, 2> start{-static_cast<MML::Real>(static_cast<MML::Real>(5.0)), -static_cast<MML::Real>(static_cast<MML::Real>(5.0))}; // Far from minimum
 
 	NelderMead optimizer(TOL(1e-10, 1e-5), 20000);
-	auto result = optimizer.Minimize(func, start, REAL(REAL(1.0)));
+	auto result = optimizer.Minimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(1.0)));
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-3));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(1.0)), 1e-3));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-3));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-3));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -450,8 +450,8 @@ public:
 	Real operator()(const VectorN<Real, 2>& x) const override { return x[0] * x[0] + x[1] * x[1]; }
 
 	void Gradient(const VectorN<Real, 2>& x, VectorN<Real, 2>& grad) const override {
-		grad[0] = REAL(REAL(2.0)) * x[0];
-		grad[1] = REAL(REAL(2.0)) * x[1];
+		grad[0] = static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * x[0];
+		grad[1] = static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * x[1];
 	}
 };
 
@@ -459,14 +459,14 @@ public:
 class DiffEllipticParaboloid2D : public IDifferentiableScalarFunction<2> {
 public:
 	Real operator()(const VectorN<Real, 2>& x) const override {
-		Real dx = x[0] - REAL(REAL(1.0));
-		Real dy = x[1] + REAL(REAL(1.0));
-		return dx * dx + REAL(REAL(2.0)) * dy * dy;
+		Real dx = x[0] - static_cast<MML::Real>(static_cast<MML::Real>(1.0));
+		Real dy = x[1] + static_cast<MML::Real>(static_cast<MML::Real>(1.0));
+		return dx * dx + static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * dy * dy;
 	}
 
 	void Gradient(const VectorN<Real, 2>& x, VectorN<Real, 2>& grad) const override {
-		grad[0] = REAL(REAL(2.0)) * (x[0] - REAL(REAL(1.0)));
-		grad[1] = REAL(REAL(4.0)) * (x[1] + REAL(REAL(1.0)));
+		grad[0] = static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * (x[0] - static_cast<MML::Real>(static_cast<MML::Real>(1.0)));
+		grad[1] = static_cast<MML::Real>(static_cast<MML::Real>(4.0)) * (x[1] + static_cast<MML::Real>(static_cast<MML::Real>(1.0)));
 	}
 };
 
@@ -474,16 +474,16 @@ public:
 class DiffRosenbrock2D : public IDifferentiableScalarFunction<2> {
 public:
 	Real operator()(const VectorN<Real, 2>& x) const override {
-		Real a = REAL(REAL(1.0)) - x[0];
+		Real a = static_cast<MML::Real>(static_cast<MML::Real>(1.0)) - x[0];
 		Real b = x[1] - x[0] * x[0];
-		return a * a + REAL(REAL(100.0)) * b * b;
+		return a * a + static_cast<MML::Real>(static_cast<MML::Real>(100.0)) * b * b;
 	}
 
 	void Gradient(const VectorN<Real, 2>& x, VectorN<Real, 2>& grad) const override {
-		Real a = REAL(REAL(1.0)) - x[0];
+		Real a = static_cast<MML::Real>(static_cast<MML::Real>(1.0)) - x[0];
 		Real b = x[1] - x[0] * x[0];
-		grad[0] = -REAL(REAL(2.0)) * a - REAL(REAL(400.0)) * x[0] * b;
-		grad[1] = REAL(REAL(200.0)) * b;
+		grad[0] = -static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * a - static_cast<MML::Real>(static_cast<MML::Real>(400.0)) * x[0] * b;
+		grad[1] = static_cast<MML::Real>(static_cast<MML::Real>(200.0)) * b;
 	}
 };
 
@@ -491,16 +491,16 @@ public:
 class DiffBoothFunction : public IDifferentiableScalarFunction<2> {
 public:
 	Real operator()(const VectorN<Real, 2>& x) const override {
-		Real a = x[0] + REAL(REAL(2.0)) * x[1] - REAL(REAL(7.0));
-		Real b = REAL(REAL(2.0)) * x[0] + x[1] - REAL(REAL(5.0));
+		Real a = x[0] + static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * x[1] - static_cast<MML::Real>(static_cast<MML::Real>(7.0));
+		Real b = static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * x[0] + x[1] - static_cast<MML::Real>(static_cast<MML::Real>(5.0));
 		return a * a + b * b;
 	}
 
 	void Gradient(const VectorN<Real, 2>& x, VectorN<Real, 2>& grad) const override {
-		Real a = x[0] + REAL(REAL(2.0)) * x[1] - REAL(REAL(7.0));
-		Real b = REAL(REAL(2.0)) * x[0] + x[1] - REAL(REAL(5.0));
-		grad[0] = REAL(REAL(2.0)) * a + REAL(REAL(4.0)) * b;
-		grad[1] = REAL(REAL(4.0)) * a + REAL(REAL(2.0)) * b;
+		Real a = x[0] + static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * x[1] - static_cast<MML::Real>(static_cast<MML::Real>(7.0));
+		Real b = static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * x[0] + x[1] - static_cast<MML::Real>(static_cast<MML::Real>(5.0));
+		grad[0] = static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * a + static_cast<MML::Real>(static_cast<MML::Real>(4.0)) * b;
+		grad[1] = static_cast<MML::Real>(static_cast<MML::Real>(4.0)) * a + static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * b;
 	}
 };
 
@@ -510,9 +510,9 @@ public:
 	Real operator()(const VectorN<Real, 3>& x) const override { return x[0] * x[0] + x[1] * x[1] + x[2] * x[2]; }
 
 	void Gradient(const VectorN<Real, 3>& x, VectorN<Real, 3>& grad) const override {
-		grad[0] = REAL(REAL(2.0)) * x[0];
-		grad[1] = REAL(REAL(2.0)) * x[1];
-		grad[2] = REAL(REAL(2.0)) * x[2];
+		grad[0] = static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * x[0];
+		grad[1] = static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * x[1];
+		grad[2] = static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * x[2];
 	}
 };
 
@@ -520,14 +520,14 @@ public:
 class DiffOffsetQuadratic3D : public IDifferentiableScalarFunction<3> {
 public:
 	Real operator()(const VectorN<Real, 3>& x) const override {
-		return (x[0] - REAL(REAL(1.0))) * (x[0] - REAL(REAL(1.0))) + (x[1] - REAL(REAL(2.0))) * (x[1] - REAL(REAL(2.0))) +
-					 (x[2] - REAL(REAL(3.0))) * (x[2] - REAL(REAL(3.0)));
+		return (x[0] - static_cast<MML::Real>(static_cast<MML::Real>(1.0))) * (x[0] - static_cast<MML::Real>(static_cast<MML::Real>(1.0))) + (x[1] - static_cast<MML::Real>(static_cast<MML::Real>(2.0))) * (x[1] - static_cast<MML::Real>(static_cast<MML::Real>(2.0))) +
+					 (x[2] - static_cast<MML::Real>(static_cast<MML::Real>(3.0))) * (x[2] - static_cast<MML::Real>(static_cast<MML::Real>(3.0)));
 	}
 
 	void Gradient(const VectorN<Real, 3>& x, VectorN<Real, 3>& grad) const override {
-		grad[0] = REAL(REAL(2.0)) * (x[0] - REAL(REAL(1.0)));
-		grad[1] = REAL(REAL(2.0)) * (x[1] - REAL(REAL(2.0)));
-		grad[2] = REAL(REAL(2.0)) * (x[2] - REAL(REAL(3.0)));
+		grad[0] = static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * (x[0] - static_cast<MML::Real>(static_cast<MML::Real>(1.0)));
+		grad[1] = static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * (x[1] - static_cast<MML::Real>(static_cast<MML::Real>(2.0)));
+		grad[2] = static_cast<MML::Real>(static_cast<MML::Real>(2.0)) * (x[2] - static_cast<MML::Real>(static_cast<MML::Real>(3.0)));
 	}
 };
 
@@ -537,80 +537,80 @@ public:
 
 TEST_CASE("Powell - Simple 2D quadratic", "[Powell][2D]") {
 	SimpleQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(5.0)), REAL(REAL(5.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(5.0)), static_cast<MML::Real>(static_cast<MML::Real>(5.0))};
 
 	Powell optimizer;
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Powell - Elliptic paraboloid", "[Powell][2D]") {
 	EllipticParaboloid2D func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	auto result = PowellMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("Powell - Booth function", "[Powell][2D]") {
 	BoothFunction func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	auto result = PowellMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-5));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(3.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-5));
 }
 
 TEST_CASE("Powell - 3D quadratic", "[Powell][3D]") {
 	SimpleQuadratic3D func;
-	VectorN<Real, 3> start{REAL(REAL(2.0)), -REAL(REAL(3.0)), REAL(REAL(4.0))};
+	VectorN<Real, 3> start{static_cast<MML::Real>(static_cast<MML::Real>(2.0)), -static_cast<MML::Real>(static_cast<MML::Real>(3.0)), static_cast<MML::Real>(static_cast<MML::Real>(4.0))};
 
 	auto result = PowellMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("Powell - Rosenbrock function", "[Powell][2D][Rosenbrock]") {
 	Rosenbrock2D func;
-	VectorN<Real, 2> start{-REAL(REAL(1.0)), REAL(REAL(1.0))};
+	VectorN<Real, 2> start{-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), static_cast<MML::Real>(static_cast<MML::Real>(1.0))};
 
 	Powell optimizer(TOL(1e-10, 1e-5), 500);
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
 }
 
 TEST_CASE("Powell - Custom direction matrix", "[Powell][2D]") {
 	SimpleQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(5.0)), REAL(REAL(5.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(5.0)), static_cast<MML::Real>(static_cast<MML::Real>(5.0))};
 
 	// Non-standard initial directions
 	Matrix<Real> ximat(2, 2);
-	ximat(0, 0) = REAL(REAL(1.0));
-	ximat(0, 1) = REAL(REAL(1.0));
-	ximat(1, 0) = REAL(REAL(1.0));
-	ximat(1, 1) = -REAL(REAL(1.0));
+	ximat(0, 0) = static_cast<MML::Real>(static_cast<MML::Real>(1.0));
+	ximat(0, 1) = static_cast<MML::Real>(static_cast<MML::Real>(1.0));
+	ximat(1, 0) = static_cast<MML::Real>(static_cast<MML::Real>(1.0));
+	ximat(1, 1) = -static_cast<MML::Real>(static_cast<MML::Real>(1.0));
 
 	Powell optimizer;
 	auto result = optimizer.Minimize(func, start, ximat);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -619,94 +619,94 @@ TEST_CASE("Powell - Custom direction matrix", "[Powell][2D]") {
 
 TEST_CASE("ConjugateGradient - Simple 2D quadratic", "[CG][2D]") {
 	DiffQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(5.0)), REAL(REAL(5.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(5.0)), static_cast<MML::Real>(static_cast<MML::Real>(5.0))};
 
 	ConjugateGradient optimizer;
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("ConjugateGradient - Elliptic paraboloid", "[CG][2D]") {
 	DiffEllipticParaboloid2D func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	auto result = ConjugateGradientMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("ConjugateGradient - Booth function", "[CG][2D]") {
 	DiffBoothFunction func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	auto result = ConjugateGradientMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-5));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(3.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-5));
 }
 
 TEST_CASE("ConjugateGradient - 3D quadratic", "[CG][3D]") {
 	DiffQuadratic3D func;
-	VectorN<Real, 3> start{REAL(REAL(2.0)), -REAL(REAL(3.0)), REAL(REAL(4.0))};
+	VectorN<Real, 3> start{static_cast<MML::Real>(static_cast<MML::Real>(2.0)), -static_cast<MML::Real>(static_cast<MML::Real>(3.0)), static_cast<MML::Real>(static_cast<MML::Real>(4.0))};
 
 	auto result = ConjugateGradientMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("ConjugateGradient - 3D offset quadratic", "[CG][3D]") {
 	DiffOffsetQuadratic3D func;
-	VectorN<Real, 3> start{REAL(REAL(0.0)), REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 3> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	auto result = ConjugateGradientMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(2.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(3.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("ConjugateGradient - Rosenbrock function", "[CG][2D][Rosenbrock]") {
 	DiffRosenbrock2D func;
-	VectorN<Real, 2> start{-REAL(REAL(1.0)), REAL(REAL(1.0))};
+	VectorN<Real, 2> start{-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), static_cast<MML::Real>(static_cast<MML::Real>(1.0))};
 
 	ConjugateGradient optimizer(TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), 500);
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
 }
 
 TEST_CASE("ConjugateGradient - Fletcher-Reeves method", "[CG][2D]") {
 	DiffQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(5.0)), REAL(REAL(5.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(5.0)), static_cast<MML::Real>(static_cast<MML::Real>(5.0))};
 
 	auto result = ConjugateGradientMinimize(func, start, TOL(1e-8, 1e-4), ConjugateGradient::Method::FletcherReeves);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("ConjugateGradient - Polak-Ribiere method", "[CG][2D]") {
 	DiffQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(5.0)), REAL(REAL(5.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(5.0)), static_cast<MML::Real>(static_cast<MML::Real>(5.0))};
 
 	auto result = ConjugateGradientMinimize(func, start, TOL(1e-8, 1e-4), ConjugateGradient::Method::PolakRibiere);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -715,72 +715,72 @@ TEST_CASE("ConjugateGradient - Polak-Ribiere method", "[CG][2D]") {
 
 TEST_CASE("BFGS - Simple 2D quadratic", "[BFGS][2D]") {
 	DiffQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(5.0)), REAL(REAL(5.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(5.0)), static_cast<MML::Real>(static_cast<MML::Real>(5.0))};
 
 	BFGS optimizer;
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("BFGS - Elliptic paraboloid", "[BFGS][2D]") {
 	DiffEllipticParaboloid2D func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	auto result = BFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 5e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), TOL(1e-6, 5e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 5e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 5e-3)));
 }
 
 TEST_CASE("BFGS - Booth function", "[BFGS][2D]") {
 	DiffBoothFunction func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	auto result = BFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-5));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(3.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-5));
 }
 
 TEST_CASE("BFGS - 3D quadratic", "[BFGS][3D]") {
 	DiffQuadratic3D func;
-	VectorN<Real, 3> start{REAL(REAL(2.0)), -REAL(REAL(3.0)), REAL(REAL(4.0))};
+	VectorN<Real, 3> start{static_cast<MML::Real>(static_cast<MML::Real>(2.0)), -static_cast<MML::Real>(static_cast<MML::Real>(3.0)), static_cast<MML::Real>(static_cast<MML::Real>(4.0))};
 
 	auto result = BFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("BFGS - 3D offset quadratic", "[BFGS][3D]") {
 	DiffOffsetQuadratic3D func;
-	VectorN<Real, 3> start{REAL(REAL(0.0)), REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 3> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	auto result = BFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(2.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(3.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("BFGS - Rosenbrock function", "[BFGS][2D][Rosenbrock]") {
 	DiffRosenbrock2D func;
-	VectorN<Real, 2> start{-REAL(REAL(1.0)), REAL(REAL(1.0))};
+	VectorN<Real, 2> start{-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), static_cast<MML::Real>(static_cast<MML::Real>(1.0))};
 
 	BFGS optimizer(TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), 500);
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -789,77 +789,77 @@ TEST_CASE("BFGS - Rosenbrock function", "[BFGS][2D][Rosenbrock]") {
 
 TEST_CASE("L-BFGS - Simple 2D quadratic", "[LBFGS][2D]") {
 	DiffQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(5.0)), REAL(REAL(5.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(5.0)), static_cast<MML::Real>(static_cast<MML::Real>(5.0))};
 
 	LBFGS optimizer;
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("L-BFGS - Elliptic paraboloid", "[LBFGS][2D]") {
 	DiffEllipticParaboloid2D func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	auto result = LBFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("L-BFGS - Booth function", "[LBFGS][2D]") {
 	DiffBoothFunction func;
-	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	auto result = LBFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-5));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(3.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-5));
 }
 
 TEST_CASE("L-BFGS - 3D quadratic", "[LBFGS][3D]") {
 	DiffQuadratic3D func;
-	VectorN<Real, 3> start{REAL(REAL(2.0)), -REAL(REAL(3.0)), REAL(REAL(4.0))};
+	VectorN<Real, 3> start{static_cast<MML::Real>(static_cast<MML::Real>(2.0)), -static_cast<MML::Real>(static_cast<MML::Real>(3.0)), static_cast<MML::Real>(static_cast<MML::Real>(4.0))};
 
 	auto result = LBFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("L-BFGS - 3D offset quadratic", "[LBFGS][3D]") {
 	DiffOffsetQuadratic3D func;
-	VectorN<Real, 3> start{REAL(REAL(0.0)), REAL(REAL(0.0)), REAL(REAL(0.0))};
+	VectorN<Real, 3> start{static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0)), static_cast<MML::Real>(static_cast<MML::Real>(0.0))};
 
 	auto result = LBFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(2.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(3.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("L-BFGS - Rosenbrock function", "[LBFGS][2D][Rosenbrock]") {
 	DiffRosenbrock2D func;
-	VectorN<Real, 2> start{-REAL(REAL(1.0)), REAL(REAL(1.0))};
+	VectorN<Real, 2> start{-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), static_cast<MML::Real>(static_cast<MML::Real>(1.0))};
 
 	LBFGS optimizer(TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), 500, 10);
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
 }
 
 TEST_CASE("L-BFGS - Different memory sizes", "[LBFGS][MemorySize]") {
 	DiffRosenbrock2D func;
-	VectorN<Real, 2> start{-REAL(REAL(1.0)), REAL(REAL(1.0))};
+	VectorN<Real, 2> start{-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), static_cast<MML::Real>(static_cast<MML::Real>(1.0))};
 
 	// Test with different memory sizes
 	for (int m : {3, 5, 10, 20}) {
@@ -868,27 +868,27 @@ TEST_CASE("L-BFGS - Different memory sizes", "[LBFGS][MemorySize]") {
 
 		INFO("Memory size: " << m);
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-3));
-		REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(1.0)), 1e-3));
+		REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-3));
+		REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-3));
 	}
 }
 
 TEST_CASE("L-BFGS - Config-based API", "[LBFGS][API]") {
 	DiffQuadratic2D func;
-	VectorN<Real, 2> start{REAL(REAL(5.0)), REAL(REAL(5.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(5.0)), static_cast<MML::Real>(static_cast<MML::Real>(5.0))};
 
 	auto config = MultidimOptimizationConfig::LargeScale(15);
 	auto result = LBFGSMinimize(func, start, config);
 
 	REQUIRE(result.converged);
 	REQUIRE(result.algorithm_name == "L-BFGS");
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("L-BFGS vs BFGS comparison", "[LBFGS][BFGS][Comparison]") {
 	DiffEllipticParaboloid2D func;
-	VectorN<Real, 2> start{REAL(REAL(5.0)), -REAL(REAL(5.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(5.0)), -static_cast<MML::Real>(static_cast<MML::Real>(5.0))};
 
 	auto bfgsResult = BFGSMinimize(func, start);
 	auto lbfgsResult = LBFGSMinimize(func, start);
@@ -898,10 +898,10 @@ TEST_CASE("L-BFGS vs BFGS comparison", "[LBFGS][BFGS][Comparison]") {
 	REQUIRE(lbfgsResult.converged);
 
 	// Both should find the same minimum
-	REQUIRE_THAT(bfgsResult.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(lbfgsResult.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(bfgsResult.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(lbfgsResult.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), 1e-4));
+	REQUIRE_THAT(bfgsResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(lbfgsResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(bfgsResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(lbfgsResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
 
 	INFO("BFGS iterations: " << bfgsResult.iterations);
 	INFO("L-BFGS iterations: " << lbfgsResult.iterations);
@@ -914,7 +914,7 @@ TEST_CASE("L-BFGS vs BFGS comparison", "[LBFGS][BFGS][Comparison]") {
 TEST_CASE("All methods converge to same minimum", "[Powell][CG][BFGS][LBFGS][Comparison]") {
 	DiffEllipticParaboloid2D func;
 	EllipticParaboloid2D funcNoDeriv;
-	VectorN<Real, 2> start{REAL(REAL(5.0)), -REAL(REAL(5.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(5.0)), -static_cast<MML::Real>(static_cast<MML::Real>(5.0))};
 
 	auto nelderResult = NelderMeadMinimize(funcNoDeriv, start);
 	auto powellResult = PowellMinimize(funcNoDeriv, start);
@@ -930,27 +930,27 @@ TEST_CASE("All methods converge to same minimum", "[Powell][CG][BFGS][LBFGS][Com
 	REQUIRE(lbfgsResult.converged);
 
 	// All should find the same minimum
-	REQUIRE_THAT(nelderResult.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(powellResult.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(cgResult.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(bfgsResult.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(lbfgsResult.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
+	REQUIRE_THAT(nelderResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(powellResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(cgResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(bfgsResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(lbfgsResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
 
-	REQUIRE_THAT(nelderResult.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(powellResult.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(cgResult.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(bfgsResult.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(lbfgsResult.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), 1e-4));
+	REQUIRE_THAT(nelderResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(powellResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(cgResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(bfgsResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(lbfgsResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
 }
 
 TEST_CASE("Gradient methods are more efficient", "[Powell][CG][BFGS][LBFGS][Comparison]") {
 	// For quadratic functions, gradient methods should converge in fewer iterations
 	DiffQuadratic2D func;
 	SimpleQuadratic2D funcNoDeriv;
-	VectorN<Real, 2> start{REAL(REAL(10.0)), REAL(REAL(10.0))};
+	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(10.0)), static_cast<MML::Real>(static_cast<MML::Real>(10.0))};
 
 	NelderMead nelder;
-	auto nelderResult = nelder.Minimize(funcNoDeriv, start, REAL(REAL(1.0)));
+	auto nelderResult = nelder.Minimize(funcNoDeriv, start, static_cast<MML::Real>(static_cast<MML::Real>(1.0)));
 
 	Powell powell;
 	auto powellResult = powell.Minimize(funcNoDeriv, start);

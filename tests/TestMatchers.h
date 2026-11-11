@@ -218,7 +218,7 @@ class RealIsPositiveMatcher : public Catch::Matchers::MatcherBase<Real> {
     Real m_tolerance;
     
 public:
-    explicit RealIsPositiveMatcher(Real tolerance = REAL(0.0))
+    explicit RealIsPositiveMatcher(Real tolerance = static_cast<MML::Real>(0.0))
         : m_tolerance(tolerance) {}
     
     bool match(Real const& actual) const override {
@@ -226,7 +226,7 @@ public:
     }
     
     std::string describe() const override {
-        if (m_tolerance == REAL(0.0)) {
+        if (m_tolerance == static_cast<MML::Real>(0.0)) {
             return "is positive";
         } else {
             std::ostringstream oss;
@@ -240,7 +240,7 @@ class RealIsNegativeMatcher : public Catch::Matchers::MatcherBase<Real> {
     Real m_tolerance;
     
 public:
-    explicit RealIsNegativeMatcher(Real tolerance = REAL(0.0))
+    explicit RealIsNegativeMatcher(Real tolerance = static_cast<MML::Real>(0.0))
         : m_tolerance(tolerance) {}
     
     bool match(Real const& actual) const override {
@@ -248,7 +248,7 @@ public:
     }
     
     std::string describe() const override {
-        if (m_tolerance == REAL(0.0)) {
+        if (m_tolerance == static_cast<MML::Real>(0.0)) {
             return "is negative";
         } else {
             std::ostringstream oss;
@@ -258,11 +258,11 @@ public:
     }
 };
 
-inline RealIsPositiveMatcher RealIsPositive(Real tolerance = REAL(0.0)) {
+inline RealIsPositiveMatcher RealIsPositive(Real tolerance = static_cast<MML::Real>(0.0)) {
     return RealIsPositiveMatcher(tolerance);
 }
 
-inline RealIsNegativeMatcher RealIsNegative(Real tolerance = REAL(0.0)) {
+inline RealIsNegativeMatcher RealIsNegative(Real tolerance = static_cast<MML::Real>(0.0)) {
     return RealIsNegativeMatcher(tolerance);
 }
 

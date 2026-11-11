@@ -7,6 +7,8 @@
  * Cross-platform: works on Windows, Linux, and macOS.
  */
 
+#include "VisualizationResult.h"
+
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
@@ -30,11 +32,11 @@ void Show_Scalar_Function_3D_Examples()
         Real r2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
         return std::exp(-r2 / (sigma * sigma));
     }};
-    Visualizer::VisualizeScalarFunc3DCartesian(gaussianBlob, "Gaussian Blob",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeScalarFunc3DCartesian(gaussianBlob, "Gaussian Blob",
                                                -1.5, 1.5, 30,
                                                -1.5, 1.5, 30,
                                                -1.5, 1.5, 30,
-                                               "viz_scalar3d_gaussian.mml");
+                                               "viz_scalar3d_gaussian.mml"), "VisualizeScalarFunc3DCartesian");
 
     // Example 2: Sinusoidal Wave
     std::cout << "2. Triply Periodic Wave: f = sin(pi*x) * sin(pi*y) * sin(pi*z)\n";
@@ -44,11 +46,11 @@ void Show_Scalar_Function_3D_Examples()
                std::sin(Constants::PI * v[1]) * 
                std::sin(Constants::PI * v[2]);
     }};
-    Visualizer::VisualizeScalarFunc3DCartesian(sinusoidalWave, "Triply Periodic Wave",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeScalarFunc3DCartesian(sinusoidalWave, "Triply Periodic Wave",
                                                -2.0, 2.0, 30,
                                                -2.0, 2.0, 30,
                                                -2.0, 2.0, 30,
-                                               "viz_scalar3d_wave.mml");
+                                               "viz_scalar3d_wave.mml"), "VisualizeScalarFunc3DCartesian");
 
     // Example 3: Gyroid - a triply periodic minimal surface (famous in materials science!)
     std::cout << "3. Gyroid: sin(x)cos(y) + sin(y)cos(z) + sin(z)cos(x)\n";
@@ -62,11 +64,11 @@ void Show_Scalar_Function_3D_Examples()
                std::sin(y) * std::cos(z) + 
                std::sin(z) * std::cos(x);
     }};
-    Visualizer::VisualizeScalarFunc3DCartesian(gyroid, "Gyroid (Minimal Surface)",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeScalarFunc3DCartesian(gyroid, "Gyroid (Minimal Surface)",
                                                -2.0, 2.0, 35,
                                                -2.0, 2.0, 35,
                                                -2.0, 2.0, 35,
-                                               "viz_scalar3d_gyroid.mml");
+                                               "viz_scalar3d_gyroid.mml"), "VisualizeScalarFunc3DCartesian");
 
     // Example 4: Sphere Distance Function (SDF)
     std::cout << "4. Signed Distance to Sphere: sqrt(x^2+y^2+z^2) - r\n";
@@ -75,11 +77,11 @@ void Show_Scalar_Function_3D_Examples()
         Real r = std::sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
         return r - 1.0;  // Distance to unit sphere
     }};
-    Visualizer::VisualizeScalarFunc3DCartesian(sphereDistance, "Sphere Distance Function",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeScalarFunc3DCartesian(sphereDistance, "Sphere Distance Function",
                                                -1.5, 1.5, 30,
                                                -1.5, 1.5, 30,
                                                -1.5, 1.5, 30,
-                                               "viz_scalar3d_sphere_sdf.mml");
+                                               "viz_scalar3d_sphere_sdf.mml"), "VisualizeScalarFunc3DCartesian");
 
     // Example 5: Torus Distance Function
     std::cout << "5. Signed Distance to Torus\n";
@@ -90,11 +92,11 @@ void Show_Scalar_Function_3D_Examples()
         Real q = std::sqrt(v[0]*v[0] + v[1]*v[1]) - R;
         return std::sqrt(q*q + v[2]*v[2]) - r;
     }};
-    Visualizer::VisualizeScalarFunc3DCartesian(torusDistance, "Torus Distance Function",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeScalarFunc3DCartesian(torusDistance, "Torus Distance Function",
                                                -1.5, 1.5, 35,
                                                -1.5, 1.5, 35,
                                                -1.0, 1.0, 25,
-                                               "viz_scalar3d_torus_sdf.mml");
+                                               "viz_scalar3d_torus_sdf.mml"), "VisualizeScalarFunc3DCartesian");
 
     std::cout << "\n3D Scalar function examples complete!\n";
 }

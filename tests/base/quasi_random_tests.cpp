@@ -54,6 +54,19 @@ TEST_CASE("QuasiRandom::Halton_range_and_determinism", "[quasirandom][halton]") 
 	REQUIRE_THROWS_AS(HaltonSequence(41), ArgumentError);
 }
 
+TEST_CASE("QuasiRandom::Next<N>_rejects_N_different_from_dim", "[quasirandom][halton][sobol][wewi.1.5]") {
+	// Next(Real*) writes dim() values; Next<N> with N < dim() wrote past the end of the VectorN
+	HaltonSequence h(5);
+	REQUIRE_THROWS_AS(h.Next<2>(), ArgumentError);
+	REQUIRE_THROWS_AS(h.Next<7>(), ArgumentError);
+	REQUIRE_NOTHROW(h.Next<5>());
+
+	SobolSequence s(3);
+	REQUIRE_THROWS_AS(s.Next<2>(), ArgumentError);
+	REQUIRE_THROWS_AS(s.Next<4>(), ArgumentError);
+	REQUIRE_NOTHROW(s.Next<3>());
+}
+
 TEST_CASE("QuasiRandom::Sobol_range_and_determinism", "[quasirandom][sobol]") {
 	TEST_PRECISION_INFO();
 	SobolSequence a(4), b(4);

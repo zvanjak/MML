@@ -217,11 +217,11 @@ TEST_CASE("ConvexHull3D - One-ULP tetrahedron is not treated as coplanar",
     "[ComputationalGeometry][ConvexHull3D][Numerical]")
 {
     std::vector<Point3Cartesian> points = {
-        Point3Cartesian(REAL(0.0), REAL(0.0), REAL(0.0)),
-        Point3Cartesian(REAL(1.0), REAL(0.0), REAL(1.0)),
-        Point3Cartesian(REAL(0.0), REAL(1.0), REAL(1.0)),
-        Point3Cartesian(REAL(0.25), REAL(0.25),
-            std::nextafter(REAL(0.5), REAL(1.0)))
+        Point3Cartesian(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)),
+        Point3Cartesian(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)),
+        Point3Cartesian(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0)),
+        Point3Cartesian(static_cast<MML::Real>(0.25), static_cast<MML::Real>(0.25),
+            std::nextafter(static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.0)))
     };
 
     const auto hull = MML::CompGeometry::ConvexHull3DComputer::Compute(points);
@@ -235,31 +235,31 @@ TEST_CASE("ConvexHull3D - One-ULP tetrahedron is not treated as coplanar",
 TEST_CASE("ConvexHull3D - Small-scale tetrahedron is not treated as degenerate",
     "[ComputationalGeometry][ConvexHull3D][Numerical]")
 {
-    const Real scale = REAL(1e-12);
+    const Real scale = static_cast<MML::Real>(1e-12);
     std::vector<Point3Cartesian> points = {
-        Point3Cartesian(REAL(0.0), REAL(0.0), REAL(0.0)),
-        Point3Cartesian(scale, REAL(0.0), REAL(0.0)),
-        Point3Cartesian(REAL(0.0), scale, REAL(0.0)),
-        Point3Cartesian(REAL(0.0), REAL(0.0), scale)
+        Point3Cartesian(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)),
+        Point3Cartesian(scale, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)),
+        Point3Cartesian(static_cast<MML::Real>(0.0), scale, static_cast<MML::Real>(0.0)),
+        Point3Cartesian(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), scale)
     };
 
     const auto hull = MML::CompGeometry::ConvexHull3DComputer::Compute(points);
 
     REQUIRE(hull.NumVertices() == 4);
     REQUIRE(hull.NumFaces() == 4);
-    REQUIRE(hull.Volume() > REAL(0.0));
+    REQUIRE(hull.Volume() > static_cast<MML::Real>(0.0));
 }
 
 TEST_CASE("ConvexHull3D - Exact topology survives large translation",
     "[ComputationalGeometry][ConvexHull3D][Numerical]")
 {
-    const Real base = REAL(1000000.0);
+    const Real base = static_cast<MML::Real>(1000000.0);
     std::vector<Point3Cartesian> points = {
         Point3Cartesian(base, base, base),
-        Point3Cartesian(base + REAL(1.0), base, base + REAL(1.0)),
-        Point3Cartesian(base, base + REAL(1.0), base + REAL(1.0)),
-        Point3Cartesian(base + REAL(0.25), base + REAL(0.25),
-            std::nextafter(base + REAL(0.5), base + REAL(1.0)))
+        Point3Cartesian(base + static_cast<MML::Real>(1.0), base, base + static_cast<MML::Real>(1.0)),
+        Point3Cartesian(base, base + static_cast<MML::Real>(1.0), base + static_cast<MML::Real>(1.0)),
+        Point3Cartesian(base + static_cast<MML::Real>(0.25), base + static_cast<MML::Real>(0.25),
+            std::nextafter(base + static_cast<MML::Real>(0.5), base + static_cast<MML::Real>(1.0)))
     };
 
     const auto hull = MML::CompGeometry::ConvexHull3DComputer::Compute(points);

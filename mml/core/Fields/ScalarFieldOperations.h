@@ -45,6 +45,9 @@ namespace MML
 		/// @param pos         Position vector in the coordinate system
 		/// @param metricTensorField  Metric tensor field defining the coordinate geometry
 		/// @return            Gradient vector ∇f with contravariant components
+		/// @note These are coordinate-basis components, unlike the physical components returned by
+		/// GradientSpher/GradientCyl. For orthogonal Riemannian metrics, VectorFieldOperations::ToPhysical
+		/// converts between them. Use Divergence/DivergenceViaDet directly on this coordinate gradient.
 		///
 		/// @note For Cartesian coordinates, use GradientCart() which is more efficient.
 		/// @see MetricTensorField, GradientCart
@@ -55,7 +58,7 @@ namespace MML
 			// Gradient in general coordinates: ∇ᶠ = gⁱʲ ∂ᵢf
 			// The partial derivatives ∂ᵢf give covariant components
 			// We need the contravariant metric gⁱʲ to raise indices
-			VectorN<Real, N> covar_derivs = Derivation::DerivePartialAll<N>(scalarField, pos, nullptr);
+			VectorN<Real, N> covar_derivs = Differential::ScalarGradient<N>(scalarField, pos);
 
 			MatrixNM<Real, N, N> g_contravar = metricTensorField.GetContravariantMetric(pos);
 
@@ -91,7 +94,7 @@ namespace MML
 		template<int N>
 		static VectorN<Real, N> GradientCart(const IScalarFunction<N>& scalarField, const VectorN<Real, N>& pos)
 		{
-			return Derivation::DerivePartialAll<N>(scalarField, pos, nullptr);
+			return Differential::ScalarGradient<N>(scalarField, pos);
 		}
 
 		/// Computes gradient in Cartesian coordinates with specified derivative accuracy.
@@ -134,16 +137,18 @@ namespace MML
 		                     const FieldOperationConfig& config = {})
 		{
 			using ResultType = EvaluationResult<VectorN<Real, N>, VectorN<Real, N>>;
-			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
-				"GradientCart", config,
-				[&](ResultType& result, int& func_evals) {
-					VectorN<Real, N> error_vec{};
-					result.value = FieldOperationDetail::DispatchGradient<N>(
-						scalarField, pos, config.derivative_order,
-						config.estimate_error, &error_vec, func_evals);
-					if (config.estimate_error)
-						result.error = error_vec;
-				});
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>("GradientCart", config, [&](ResultType& result, int& func_evals) {
+				if (FieldOperationDetail::UsesProvidedDerivatives(scalarField, config)) {
+					result.value = GradientCart(scalarField, pos);
+					FieldOperationDetail::MarkProviderResult(result, N, func_evals);
+					return;
+				}
+				VectorN<Real, N> error_vec{};
+				result.value = FieldOperationDetail::DispatchGradient<N>(scalarField, pos, config.derivative_order, config.estimate_error,
+																																 &error_vec, func_evals);
+				if (config.estimate_error)
+					result.error = error_vec;
+			});
 		}
 
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -162,13 +167,14 @@ namespace MML
 		/// @param scalarField Scalar function f(r, θ, φ)
 		/// @param pos         Position vector (r, θ, φ) in spherical coordinates
 		/// @return            Gradient vector in spherical basis (êᵣ, êθ, êφ)
+		/// @note Physical orthonormal-basis components: pair with DivSpher, not the general Divergence.
 		///
 		/// @warning Position must have r > 0 and θ ≠ 0, π to avoid singularities.
 		/// @param policy Singularity handling policy (default: Throw)
 		static VectorN<Real, 3> GradientSpher(const IScalarFunction<3>& scalarField, const Vec3Sph& pos,
 		                                      SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
-			Vector3Spherical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
+			Vector3Spherical ret = Differential::ScalarGradient<3>(scalarField, pos);
 
 			const Real r = pos[0];
 			const Real theta = pos[1];
@@ -233,26 +239,28 @@ namespace MML
 		                      SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
 			using ResultType = EvaluationResult<Vec3Sph, Vec3Sph>;
-			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
-				"GradientSpher", config,
-				[&](ResultType& result, int& func_evals) {
-					VectorN<Real, 3> error_vec{};
-					result.value = FieldOperationDetail::DispatchGradient<3>(
-						scalarField, pos, config.derivative_order,
-						config.estimate_error, &error_vec, func_evals);
-					if (config.estimate_error)
-						result.error = error_vec;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>("GradientSpher", config, [&](ResultType& result, int& func_evals) {
+				if (FieldOperationDetail::UsesProvidedDerivatives(scalarField, config)) {
+					result.value = GradientSpher(scalarField, pos, policy);
+					FieldOperationDetail::MarkProviderResult(result, 3, func_evals);
+					return;
+				}
+				VectorN<Real, 3> error_vec{};
+				result.value = FieldOperationDetail::DispatchGradient<3>(scalarField, pos, config.derivative_order, config.estimate_error,
+																																 &error_vec, func_evals);
+				if (config.estimate_error)
+					result.error = error_vec;
 
-					const Real r = pos[0];
-					const Real theta = pos[1];
-					result.value[1] *= Singularity::SafeInverseR(r, policy, "GradientSpher θ-component");
-					result.value[2] *= Singularity::SafeInverseRSinTheta(r, theta, policy, "GradientSpher φ-component");
-					// Scale error estimates by the same factors
-					if (config.estimate_error) {
-						result.error[1] *= std::abs(Singularity::SafeInverseR(r, policy, "GradientSpher θ-error"));
-						result.error[2] *= std::abs(Singularity::SafeInverseRSinTheta(r, theta, policy, "GradientSpher φ-error"));
-					}
-				});
+				const Real r = pos[0];
+				const Real theta = pos[1];
+				result.value[1] *= Singularity::SafeInverseR(r, policy, "GradientSpher θ-component");
+				result.value[2] *= Singularity::SafeInverseRSinTheta(r, theta, policy, "GradientSpher φ-component");
+				// Scale error estimates by the same factors
+				if (config.estimate_error) {
+					result.error[1] *= std::abs(Singularity::SafeInverseR(r, policy, "GradientSpher θ-error"));
+					result.error[2] *= std::abs(Singularity::SafeInverseRSinTheta(r, theta, policy, "GradientSpher φ-error"));
+				}
+			});
 		}
 
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -271,13 +279,14 @@ namespace MML
 		/// @param scalarField Scalar function f(r, φ, z)
 		/// @param pos         Position vector (r, φ, z) in cylindrical coordinates
 		/// @return            Gradient vector in cylindrical basis (êᵣ, êφ, êz)
+		/// @note Physical orthonormal-basis components: pair with DivCyl, not the general Divergence.
 		///
 		/// @warning Position must have r > 0 to avoid singularity at z-axis.
 		/// @param policy Singularity handling policy (default: Throw)
 		static Vec3Cyl GradientCyl(const IScalarFunction<3>& scalarField, const Vec3Cyl& pos,
 		                           SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
-			Vector3Cylindrical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
+			Vector3Cylindrical ret = Differential::ScalarGradient<3>(scalarField, pos);
 
 			const Real r = pos[0];
 
@@ -334,21 +343,23 @@ namespace MML
 		                    SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
 			using ResultType = EvaluationResult<Vec3Cyl, Vec3Cyl>;
-			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
-				"GradientCyl", config,
-				[&](ResultType& result, int& func_evals) {
-					VectorN<Real, 3> error_vec{};
-					result.value = FieldOperationDetail::DispatchGradient<3>(
-						scalarField, pos, config.derivative_order,
-						config.estimate_error, &error_vec, func_evals);
-					if (config.estimate_error)
-						result.error = error_vec;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>("GradientCyl", config, [&](ResultType& result, int& func_evals) {
+				if (FieldOperationDetail::UsesProvidedDerivatives(scalarField, config)) {
+					result.value = GradientCyl(scalarField, pos, policy);
+					FieldOperationDetail::MarkProviderResult(result, 3, func_evals);
+					return;
+				}
+				VectorN<Real, 3> error_vec{};
+				result.value = FieldOperationDetail::DispatchGradient<3>(scalarField, pos, config.derivative_order, config.estimate_error,
+																																 &error_vec, func_evals);
+				if (config.estimate_error)
+					result.error = error_vec;
 
-					const Real r = pos[0];
-					result.value[1] *= Singularity::SafeInverseR(r, policy, "GradientCyl φ-component");
-					if (config.estimate_error)
-						result.error[1] *= std::abs(Singularity::SafeInverseR(r, policy, "GradientCyl φ-error"));
-				});
+				const Real r = pos[0];
+				result.value[1] *= Singularity::SafeInverseR(r, policy, "GradientCyl φ-component");
+				if (config.estimate_error)
+					result.error[1] *= std::abs(Singularity::SafeInverseR(r, policy, "GradientCyl φ-error"));
+			});
 		}
 
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -378,7 +389,7 @@ namespace MML
 		{
 			Real lapl = 0.0;
 			for (int i = 0; i < N; i++)
-				lapl += Derivation::DeriveSecPartial<N>(scalarField, i, i, pos, nullptr);
+				lapl += Differential::ScalarSecondPartial<N>(scalarField, i, i, pos);
 
 			return lapl;
 		}
@@ -396,23 +407,25 @@ namespace MML
 		                      const FieldOperationConfig& config = {})
 		{
 			using ResultType = EvaluationResult<Real>;
-			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
-				"LaplacianCart", config,
-				[&](ResultType& result, int& func_evals) {
-					Real lapl = 0.0;
-					Real total_error = 0.0;
-					for (int i = 0; i < N; i++) {
-						Real err = 0.0;
-						lapl += Derivation::DeriveSecPartial<N>(scalarField, i, i, pos,
-						                                        config.estimate_error ? &err : nullptr);
-						if (config.estimate_error)
-							total_error += std::abs(err);
-					}
-					result.value = lapl;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>("LaplacianCart", config, [&](ResultType& result, int& func_evals) {
+				if (FieldOperationDetail::UsesProvidedDerivatives(scalarField, config)) {
+					result.value = LaplacianCart(scalarField, pos);
+					FieldOperationDetail::MarkProviderResult(result, N, func_evals);
+					return;
+				}
+				Real lapl = 0.0;
+				Real total_error = 0.0;
+				for (int i = 0; i < N; i++) {
+					Real err = 0.0;
+					lapl += Derivation::DeriveSecPartial<N>(scalarField, i, i, pos, config.estimate_error ? &err : nullptr);
 					if (config.estimate_error)
-						result.error = total_error;
-					func_evals = N * 3; // second derivative uses ~3 evaluations per dimension
-				});
+						total_error += std::abs(err);
+				}
+				result.value = lapl;
+				if (config.estimate_error)
+					result.error = total_error;
+				func_evals = N * 3; // second derivative uses ~3 evaluations per dimension
+			});
 		}
 
 		/// Computes Laplacian of scalar field in spherical coordinates.
@@ -437,22 +450,22 @@ namespace MML
 			// ∇²f = ∂²f/∂r² + (2/r)∂f/∂r + (cotθ/r²)∂f/∂θ + (1/r²)∂²f/∂θ² + (1/r²sin²θ)∂²f/∂φ²
 
 			// Radial term: ∂²f/∂r²
-			Real d2f_dr2 = Derivation::DeriveSecPartial<3>(scalarField, 0, 0, pos, nullptr);
+			Real d2f_dr2 = Differential::ScalarSecondPartial<3>(scalarField, 0, 0, pos);
 
 			// Radial correction: (2/r)∂f/∂r - singular at r=0
-			Real df_dr = Derivation::DerivePartial<3>(scalarField, 0, pos, nullptr);
+			Real df_dr = Differential::ScalarPartial<3>(scalarField, 0, pos);
 			Real inv_r = Singularity::SafeInverseR(r, policy, "LaplacianSpher radial term");
 			Real radial_correction = Real(2) * inv_r * df_dr;
 
 			// Polar (θ) terms - singular at r=0 and poles
-			Real df_dtheta = Derivation::DerivePartial<3>(scalarField, 1, pos, nullptr);
-			Real d2f_dtheta2 = Derivation::DeriveSecPartial<3>(scalarField, 1, 1, pos, nullptr);
+			Real df_dtheta = Differential::ScalarPartial<3>(scalarField, 1, pos);
+			Real d2f_dtheta2 = Differential::ScalarSecondPartial<3>(scalarField, 1, 1, pos);
 			Real inv_r2 = Singularity::SafeInverseR2(r, policy, "LaplacianSpher 1/r²");
 			Real cot_over_r2 = Singularity::SafeCotThetaOverR2(r, theta, policy, "LaplacianSpher cotθ/r²");
 			Real theta_term = cot_over_r2 * df_dtheta + inv_r2 * d2f_dtheta2;
 
 			// Azimuthal (φ) term: (1/r²sin²θ)∂²f/∂φ² - singular at r=0 and poles
-			Real d2f_dphi2 = Derivation::DeriveSecPartial<3>(scalarField, 2, 2, pos, nullptr);
+			Real d2f_dphi2 = Differential::ScalarSecondPartial<3>(scalarField, 2, 2, pos);
 			Real inv_r2_sin2 = Singularity::SafeInverseR2Sin2Theta(r, theta, policy, "LaplacianSpher φ-term");
 			Real phi_term = inv_r2_sin2 * d2f_dphi2;
 
@@ -480,18 +493,18 @@ namespace MML
 			//     = (1/r)∂f/∂r + ∂²f/∂r² + (1/r²)∂²f/∂φ² + ∂²f/∂z²
 
 			// Radial term: (1/r)∂f/∂r + ∂²f/∂r² - singular at r=0
-			Real df_dr = Derivation::DerivePartial<3>(scalarField, 0, pos, nullptr);
-			Real d2f_dr2 = Derivation::DeriveSecPartial<3>(scalarField, 0, 0, pos, nullptr);
+			Real df_dr = Differential::ScalarPartial<3>(scalarField, 0, pos);
+			Real d2f_dr2 = Differential::ScalarSecondPartial<3>(scalarField, 0, 0, pos);
 			Real inv_r = Singularity::SafeInverseR(r, policy, "LaplacianCyl radial term");
 			Real radial_term = inv_r * df_dr + d2f_dr2;
 
 			// Azimuthal term: (1/r²)∂²f/∂φ² - singular at r=0
-			Real d2f_dphi2 = Derivation::DeriveSecPartial<3>(scalarField, 1, 1, pos, nullptr);
+			Real d2f_dphi2 = Differential::ScalarSecondPartial<3>(scalarField, 1, 1, pos);
 			Real inv_r2 = Singularity::SafeInverseR2(r, policy, "LaplacianCyl φ-term");
 			Real phi_term = inv_r2 * d2f_dphi2;
 
 			// Axial term: ∂²f/∂z² (no singularity)
-			Real d2f_dz2 = Derivation::DeriveSecPartial<3>(scalarField, 2, 2, pos, nullptr);
+			Real d2f_dz2 = Differential::ScalarSecondPartial<3>(scalarField, 2, 2, pos);
 
 			return radial_term + phi_term + d2f_dz2;
 		}
@@ -513,7 +526,9 @@ namespace MML
 				"LaplacianSpher", config,
 				[&](ResultType& result, int& func_evals) {
 					result.value = LaplacianSpher(scalarField, pos, policy);
-					func_evals = 7; // 2 first partials + 3 second partials + field evals
+					func_evals = dynamic_cast<const IScalarDerivativeProvider<3>*>(&scalarField) ? 5 : 7;
+					if (dynamic_cast<const IScalarDerivativeProvider<3>*>(&scalarField))
+						FieldOperationDetail::MarkProviderResult(result, func_evals, func_evals);
 				});
 		}
 
@@ -534,7 +549,9 @@ namespace MML
 				"LaplacianCyl", config,
 				[&](ResultType& result, int& func_evals) {
 					result.value = LaplacianCyl(scalarField, pos, policy);
-					func_evals = 5; // 1 first partial + 3 second partials
+					func_evals = dynamic_cast<const IScalarDerivativeProvider<3>*>(&scalarField) ? 4 : 5;
+					if (dynamic_cast<const IScalarDerivativeProvider<3>*>(&scalarField))
+						FieldOperationDetail::MarkProviderResult(result, func_evals, func_evals);
 				});
 		}
 	};

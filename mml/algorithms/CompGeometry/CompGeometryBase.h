@@ -49,7 +49,7 @@ namespace MML {
 		/// @brief Get barycentric coordinates as a tuple (u, v, w) where w = 1-u-v
 		/// @details Point = w*v0 + u*v1 + v*v2
 		std::tuple<Real, Real, Real> GetBarycentricCoords() const {
-			return std::make_tuple(u, v, REAL(1.0) - u - v);
+			return std::make_tuple(u, v, static_cast<MML::Real>(1.0) - u - v);
 		}
 	};
 

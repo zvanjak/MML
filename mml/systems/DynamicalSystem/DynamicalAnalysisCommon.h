@@ -23,8 +23,12 @@
 
 namespace MML::Systems
 {
-	inline constexpr Real DefaultTransientTime = REAL(100.0);
-	inline constexpr Real DefaultRecordTime = REAL(50.0);
+	inline constexpr Real DefaultTransientTime = static_cast<MML::Real>(100.0);
+	inline constexpr Real DefaultRecordTime = static_cast<MML::Real>(50.0);
+	/// Upper bound on the integration time ComputePoincareSection may spend looking for crossings
+	/// (after the transient). Without a bound the search never returns when the trajectory settles
+	/// on one side of the section (MinimalMathLibrary-sgho).
+	inline constexpr Real DefaultPoincareMaxSearchTime = static_cast<MML::Real>(10000.0);
 
 	namespace DynamicalAnalysisDetail
 	{

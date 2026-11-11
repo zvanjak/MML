@@ -4,6 +4,12 @@
 
 Unified namespace for standard mathematical functions.
 
+MML's C++17-and-later special-function wrappers do not require
+`__STDCPP_WANT_MATH_SPEC_FUNCS__`. Modular and generated headers do not define
+that legacy opt-in macro, and including `<cmath>` before MML is supported.
+Availability of the standard special functions still depends on the standard
+library; the existing portable fallback selection remains in place.
+
 ## Overview
 
 `MML::Functions` namespace provides consistent access to common scalar mathematical functions, wrapping standard library implementations.
@@ -244,6 +250,5 @@ Real integral = NumericalIntegration(
 | Standard Functions | Trig, special functions usage | See [`docs_demo_functions.cpp`](../../src/docs_demos/docs_demo_functions.cpp) |
 
 **To run:** Build and execute `MML_DocsApp` target.
-
 
 

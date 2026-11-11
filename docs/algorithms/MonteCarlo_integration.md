@@ -4,6 +4,14 @@ High-dimensional numerical integration using random sampling - simple, powerful,
 
 ## Overview
 
+For deterministic indexed-block parallel execution using the base ThreadPool,
+see [Parallel Integration](ParallelIntegration.md). Plain serial and parallel
+Monte Carlo now report `Success` only when their standard-error target is met;
+otherwise the retained estimate has `MaxIterationsExceeded`. Near-zero estimates
+do not bypass uncertainty checks. `absolute_error` provides a near-zero absolute
+target in addition to `target_error`. At least two independent observations are
+required; antithetic budgets must be even and at least four evaluations.
+
 Monte Carlo (MC) methods solve integrals by **random sampling** instead of systematic grid evaluation. The revolutionary insight:
 - **Deterministic quadrature**: Error ~ O(n^(-k/d)) where d = dimension, k = order
   - **Curse of dimensionality**: Exponentially more points needed as d increases
@@ -36,7 +44,7 @@ Monte Carlo (MC) methods solve integrals by **random sampling** instead of syste
 
 **All methods**:
 - Return `MonteCarloResult` with value, error, variance, convergence status
-- Use **Mersenne Twister 64-bit** (mt19937_64) RNG
+- Use the **Mersenne Twister** (`mt19937`) RNG
 - Template dimension `N` for compile-time optimization
 - Seedable for reproducibility
 

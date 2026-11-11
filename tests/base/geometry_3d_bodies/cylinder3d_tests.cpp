@@ -86,7 +86,7 @@ TEST_CASE("Cylinder3D::GetCenter", "[geometry][cylinder][center]")
     SECTION("CylinderSurface with base at origin")
     {
         Cylinder3D cyl(5.0, 10.0);
-        Pnt3Cart center = cyl.GetCenter();
+        Pnt3Cart center = cyl.getCenter();
         // Base at (0,0,-5), top at (0,0,5), center at (0,0,0)
         REQUIRE_THAT(center.X() , RealApprox(0.0));
         REQUIRE_THAT(center.Y() , RealApprox(0.0));
@@ -97,7 +97,7 @@ TEST_CASE("Cylinder3D::GetCenter", "[geometry][cylinder][center]")
     {
         Pnt3Cart base(10.0, 20.0, 30.0);
         Cylinder3D cyl(5.0, 20.0, base);
-        Pnt3Cart center = cyl.GetCenter();
+        Pnt3Cart center = cyl.getCenter();
         // Base at (10,20,30), top at (10,20,50), center at (10,20,40)
         REQUIRE_THAT(center.X() , RealApprox(10.0));
         REQUIRE_THAT(center.Y() , RealApprox(20.0));
@@ -110,7 +110,7 @@ TEST_CASE("Cylinder3D::GetBoundingBox", "[geometry][cylinder][bounding]")
     SECTION("CylinderSurface with base at origin")
     {
         Cylinder3D cyl(5.0, 10.0);
-        Box3D bbox = cyl.GetBoundingBox();
+        Box3D bbox = cyl.getBoundingBox();
         
         // Base at z=-5, so cylinder goes from z=-5 to z=5
         // But constructor sets _center to (0,0,-H/2), so actually z=0 to z=10
@@ -127,7 +127,7 @@ TEST_CASE("Cylinder3D::GetBoundingBox", "[geometry][cylinder][bounding]")
     {
         Pnt3Cart base(10.0, 20.0, 30.0);
         Cylinder3D cyl(3.0, 12.0, base);
-        Box3D bbox = cyl.GetBoundingBox();
+        Box3D bbox = cyl.getBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(7.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(17.0));
@@ -141,7 +141,7 @@ TEST_CASE("Cylinder3D::GetBoundingBox", "[geometry][cylinder][bounding]")
     SECTION("Bounding box dimensions")
     {
         Cylinder3D cyl(4.0, 8.0);
-        Box3D bbox = cyl.GetBoundingBox();
+        Box3D bbox = cyl.getBoundingBox();
         Real width = bbox.Max().X() - bbox.Min().X();
         Real depth = bbox.Max().Y() - bbox.Min().Y();
         Real height = bbox.Max().Z() - bbox.Min().Z();
@@ -157,7 +157,7 @@ TEST_CASE("Cylinder3D::GetBoundingSphere", "[geometry][cylinder][bounding]")
     SECTION("Bounding sphere for symmetric cylinder")
     {
         Cylinder3D cyl(3.0, 8.0);
-        BoundingSphere3D bsphere = cyl.GetBoundingSphere();
+        BoundingSphere3D bsphere = cyl.getBoundingSphere();
         
         // Geometric center at (0, 0, 0) since base is at (0,0,-4)
         REQUIRE_THAT(bsphere.Center().X() , RealApprox(0.0));
@@ -173,7 +173,7 @@ TEST_CASE("Cylinder3D::GetBoundingSphere", "[geometry][cylinder][bounding]")
     {
         Pnt3Cart base(0.0, 0.0, 0.0);
         Cylinder3D cyl(2.0, 10.0, base);
-        BoundingSphere3D bsphere = cyl.GetBoundingSphere();
+        BoundingSphere3D bsphere = cyl.getBoundingSphere();
         
         // Center at (0, 0, 5)
         REQUIRE_THAT(bsphere.Center().Z() , RealApprox(5.0));
@@ -186,7 +186,7 @@ TEST_CASE("Cylinder3D::GetBoundingSphere", "[geometry][cylinder][bounding]")
     SECTION("Bounding sphere contains cylinder corners")
     {
         Cylinder3D cyl(3.0, 6.0);
-        BoundingSphere3D bsphere = cyl.GetBoundingSphere();
+        BoundingSphere3D bsphere = cyl.getBoundingSphere();
         
         // Check that top edge points are contained
         Pnt3Cart topEdge(3.0, 0.0, 3.0);  // Top of cylinder at max radius
@@ -203,7 +203,7 @@ TEST_CASE("Cylinder3D::ToString", "[geometry][cylinder][string]")
     SECTION("CylinderSurface at default position")
     {
         Cylinder3D cyl(5.0, 10.0);
-        std::string str = cyl.ToString();
+        std::string str = cyl.to_string();
         
         REQUIRE(str.find("Cylinder3D") != std::string::npos);
         REQUIRE(str.find("Center") != std::string::npos);
@@ -217,7 +217,7 @@ TEST_CASE("Cylinder3D::ToString", "[geometry][cylinder][string]")
     {
         Pnt3Cart base(10.0, 20.0, 30.0);
         Cylinder3D cyl(3.0, 12.0, base);
-        std::string str = cyl.ToString();
+        std::string str = cyl.to_string();
         
         REQUIRE(str.find("3") != std::string::npos);  // Radius
         REQUIRE(str.find("12") != std::string::npos); // Height
@@ -229,15 +229,15 @@ TEST_CASE("Cylinder3D::Getters", "[geometry][cylinder][getters]")
     SECTION("GetRadius and GetHeight")
     {
         Cylinder3D cyl(7.5, 15.0);
-        REQUIRE_THAT(cyl.GetRadius() , RealApprox(7.5));
-        REQUIRE_THAT(cyl.GetHeight() , RealApprox(15.0));
+        REQUIRE_THAT(cyl.getRadius() , RealApprox(7.5));
+        REQUIRE_THAT(cyl.getHeight() , RealApprox(15.0));
     }
 
     SECTION("GetBaseCenter")
     {
         Pnt3Cart base(10.0, 20.0, 30.0);
         Cylinder3D cyl(5.0, 10.0, base);
-        Pnt3Cart baseCenter = cyl.GetBaseCenter();
+        Pnt3Cart baseCenter = cyl.getBaseCenter();
         
         REQUIRE_THAT(baseCenter.X() , RealApprox(10.0));
         REQUIRE_THAT(baseCenter.Y() , RealApprox(20.0));
@@ -247,10 +247,10 @@ TEST_CASE("Cylinder3D::Getters", "[geometry][cylinder][getters]")
     SECTION("GetNumSegments")
     {
         Cylinder3D cyl1(5.0, 10.0, 32);
-        REQUIRE(cyl1.GetNumSegments() == 32);
+        REQUIRE(cyl1.getNumSegments() == 32);
         
         Cylinder3D cyl2(5.0, 10.0);  // Default segments
-        REQUIRE(cyl2.GetNumSegments() == 20);
+        REQUIRE(cyl2.getNumSegments() == 20);
     }
 }
 

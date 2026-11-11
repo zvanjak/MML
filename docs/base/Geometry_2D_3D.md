@@ -185,14 +185,14 @@ Plane3D plane2(p1, p2, p3);
 Plane3D plane3(0, 0, 1, 0);  // z = 0
 
 // Predefined planes
-auto xy_plane = Plane3D::GetXYPlane();  // z = 0
-auto xz_plane = Plane3D::GetXZPlane();  // y = 0
-auto yz_plane = Plane3D::GetYZPlane();  // x = 0
+auto xy_plane = Plane3D::XYPlane();  // z = 0
+auto xz_plane = Plane3D::XZPlane();  // y = 0
+auto yz_plane = Plane3D::YZPlane();  // x = 0
 
 // Access
 Real a = plane1.A(), b = plane1.B(), c = plane1.C(), d = plane1.D();
 Vector3Cartesian n = plane1.Normal();
-Point3Cartesian point_on_plane = plane1.GetPointOnPlane();
+Point3Cartesian point_on_plane = plane1.getPointOnPlane();
 
 // Point queries
 Point3Cartesian test(1, 2, 3);
@@ -220,7 +220,7 @@ bool planes_intersect = plane1.IntersectionWithPlane(other, intersection_line);
 
 // Coordinate axis intersections
 Real seg_x, seg_y, seg_z;
-plane1.GetCoordAxisSegments(seg_x, seg_y, seg_z);
+plane1.getCoordAxisSegments(seg_x, seg_y, seg_z);
 ```
 
 ### Triangle3D
@@ -257,7 +257,7 @@ Line2D line2(p3, p4);  // y = -x + 2
 ### Example 2: 3D Line-Plane Intersection
 ```cpp
 // Plane: z = 0 (XY plane)
-Plane3D plane = Plane3D::GetXYPlane();
+Plane3D plane = Plane3D::XYPlane();
 
 // Line from (0,0,1) going down
 Line3D line(Point3Cartesian(0, 0, 1), 
@@ -338,10 +338,10 @@ std::cout << "Square area: " << area << std::endl;
 ### Example 7: Plane-Plane Intersection
 ```cpp
 // XY plane (z = 0)
-Plane3D plane1 = Plane3D::GetXYPlane();
+Plane3D plane1 = Plane3D::XYPlane();
 
 // Plane x = 0 (YZ plane)
-Plane3D plane2 = Plane3D::GetYZPlane();
+Plane3D plane2 = Plane3D::YZPlane();
 
 // Intersection should be y-axis
 Line3D intersection_line;

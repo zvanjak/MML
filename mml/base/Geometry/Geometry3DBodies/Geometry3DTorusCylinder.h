@@ -37,8 +37,8 @@ namespace MML {
 	/// - Surface Area = 4π²Rr
 
 	class Torus3D : public BodyWithRectSurfaces {
-		Real _R;		  ///< Major radius (center to tube center)
-		Real _r;		  ///< Minor radius (tube radius)
+		Real _majorRadius;		  ///< Major radius (center to tube center)
+		Real _minorRadius;		  ///< Minor radius (tube radius)
 		Pnt3Cart _center; ///< Center of the torus
 		int _numU;		  ///< Divisions around major circle
 		int _numV;		  ///< Divisions around tube
@@ -53,8 +53,8 @@ namespace MML {
 		/// @param numV Divisions around tube (default 12)
 
 		Torus3D(Real R, Real r, int numU = 20, int numV = 12)
-			: _R(R)
-			, _r(r)
+			: _majorRadius(R)
+			, _minorRadius(r)
 			, _center(0, 0, 0)
 			, _numU(numU)
 			, _numV(numV) {
@@ -69,8 +69,8 @@ namespace MML {
 		/// @param numV Divisions around tube (default 12)
 
 		Torus3D(Real R, Real r, const Pnt3Cart& center, int numU = 20, int numV = 12)
-			: _R(R)
-			, _r(r)
+			: _majorRadius(R)
+			, _minorRadius(r)
 			, _center(center)
 			, _numU(numU)
 			, _numV(numV) {
@@ -111,9 +111,9 @@ namespace MML {
 		/// @param v Angle around tube [0, 2π]
 
 		Pnt3Cart torusPoint(Real u, Real v) const {
-			Real x = (_R + _r * std::cos(v)) * std::cos(u);
-			Real y = (_R + _r * std::cos(v)) * std::sin(u);
-			Real z = _r * std::sin(v);
+			Real x = (_majorRadius + _minorRadius * std::cos(v)) * std::cos(u);
+			Real y = (_majorRadius + _minorRadius * std::cos(v)) * std::sin(u);
+			Real z = _minorRadius * std::sin(v);
 			return Pnt3Cart(_center.X() + x, _center.Y() + y, _center.Z() + z);
 		}
 		/// @}
@@ -131,9 +131,9 @@ namespace MML {
 			Real d = std::sqrt(x * x + y * y);
 
 			// Distance from point to the tube center circle
-			Real dist = std::sqrt((d - _R) * (d - _R) + z * z);
+			Real dist = std::sqrt((d - _majorRadius) * (d - _majorRadius) + z * z);
 
-			return dist <= _r;
+			return dist <= _minorRadius;
 		}
 		/// @}
 
@@ -142,32 +142,32 @@ namespace MML {
 
 		/// /** @brief Volume = 2π²Rr² */
 
-		Real Volume() const override { return 2.0 * Constants::PI * Constants::PI * _R * _r * _r; }
+		Real Volume() const override { return 2.0 * Constants::PI * Constants::PI * _majorRadius * _minorRadius * _minorRadius; }
 
 		/// /** @brief Surface area = 4π²Rr */
 
-		Real SurfaceArea() const override { return 4.0 * Constants::PI * Constants::PI * _R * _r; }
+		Real SurfaceArea() const override { return 4.0 * Constants::PI * Constants::PI * _majorRadius * _minorRadius; }
 
-		Pnt3Cart GetCenter() const override { return _center; }
+		Pnt3Cart getCenter() const override { return _center; }
 
-		Box3D GetBoundingBox() const override {
-			Real outerRadius = _R + _r;
-			Pnt3Cart min(_center.X() - outerRadius, _center.Y() - outerRadius, _center.Z() - _r);
-			Pnt3Cart max(_center.X() + outerRadius, _center.Y() + outerRadius, _center.Z() + _r);
+		Box3D getBoundingBox() const override {
+			Real outerRadius = _majorRadius + _minorRadius;
+			Pnt3Cart min(_center.X() - outerRadius, _center.Y() - outerRadius, _center.Z() - _minorRadius);
+			Pnt3Cart max(_center.X() + outerRadius, _center.Y() + outerRadius, _center.Z() + _minorRadius);
 			return Box3D(min, max);
 		}
 
 		/// /** @brief Bounding sphere radius = R + r (outer radius) */
 
-		BoundingSphere3D GetBoundingSphere() const override {
-			Real radius = _R + _r;
+		BoundingSphere3D getBoundingSphere() const override {
+			Real radius = _majorRadius + _minorRadius;
 			return BoundingSphere3D(_center, radius);
 		}
 
-		std::string ToString() const override {
+		std::string to_string() const override {
 			std::ostringstream oss;
-			oss << "Torus3D{Center=(" << _center.X() << ", " << _center.Y() << ", " << _center.Z() << "), MajorRadius=" << _R
-				<< ", MinorRadius=" << _r << ", Volume=" << Volume() << ", SurfaceArea=" << SurfaceArea() << "}";
+			oss << "Torus3D{Center=(" << _center.X() << ", " << _center.Y() << ", " << _center.Z() << "), MajorRadius=" << _majorRadius
+				<< ", MinorRadius=" << _minorRadius << ", Volume=" << Volume() << ", SurfaceArea=" << SurfaceArea() << "}";
 			return oss.str();
 		}
 		/// @}
@@ -175,10 +175,22 @@ namespace MML {
 		/// @name Accessors
 		/// @{
 
-		Real GetMajorRadius() const { return _R; }
-		Real GetMinorRadius() const { return _r; }
-		int GetNumU() const { return _numU; }
-		int GetNumV() const { return _numV; }
+		Real getMajorRadius() const { return _majorRadius; }
+		/// @deprecated Use getMajorRadius() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getMajorRadius()")]]
+		Real GetMajorRadius() const { return getMajorRadius(); }
+		Real getMinorRadius() const { return _minorRadius; }
+		/// @deprecated Use getMinorRadius() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getMinorRadius()")]]
+		Real GetMinorRadius() const { return getMinorRadius(); }
+		int getNumU() const { return _numU; }
+		/// @deprecated Use getNumU() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getNumU()")]]
+		int GetNumU() const { return getNumU(); }
+		int getNumV() const { return _numV; }
+		/// @deprecated Use getNumV() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getNumV()")]]
+		int GetNumV() const { return getNumV(); }
 		/// @}
 	};
 
@@ -193,8 +205,8 @@ namespace MML {
 	/// - Surface Area = 2πR² + 2πRH
 
 	class Cylinder3D : public BodyWithTriangleSurfaces {
-		Real _R;		  ///< Radius
-		Real _H;		  ///< Height
+		Real _radius;		  ///< Radius
+		Real _height;		  ///< Height
 		Pnt3Cart _center; ///< Bottom center
 		int _numSegments; ///< Divisions around circumference
 	public:
@@ -207,8 +219,8 @@ namespace MML {
 		/// @param numSegments Circumferential divisions (default 20)
 
 		Cylinder3D(Real R, Real H, int numSegments = 20)
-			: _R(R)
-			, _H(H)
+			: _radius(R)
+			, _height(H)
 			, _center(0, 0, -H / 2)
 			, _numSegments(numSegments) {
 			constructSurfaces();
@@ -221,8 +233,8 @@ namespace MML {
 		/// @param numSegments Circumferential divisions (default 20)
 
 		Cylinder3D(Real R, Real H, const Pnt3Cart& center, int numSegments = 20)
-			: _R(R)
-			, _H(H)
+			: _radius(R)
+			, _height(H)
 			, _center(center)
 			, _numSegments(numSegments) {
 			constructSurfaces();
@@ -239,19 +251,19 @@ namespace MML {
 			Real angleStep = 2.0 * Constants::PI / _numSegments;
 
 			Pnt3Cart bottomCenter(_center.X(), _center.Y(), _center.Z());
-			Pnt3Cart topCenter(_center.X(), _center.Y(), _center.Z() + _H);
+			Pnt3Cart topCenter(_center.X(), _center.Y(), _center.Z() + _height);
 
 			for (int i = 0; i < _numSegments; ++i) {
 				Real angle1 = i * angleStep;
 				Real angle2 = (i + 1) * angleStep;
 
 				// Points on bottom circle
-				Pnt3Cart b1(_center.X() + _R * std::cos(angle1), _center.Y() + _R * std::sin(angle1), _center.Z());
-				Pnt3Cart b2(_center.X() + _R * std::cos(angle2), _center.Y() + _R * std::sin(angle2), _center.Z());
+				Pnt3Cart b1(_center.X() + _radius * std::cos(angle1), _center.Y() + _radius * std::sin(angle1), _center.Z());
+				Pnt3Cart b2(_center.X() + _radius * std::cos(angle2), _center.Y() + _radius * std::sin(angle2), _center.Z());
 
 				// Points on top circle
-				Pnt3Cart t1(_center.X() + _R * std::cos(angle1), _center.Y() + _R * std::sin(angle1), _center.Z() + _H);
-				Pnt3Cart t2(_center.X() + _R * std::cos(angle2), _center.Y() + _R * std::sin(angle2), _center.Z() + _H);
+				Pnt3Cart t1(_center.X() + _radius * std::cos(angle1), _center.Y() + _radius * std::sin(angle1), _center.Z() + _height);
+				Pnt3Cart t2(_center.X() + _radius * std::cos(angle2), _center.Y() + _radius * std::sin(angle2), _center.Z() + _height);
 
 				// Bottom cap (CCW when viewed from above)
 				_surfaces.emplace_back(bottomCenter, b2, b1);
@@ -275,12 +287,12 @@ namespace MML {
 			Real z = pnt.Z() - _center.Z();
 
 			// Height check
-			if (z < 0.0 || z > _H)
+			if (z < 0.0 || z > _height)
 				return false;
 
 			// Circular cross-section check
 			Real distSq = x * x + y * y;
-			return distSq <= _R * _R;
+			return distSq <= _radius * _radius;
 		}
 		/// @}
 
@@ -289,36 +301,36 @@ namespace MML {
 
 		/// /** @brief Volume = πR²H */
 
-		Real Volume() const override { return Constants::PI * _R * _R * _H; }
+		Real Volume() const override { return Constants::PI * _radius * _radius * _height; }
 
 		/// /** @brief Surface area = 2πR² + 2πRH */
 
-		Real SurfaceArea() const override { return 2.0 * Constants::PI * _R * _R + 2.0 * Constants::PI * _R * _H; }
+		Real SurfaceArea() const override { return 2.0 * Constants::PI * _radius * _radius + 2.0 * Constants::PI * _radius * _height; }
 
 		/// /** @brief Return geometric center (middle of cylinder). */
 
-		Pnt3Cart GetCenter() const override { return Pnt3Cart(_center.X(), _center.Y(), _center.Z() + _H / 2.0); }
+		Pnt3Cart getCenter() const override { return Pnt3Cart(_center.X(), _center.Y(), _center.Z() + _height / 2.0); }
 
-		Box3D GetBoundingBox() const override {
-			Pnt3Cart min(_center.X() - _R, _center.Y() - _R, _center.Z());
-			Pnt3Cart max(_center.X() + _R, _center.Y() + _R, _center.Z() + _H);
+		Box3D getBoundingBox() const override {
+			Pnt3Cart min(_center.X() - _radius, _center.Y() - _radius, _center.Z());
+			Pnt3Cart max(_center.X() + _radius, _center.Y() + _radius, _center.Z() + _height);
 			return Box3D(min, max);
 		}
 
 		/// /** @brief Bounding sphere radius = √(R² + (H/2)²) */
 
-		BoundingSphere3D GetBoundingSphere() const override {
-			Pnt3Cart geomCenter = GetCenter();
-			Real halfH = _H / 2.0;
-			Real radius = std::sqrt(_R * _R + halfH * halfH);
+		BoundingSphere3D getBoundingSphere() const override {
+			Pnt3Cart geomCenter = getCenter();
+			Real halfH = _height / 2.0;
+			Real radius = std::sqrt(_radius * _radius + halfH * halfH);
 			return BoundingSphere3D(geomCenter, radius);
 		}
 
-		std::string ToString() const override {
+		std::string to_string() const override {
 			std::ostringstream oss;
-			Pnt3Cart geomCenter = GetCenter();
-			oss << "Cylinder3D{Center=(" << geomCenter.X() << ", " << geomCenter.Y() << ", " << geomCenter.Z() << "), Radius=" << _R
-				<< ", Height=" << _H << ", Volume=" << Volume() << ", SurfaceArea=" << SurfaceArea() << "}";
+			Pnt3Cart geomCenter = getCenter();
+			oss << "Cylinder3D{Center=(" << geomCenter.X() << ", " << geomCenter.Y() << ", " << geomCenter.Z() << "), Radius=" << _radius
+				<< ", Height=" << _height << ", Volume=" << Volume() << ", SurfaceArea=" << SurfaceArea() << "}";
 			return oss.str();
 		}
 		/// @}
@@ -326,10 +338,22 @@ namespace MML {
 		/// @name Accessors
 		/// @{
 
-		Real GetRadius() const { return _R; }
-		Real GetHeight() const { return _H; }
-		Pnt3Cart GetBaseCenter() const { return _center; }
-		int GetNumSegments() const { return _numSegments; }
+		Real getRadius() const { return _radius; }
+		/// @deprecated Use getRadius() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getRadius()")]]
+		Real GetRadius() const { return getRadius(); }
+		Real getHeight() const { return _height; }
+		/// @deprecated Use getHeight() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getHeight()")]]
+		Real GetHeight() const { return getHeight(); }
+		Pnt3Cart getBaseCenter() const { return _center; }
+		/// @deprecated Use getBaseCenter() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getBaseCenter()")]]
+		Pnt3Cart GetBaseCenter() const { return getBaseCenter(); }
+		int getNumSegments() const { return _numSegments; }
+		/// @deprecated Use getNumSegments() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getNumSegments()")]]
+		int GetNumSegments() const { return getNumSegments(); }
 		/// @}
 	};
 

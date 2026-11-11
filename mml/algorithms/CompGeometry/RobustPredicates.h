@@ -11,6 +11,7 @@
 #define MML_COMP_GEOMETRY_ROBUST_PREDICATES_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/base/Geometry/Geometry2D.h>
 #include <mml/base/Geometry/Geometry3D.h>
 
@@ -31,7 +32,7 @@ namespace MML::CompGeometry {
 		};
 
 		static int Sign(Real value) {
-			return (value > REAL(0.0)) - (value < REAL(0.0));
+			return (value > static_cast<MML::Real>(0.0)) - (value < static_cast<MML::Real>(0.0));
 		}
 
 		static void TwoSum(Real a, Real b, Real& sum, Real& error) {
@@ -46,8 +47,8 @@ namespace MML::CompGeometry {
 			const Real bVirtual = a - head;
 			const Real tail = (a - (head + bVirtual)) + (bVirtual - b);
 			Expansion<2> result;
-			if (tail != REAL(0.0)) result.components[result.size++] = tail;
-			if (head != REAL(0.0) || result.size == 0) result.components[result.size++] = head;
+			if (tail != static_cast<MML::Real>(0.0)) result.components[result.size++] = tail;
+			if (head != static_cast<MML::Real>(0.0) || result.size == 0) result.components[result.size++] = head;
 			return result;
 		}
 
@@ -59,10 +60,10 @@ namespace MML::CompGeometry {
 			for (std::size_t i = 0; i < expansion.size; ++i) {
 				Real sum, error;
 				TwoSum(accumulator, expansion.components[i], sum, error);
-				if (error != REAL(0.0)) result.components[result.size++] = error;
+				if (error != static_cast<MML::Real>(0.0)) result.components[result.size++] = error;
 				accumulator = sum;
 			}
-			if (accumulator != REAL(0.0) || result.size == 0)
+			if (accumulator != static_cast<MML::Real>(0.0) || result.size == 0)
 				result.components[result.size++] = accumulator;
 		}
 
@@ -90,12 +91,12 @@ namespace MML::CompGeometry {
 		template<std::size_t Capacity>
 		static Expansion<2 * Capacity> Scale(const Expansion<Capacity>& expansion, Real factor) {
 			Expansion<2 * Capacity> result;
-			result.components[result.size++] = REAL(0.0);
+			result.components[result.size++] = static_cast<MML::Real>(0.0);
 			Expansion<2 * Capacity> scratch;
 			for (std::size_t i = 0; i < expansion.size; ++i) {
 				const Real product = expansion.components[i] * factor;
 				const Real error = std::fma(expansion.components[i], factor, -product);
-				if (error != REAL(0.0)) {
+				if (error != static_cast<MML::Real>(0.0)) {
 					Grow(result, error, scratch);
 					std::swap(result, scratch);
 				}
@@ -109,13 +110,13 @@ namespace MML::CompGeometry {
 		static Expansion<2 * LeftCapacity * RightCapacity> Multiply(
 			const Expansion<LeftCapacity>& left, const Expansion<RightCapacity>& right) {
 			Expansion<2 * LeftCapacity * RightCapacity> result;
-			result.components[result.size++] = REAL(0.0);
+			result.components[result.size++] = static_cast<MML::Real>(0.0);
 			Expansion<2 * LeftCapacity * RightCapacity> scratch;
 			for (std::size_t i = 0; i < left.size; ++i) {
 				for (std::size_t j = 0; j < right.size; ++j) {
 					const Real product = left.components[i] * right.components[j];
 					const Real error = std::fma(left.components[i], right.components[j], -product);
-					if (error != REAL(0.0)) {
+					if (error != static_cast<MML::Real>(0.0)) {
 						Grow(result, error, scratch);
 						std::swap(result, scratch);
 					}
@@ -129,7 +130,7 @@ namespace MML::CompGeometry {
 		template<std::size_t Capacity>
 		static int ExpansionSign(const Expansion<Capacity>& expansion) {
 			for (std::size_t i = expansion.size; i > 0; --i)
-				if (expansion.components[i - 1] != REAL(0.0)) return Sign(expansion.components[i - 1]);
+				if (expansion.components[i - 1] != static_cast<MML::Real>(0.0)) return Sign(expansion.components[i - 1]);
 			return 0;
 		}
 
@@ -164,7 +165,7 @@ namespace MML::CompGeometry {
 			const Real determinant = acx * bcy - acy * bcx;
 			const Real determinantSum = std::abs(acx * bcy) + std::abs(acy * bcx);
 			const Real epsilon = std::numeric_limits<Real>::epsilon();
-			if (std::abs(determinant) > (REAL(3.0) + REAL(16.0) * epsilon) * epsilon * determinantSum)
+			if (std::abs(determinant) > (static_cast<MML::Real>(3.0) + static_cast<MML::Real>(16.0) * epsilon) * epsilon * determinantSum)
 				return Sign(determinant);
 
 			return ExpansionSign(ExactCross(
@@ -190,7 +191,7 @@ namespace MML::CompGeometry {
 				+ blift * (std::abs(cdx * ady) + std::abs(adx * cdy))
 				+ clift * (std::abs(adx * bdy) + std::abs(bdx * ady));
 			const Real epsilon = std::numeric_limits<Real>::epsilon();
-			if (std::abs(determinant) > (REAL(10.0) + REAL(96.0) * epsilon) * epsilon * permanent)
+			if (std::abs(determinant) > (static_cast<MML::Real>(10.0) + static_cast<MML::Real>(96.0) * epsilon) * epsilon * permanent)
 				return Sign(determinant);
 
 			const auto adxExact = Difference(a.X(), d.X());
@@ -215,14 +216,14 @@ namespace MML::CompGeometry {
 		static int Orientation3D(const Point3Cartesian& a, const Point3Cartesian& b,
 			const Point3Cartesian& c, const Point3Cartesian& d) {
 			const std::array<Point3Cartesian, 4> points = {a, b, c, d};
-			Real maxCoordinate = REAL(0.0);
+			Real maxCoordinate = static_cast<MML::Real>(0.0);
 			for (const auto& point : points) {
 				maxCoordinate = std::max(maxCoordinate, std::abs(point.X()));
 				maxCoordinate = std::max(maxCoordinate, std::abs(point.Y()));
 				maxCoordinate = std::max(maxCoordinate, std::abs(point.Z()));
 			}
 			int coordinateExponent = 0;
-			if (std::isfinite(maxCoordinate) && maxCoordinate != REAL(0.0))
+			if (std::isfinite(maxCoordinate) && maxCoordinate != static_cast<MML::Real>(0.0))
 				std::frexp(maxCoordinate, &coordinateExponent);
 			const int safeCoordinateExponent = (std::numeric_limits<Real>::max_exponent - 4) / 3;
 			const int scaleExponent = std::min(0, safeCoordinateExponent - coordinateExponent);
@@ -246,7 +247,7 @@ namespace MML::CompGeometry {
 				+ (std::abs(cdxady) + std::abs(adxcdy)) * std::abs(bdz)
 				+ (std::abs(adxbdy) + std::abs(bdxady)) * std::abs(cdz);
 			const Real epsilon = std::numeric_limits<Real>::epsilon();
-			if (std::abs(determinant) > (REAL(7.0) + REAL(56.0) * epsilon) * epsilon * permanent)
+			if (std::abs(determinant) > (static_cast<MML::Real>(7.0) + static_cast<MML::Real>(56.0) * epsilon) * epsilon * permanent)
 				return Sign(determinant);
 
 			const auto adxExact = Difference(ax, dx);
@@ -270,14 +271,14 @@ namespace MML::CompGeometry {
 		static int InSphere3D(const Point3Cartesian& a, const Point3Cartesian& b,
 			const Point3Cartesian& c, const Point3Cartesian& d, const Point3Cartesian& e) {
 			const std::array<Point3Cartesian, 5> inputPoints = {a, b, c, d, e};
-			Real maxCoordinate = REAL(0.0);
+			Real maxCoordinate = static_cast<MML::Real>(0.0);
 			for (const auto& point : inputPoints) {
 				maxCoordinate = std::max(maxCoordinate, std::abs(point.X()));
 				maxCoordinate = std::max(maxCoordinate, std::abs(point.Y()));
 				maxCoordinate = std::max(maxCoordinate, std::abs(point.Z()));
 			}
 			int coordinateExponent = 0;
-			if (std::isfinite(maxCoordinate) && maxCoordinate != REAL(0.0))
+			if (std::isfinite(maxCoordinate) && maxCoordinate != static_cast<MML::Real>(0.0))
 				std::frexp(maxCoordinate, &coordinateExponent);
 			const int safeCoordinateExponent = (std::numeric_limits<Real>::max_exponent - 6) / 5;
 			const int scaleExponent = std::min(0, safeCoordinateExponent - coordinateExponent);
@@ -331,7 +332,7 @@ namespace MML::CompGeometry {
 				+ (std::abs(cex * aey) + std::abs(aex * cey)) * std::abs(bez)
 				+ (std::abs(aex * bey) + std::abs(bex * aey)) * std::abs(cez)) * dlift;
 			const Real epsilon = std::numeric_limits<Real>::epsilon();
-			if (std::abs(determinant) > (REAL(16.0) + REAL(224.0) * epsilon) * epsilon * permanent)
+			if (std::abs(determinant) > (static_cast<MML::Real>(16.0) + static_cast<MML::Real>(224.0) * epsilon) * epsilon * permanent)
 				return Sign(determinant);
 
 			std::array<Expansion<6>, 5> lifts;
@@ -343,7 +344,7 @@ namespace MML::CompGeometry {
 			}
 
 			Expansion<5760> exactDeterminant;
-			exactDeterminant.components[exactDeterminant.size++] = REAL(0.0);
+			exactDeterminant.components[exactDeterminant.size++] = static_cast<MML::Real>(0.0);
 			Expansion<5760> scratch;
 			for (int px = 0; px < 5; ++px)
 				for (int py = 0; py < 5; ++py) if (py != px)
@@ -355,7 +356,7 @@ namespace MML::CompGeometry {
 								for (int i = 0; i < 5; ++i)
 									for (int j = i + 1; j < 5; ++j)
 										if (permutation[i] > permutation[j]) ++inversions;
-								const Real termSign = (inversions % 2 == 0) ? REAL(1.0) : -REAL(1.0);
+								const Real termSign = (inversions % 2 == 0) ? static_cast<MML::Real>(1.0) : -static_cast<MML::Real>(1.0);
 								const auto termX = Scale(lifts[pl], points[px].X());
 								const auto termXY = Scale(termX, points[py].Y());
 								const auto termXYZ = Scale(termXY, points[pz].Z());

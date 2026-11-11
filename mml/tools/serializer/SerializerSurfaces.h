@@ -25,7 +25,7 @@ namespace MML
 		//===================================================================================
 
 		/// @brief Serialize a 3D parametric surface to file
-		/// @details Saves a parametric surface r(u,w) = (x(u,w), y(u,w), z(u,w)) evaluated on a 
+		/// @details Saves a parametric surface r(u,w) = (x(u,w), y(u,w), z(u,w)) evaluated on a
 		/// rectangular parameter grid to file. Each point contains parameter values and 3D position.
 		/// Format: Header with grid parameters, then rows of [u, w, x, y, z].
 		/// Ideal for 3D surface visualization of spheres, tori, and other parametric shapes.
@@ -38,29 +38,27 @@ namespace MML
 		/// @param w2 End of w parameter range
 		/// @param numPointsW Number of grid points along w (must be >= 2)
 		/// @param fileName Output file path
-		/// @return SerializeResult with success flag and error details
-		inline SerializeResult SaveParametricSurface(const IParametricSurface<3>& surface, std::string title,
-		                                             Real u1, Real u2, int numPointsU,
-		                                             Real w1, Real w2, int numPointsW,
-		                                             std::string fileName)
-		{
+		/// @return IOResult with success flag and error details
+		inline IOResult SaveParametricSurface(const IParametricSurface<3>& surface, std::string title, Real u1, Real u2, int numPointsU,
+																					Real w1, Real w2, int numPointsW, std::string fileName) {
 			// Validate parameters
 			if (numPointsU < 2 || numPointsW < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPointsU and numPointsW must be >= 2"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "numPointsU and numPointsW must be >= 2"}.WithFile(fileName);
 			if (u1 >= u2 || w1 >= w2)
-				return {false, SerializeError::INVALID_PARAMETERS, "u1 < u2 and w1 < w2 required"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "u1 < u2 and w1 < w2 required"}.WithFile(fileName);
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
 				auto headerResult = WriteParametricSurfaceHeader(file, title, u1, u2, numPointsU, w1, w2, numPointsW);
 				if (!headerResult.success)
-					return headerResult;
+					return (headerResult).WithFile(fileName);
 
 				// Write grid data
 				Real stepU = (u2 - u1) / (numPointsU - 1);
@@ -77,40 +75,37 @@ namespace MML
 					}
 				}
 				
-				file.close();
-				return {true, SerializeError::OK, "Success"};
+				return Serializer::detail::FinishFile(file, fileName, "Success");
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 
 		/// @brief Serialize a general R² → R³ function as a parametric surface
 		/// @details Lower-level function that works with any IVectorFunctionNM<2,3>.
 		/// Useful when you have a lambda or custom function that isn't wrapped in IParametricSurface.
-		inline SerializeResult SaveParametricSurface(const IVectorFunctionNM<2, 3>& f, std::string title,
-		                                             Real u1, Real u2, int numPointsU,
-		                                             Real w1, Real w2, int numPointsW,
-		                                             std::string fileName)
-		{
+		inline IOResult SaveParametricSurface(const IVectorFunctionNM<2, 3>& f, std::string title, Real u1, Real u2, int numPointsU, Real w1,
+																					Real w2, int numPointsW, std::string fileName) {
 			// Validate parameters
 			if (numPointsU < 2 || numPointsW < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPointsU and numPointsW must be >= 2"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "numPointsU and numPointsW must be >= 2"}.WithFile(fileName);
 			if (u1 >= u2 || w1 >= w2)
-				return {false, SerializeError::INVALID_PARAMETERS, "u1 < u2 and w1 < w2 required"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "u1 < u2 and w1 < w2 required"}.WithFile(fileName);
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
 				auto headerResult = WriteParametricSurfaceHeader(file, title, u1, u2, numPointsU, w1, w2, numPointsW);
 				if (!headerResult.success)
-					return headerResult;
+					return (headerResult).WithFile(fileName);
 
 				// Write grid data
 				Real stepU = (u2 - u1) / (numPointsU - 1);
@@ -127,27 +122,22 @@ namespace MML
 					}
 				}
 				
-				file.close();
-				return {true, SerializeError::OK, "Success"};
+				return Serializer::detail::FinishFile(file, fileName, "Success");
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 
 		/// @brief Serialize a 3D parametric surface using its intrinsic bounds
 		/// @details Convenience overload that uses the surface's getMinU/MaxU/MinW/MaxW methods
 		/// to determine the parameter range automatically.
-		inline SerializeResult SaveParametricSurface(const IParametricSurfaceRect<3>& surface, std::string title,
-		                                             int numPointsU, int numPointsW,
-		                                             std::string fileName)
-		{
-			return SaveParametricSurface(
-				static_cast<const IVectorFunctionNM<2, 3>&>(surface), title,
-				surface.getMinU(), surface.getMaxU(), numPointsU,
-				surface.getMinW(), surface.getMaxW(), numPointsW,
-				fileName);
+		inline IOResult SaveParametricSurface(const IParametricSurfaceRect<3>& surface, std::string title, int numPointsU, int numPointsW,
+																					std::string fileName) {
+			return (SaveParametricSurface(static_cast<const IVectorFunctionNM<2, 3>&>(surface), title, surface.getMinU(), surface.getMaxU(),
+																		numPointsU, surface.getMinW(), surface.getMaxW(), numPointsW, fileName))
+				.WithFile(fileName);
 		}
 
 		//===================================================================================
@@ -158,27 +148,26 @@ namespace MML
 		/// @details Saves a 2D scalar function evaluated on a rectangular grid to file.
 		/// Format: Header with grid parameters, then value rows (one per y-line, varying x).
 		/// Ideal for surface plots and heatmaps.
-		inline SerializeResult SaveScalarFunc2DCartesian(const IScalarFunction<2>& f, std::string title,
-		                                                 Real x1, Real x2, int numPointsX, 
-		                                                 Real y1, Real y2, int numPointsY, std::string fileName)
-		{
+		inline IOResult SaveScalarFunc2DCartesian(const IScalarFunction<2>& f, std::string title, Real x1, Real x2, int numPointsX, Real y1,
+																							Real y2, int numPointsY, std::string fileName) {
 			// Validate parameters
 			if (numPointsX < 2 || numPointsY < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPointsX and numPointsY must be >= 2"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "numPointsX and numPointsY must be >= 2"}.WithFile(fileName);
 			if (x1 >= x2 || y1 >= y2)
-				return {false, SerializeError::INVALID_PARAMETERS, "x1 < x2 and y1 < y2 required"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "x1 < x2 and y1 < y2 required"}.WithFile(fileName);
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
 				auto headerResult = WriteScalarFunc2DHeader(file, title, x1, x2, numPointsX, y1, y2, numPointsY);
 				if (!headerResult.success)
-					return headerResult;
+					return (headerResult).WithFile(fileName);
 
 				Real stepX = (x2 - x1) / (numPointsX - 1);
 				Real stepY = (y2 - y1) / (numPointsY - 1);
@@ -191,12 +180,11 @@ namespace MML
 						file << x << " " << y << " " << f(VectorN<Real, 2>{x, y}) << std::endl;
 					}
 				}
-				file.close();
-				return {true, SerializeError::OK, "Success"};
+				return Serializer::detail::FinishFile(file, fileName, "Success");
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 
@@ -204,28 +192,26 @@ namespace MML
 		/// @details Saves a 3D scalar function evaluated on a rectangular 3D grid to file.
 		/// Format: Header with grid parameters, then value rows (one per point in 3D grid).
 		/// Useful for volumetric data and 3D scalar field visualization.
-		inline SerializeResult SaveScalarFunc3DCartesian(const IScalarFunction<3>& f, std::string title, 
-		                                                 Real x1, Real x2, int numPointsX, 
-		                                                 Real y1, Real y2, int numPointsY, 
-		                                                 Real z1, Real z2, int numPointsZ, std::string fileName)
-		{
+		inline IOResult SaveScalarFunc3DCartesian(const IScalarFunction<3>& f, std::string title, Real x1, Real x2, int numPointsX, Real y1,
+																							Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName) {
 			// Validate parameters
 			if (numPointsX < 2 || numPointsY < 2 || numPointsZ < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPointsX, numPointsY, and numPointsZ must be >= 2"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "numPointsX, numPointsY, and numPointsZ must be >= 2"}.WithFile(fileName);
 			if (x1 >= x2 || y1 >= y2 || z1 >= z2)
-				return {false, SerializeError::INVALID_PARAMETERS, "x1 < x2, y1 < y2, and z1 < z2 required"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "x1 < x2, y1 < y2, and z1 < z2 required"}.WithFile(fileName);
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
 				auto headerResult = WriteScalarFunc3DHeader(file, title, x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ);
 				if (!headerResult.success)
-					return headerResult;
+					return (headerResult).WithFile(fileName);
 
 				Real stepX = (x2 - x1) / (numPointsX - 1);
 				Real stepY = (y2 - y1) / (numPointsY - 1);
@@ -243,12 +229,11 @@ namespace MML
 						}
 					}
 				}
-				file.close();
-				return {true, SerializeError::OK, "Success"};
+				return Serializer::detail::FinishFile(file, fileName, "Success");
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 
@@ -268,18 +253,17 @@ namespace MML
 		/// @param fileName Output file path
 		/// @param scaleXY Scale factor for x,y coordinates (default 1.0)
 		/// @param scaleValue Scale factor for values (default 1.0)
-		/// @return SerializeResult with success flag and error details
+		/// @return IOResult with success flag and error details
 		template<typename GridFunc>
-		inline SerializeResult SaveGridFunction2D(const GridFunc& gridFunc, std::string title,
-		                                          std::string fileName,
-		                                          Real scaleXY = 1.0, Real scaleValue = 1.0)
-		{
+		inline IOResult SaveGridFunction2D(const GridFunc& gridFunc, std::string title, std::string fileName, Real scaleXY = 1.0,
+																			 Real scaleValue = 1.0) {
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
@@ -297,7 +281,7 @@ namespace MML
 				
 				auto headerResult = WriteScalarFunc2DHeader(file, title, x1, x2, numPointsX, y1, y2, numPointsY);
 				if (!headerResult.success)
-					return headerResult;
+					return (headerResult).WithFile(fileName);
 
 				// Output grid values directly (no interpolation needed)
 				for (int i = 0; i < numPointsX; i++)
@@ -310,12 +294,11 @@ namespace MML
 						file << x << " " << y << " " << value << std::endl;
 					}
 				}
-				file.close();
-				return {true, SerializeError::OK, "Success"};
+				return Serializer::detail::FinishFile(file, fileName, "Success");
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 

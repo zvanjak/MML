@@ -21,7 +21,7 @@ TEST_CASE("AlgorithmTypes - EvaluationResultBase reports success by default", "[
 TEST_CASE("AlgorithmTypes - DerivativeConfig has derivation-friendly defaults", "[core][api]") {
 	DerivativeConfig config;
 
-	REQUIRE(config.step == REAL(0.0));
+	REQUIRE(config.step == static_cast<MML::Real>(0.0));
 	REQUIRE(config.estimate_error);
 	REQUIRE(config.check_finite);
 	REQUIRE(config.exception_policy == EvaluationExceptionPolicy::Propagate);
@@ -36,9 +36,9 @@ TEST_CASE("AlgorithmTypes - MakeEvaluationSuccessResult populates shared fields"
 	REQUIRE(result.function_evaluations == 5);
 	REQUIRE(result.IsSuccess());
 	REQUIRE(static_cast<bool>(result));
-	REQUIRE(result.step_used == REAL(0.0));
-	REQUIRE(result.value == REAL(0.0));
-	REQUIRE(result.error == REAL(0.0));
+	REQUIRE(result.step_used == static_cast<MML::Real>(0.0));
+	REQUIRE(result.value == static_cast<MML::Real>(0.0));
+	REQUIRE(result.error == static_cast<MML::Real>(0.0));
 }
 
 TEST_CASE("AlgorithmTypes - MakeEvaluationFailureResult populates failure diagnostics", "[core][api]") {

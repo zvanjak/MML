@@ -44,7 +44,7 @@ void Docs_Demo_VectorTypes()
     std::cout << "v3a × v3b = (" << cross.X() << ", " << cross.Y() << ", " << cross.Z() << ")" << std::endl;
     
     // Unit vector
-    Vector3Cartesian unit = v3a.GetAsUnitVector();
+    Vector3Cartesian unit = v3a.Normalized();
     std::cout << "v3a normalized: norm = " << unit.NormL2() << std::endl;
     
     // 4D vectors (Vector4Minkowski - 4D Minkowski spacetime vector)

@@ -68,7 +68,7 @@ namespace MML::SparseMatrix
         
         /// @brief Construct from COO format
         explicit SparseMatrixCSC(SparseMatrixCOO<T>& coo) {
-            fromCOO(coo);
+            FromCOO(coo);
         }
         
         /// @brief Construct from CSR format (transpose structure)
@@ -91,7 +91,7 @@ namespace MML::SparseMatrix
         // ==================== Conversion ====================
         
         /// @brief Build CSC from COO matrix
-        void fromCOO(SparseMatrixCOO<T>& coo) {
+        void FromCOO(SparseMatrixCOO<T>& coo) {
             rows_ = coo.rows();
             cols_ = coo.cols();
             
@@ -227,7 +227,7 @@ namespace MML::SparseMatrix
         // ==================== Matrix-Vector Operations ====================
         
         /// @brief Sparse matrix-vector product: y = A * x
-        void multiply(const std::vector<T>& x, std::vector<T>& y) const {
+        void Multiply(const std::vector<T>& x, std::vector<T>& y) const {
             if (static_cast<int>(x.size()) != cols_) {
                 throw VectorDimensionError("SparseMatrixCSC::multiply - vector size must match matrix cols", static_cast<int>(x.size()), cols_);
             }
@@ -240,11 +240,11 @@ namespace MML::SparseMatrix
             }
         }
 
-        void multiply(const Vector<T>& x, Vector<T>& y) const {
+        void Multiply(const Vector<T>& x, Vector<T>& y) const {
             if (x.size() != cols_) {
                 throw VectorDimensionError("SparseMatrixCSC::multiply - vector size must match matrix cols", x.size(), cols_);
             }
-            y.Resize(rows_);
+            y.resize(rows_);
             for (int i = 0; i < rows_; ++i) y[i] = T(0);
             for (int j = 0; j < cols_; ++j) {
                 for (int k = col_pointers_[j]; k < col_pointers_[j + 1]; ++k) {
@@ -255,18 +255,18 @@ namespace MML::SparseMatrix
         
         std::vector<T> operator*(const std::vector<T>& x) const {
             std::vector<T> y;
-            multiply(x, y);
+            Multiply(x, y);
             return y;
         }
 
         Vector<T> operator*(const Vector<T>& x) const {
             Vector<T> y;
-            multiply(x, y);
+            Multiply(x, y);
             return y;
         }
         
         /// @brief Transpose matrix-vector product: y = A^T * x
-        void multiplyTranspose(const std::vector<T>& x, std::vector<T>& y) const {
+        void MultiplyTranspose(const std::vector<T>& x, std::vector<T>& y) const {
             if (static_cast<int>(x.size()) != rows_) {
                 throw VectorDimensionError("SparseMatrixCSC::multiplyTranspose - vector size must match matrix rows", static_cast<int>(x.size()), rows_);
             }
@@ -281,11 +281,11 @@ namespace MML::SparseMatrix
             }
         }
 
-        void multiplyTranspose(const Vector<T>& x, Vector<T>& y) const {
+        void MultiplyTranspose(const Vector<T>& x, Vector<T>& y) const {
             if (x.size() != rows_) {
                 throw VectorDimensionError("SparseMatrixCSC::multiplyTranspose - vector size must match matrix rows", x.size(), rows_);
             }
-            y.Resize(cols_);
+            y.resize(cols_);
             for (int j = 0; j < cols_; ++j) {
                 T sum = T(0);
                 for (int k = col_pointers_[j]; k < col_pointers_[j + 1]; ++k) {
@@ -322,7 +322,7 @@ namespace MML::SparseMatrix
         }
         
         /// @brief Convert to dense matrix
-        std::vector<std::vector<T>> toDense() const {
+        std::vector<std::vector<T>> ToDense() const {
             std::vector<std::vector<T>> dense(rows_, std::vector<T>(cols_, T(0)));
             for (int j = 0; j < cols_; ++j) {
                 for (int k = col_pointers_[j]; k < col_pointers_[j + 1]; ++k) {
@@ -331,6 +331,20 @@ namespace MML::SparseMatrix
             }
             return dense;
         }
+
+        // ---- Deprecated spellings (CONTRACT_POLICY section 11; removed after one minor release) ----
+        [[deprecated("use FromCOO()")]]
+        void fromCOO(SparseMatrixCOO<T>& coo) { FromCOO(coo); }
+        [[deprecated("use ToDense()")]]
+        std::vector<std::vector<T>> toDense() const { return ToDense(); }
+        [[deprecated("use Multiply()")]]
+        void multiply(const std::vector<T>& x, std::vector<T>& y) const { Multiply(x, y); }
+        [[deprecated("use Multiply()")]]
+        void multiply(const Vector<T>& x, Vector<T>& y) const { Multiply(x, y); }
+        [[deprecated("use MultiplyTranspose()")]]
+        void multiplyTranspose(const std::vector<T>& x, std::vector<T>& y) const { MultiplyTranspose(x, y); }
+        [[deprecated("use MultiplyTranspose()")]]
+        void multiplyTranspose(const Vector<T>& x, Vector<T>& y) const { MultiplyTranspose(x, y); }
     };
 
 } // namespace MML::SparseMatrix

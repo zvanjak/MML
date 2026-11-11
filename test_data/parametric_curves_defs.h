@@ -14,7 +14,8 @@ namespace MML::TestBeds
     /*******************************************************************************************************************
      * PARAMETRIC CURVE DEFINITIONS FOR TESTING
      * 
-     * This file contains definitions of 3D parametric curves for testing curve analysis algorithms.
+     * This file contains analytic 3D curve functions and shared 2D/3D showcase classes.
+     * The latter live in ShowcaseCurves and are not part of the core MML distribution.
      * Each curve includes:
      *   - Position function r(t)
      *   - First derivative r'(t)
@@ -39,30 +40,30 @@ namespace MML::TestBeds
     // ========== TWISTED CUBIC: r(t) = (t, t², t³) ==========
     // Classic space curve used in algebraic geometry
     static VectorN<Real,3> TwistedCubic_pos(Real t) { return VectorN<Real,3>{ t, t*t, t*t*t }; }
-    static VectorN<Real,3> TwistedCubic_deriv(Real t) { return VectorN<Real,3>{ REAL(1.0), REAL(2.0)*t, REAL(3.0)*t*t }; }
-    static VectorN<Real,3> TwistedCubic_deriv2(Real t) { return VectorN<Real,3>{ REAL(0.0), REAL(2.0), REAL(6.0)*t }; }
+    static VectorN<Real,3> TwistedCubic_deriv(Real t) { return VectorN<Real,3>{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)*t, static_cast<MML::Real>(3.0)*t*t }; }
+    static VectorN<Real,3> TwistedCubic_deriv2(Real t) { return VectorN<Real,3>{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(6.0)*t }; }
     static Real TwistedCubic_curvature(Real t) {
-        Real denom = std::pow(REAL(1.0) + REAL(4.0)*t*t + REAL(9.0)*t*t*t*t, REAL(1.5));
-        return REAL(2.0) * std::abs(REAL(3.0)*t*t - REAL(1.0)) / denom;
+        Real denom = std::pow(static_cast<MML::Real>(1.0) + static_cast<MML::Real>(4.0)*t*t + static_cast<MML::Real>(9.0)*t*t*t*t, static_cast<MML::Real>(1.5));
+        return static_cast<MML::Real>(2.0) * std::abs(static_cast<MML::Real>(3.0)*t*t - static_cast<MML::Real>(1.0)) / denom;
     }
     static Real TwistedCubic_torsion(Real t) {
-        Real denom = std::pow(REAL(1.0) + REAL(4.0)*t*t + REAL(9.0)*t*t*t*t, REAL(2.0));
-        return REAL(12.0) * t / denom;
+        Real denom = std::pow(static_cast<MML::Real>(1.0) + static_cast<MML::Real>(4.0)*t*t + static_cast<MML::Real>(9.0)*t*t*t*t, static_cast<MML::Real>(2.0));
+        return static_cast<MML::Real>(12.0) * t / denom;
     }
 
     // ========== VIVIANI CURVE ==========
     // Intersection of sphere and cylinder - beautiful closed curve
-    static VectorN<Real,3> Viviani_pos(Real t) { return VectorN<Real,3>{ REAL(1.0) + std::cos(t), std::sin(t), REAL(2.0)*std::sin(t/REAL(2.0)) }; }
-    static VectorN<Real,3> Viviani_deriv(Real t) { return VectorN<Real,3>{ -std::sin(t), std::cos(t), std::cos(t/REAL(2.0)) }; }
-    static VectorN<Real,3> Viviani_deriv2(Real t) { return VectorN<Real,3>{ -std::cos(t), -std::sin(t), REAL(-0.5)*std::sin(t/REAL(2.0)) }; }
+    static VectorN<Real,3> Viviani_pos(Real t) { return VectorN<Real,3>{ static_cast<MML::Real>(1.0) + std::cos(t), std::sin(t), static_cast<MML::Real>(2.0)*std::sin(t/static_cast<MML::Real>(2.0)) }; }
+    static VectorN<Real,3> Viviani_deriv(Real t) { return VectorN<Real,3>{ -std::sin(t), std::cos(t), std::cos(t/static_cast<MML::Real>(2.0)) }; }
+    static VectorN<Real,3> Viviani_deriv2(Real t) { return VectorN<Real,3>{ -std::cos(t), -std::sin(t), static_cast<MML::Real>(-0.5)*std::sin(t/static_cast<MML::Real>(2.0)) }; }
     static Real Viviani_curvature(Real t) {
-        Real num = std::sqrt(REAL(2.0) * (REAL(1.0) + std::cos(t)));
-        Real denom = std::pow(REAL(2.0) + std::cos(t), REAL(1.5));
+        Real num = std::sqrt(static_cast<MML::Real>(2.0) * (static_cast<MML::Real>(1.0) + std::cos(t)));
+        Real denom = std::pow(static_cast<MML::Real>(2.0) + std::cos(t), static_cast<MML::Real>(1.5));
         return num / denom;
     }
     static Real Viviani_torsion(Real t) {
-        Real num = -std::cos(t/REAL(2.0)) * std::sin(t/REAL(2.0));
-        Real denom = std::pow(REAL(2.0) + std::cos(t), REAL(2.0));
+        Real num = -std::cos(t/static_cast<MML::Real>(2.0)) * std::sin(t/static_cast<MML::Real>(2.0));
+        Real denom = std::pow(static_cast<MML::Real>(2.0) + std::cos(t), static_cast<MML::Real>(2.0));
         return num / denom;
     }
 
@@ -70,44 +71,44 @@ namespace MML::TestBeds
     // Winds 3 times around the torus tube while going 2 times around the axis
     static VectorN<Real,3> TorusKnot32_pos(Real t) {
         return VectorN<Real,3>{ 
-            (REAL(2.0) + std::cos(REAL(2.0)*t)) * std::cos(REAL(3.0)*t), 
-            (REAL(2.0) + std::cos(REAL(2.0)*t)) * std::sin(REAL(3.0)*t), 
-            std::sin(REAL(2.0)*t) 
+            (static_cast<MML::Real>(2.0) + std::cos(static_cast<MML::Real>(2.0)*t)) * std::cos(static_cast<MML::Real>(3.0)*t),
+            (static_cast<MML::Real>(2.0) + std::cos(static_cast<MML::Real>(2.0)*t)) * std::sin(static_cast<MML::Real>(3.0)*t),
+            std::sin(static_cast<MML::Real>(2.0)*t)
         };
     }
     static VectorN<Real,3> TorusKnot32_deriv(Real t) {
-        Real dx = -REAL(2.0)*std::sin(REAL(2.0)*t)*std::cos(REAL(3.0)*t) - REAL(3.0)*(REAL(2.0) + std::cos(REAL(2.0)*t))*std::sin(REAL(3.0)*t);
-        Real dy = -REAL(2.0)*std::sin(REAL(2.0)*t)*std::sin(REAL(3.0)*t) + REAL(3.0)*(REAL(2.0) + std::cos(REAL(2.0)*t))*std::cos(REAL(3.0)*t);
-        Real dz = REAL(2.0)*std::cos(REAL(2.0)*t);
+        Real dx = -static_cast<MML::Real>(2.0)*std::sin(static_cast<MML::Real>(2.0)*t)*std::cos(static_cast<MML::Real>(3.0)*t) - static_cast<MML::Real>(3.0)*(static_cast<MML::Real>(2.0) + std::cos(static_cast<MML::Real>(2.0)*t))*std::sin(static_cast<MML::Real>(3.0)*t);
+        Real dy = -static_cast<MML::Real>(2.0)*std::sin(static_cast<MML::Real>(2.0)*t)*std::sin(static_cast<MML::Real>(3.0)*t) + static_cast<MML::Real>(3.0)*(static_cast<MML::Real>(2.0) + std::cos(static_cast<MML::Real>(2.0)*t))*std::cos(static_cast<MML::Real>(3.0)*t);
+        Real dz = static_cast<MML::Real>(2.0)*std::cos(static_cast<MML::Real>(2.0)*t);
         return VectorN<Real,3>{ dx, dy, dz };
     }
     static VectorN<Real,3> TorusKnot32_deriv2(Real t) {
-        Real ddx = -REAL(4.0)*std::cos(REAL(2.0)*t)*std::cos(REAL(3.0)*t) + REAL(6.0)*std::sin(REAL(2.0)*t)*std::sin(REAL(3.0)*t) - REAL(9.0)*(REAL(2.0)+std::cos(REAL(2.0)*t))*std::cos(REAL(3.0)*t);
-        Real ddy = -REAL(4.0)*std::cos(REAL(2.0)*t)*std::sin(REAL(3.0)*t) - REAL(6.0)*std::sin(REAL(2.0)*t)*std::cos(REAL(3.0)*t) - REAL(9.0)*(REAL(2.0)+std::cos(REAL(2.0)*t))*std::sin(REAL(3.0)*t);
-        Real ddz = -REAL(4.0)*std::sin(REAL(2.0)*t);
+        Real ddx = -static_cast<MML::Real>(4.0)*std::cos(static_cast<MML::Real>(2.0)*t)*std::cos(static_cast<MML::Real>(3.0)*t) + static_cast<MML::Real>(6.0)*std::sin(static_cast<MML::Real>(2.0)*t)*std::sin(static_cast<MML::Real>(3.0)*t) - static_cast<MML::Real>(9.0)*(static_cast<MML::Real>(2.0)+std::cos(static_cast<MML::Real>(2.0)*t))*std::cos(static_cast<MML::Real>(3.0)*t);
+        Real ddy = -static_cast<MML::Real>(4.0)*std::cos(static_cast<MML::Real>(2.0)*t)*std::sin(static_cast<MML::Real>(3.0)*t) - static_cast<MML::Real>(6.0)*std::sin(static_cast<MML::Real>(2.0)*t)*std::cos(static_cast<MML::Real>(3.0)*t) - static_cast<MML::Real>(9.0)*(static_cast<MML::Real>(2.0)+std::cos(static_cast<MML::Real>(2.0)*t))*std::sin(static_cast<MML::Real>(3.0)*t);
+        Real ddz = -static_cast<MML::Real>(4.0)*std::sin(static_cast<MML::Real>(2.0)*t);
         return VectorN<Real,3>{ ddx, ddy, ddz };
     }
     static Real TorusKnot32_curvature(Real t) {
-        Real dx = -REAL(2.0)*std::sin(REAL(2.0)*t)*std::cos(REAL(3.0)*t) - REAL(3.0)*(REAL(2.0)+std::cos(REAL(2.0)*t))*std::sin(REAL(3.0)*t);
-        Real dy = -REAL(2.0)*std::sin(REAL(2.0)*t)*std::sin(REAL(3.0)*t) + REAL(3.0)*(REAL(2.0)+std::cos(REAL(2.0)*t))*std::cos(REAL(3.0)*t);
-        Real dz = REAL(2.0)*std::cos(REAL(2.0)*t);
-        Real ddx = -REAL(4.0)*std::cos(REAL(2.0)*t)*std::cos(REAL(3.0)*t) + REAL(6.0)*std::sin(REAL(2.0)*t)*std::sin(REAL(3.0)*t) - REAL(9.0)*(REAL(2.0)+std::cos(REAL(2.0)*t))*std::cos(REAL(3.0)*t);
-        Real ddy = -REAL(4.0)*std::cos(REAL(2.0)*t)*std::sin(REAL(3.0)*t) - REAL(6.0)*std::sin(REAL(2.0)*t)*std::cos(REAL(3.0)*t) - REAL(9.0)*(REAL(2.0)+std::cos(REAL(2.0)*t))*std::sin(REAL(3.0)*t);
-        Real ddz = -REAL(4.0)*std::sin(REAL(2.0)*t);
+        Real dx = -static_cast<MML::Real>(2.0)*std::sin(static_cast<MML::Real>(2.0)*t)*std::cos(static_cast<MML::Real>(3.0)*t) - static_cast<MML::Real>(3.0)*(static_cast<MML::Real>(2.0)+std::cos(static_cast<MML::Real>(2.0)*t))*std::sin(static_cast<MML::Real>(3.0)*t);
+        Real dy = -static_cast<MML::Real>(2.0)*std::sin(static_cast<MML::Real>(2.0)*t)*std::sin(static_cast<MML::Real>(3.0)*t) + static_cast<MML::Real>(3.0)*(static_cast<MML::Real>(2.0)+std::cos(static_cast<MML::Real>(2.0)*t))*std::cos(static_cast<MML::Real>(3.0)*t);
+        Real dz = static_cast<MML::Real>(2.0)*std::cos(static_cast<MML::Real>(2.0)*t);
+        Real ddx = -static_cast<MML::Real>(4.0)*std::cos(static_cast<MML::Real>(2.0)*t)*std::cos(static_cast<MML::Real>(3.0)*t) + static_cast<MML::Real>(6.0)*std::sin(static_cast<MML::Real>(2.0)*t)*std::sin(static_cast<MML::Real>(3.0)*t) - static_cast<MML::Real>(9.0)*(static_cast<MML::Real>(2.0)+std::cos(static_cast<MML::Real>(2.0)*t))*std::cos(static_cast<MML::Real>(3.0)*t);
+        Real ddy = -static_cast<MML::Real>(4.0)*std::cos(static_cast<MML::Real>(2.0)*t)*std::sin(static_cast<MML::Real>(3.0)*t) - static_cast<MML::Real>(6.0)*std::sin(static_cast<MML::Real>(2.0)*t)*std::cos(static_cast<MML::Real>(3.0)*t) - static_cast<MML::Real>(9.0)*(static_cast<MML::Real>(2.0)+std::cos(static_cast<MML::Real>(2.0)*t))*std::sin(static_cast<MML::Real>(3.0)*t);
+        Real ddz = -static_cast<MML::Real>(4.0)*std::sin(static_cast<MML::Real>(2.0)*t);
         Real v1 = std::sqrt(dx*dx + dy*dy + dz*dz);
         Real num = std::sqrt(POW2(dx*ddy - dy*ddx) + POW2(dx*ddz - dz*ddx) + POW2(dy*ddz - dz*ddy));
         return num / POW3(v1);
     }
     static Real TorusKnot32_torsion(Real t) {
-        Real dx = -REAL(2.0)*std::sin(REAL(2.0)*t)*std::cos(REAL(3.0)*t) - REAL(3.0)*(REAL(2.0)+std::cos(REAL(2.0)*t))*std::sin(REAL(3.0)*t);
-        Real dy = -REAL(2.0)*std::sin(REAL(2.0)*t)*std::sin(REAL(3.0)*t) + REAL(3.0)*(REAL(2.0)+std::cos(REAL(2.0)*t))*std::cos(REAL(3.0)*t);
-        Real dz = REAL(2.0)*std::cos(REAL(2.0)*t);
-        Real ddx = -REAL(4.0)*std::cos(REAL(2.0)*t)*std::cos(REAL(3.0)*t) + REAL(6.0)*std::sin(REAL(2.0)*t)*std::sin(REAL(3.0)*t) - REAL(9.0)*(REAL(2.0)+std::cos(REAL(2.0)*t))*std::cos(REAL(3.0)*t);
-        Real ddy = -REAL(4.0)*std::cos(REAL(2.0)*t)*std::sin(REAL(3.0)*t) - REAL(6.0)*std::sin(REAL(2.0)*t)*std::cos(REAL(3.0)*t) - REAL(9.0)*(REAL(2.0)+std::cos(REAL(2.0)*t))*std::sin(REAL(3.0)*t);
-        Real ddz = -REAL(4.0)*std::sin(REAL(2.0)*t);
-        Real dddx = REAL(8.0)*std::sin(REAL(2.0)*t)*std::cos(REAL(3.0)*t) + REAL(12.0)*std::cos(REAL(2.0)*t)*std::sin(REAL(3.0)*t) + REAL(27.0)*(REAL(2.0)+std::cos(REAL(2.0)*t))*std::sin(REAL(3.0)*t);
-        Real dddy = REAL(8.0)*std::sin(REAL(2.0)*t)*std::sin(REAL(3.0)*t) - REAL(12.0)*std::cos(REAL(2.0)*t)*std::cos(REAL(3.0)*t) + REAL(27.0)*(REAL(2.0)+std::cos(REAL(2.0)*t))*std::cos(REAL(3.0)*t);
-        Real dddz = -REAL(8.0)*std::cos(REAL(2.0)*t);
+        Real dx = -static_cast<MML::Real>(2.0)*std::sin(static_cast<MML::Real>(2.0)*t)*std::cos(static_cast<MML::Real>(3.0)*t) - static_cast<MML::Real>(3.0)*(static_cast<MML::Real>(2.0)+std::cos(static_cast<MML::Real>(2.0)*t))*std::sin(static_cast<MML::Real>(3.0)*t);
+        Real dy = -static_cast<MML::Real>(2.0)*std::sin(static_cast<MML::Real>(2.0)*t)*std::sin(static_cast<MML::Real>(3.0)*t) + static_cast<MML::Real>(3.0)*(static_cast<MML::Real>(2.0)+std::cos(static_cast<MML::Real>(2.0)*t))*std::cos(static_cast<MML::Real>(3.0)*t);
+        Real dz = static_cast<MML::Real>(2.0)*std::cos(static_cast<MML::Real>(2.0)*t);
+        Real ddx = -static_cast<MML::Real>(4.0)*std::cos(static_cast<MML::Real>(2.0)*t)*std::cos(static_cast<MML::Real>(3.0)*t) + static_cast<MML::Real>(6.0)*std::sin(static_cast<MML::Real>(2.0)*t)*std::sin(static_cast<MML::Real>(3.0)*t) - static_cast<MML::Real>(9.0)*(static_cast<MML::Real>(2.0)+std::cos(static_cast<MML::Real>(2.0)*t))*std::cos(static_cast<MML::Real>(3.0)*t);
+        Real ddy = -static_cast<MML::Real>(4.0)*std::cos(static_cast<MML::Real>(2.0)*t)*std::sin(static_cast<MML::Real>(3.0)*t) - static_cast<MML::Real>(6.0)*std::sin(static_cast<MML::Real>(2.0)*t)*std::cos(static_cast<MML::Real>(3.0)*t) - static_cast<MML::Real>(9.0)*(static_cast<MML::Real>(2.0)+std::cos(static_cast<MML::Real>(2.0)*t))*std::sin(static_cast<MML::Real>(3.0)*t);
+        Real ddz = -static_cast<MML::Real>(4.0)*std::sin(static_cast<MML::Real>(2.0)*t);
+        Real dddx = static_cast<MML::Real>(8.0)*std::sin(static_cast<MML::Real>(2.0)*t)*std::cos(static_cast<MML::Real>(3.0)*t) + static_cast<MML::Real>(12.0)*std::cos(static_cast<MML::Real>(2.0)*t)*std::sin(static_cast<MML::Real>(3.0)*t) + static_cast<MML::Real>(27.0)*(static_cast<MML::Real>(2.0)+std::cos(static_cast<MML::Real>(2.0)*t))*std::sin(static_cast<MML::Real>(3.0)*t);
+        Real dddy = static_cast<MML::Real>(8.0)*std::sin(static_cast<MML::Real>(2.0)*t)*std::sin(static_cast<MML::Real>(3.0)*t) - static_cast<MML::Real>(12.0)*std::cos(static_cast<MML::Real>(2.0)*t)*std::cos(static_cast<MML::Real>(3.0)*t) + static_cast<MML::Real>(27.0)*(static_cast<MML::Real>(2.0)+std::cos(static_cast<MML::Real>(2.0)*t))*std::cos(static_cast<MML::Real>(3.0)*t);
+        Real dddz = -static_cast<MML::Real>(8.0)*std::cos(static_cast<MML::Real>(2.0)*t);
         Real tx = dy*ddz - dz*ddy;
         Real ty = dz*ddx - dx*ddz;
         Real tz = dx*ddy - dy*ddx;
@@ -117,20 +118,20 @@ namespace MML::TestBeds
 
     // ========== LISSAJOUS (2,3,5) ==========
     // 3D Lissajous figure with frequencies 2:3:5
-    static VectorN<Real,3> Lissajous235_pos(Real t) { return VectorN<Real,3>{ std::sin(REAL(2.0)*t), std::sin(REAL(3.0)*t), std::sin(REAL(5.0)*t) }; }
-    static VectorN<Real,3> Lissajous235_deriv(Real t) { return VectorN<Real,3>{ REAL(2.0)*std::cos(REAL(2.0)*t), REAL(3.0)*std::cos(REAL(3.0)*t), REAL(5.0)*std::cos(REAL(5.0)*t) }; }
-    static VectorN<Real,3> Lissajous235_deriv2(Real t) { return VectorN<Real,3>{ REAL(-4.0)*std::sin(REAL(2.0)*t), REAL(-9.0)*std::sin(REAL(3.0)*t), REAL(-25.0)*std::sin(REAL(5.0)*t) }; }
+    static VectorN<Real,3> Lissajous235_pos(Real t) { return VectorN<Real,3>{ std::sin(static_cast<MML::Real>(2.0)*t), std::sin(static_cast<MML::Real>(3.0)*t), std::sin(static_cast<MML::Real>(5.0)*t) }; }
+    static VectorN<Real,3> Lissajous235_deriv(Real t) { return VectorN<Real,3>{ static_cast<MML::Real>(2.0)*std::cos(static_cast<MML::Real>(2.0)*t), static_cast<MML::Real>(3.0)*std::cos(static_cast<MML::Real>(3.0)*t), static_cast<MML::Real>(5.0)*std::cos(static_cast<MML::Real>(5.0)*t) }; }
+    static VectorN<Real,3> Lissajous235_deriv2(Real t) { return VectorN<Real,3>{ static_cast<MML::Real>(-4.0)*std::sin(static_cast<MML::Real>(2.0)*t), static_cast<MML::Real>(-9.0)*std::sin(static_cast<MML::Real>(3.0)*t), static_cast<MML::Real>(-25.0)*std::sin(static_cast<MML::Real>(5.0)*t) }; }
     static Real Lissajous235_curvature(Real t) {
-        Real dx = REAL(2.0)*std::cos(REAL(2.0)*t), dy = REAL(3.0)*std::cos(REAL(3.0)*t), dz = REAL(5.0)*std::cos(REAL(5.0)*t);
-        Real ddx = REAL(-4.0)*std::sin(REAL(2.0)*t), ddy = REAL(-9.0)*std::sin(REAL(3.0)*t), ddz = REAL(-25.0)*std::sin(REAL(5.0)*t);
+        Real dx = static_cast<MML::Real>(2.0)*std::cos(static_cast<MML::Real>(2.0)*t), dy = static_cast<MML::Real>(3.0)*std::cos(static_cast<MML::Real>(3.0)*t), dz = static_cast<MML::Real>(5.0)*std::cos(static_cast<MML::Real>(5.0)*t);
+        Real ddx = static_cast<MML::Real>(-4.0)*std::sin(static_cast<MML::Real>(2.0)*t), ddy = static_cast<MML::Real>(-9.0)*std::sin(static_cast<MML::Real>(3.0)*t), ddz = static_cast<MML::Real>(-25.0)*std::sin(static_cast<MML::Real>(5.0)*t);
         Real v1 = std::sqrt(dx*dx + dy*dy + dz*dz);
         Real num = std::sqrt(POW2(dx*ddy - dy*ddx) + POW2(dx*ddz - dz*ddx) + POW2(dy*ddz - dz*ddy));
         return num / POW3(v1);
     }
     static Real Lissajous235_torsion(Real t) {
-        Real dx = REAL(2.0)*std::cos(REAL(2.0)*t), dy = REAL(3.0)*std::cos(REAL(3.0)*t), dz = REAL(5.0)*std::cos(REAL(5.0)*t);
-        Real ddx = REAL(-4.0)*std::sin(REAL(2.0)*t), ddy = REAL(-9.0)*std::sin(REAL(3.0)*t), ddz = REAL(-25.0)*std::sin(REAL(5.0)*t);
-        Real dddx = REAL(-8.0)*std::cos(REAL(2.0)*t), dddy = REAL(-27.0)*std::cos(REAL(3.0)*t), dddz = REAL(-125.0)*std::cos(REAL(5.0)*t);
+        Real dx = static_cast<MML::Real>(2.0)*std::cos(static_cast<MML::Real>(2.0)*t), dy = static_cast<MML::Real>(3.0)*std::cos(static_cast<MML::Real>(3.0)*t), dz = static_cast<MML::Real>(5.0)*std::cos(static_cast<MML::Real>(5.0)*t);
+        Real ddx = static_cast<MML::Real>(-4.0)*std::sin(static_cast<MML::Real>(2.0)*t), ddy = static_cast<MML::Real>(-9.0)*std::sin(static_cast<MML::Real>(3.0)*t), ddz = static_cast<MML::Real>(-25.0)*std::sin(static_cast<MML::Real>(5.0)*t);
+        Real dddx = static_cast<MML::Real>(-8.0)*std::cos(static_cast<MML::Real>(2.0)*t), dddy = static_cast<MML::Real>(-27.0)*std::cos(static_cast<MML::Real>(3.0)*t), dddz = static_cast<MML::Real>(-125.0)*std::cos(static_cast<MML::Real>(5.0)*t);
         Real tx = dy*ddz - dz*ddy;
         Real ty = dz*ddx - dx*ddz;
         Real tz = dx*ddy - dy*ddx;
@@ -143,23 +144,23 @@ namespace MML::TestBeds
     // r(t) = ((sin(t) + 2*sin(2t)), (cos(t) - 2*cos(2t)), -sin(3t))
     static VectorN<Real,3> TrefoilKnot_pos(Real t) {
         return VectorN<Real,3>{ 
-            std::sin(t) + REAL(2.0)*std::sin(REAL(2.0)*t),
-            std::cos(t) - REAL(2.0)*std::cos(REAL(2.0)*t),
-            -std::sin(REAL(3.0)*t)
+            std::sin(t) + static_cast<MML::Real>(2.0)*std::sin(static_cast<MML::Real>(2.0)*t),
+            std::cos(t) - static_cast<MML::Real>(2.0)*std::cos(static_cast<MML::Real>(2.0)*t),
+            -std::sin(static_cast<MML::Real>(3.0)*t)
         };
     }
     static VectorN<Real,3> TrefoilKnot_deriv(Real t) {
         return VectorN<Real,3>{
-            std::cos(t) + REAL(4.0)*std::cos(REAL(2.0)*t),
-            -std::sin(t) + REAL(4.0)*std::sin(REAL(2.0)*t),
-            REAL(-3.0)*std::cos(REAL(3.0)*t)
+            std::cos(t) + static_cast<MML::Real>(4.0)*std::cos(static_cast<MML::Real>(2.0)*t),
+            -std::sin(t) + static_cast<MML::Real>(4.0)*std::sin(static_cast<MML::Real>(2.0)*t),
+            static_cast<MML::Real>(-3.0)*std::cos(static_cast<MML::Real>(3.0)*t)
         };
     }
     static VectorN<Real,3> TrefoilKnot_deriv2(Real t) {
         return VectorN<Real,3>{
-            -std::sin(t) - REAL(8.0)*std::sin(REAL(2.0)*t),
-            -std::cos(t) + REAL(8.0)*std::cos(REAL(2.0)*t),
-            REAL(9.0)*std::sin(REAL(3.0)*t)
+            -std::sin(t) - static_cast<MML::Real>(8.0)*std::sin(static_cast<MML::Real>(2.0)*t),
+            -std::cos(t) + static_cast<MML::Real>(8.0)*std::cos(static_cast<MML::Real>(2.0)*t),
+            static_cast<MML::Real>(9.0)*std::sin(static_cast<MML::Real>(3.0)*t)
         };
     }
     static Real TrefoilKnot_curvature(Real t) {
@@ -176,14 +177,14 @@ namespace MML::TestBeds
         VectorN<Real,3> r2 = TrefoilKnot_deriv2(t);
         Real dx = r1[0], dy = r1[1], dz = r1[2];
         Real ddx = r2[0], ddy = r2[1], ddz = r2[2];
-        Real dddx = -std::cos(t) - REAL(16.0)*std::cos(REAL(2.0)*t);
-        Real dddy = std::sin(t) + REAL(16.0)*std::sin(REAL(2.0)*t);
-        Real dddz = REAL(27.0)*std::cos(REAL(3.0)*t);
+        Real dddx = -std::cos(t) - static_cast<MML::Real>(16.0)*std::cos(static_cast<MML::Real>(2.0)*t);
+        Real dddy = std::sin(t) + static_cast<MML::Real>(16.0)*std::sin(static_cast<MML::Real>(2.0)*t);
+        Real dddz = static_cast<MML::Real>(27.0)*std::cos(static_cast<MML::Real>(3.0)*t);
         Real tx = dy*ddz - dz*ddy;
         Real ty = dz*ddx - dx*ddz;
         Real tz = dx*ddy - dy*ddx;
         Real cross_norm2 = tx*tx + ty*ty + tz*tz;
-        if (cross_norm2 < REAL(1e-20)) return REAL(0.0);
+        if (cross_norm2 < static_cast<MML::Real>(1e-20)) return static_cast<MML::Real>(0.0);
         return (tx*dddx + ty*dddy + tz*dddz) / cross_norm2;
     }
 
@@ -196,14 +197,14 @@ namespace MML::TestBeds
         return VectorN<Real,3>{
             std::cos(t) - t*std::sin(t),
             std::sin(t) + t*std::cos(t),
-            REAL(1.0)
+            static_cast<MML::Real>(1.0)
         };
     }
     static VectorN<Real,3> ConicalHelix_deriv2(Real t) {
         return VectorN<Real,3>{
-            -REAL(2.0)*std::sin(t) - t*std::cos(t),
-            REAL(2.0)*std::cos(t) - t*std::sin(t),
-            REAL(0.0)
+            -static_cast<MML::Real>(2.0)*std::sin(t) - t*std::cos(t),
+            static_cast<MML::Real>(2.0)*std::cos(t) - t*std::sin(t),
+            static_cast<MML::Real>(0.0)
         };
     }
     static Real ConicalHelix_curvature(Real t) {
@@ -220,14 +221,14 @@ namespace MML::TestBeds
         VectorN<Real,3> r2 = ConicalHelix_deriv2(t);
         Real dx = r1[0], dy = r1[1], dz = r1[2];
         Real ddx = r2[0], ddy = r2[1], ddz = r2[2];
-        Real dddx = -REAL(3.0)*std::cos(t) + t*std::sin(t);
-        Real dddy = -REAL(3.0)*std::sin(t) - t*std::cos(t);
-        Real dddz = REAL(0.0);
+        Real dddx = -static_cast<MML::Real>(3.0)*std::cos(t) + t*std::sin(t);
+        Real dddy = -static_cast<MML::Real>(3.0)*std::sin(t) - t*std::cos(t);
+        Real dddz = static_cast<MML::Real>(0.0);
         Real tx = dy*ddz - dz*ddy;
         Real ty = dz*ddx - dx*ddz;
         Real tz = dx*ddy - dy*ddx;
         Real cross_norm2 = tx*tx + ty*ty + tz*tz;
-        if (cross_norm2 < REAL(1e-20)) return REAL(0.0);
+        if (cross_norm2 < static_cast<MML::Real>(1e-20)) return static_cast<MML::Real>(0.0);
         return (tx*dddx + ty*dddy + tz*dddz) / cross_norm2;
     }
 
@@ -235,13 +236,13 @@ namespace MML::TestBeds
     // Spiral that winds around a sphere from pole to pole
     // r(t) = (cos(t)/cosh(at), sin(t)/cosh(at), tanh(at)) with a = 0.3
     static VectorN<Real,3> SphericalSpiral_pos(Real t) {
-        Real a = REAL(0.3);
+        Real a = static_cast<MML::Real>(0.3);
         Real ch = std::cosh(a*t);
         Real th = std::tanh(a*t);
         return VectorN<Real,3>{ std::cos(t)/ch, std::sin(t)/ch, th };
     }
     static VectorN<Real,3> SphericalSpiral_deriv(Real t) {
-        Real a = REAL(0.3);
+        Real a = static_cast<MML::Real>(0.3);
         Real ch = std::cosh(a*t);
         Real sh = std::sinh(a*t);
         Real ch2 = ch*ch;
@@ -252,15 +253,15 @@ namespace MML::TestBeds
         return VectorN<Real,3>{ dx, dy, dz };
     }
     static VectorN<Real,3> SphericalSpiral_deriv2(Real t) {
-        Real a = REAL(0.3);
+        Real a = static_cast<MML::Real>(0.3);
         Real ch = std::cosh(a*t);
         Real sh = std::sinh(a*t);
         Real ch2 = ch*ch;
         Real ch3 = ch2*ch;
         // Second derivatives (computed analytically)
-        Real ddx = -std::cos(t)/ch + REAL(2.0)*a*std::sin(t)*sh/ch2 - a*a*std::cos(t)*(ch2 - REAL(2.0)*sh*sh)/ch3;
-        Real ddy = -std::sin(t)/ch - REAL(2.0)*a*std::cos(t)*sh/ch2 - a*a*std::sin(t)*(ch2 - REAL(2.0)*sh*sh)/ch3;
-        Real ddz = -REAL(2.0)*a*a*sh/ch3;
+        Real ddx = -std::cos(t)/ch + static_cast<MML::Real>(2.0)*a*std::sin(t)*sh/ch2 - a*a*std::cos(t)*(ch2 - static_cast<MML::Real>(2.0)*sh*sh)/ch3;
+        Real ddy = -std::sin(t)/ch - static_cast<MML::Real>(2.0)*a*std::cos(t)*sh/ch2 - a*a*std::sin(t)*(ch2 - static_cast<MML::Real>(2.0)*sh*sh)/ch3;
+        Real ddz = -static_cast<MML::Real>(2.0)*a*a*sh/ch3;
         return VectorN<Real,3>{ ddx, ddy, ddz };
     }
     static Real SphericalSpiral_curvature(Real t) {
@@ -274,21 +275,21 @@ namespace MML::TestBeds
     }
     static Real SphericalSpiral_torsion(Real t) {
         // Numerical approximation for torsion (third derivative is complex)
-        Real h = REAL(1e-6);
+        Real h = static_cast<MML::Real>(1e-6);
         VectorN<Real,3> r2_p = SphericalSpiral_deriv2(t + h);
         VectorN<Real,3> r2_m = SphericalSpiral_deriv2(t - h);
         VectorN<Real,3> r1 = SphericalSpiral_deriv(t);
         VectorN<Real,3> r2 = SphericalSpiral_deriv2(t);
         Real dx = r1[0], dy = r1[1], dz = r1[2];
         Real ddx = r2[0], ddy = r2[1], ddz = r2[2];
-        Real dddx = (r2_p[0] - r2_m[0])/(REAL(2.0)*h);
-        Real dddy = (r2_p[1] - r2_m[1])/(REAL(2.0)*h);
-        Real dddz = (r2_p[2] - r2_m[2])/(REAL(2.0)*h);
+        Real dddx = (r2_p[0] - r2_m[0])/(static_cast<MML::Real>(2.0)*h);
+        Real dddy = (r2_p[1] - r2_m[1])/(static_cast<MML::Real>(2.0)*h);
+        Real dddz = (r2_p[2] - r2_m[2])/(static_cast<MML::Real>(2.0)*h);
         Real tx = dy*ddz - dz*ddy;
         Real ty = dz*ddx - dx*ddz;
         Real tz = dx*ddy - dy*ddx;
         Real cross_norm2 = tx*tx + ty*ty + tz*tz;
-        if (cross_norm2 < REAL(1e-20)) return REAL(0.0);
+        if (cross_norm2 < static_cast<MML::Real>(1e-20)) return static_cast<MML::Real>(0.0);
         return (tx*dddx + ty*dddy + tz*dddz) / cross_norm2;
     }
 
@@ -296,38 +297,38 @@ namespace MML::TestBeds
     // Second simplest prime knot after trefoil
     static VectorN<Real,3> FigureEightKnot_pos(Real t) {
         Real c1 = std::cos(t);
-        Real c2 = std::cos(REAL(2.0)*t);
+        Real c2 = std::cos(static_cast<MML::Real>(2.0)*t);
         Real s1 = std::sin(t);
-        Real s2 = std::sin(REAL(2.0)*t);
-        Real s3 = std::sin(REAL(3.0)*t);
+        Real s2 = std::sin(static_cast<MML::Real>(2.0)*t);
+        Real s3 = std::sin(static_cast<MML::Real>(3.0)*t);
         return VectorN<Real,3>{
-            (REAL(2.0) + c2) * c1,
-            (REAL(2.0) + c2) * s1,
+            (static_cast<MML::Real>(2.0) + c2) * c1,
+            (static_cast<MML::Real>(2.0) + c2) * s1,
             s3
         };
     }
     static VectorN<Real,3> FigureEightKnot_deriv(Real t) {
         Real c1 = std::cos(t);
-        Real c2 = std::cos(REAL(2.0)*t);
+        Real c2 = std::cos(static_cast<MML::Real>(2.0)*t);
         Real s1 = std::sin(t);
-        Real s2 = std::sin(REAL(2.0)*t);
-        Real c3 = std::cos(REAL(3.0)*t);
+        Real s2 = std::sin(static_cast<MML::Real>(2.0)*t);
+        Real c3 = std::cos(static_cast<MML::Real>(3.0)*t);
         return VectorN<Real,3>{
-            -REAL(2.0)*s2*c1 - (REAL(2.0) + c2)*s1,
-            -REAL(2.0)*s2*s1 + (REAL(2.0) + c2)*c1,
-            REAL(3.0)*c3
+            -static_cast<MML::Real>(2.0)*s2*c1 - (static_cast<MML::Real>(2.0) + c2)*s1,
+            -static_cast<MML::Real>(2.0)*s2*s1 + (static_cast<MML::Real>(2.0) + c2)*c1,
+            static_cast<MML::Real>(3.0)*c3
         };
     }
     static VectorN<Real,3> FigureEightKnot_deriv2(Real t) {
         Real c1 = std::cos(t);
-        Real c2 = std::cos(REAL(2.0)*t);
+        Real c2 = std::cos(static_cast<MML::Real>(2.0)*t);
         Real s1 = std::sin(t);
-        Real s2 = std::sin(REAL(2.0)*t);
-        Real s3 = std::sin(REAL(3.0)*t);
+        Real s2 = std::sin(static_cast<MML::Real>(2.0)*t);
+        Real s3 = std::sin(static_cast<MML::Real>(3.0)*t);
         return VectorN<Real,3>{
-            -REAL(4.0)*c2*c1 + REAL(2.0)*s2*s1 + REAL(2.0)*s2*s1 - (REAL(2.0) + c2)*c1,
-            -REAL(4.0)*c2*s1 - REAL(2.0)*s2*c1 - REAL(2.0)*s2*c1 - (REAL(2.0) + c2)*s1,
-            REAL(-9.0)*s3
+            -static_cast<MML::Real>(4.0)*c2*c1 + static_cast<MML::Real>(2.0)*s2*s1 + static_cast<MML::Real>(2.0)*s2*s1 - (static_cast<MML::Real>(2.0) + c2)*c1,
+            -static_cast<MML::Real>(4.0)*c2*s1 - static_cast<MML::Real>(2.0)*s2*c1 - static_cast<MML::Real>(2.0)*s2*c1 - (static_cast<MML::Real>(2.0) + c2)*s1,
+            static_cast<MML::Real>(-9.0)*s3
         };
     }
     static Real FigureEightKnot_curvature(Real t) {
@@ -341,23 +342,139 @@ namespace MML::TestBeds
     }
     static Real FigureEightKnot_torsion(Real t) {
         // Numerical approximation
-        Real h = REAL(1e-6);
+        Real h = static_cast<MML::Real>(1e-6);
         VectorN<Real,3> r2_p = FigureEightKnot_deriv2(t + h);
         VectorN<Real,3> r2_m = FigureEightKnot_deriv2(t - h);
         VectorN<Real,3> r1 = FigureEightKnot_deriv(t);
         VectorN<Real,3> r2 = FigureEightKnot_deriv2(t);
         Real dx = r1[0], dy = r1[1], dz = r1[2];
         Real ddx = r2[0], ddy = r2[1], ddz = r2[2];
-        Real dddx = (r2_p[0] - r2_m[0])/(REAL(2.0)*h);
-        Real dddy = (r2_p[1] - r2_m[1])/(REAL(2.0)*h);
-        Real dddz = (r2_p[2] - r2_m[2])/(REAL(2.0)*h);
+        Real dddx = (r2_p[0] - r2_m[0])/(static_cast<MML::Real>(2.0)*h);
+        Real dddy = (r2_p[1] - r2_m[1])/(static_cast<MML::Real>(2.0)*h);
+        Real dddz = (r2_p[2] - r2_m[2])/(static_cast<MML::Real>(2.0)*h);
         Real tx = dy*ddz - dz*ddy;
         Real ty = dz*ddx - dx*ddz;
         Real tz = dx*ddy - dy*ddx;
         Real cross_norm2 = tx*tx + ty*ty + tz*tz;
-        if (cross_norm2 < REAL(1e-20)) return REAL(0.0);
+        if (cross_norm2 < static_cast<MML::Real>(1e-20)) return static_cast<MML::Real>(0.0);
         return (tx*dddx + ty*dddy + tz*dddz) / cross_norm2;
     }
+
+
+    // Shared showcase types are fixtures, not part of the MML core API.
+    namespace ShowcaseCurves {
+		/// @brief Lemniscate of Gerono curve (figure-eight curve)
+		/// @details Parametrized as (cos(t)/(1+sin²(t)), sin(t)cos(t)/(1+sin²(t)))
+		class LemniscateCurve : public MML::Curves::ICurveCartesian2D
+		{
+		public:
+			Real getMinT() const { return Constants::NegInf; }
+			Real getMaxT() const { return Constants::PosInf; }
+
+			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(cos(t) / (1 + sin(t) * sin(t))), static_cast<Real>(sin(t)* cos(t) / (1 + sin(t) * sin(t)))}; }
+		};
+
+		/// @brief Deltoid (tricuspid hypocycloid) curve
+		/// @details Three-cusped curve traced by point on circle rolling inside larger circle
+		class DeltoidCurve : public MML::Curves::ICurveCartesian2D
+		{
+			int _n;
+		public:
+			DeltoidCurve() : _n(1) {}
+			DeltoidCurve(int n) : _n(n) {}
+
+			Real getMinT() const { return Constants::NegInf; }
+			Real getMaxT() const { return Constants::PosInf; }
+
+			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(2 * _n * cos(t) * (1 + cos(t))), static_cast<Real>(2 * _n * sin(t) * (1 - cos(t)))}; }
+		};
+
+		/// @brief Astroid (four-cusped hypocycloid) curve
+		/// @details Star-shaped curve with parametrization (c·cos³(t), c·sin³(t)), c > 0
+		class AstroidCurve : public MML::Curves::ICurveCartesian2D
+		{
+			Real _c;
+		public:
+			AstroidCurve() : _c(1) {}
+			AstroidCurve(Real c) : _c(c) {
+				if (c <= 0) throw ArgumentError("AstroidCurve: c must be positive.");
+			}
+
+			Real getMinT() const { return Constants::NegInf; }
+			Real getMaxT() const { return Constants::PosInf; }
+
+			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(_c* cos(t)* cos(t)* cos(t)), static_cast<Real>(_c* sin(t)* sin(t)* sin(t))}; }
+		};
+
+		/// @brief Epitrochoid curve (generalized epicycloid)
+		/// @details Curve traced by point attached to circle rolling outside another circle
+		class EpitrochoidCurve : public MML::Curves::ICurveCartesian2D
+		{
+			Real _radius, _c;
+			int _n;
+		public:
+			EpitrochoidCurve() : _radius(1), _c(1), _n(1) {}
+			EpitrochoidCurve(Real radius, Real c, int n) : _radius(radius), _c(c), _n(n) {}
+
+			Real getMinT() const { return Constants::NegInf; }
+			Real getMaxT() const { return Constants::PosInf; }
+
+			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(cos(t) - _c * cos(_n * t)), static_cast<Real>(sin(t) - _c * sin(_n * t)) }; }
+		};
+
+		/// @brief Butterfly curve (Temple H. Fay)
+		/// @details A beautiful transcendental plane curve discovered by Temple H. Fay.
+		///          Parametric equations:
+		///            x(t) = sin(t) · (e^cos(t) - 2·cos(4t) - sin⁵(t/12))
+		///            y(t) = cos(t) · (e^cos(t) - 2·cos(4t) - sin⁵(t/12))
+		///          Best visualized for t ∈ [0, 12π]
+		class ButterflyCurve : public MML::Curves::ICurveCartesian2D
+		{
+			Real _scale;
+		public:
+			ButterflyCurve() : _scale(1.0) {}
+			ButterflyCurve(Real scale) : _scale(scale) {}
+
+			Real getMinT() const { return 0.0; }
+			Real getMaxT() const { return 12.0 * Constants::PI; }
+
+			VectorN<Real, 2> operator()(Real t) const {
+				Real sin_t12_5 = std::pow(std::sin(t / 12.0), 5);
+				Real r = std::exp(std::cos(t)) - 2.0 * std::cos(4.0 * t) - sin_t12_5;
+				return MML::VectorN<Real, 2>{ _scale * std::sin(t) * r, _scale * std::cos(t) * r };
+			}
+		};
+
+		/// @brief Twisted cubic space curve
+		/// @details Parametrized as (t, t², t³), simplest non-planar algebraic curve
+		class TwistedCubicCurve : public MML::Curves::ICurveCartesian3D
+		{
+		public:
+			Real getMinT() const { return Constants::NegInf; }
+			Real getMaxT() const { return Constants::PosInf; }
+
+			VectorN<Real, 3> operator()(Real t) const { return MML::VectorN<Real, 3>{t, t* t, t* t* t}; }
+		};
+
+		/// @brief Toroidal spiral curve winding around a torus
+		/// @details Parametrized curve on torus surface with n windings
+		class ToroidalSpiralCurve : public MML::Curves::ICurveCartesian3D
+		{
+			int _n;
+			Real _scale = 1.0;
+
+		public:
+			ToroidalSpiralCurve() : _n(1) {}
+			ToroidalSpiralCurve(int n) : _n(n) {}
+			ToroidalSpiralCurve(Real scale) : _n(1), _scale(scale) {}
+			ToroidalSpiralCurve(int n, Real scale) : _n(n), _scale(scale) {}
+
+			Real getMinT() const { return Constants::NegInf; }
+			Real getMaxT() const { return Constants::PosInf; }
+
+			VectorN<Real, 3> operator()(Real t) const { return MML::VectorN<Real, 3>{static_cast<Real>((_scale* (4 + sin(_n * t))* cos(t))), static_cast<Real>(_scale* (4 + sin(_n * t))* sin(t)), static_cast<Real>(_scale* cos(_n* t))}; }
+		};
+    } // namespace ShowcaseCurves
 
 }  // namespace MML::TestBeds
 

@@ -4,6 +4,28 @@
 
 The `Visualizer` class provides a high-level interface for visualizing mathematical objects and simulation results by exporting data to files and launching external visualization applications. It acts as a bridge between MML's computational components and platform-specific visualization tools.
 
+## Header Organization
+
+The public entry point remains `mml/tools/Visualizer.h`; existing `Visualizer::Visualize*`
+calls and configuration functions are unchanged. It is now a small umbrella over four headers
+under `mml/tools/visualizers/`:
+
+| Header | Responsibility |
+|--------|----------------|
+| `VisualizerConfig.h` | Backend/root selection, executable catalog and executable paths |
+| `VisualizerFiles.h` | Input lookup, sanitized output paths, containment and filesystem diagnostics |
+| `VisualizerProcess.h` | Shell-free process execution, exit status and timeout handling |
+| `VisualizerFacade.h` | Public mathematical/simulation export-and-launch workflows |
+
+Configuration-only clients can include `mml/tools/visualizers/VisualizerConfig.h` without
+loading serializers or Windows/POSIX process headers. The former `mml/MMLVisualizators.h`
+path remains a compatibility include of that same configuration implementation. Both include
+paths use the same runtime state; there is no second launcher or duplicated configuration.
+
+The internal executable catalog is shared by availability checks, path getters and launch
+workflows. Serialization remains in the existing serializer modules. The facade shares
+save-and-launch and existing-file lookup logic rather than duplicating those workflows.
+
 ---
 
 ## Gallery
@@ -47,7 +69,7 @@ The `Visualizer` class provides a high-level interface for visualizing mathemati
 > | **Linux** | Qt 6.9 | All visualizations | Qt 6.9+ runtime |
 > | **Linux** | FLTK | 2D only (lightweight) | FLTK 1.3+ |
 > 
-> **Windows:** WPF visualizers require .NET 8 Runtime (usually pre-installed on Windows 10/11, or download from [dotnet.microsoft.com](https://dotnet.microsoft.com/download)). Source code in `tools/visualizers/`.
+> **Windows:** WPF visualizers require .NET 8 Runtime (usually pre-installed on Windows 10/11, or download from [dotnet.microsoft.com](https://dotnet.microsoft.com/download)). Clone-mode binaries are bundled in `tools/visualizers/`; their source is maintained separately in the visualizer repository.
 > 
 > **Linux:** Two options available:
 > - **Qt 6.9**: Full-featured visualizers for all types (2D/3D functions, curves, fields, particles)
@@ -99,7 +121,7 @@ Valid values: `WPF`, `Qt`, `QT5`, `QT6`, `FLTK`, `AUTO` (case-insensitive)
 ### Runtime API
 
 ```cpp
-#include <mml/MMLBase.h>  // or "MML.h" for single-header
+#include <mml/tools/visualizers/VisualizerConfig.h>  // or "MML.h" for single-header
 
 using namespace MML;
 
@@ -145,7 +167,9 @@ int main() {
 
 - If a requested backend is not available, `SetVisualizerBackend()` prints a warning and falls back to `Auto`.
 - `GetVisualizerBackend()` always returns a concrete backend (never `Auto`).
-- Backend availability is determined by checking for visualizer executables in `tools/visualizers/`.
+- Backend availability requires at least one supported regular executable file
+  in the configured bundle. Empty backend directories do not count. Partial
+  installations are supported; each launch checks its exact executable.
 - See `src/tryouts/test_linux_viz/test_backend_switching.cpp` for more examples.
 
 ---
@@ -212,21 +236,80 @@ Visualizer::VisualizeRealFunction(f, "sin(x)", 0.0, 2*M_PI, 100, "sine.mml");
 
 ### Path Configuration
 
-The Visualizer uses getter functions for cross-platform path resolution:
+Configure the **bundle root**, not the MML project root. The bundle contains
+`win/`, `linux/`, and/or `mac/` with the existing backend layout beneath them.
+Root selection is:
+
+1. `SetVisualizerRoot()` runtime override.
+2. `MML_VISUALIZER_ROOT` environment variable.
+3. `visualizers/` under the current working directory.
+
+No parent-directory search or source-checkout discovery is performed.
+`MML_PROJECT_PATH` remains a result-file placement option; it does not select the
+visualizer bundle. Existing clone-mode users should explicitly point the new root
+to their `tools/visualizers` directory.
 
 ```cpp
-static std::string _pathResultFiles;           // results/
-static std::string _pathRealFuncViz;            // path to RealFuncVisualizer
-static std::string _pathSurfaceViz;             // path to SurfaceVisualizer
-static std::string _pathParametricCurve3DViz;   // path to 3D curve visualizer
-static std::string _pathParametricCurve2DViz;   // path to 2D curve visualizer
-static std::string _pathVectorField2DViz;       // path to 2D vector field viz
-static std::string _pathVectorField3DViz;       // path to 3D vector field viz
-static std::string _pathParticle2DViz;          // path to 2D particle sim viz
-static std::string _pathParticle3DViz;          // path to 3D particle sim viz
+const auto bundle = std::filesystem::current_path() / "visualizers";
+SetVisualizerRoot(bundle);
+const bool available = IsBackendAvailable(VisualizerBackend::Auto);
+std::cout << "Visualizer bundle: " << GetVisualizerRoot() << '\n'
+          << "Selected backend installed: " << std::boolalpha << available << '\n'
+          << "Real-function executable: " << GetRealFuncVisualizerPath() << '\n';
 ```
 
-**Note:** Path getters are defined in `MMLBase.h` and detect platform (Windows/Linux) automatically.
+Runnable counterpart: `Docs_Demo_VisualizerConfiguration()` in
+`src/docs_demos/tools/docs_demo_visualizers.cpp`, selected with
+`MML_DocsApp --visualizer-configuration`. This demo checks configuration without
+opening a GUI.
+
+Relative runtime roots are resolved when set; an empty root clears that override.
+Environment and default roots are resolved when queried. Configure root/backend
+before launching from other threads; concurrent mutation is not supported.
+Path getters live in `mml/tools/visualizers/VisualizerConfig.h` and select Windows,
+Linux, or macOS layout automatically. The legacy configuration include still exposes them.
+
+### Launch results and literal paths
+
+The development `MML_VisualizationApp` examples consume `IOResult` directly.
+Failed exports/launches are reported to standard error with the operation name,
+error category and message, plus the filename, nonzero exit code and timeout
+state when present. Examples may continue to the next demonstration after a
+reported failure; completion of the example list is not a guarantee that every
+visualizer succeeded. Successful launches do not produce error diagnostics.
+The `--help` path can be used to verify the CLI without launching a GUI.
+
+Launchers execute the selected program directly, without a shell. Existing-file
+paths containing spaces, parentheses, apostrophes, ampersands, dollar signs, or
+other shell metacharacters are passed literally. Windows arguments are escaped
+according to its command-line argument rules; POSIX arguments are passed through
+`argv`. Embedded null characters cannot be represented and are rejected.
+Generated-output filename sanitization and results-directory containment remain
+unchanged.
+
+Launch methods wait for the visualizer to close by default, on every platform.
+A nonzero process exit is an `IOResult` failure with the exit code and data
+filename retained, not a successful launch. Missing executables and Windows
+process-start/wait/exit-query failures also return explicit failures. The macOS
+Qt app-bundle route reports the status of `/usr/bin/open -W`, not an independently
+queried application exit code.
+
+Existing-file lookup tries the input path as supplied, then the results-directory fallback.
+Every resolved input is made canonical before process execution, including rigid-body inputs,
+so a child's executable-directory working directory does not reinterpret relative data paths.
+Empty or null-containing input names, directories supplied as input files, and empty multi-file
+lists are rejected before launch. Filesystem failures retain their diagnostics in `IOResult`
+instead of being reported as an invalid output filename.
+
+```cpp
+const auto invalid = Visualizer::VisualizeRealFunctionFromFile("");
+if (!invalid)
+    std::cout << invalid.message << '\n'; // No GUI is started.
+```
+
+This validation example is also executed by `MML_DocsApp --visualizer-configuration`.
+The refactor does not change bundle/backend precedence, default blocking behavior, partial
+backend installation support, serialized formats, or vector persistence APIs.
 
 ---
 
@@ -1092,7 +1175,7 @@ You can create custom visualizers by:
 
 - All visualization methods fully supported
 - WPF visualizers launched (no external dependencies)
-- Paths resolved automatically
+- Paths resolved from the configured bundle root
 
 ### Linux
 
@@ -1276,7 +1359,7 @@ Visualizer::VisualizeRealFunction(f, "Critical Points", xCritical, "critical.mml
 
 **Solutions:**
 ```cpp
-// Check path configuration in MMLBase.h
+// Check bundle configuration in MMLVisualizators.h
 // Verify GetRealFuncVisualizerPath() returns valid path
 
 // Data is still exported - use external tool:

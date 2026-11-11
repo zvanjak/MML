@@ -110,12 +110,15 @@ namespace MML {
 				_radius = dist;
 		}
 
-		std::string ToString() const {
+		std::string to_string() const {
 			std::ostringstream oss;
 			oss << "BoundingSphere3D[Center=(" << _center.X() << "," << _center.Y() << "," << _center.Z() << ")"
 				<< ", Radius=" << _radius << "]";
 			return oss.str();
 		}
+		/// @deprecated Use to_string() (CONTRACT_POLICY section 11: STL spelling).
+		[[deprecated("use to_string()")]]
+		std::string ToString() const { return to_string(); }
 	};
 
 	/// @brief Axis-Aligned Bounding Box (AABB) for 3D spatial queries.
@@ -316,7 +319,7 @@ namespace MML {
 		/// @param p Point to test
 		/// @param epsilon Tolerance for boundary tests
 
-		bool Contains(const Pnt3Cart& p, Real epsilon = Constants::GEOMETRY_EPSILON) const {
+		bool Contains(const Pnt3Cart& p, Real epsilon = Precision::GeometryEpsilon) const {
 			return p.X() >= _min.X() - epsilon && p.X() <= _max.X() + epsilon && p.Y() >= _min.Y() - epsilon &&
 				   p.Y() <= _max.Y() + epsilon && p.Z() >= _min.Z() - epsilon && p.Z() <= _max.Z() + epsilon;
 		}
@@ -325,7 +328,7 @@ namespace MML {
 		/// @param other Box to test
 		/// @param epsilon Tolerance for boundary tests
 
-		bool Contains(const Box3D& other, Real epsilon = Constants::GEOMETRY_EPSILON) const {
+		bool Contains(const Box3D& other, Real epsilon = Precision::GeometryEpsilon) const {
 			return other._min.X() >= _min.X() - epsilon && other._max.X() <= _max.X() + epsilon && other._min.Y() >= _min.Y() - epsilon &&
 				   other._max.Y() <= _max.Y() + epsilon && other._min.Z() >= _min.Z() - epsilon && other._max.Z() <= _max.Z() + epsilon;
 		}
@@ -335,9 +338,9 @@ namespace MML {
 		/// @return 0 if inside, positive distance otherwise
 
 		Real DistanceToPoint(const Pnt3Cart& p) const {
-			Real dx = std::max({_min.X() - p.X(), REAL(0.0), p.X() - _max.X()});
-			Real dy = std::max({_min.Y() - p.Y(), REAL(0.0), p.Y() - _max.Y()});
-			Real dz = std::max({_min.Z() - p.Z(), REAL(0.0), p.Z() - _max.Z()});
+			Real dx = std::max({_min.X() - p.X(), static_cast<MML::Real>(0.0), p.X() - _max.X()});
+			Real dy = std::max({_min.Y() - p.Y(), static_cast<MML::Real>(0.0), p.Y() - _max.Y()});
+			Real dz = std::max({_min.Z() - p.Z(), static_cast<MML::Real>(0.0), p.Z() - _max.Z()});
 			return std::sqrt(dx * dx + dy * dy + dz * dz);
 		}
 
@@ -416,7 +419,7 @@ namespace MML {
 		/// @brief Check if box is degenerate (zero volume in any dimension).
 		/// @param epsilon Tolerance for near-zero dimension
 
-		bool IsDegenerate(Real epsilon = Constants::GEOMETRY_EPSILON) const {
+		bool IsDegenerate(Real epsilon = Precision::GeometryEpsilon) const {
 			return Width() < epsilon || Height() < epsilon || Depth() < epsilon;
 		}
 
@@ -435,13 +438,16 @@ namespace MML {
 		}
 		/// @}
 
-		std::string ToString() const {
+		std::string to_string() const {
 			std::ostringstream oss;
 			oss << "Box3D[Min=(" << _min.X() << "," << _min.Y() << "," << _min.Z() << ")"
 				<< ", Max=(" << _max.X() << "," << _max.Y() << "," << _max.Z() << ")"
 				<< ", Size=(" << Width() << "×" << Height() << "×" << Depth() << ")]";
 			return oss.str();
 		}
+		/// @deprecated Use to_string() (CONTRACT_POLICY section 11: STL spelling).
+		[[deprecated("use to_string()")]]
+		std::string ToString() const { return to_string(); }
 	};
 
 } // namespace MML

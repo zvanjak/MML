@@ -50,6 +50,37 @@ Automatic timestep adjustment for accuracy vs efficiency
 
 ## Problem Classification
 
+### Trajectory storage and resource limits
+
+ODE and DAE trajectories share the existing Matrix budget of **100 million
+elements per state matrix**, with no arbitrary per-axis cap. A one-component
+state can therefore store more than 100,000 points; an n-component state is
+bounded by the budget divided by n. DAE storage honors both differential and
+algebraic matrices. The time vector is also bounded by the element budget, and
+all counts must fit the supported integer index type. The initial condition is
+a stored point, not an accepted integration step: 100,000 accepted steps require
+100,001 points, which are permitted when they fit those budgets. High-dimensional
+states can reach the element limit earlier. These storage limits are independent
+of the attempted-step budget.
+
+Containers expose `max_size()` and `reserveForPoint(index)`; the latter reserves
+a prospective point without changing the saved size or step counters. Geometric
+growth is capped at the element/index-derived limit. All trajectory arrays and capacity
+metadata change transactionally, so failed growth preserves existing points.
+Direct container operations and throwing solver APIs report `ResourceLimitError`
+rather than silently dropping points or raising global allocation limits.
+
+BE/BDF2 and ROS2 result APIs, adaptive dense-output config/Detailed APIs, ODE
+event integration and all DAE drivers report `AlgorithmStatus::ResourceLimitExceeded`
+with an explanatory message and the retained partial trajectory. DAE results also
+set `DAEFailureReason::ResourceLimitExceeded`. This status is not numerical
+instability and is not a successful completion. ROS2 counts accepted and rejected
+attempts against `config.max_steps`; an exhausted attempt budget is reported
+separately as `MaxIterationsExceeded`.
+
+Run `MML_DocsApp --trajectory-resources` for the checked, no-GUI counterpart in
+[docs_demo_trajectory_resources.cpp](../../src/docs_demos/algorithms/docs_demo_trajectory_resources.cpp).
+
 ### Stiffness
 
 **Non-Stiff**: Solution components vary on similar time scales
@@ -59,9 +90,145 @@ Automatic timestep adjustment for accuracy vs efficiency
 
 **Stiff**: Solution components vary on vastly different time scales
 - **Example**: Chemical reactions, electrical circuits with fast/slow dynamics
-- **Use**: Implicit methods (not yet implemented), small timesteps with RK4
+- **Use**: Backward Euler, BDF2, or ROS2 for stiff integration; see the
+  [reference-backed stiff benchmark suite](Stiff_solver_benchmarks.md) for accuracy and work measurements
 - **Characteristic**: Jacobian eigenvalues span many orders of magnitude
 - **Problem**: Explicit methods need tiny h to maintain stability
+
+#### Backward Euler and BDF2 Newton retries
+
+ODE and DAE Backward Euler/BDF2 halve the requested step on Newton iteration-limit
+failure, retrying from the last accepted state. Rejected trials never update the
+trajectory or BDF2 history. The smaller step is retained; these methods do not
+provide adaptive local-error control or regrow the step after recovery.
+BDF2 uses the actual current and previous accepted step lengths, including a
+clipped final step, with Backward Euler for bootstrap.
+
+The configuration's `min_step_size` bounds retries. A final endpoint step may be
+shorter, but cannot be halved below that floor after a failure. `max_steps` counts
+both accepted and rejected attempts, including bootstrap. Exhaustion returns
+`MaxIterationsExceeded`; Newton failure at the floor returns
+`NumericalInstability`; an unrepresentable time increment returns `Stalled`.
+Singular iteration matrices, non-finite states, and DAE constraint violations are
+terminal failures, not triggers for repeated step halving.
+
+Use the ODE configuration/detailed overloads or DAE result APIs to retain the last
+accepted partial trajectory and inspect status, message, and work counters. The
+legacy scalar-step ODE overloads still throw `ODESolverError` on terminal solver
+failure because their return type has no status field. User callback exceptions
+are not solver non-convergence: they propagate through non-detailed APIs, while
+detailed ODE APIs honor `exception_policy` (convert to status or propagate).
+The detailed exception policy now reaches callbacks rather than being intercepted
+by an unconditional catch in the lower configuration overload.
+
+#### Reusing implicit iteration matrices
+
+ODE BE/BDF2 and the shared DAE Newton solver use a step-local simplified-Newton
+LU factorization. DAE BE/BDF2/BDF4, adaptive BE, and Radau IIA all use this shared
+policy. Back-substitutions reuse the factorization while residual contraction is
+good. A fresh Jacobian and LU are computed when the residual reduction factor is
+at least `Precision::NewtonRefreshRatio`, or the observed rate predicts that the
+remaining Newton iterations cannot reach `newton_tol`.
+
+No LU is carried into another step, rejected retry, adaptive substep, or changed
+BDF coefficient. Radau retains the full coupled stage matrix; freezing it during
+Newton iteration does not discard stage coupling or replace the nonlinear
+residual. Set `reuse_jacobian=false` in the solver configuration to request a
+fresh matrix for every Newton correction instead.
+
+The frozen-matrix DAE linearly-implicit trapezoid factors once for its predictor
+and corrector. ROS2 likewise factors once for both stages; these stage methods
+ignore the Newton-only `reuse_jacobian` switch. Result fields `lu_factorizations`
+and `linear_solves` count successful factorizations and completed
+back-substitutions, including rejected attempts and Newton refreshes. DAE
+`jacobian_evaluations` counts assembled iteration-matrix evaluations (one Radau
+evaluation assembles all three stages).
+
+#### Genuine RODAS4 for index-1 DAEs
+
+`SolveDAERODAS4` implements the original Hairer-Wanner six-stage, L-stable
+Rosenbrock **4(3)** pair for `x' = f(t,x,y), 0 = g(t,x,y)`. Include
+`mml/algorithms/DAESolvers.h` or the focused `DAESolvers/DAERODAS4.h` header.
+The coefficients are the `ROCOE`, `METH=1` tableau in
+[Hairer's reference RODAS implementation](https://www.unige.ch/~hairer/prog/stiff/rodas.f),
+also described in Hairer and Wanner, *Solving Ordinary Differential Equations II*,
+Section IV.7. This is the original RODAS4, not the distinct RODAS4P variant.
+
+For the constant singular mass matrix `M = diag(I,0)`, each stage uses
+`M/(h*gamma) - J`, with `gamma = 1/4`. The history coupling is multiplied by
+**M**, so algebraic rows do not receive differential history terms. All six
+stages share one Jacobian and one LU per attempt; six back-substitutions are
+performed per completed attempt (terminal stage failures can stop earlier),
+with no Newton iteration or post-step nonlinear projection.
+As with ROS2, `reuse_jacobian` and the Newton controls do not alter this tableau.
+Explicit time dependence in both `f` and `g` is included through fixed-state
+partial time derivatives. Second-order one-sided finite differences stay inside
+the integration interval; an endpoint secant is used if fewer than three
+representable times are available. Derivatives therefore have a finite-difference
+accuracy floor at extremely tight tolerances.
+
+The sixth stage is the difference between the fourth-order solution and its
+third-order embedded companion. The driver controls the maximum componentwise
+ratio `|k6_i| / (abs_tolerance + rel_tolerance * max(|old_i|, |new_i|))` over
+**both differential and algebraic variables**. `step_size` is the initial
+magnitude, while `min_step_size`, `max_step_size` and `step_safety` bound the
+adaptive controller. Set equal minimum/maximum magnitudes to measure fixed-step
+order, using tolerances loose enough to accept those steps.
+
+A trial is saved only if its embedded error ratio is at most one **and** its
+constraint norm is at most `constraint_tol`. Constraint rejection shrinks the
+step without changing the last accepted state. At the minimum step, failed
+error control returns `NumericalInstability` / `StepSizeUnderflow`, and failed
+constraints return `NumericalInstability` / `ConstraintViolation`; neither is
+forced through as a successful step. Singular/non-finite stages fail explicitly.
+`max_steps` bounds accepted plus rejected attempts, with
+`MaxIterationsExceeded` and the accepted partial trajectory on exhaustion.
+The result's `last_error_norm` and `max_error_norm` expose completed trial error
+ratios, including rejected trials; constraint diagnostics describe saved states.
+Positive configuration magnitudes, decreasing-time trajectories, and clipped
+endpoint steps follow the reverse-time contract below. Event integration is
+currently provided by the separate Backward Euler event driver, not this API.
+
+The existing `SolveDAELinearlyImplicit` predictor-corrector is unchanged.
+Its deprecated `SolveDAERODAS` alias still selects that old method; it is
+**not** redirected to the new adaptive RODAS4 algorithm. See
+[Cookbook recipe 25.3](../COOKBOOK.md#253-compare-backward-euler-bdf2bdf4-radau-iia-and-rodas4)
+for a runnable comparison.
+
+#### Reverse-time integration
+
+All ODE and DAE drivers accept either ordering of distinct finite endpoints.
+Set the final time below the initial time to integrate backward. Step sizes,
+minimum/maximum step bounds, and output intervals remain **positive magnitudes**;
+the driver derives the sign from the endpoints. This applies to fixed-step RK,
+adaptive RK/DP5/DOP853/Bulirsch-Stoer, ROS2, BE/BDF2, and all DAE methods.
+The initial-step estimator probes in the requested direction.
+
+Saved trajectory points stay in traversal order: backward runs have strictly
+decreasing times. Adaptive `integrateAt` accepts strictly increasing or strictly
+decreasing finite output times, but rejects duplicates and mixed order. Dense
+output and scalar solution interpolation support descending times and exclude
+unused storage. Parametric solution curves expose ascending parameter bounds
+while preserving the physical-time orientation of the coordinates.
+
+Event `Increasing`/`Decreasing` describes the sign change encountered **along the
+integration path**, not the crossing as time increases. Thus a time-based event
+that is Increasing forward is Decreasing backward. Events in a step are selected
+in traversal order; stop, continue, and restart work in either direction, with
+DAE algebraic consistency restored after restart. A root at the accepted endpoint
+also triggers; a processed root is not immediately retriggered after restart.
+
+Newton retries halve the magnitude without changing direction. BDF2 uses signed
+current and previous steps; their positive ratio determines its variable-step
+coefficients. BDF4 restarts with BE for a materially clipped final main step,
+since its constant-step coefficients cannot be used on unequal steps.
+Very short BDF4 intervals store only the bootstrap points actually reached.
+Work budgets, failure statuses, partial trajectories, and positive step-size
+statistics retain the same meaning in both directions.
+
+A numerical forward/backward round trip is only approximate. In particular,
+integrating a dissipative stiff problem backward may amplify perturbations
+exponentially; reverse-time support is not a stability guarantee for that problem.
 
 ### System Structure
 
@@ -1184,7 +1351,7 @@ if (y[0] <= 0 && v[1] < 0) {
 
 ### Jacobian for Stiff Problems
 
-**Stiff solvers** (implicit methods, not yet implemented) need Jacobian:
+**Stiff solvers** (Backward Euler, BDF2, and ROS2) need a Jacobian:
 
 **J_ij = ∂f_i/∂y_j**
 
@@ -1197,7 +1364,8 @@ class StiffSystem : public IODESystem {
 };
 ```
 
-**Future**: Rosenbrock, BDF methods for stiff problems
+Use `IODESystemWithJacobian` for these methods; see the Newton-retry contract
+above and the [stiff benchmark measurements](Stiff_solver_benchmarks.md).
 
 ---
 
@@ -1215,7 +1383,7 @@ class StiffSystem : public IODESystem {
 
 **For Stiff Systems**:
 - Small steps with DP5
-- Better: Implicit methods (future work)
+- Prefer Backward Euler, BDF2, or ROS2; compare accuracy and work for the problem
 
 ### Key Takeaways
 

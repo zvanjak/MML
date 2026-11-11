@@ -28,6 +28,7 @@
 #include <mml/core/MetricTensor.h>
 #include <mml/MMLSingularityHandling.h>
 #include <mml/base/AlgorithmTypes.h>
+#include <type_traits>
 
 namespace MML
 {
@@ -52,6 +53,26 @@ namespace MML
 
 	namespace FieldOperationDetail
 	{
+		template<typename Result>
+		void MarkProviderResult(Result& result, int evaluations, int& func_evals) {
+			func_evals = evaluations;
+			if constexpr (std::is_arithmetic_v<decltype(result.error)>)
+				result.error = NoEstimate;
+			else
+				for (int i = 0; i < result.error.size(); ++i)
+					result.error[i] = NoEstimate;
+		}
+
+		template<int N>
+		bool UsesProvidedDerivatives(const IScalarFunction<N>& f, const FieldOperationConfig& config) {
+			return config.derivative_order == 0 && dynamic_cast<const IScalarDerivativeProvider<N>*>(&f) != nullptr;
+		}
+
+		template<int N>
+		bool UsesProvidedDerivatives(const IVectorFunction<N>& f, const FieldOperationConfig& config) {
+			return config.derivative_order == 0 && dynamic_cast<const IVectorDerivativeProvider<N>*>(&f) != nullptr;
+		}
+
 		/// Execute a field operation with structured result reporting.
 		///
 		/// Wraps the raw computation in timing, finiteness checking, and

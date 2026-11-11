@@ -11,6 +11,8 @@
  *   e_phi   (azimuthal, eastward)    – magenta
  */
 
+#include "VisualizationResult.h"
+
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
@@ -370,5 +372,5 @@ void Show_Spherical_Coord_Visualization()
         return;
     }
 
-    Visualizer::VisualizeWorldSceneFromFile(path);
+    Examples::ReportVisualizationResult(Visualizer::VisualizeWorldSceneFromFile(path), "VisualizeWorldSceneFromFile");
 }

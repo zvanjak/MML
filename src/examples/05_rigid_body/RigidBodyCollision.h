@@ -757,8 +757,8 @@ namespace RigidBodySim
             // Convert to body frame (ω_body = R^T * ω_world)
             MatrixNM<Real, 3, 3> RA = A.Orientation().ToRotationMatrix();
             MatrixNM<Real, 3, 3> RB = B.Orientation().ToRotationMatrix();
-            MatrixNM<Real, 3, 3> RAt = RA.transpose();
-            MatrixNM<Real, 3, 3> RBt = RB.transpose();
+            MatrixNM<Real, 3, 3> RAt = RA.Transposed();
+            MatrixNM<Real, 3, 3> RBt = RB.Transposed();
             
             Vec3Cart deltaOmegaA_body = MatrixVectorProduct(RAt, deltaOmegaA_world);
             Vec3Cart deltaOmegaB_body = MatrixVectorProduct(RBt, deltaOmegaB_world);
@@ -843,7 +843,7 @@ namespace RigidBodySim
             Vec3Cart deltaOmega_world = MatrixVectorProduct(invI, VectorProduct(rP, impulse));
             
             MatrixNM<Real, 3, 3> R = box.Orientation().ToRotationMatrix();
-            MatrixNM<Real, 3, 3> Rt = R.transpose();
+            MatrixNM<Real, 3, 3> Rt = R.Transposed();
             Vec3Cart deltaOmega_body = MatrixVectorProduct(Rt, deltaOmega_world);
             
             box.AngularVel() = box.AngularVel() + deltaOmega_body;

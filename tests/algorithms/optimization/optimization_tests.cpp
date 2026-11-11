@@ -25,36 +25,36 @@ namespace MML::Tests::Algorithms::Optimization {
 	// Simple quadratic: f(x) = (x-2)^2 + 1, minimum at x=2, f(2)=1
 	class QuadraticFunc : public IRealFunction {
 	public:
-		Real operator()(Real x) const override { return (x - REAL(2.0)) * (x - REAL(2.0)) + REAL(1.0); }
+		Real operator()(Real x) const override { return (x - static_cast<MML::Real>(2.0)) * (x - static_cast<MML::Real>(2.0)) + static_cast<MML::Real>(1.0); }
 	};
 
 	// Derivative: f'(x) = 2(x-2)
 	class QuadraticDerivFunc : public IRealFunction {
 	public:
-		Real operator()(Real x) const override { return REAL(2.0) * (x - REAL(2.0)); }
+		Real operator()(Real x) const override { return static_cast<MML::Real>(2.0) * (x - static_cast<MML::Real>(2.0)); }
 	};
 
 	// Cubic with local minimum: f(x) = x^3 - 6x^2 + 9x + 1
 	// Local min at x=3, f(3)=1; local max at x=1, f(1)=5
 	class CubicFunc : public IRealFunction {
 	public:
-		Real operator()(Real x) const override { return x * x * x - REAL(6.0) * x * x + REAL(9.0) * x + REAL(1.0); }
+		Real operator()(Real x) const override { return x * x * x - static_cast<MML::Real>(6.0) * x * x + static_cast<MML::Real>(9.0) * x + static_cast<MML::Real>(1.0); }
 	};
 
 	// Derivative: f'(x) = 3x^2 - 12x + 9 = 3(x-1)(x-3)
 	class CubicDerivFunc : public IRealFunction {
 	public:
-		Real operator()(Real x) const override { return REAL(3.0) * x * x - REAL(12.0) * x + REAL(9.0); }
+		Real operator()(Real x) const override { return static_cast<MML::Real>(3.0) * x * x - static_cast<MML::Real>(12.0) * x + static_cast<MML::Real>(9.0); }
 	};
 
 	// Rosenbrock in 1D slice: f(x) = (1-x)^2 + 100*(0-x^2)^2 = (1-x)^2 + 100*x^4
-	// Minimum at x ≈ REAL(0.78) (approx), complex shape
+	// Minimum at x ≈ static_cast<MML::Real>(0.78) (approx), complex shape
 	class Rosenbrock1D : public IRealFunction {
 	public:
 		Real operator()(Real x) const override {
-			Real a = REAL(1.0) - x;
+			Real a = static_cast<MML::Real>(1.0) - x;
 			Real b = -x * x; // y = 0, so this is (y - x^2)
-			return a * a + REAL(100.0) * b * b;
+			return a * a + static_cast<MML::Real>(100.0) * b * b;
 		}
 	};
 
@@ -74,24 +74,24 @@ namespace MML::Tests::Algorithms::Optimization {
 	public:
 		Real operator()(Real x) const override {
 			Real x2 = x * x;
-			return x2 * x2 - REAL(2.0) * x2 + REAL(1.0);
+			return x2 * x2 - static_cast<MML::Real>(2.0) * x2 + static_cast<MML::Real>(1.0);
 		}
 	};
 
 	class QuarticDerivFunc : public IRealFunction {
 	public:
-		Real operator()(Real x) const override { return REAL(4.0) * x * x * x - REAL(4.0) * x; }
+		Real operator()(Real x) const override { return static_cast<MML::Real>(4.0) * x * x * x - static_cast<MML::Real>(4.0) * x; }
 	};
 
 	/************************************************************************/
-	/*****              REAL(10.1) Bracket Minimum Tests                      *****/
+	/*****              static_cast<MML::Real>(10.1) Bracket Minimum Tests                      *****/
 	/************************************************************************/
 
 	TEST_CASE("BracketMinimum_QuadraticFunction_FindsValidBracket", "[Optimization][Bracket]") {
 		TEST_PRECISION_INFO();
 		QuadraticFunc f;
 
-		auto bracket = Minimization::BracketMinimum(f, REAL(0.0), REAL(1.0));
+		auto bracket = Minimization::BracketMinimum(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0));
 
 		REQUIRE(bracket.valid);
 		// fb should be less than both fa and fc (minimum is bracketed)
@@ -100,8 +100,8 @@ namespace MML::Tests::Algorithms::Optimization {
 		// The minimum at x=2 should be contained in the bracket
 		Real minBound = std::min(bracket.ax, bracket.cx);
 		Real maxBound = std::max(bracket.ax, bracket.cx);
-		REQUIRE(minBound <= REAL(2.0));
-		REQUIRE(maxBound >= REAL(2.0));
+		REQUIRE(minBound <= static_cast<MML::Real>(2.0));
+		REQUIRE(maxBound >= static_cast<MML::Real>(2.0));
 	}
 
 	TEST_CASE("BracketMinimum_InitialPointsReversed_StillWorks", "[Optimization][Bracket]") {
@@ -109,7 +109,7 @@ namespace MML::Tests::Algorithms::Optimization {
 		QuadraticFunc f;
 
 		// Start with b < a (reversed order)
-		auto bracket = Minimization::BracketMinimum(f, REAL(5.0), REAL(1.0));
+		auto bracket = Minimization::BracketMinimum(f, static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0));
 
 		REQUIRE(bracket.valid);
 		REQUIRE(bracket.fb <= bracket.fa);
@@ -121,13 +121,13 @@ namespace MML::Tests::Algorithms::Optimization {
 		// f(x) = x^2, minimum at x=0
 		RealFunctionFromStdFunc f([](Real x) { return x * x; });
 
-		auto bracket = Minimization::BracketMinimum(f, -REAL(1.0), REAL(1.0));
+		auto bracket = Minimization::BracketMinimum(f, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0));
 
 		REQUIRE(bracket.valid);
 		Real minBound = std::min(bracket.ax, bracket.cx);
 		Real maxBound = std::max(bracket.ax, bracket.cx);
-		REQUIRE(minBound <= REAL(0.0));
-		REQUIRE(maxBound >= REAL(0.0));
+		REQUIRE(minBound <= static_cast<MML::Real>(0.0));
+		REQUIRE(maxBound >= static_cast<MML::Real>(0.0));
 	}
 
 	TEST_CASE("BracketMinimum_CubicWithLocalMin_FindsBracket", "[Optimization][Bracket]") {
@@ -136,7 +136,7 @@ namespace MML::Tests::Algorithms::Optimization {
 
 		// Search near the local minimum at x=3 (use 2,3 so initial downhill
 		// direction points toward the minimum, not toward -infinity)
-		auto bracket = Minimization::BracketMinimum(f, REAL(2.0), REAL(3.0));
+		auto bracket = Minimization::BracketMinimum(f, static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0));
 
 		REQUIRE(bracket.valid);
 		REQUIRE(bracket.fb <= bracket.fa);
@@ -149,7 +149,7 @@ namespace MML::Tests::Algorithms::Optimization {
 
 		// Starting at (2,4) the algorithm goes downhill toward -infinity
 		// where the cubic diverges; iteration limit should catch this
-		auto bracket = Minimization::BracketMinimum(f, REAL(2.0), REAL(4.0));
+		auto bracket = Minimization::BracketMinimum(f, static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0));
 
 		// With float, limited range may allow bracketing to succeed
 		// before values diverge; with double, it correctly detects divergence
@@ -162,42 +162,42 @@ namespace MML::Tests::Algorithms::Optimization {
 	}
 
 	/************************************************************************/
-	/*****          REAL(10.2) Golden Section Search Tests                    *****/
+	/*****          static_cast<MML::Real>(10.2) Golden Section Search Tests                    *****/
 	/************************************************************************/
 
 	TEST_CASE("GoldenSection_QuadraticFunction_FindsMinimum", "[Optimization][GoldenSection]") {
 		TEST_PRECISION_INFO();
 		QuadraticFunc f;
 
-		auto result = Minimization::GoldenSectionSearch(f, REAL(0.0), REAL(5.0), TOL(3e-8, 1e-5));
+		auto result = Minimization::GoldenSectionSearch(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(2.0), TOL(1e-6, 1e-3)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(REAL(1.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(2.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(static_cast<MML::Real>(1.0), TOL(1e-6, 1e-3)));
 	}
 
 	TEST_CASE("GoldenSection_WithBracket_FindsMinimum", "[Optimization][GoldenSection]") {
 		TEST_PRECISION_INFO();
 		QuadraticFunc f;
-		auto bracket = Minimization::BracketMinimum(f, REAL(0.0), REAL(1.0));
+		auto bracket = Minimization::BracketMinimum(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0));
 
 		auto result = Minimization::GoldenSectionSearch(f, bracket, TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(2.0), TOL(1e-6, 1e-3)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(REAL(1.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(2.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(static_cast<MML::Real>(1.0), TOL(1e-6, 1e-3)));
 	}
 
 	TEST_CASE("GoldenSection_SinFunction_FindsLocalMin", "[Optimization][GoldenSection]") {
 		TEST_PRECISION_INFO();
 		SinFunc f;
 
-		// sin(x) has minimum at x = 3π/2 ≈ REAL(4.712)
+		// sin(x) has minimum at x = 3π/2 ≈ static_cast<MML::Real>(4.712)
 		// Create a known bracket around 3π/2: a=π, b=3π/2, c=2π
 		MinimumBracket bracket;
 		bracket.ax = Constants::PI;
-		bracket.bx = REAL(3.0) * Constants::PI / REAL(2.0);
-		bracket.cx = REAL(2.0) * Constants::PI;
+		bracket.bx = static_cast<MML::Real>(3.0) * Constants::PI / static_cast<MML::Real>(2.0);
+		bracket.cx = static_cast<MML::Real>(2.0) * Constants::PI;
 		bracket.fa = f(bracket.ax); // sin(π) = 0
 		bracket.fb = f(bracket.bx); // sin(3π/2) = -1
 		bracket.fc = f(bracket.cx); // sin(2π) = 0
@@ -206,8 +206,8 @@ namespace MML::Tests::Algorithms::Optimization {
 		auto result = Minimization::GoldenSectionSearch(f, bracket, TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(3.0) * Constants::PI / REAL(2.0), TOL(1e-5, 1e-3)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(-REAL(1.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(3.0) * Constants::PI / static_cast<MML::Real>(2.0), TOL(1e-5, 1e-3)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(-static_cast<MML::Real>(1.0), TOL(1e-6, 1e-3)));
 	}
 
 	TEST_CASE("GoldenSection_QuarticFunction_FindsMinimumAtOne", "[Optimization][GoldenSection]") {
@@ -215,11 +215,11 @@ namespace MML::Tests::Algorithms::Optimization {
 		QuarticFunc f;
 
 		// Search for minimum at x=1 (there's also one at x=-1)
-		auto result = Minimization::GoldenSectionSearch(f, REAL(0.5), REAL(2.0), TOL(3e-8, 1e-5));
+		auto result = Minimization::GoldenSectionSearch(f, static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0), TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(1.0), TOL(1e-5, 1e-3)));
-		REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(0.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(1.0), TOL(1e-5, 1e-3)));
+		REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-6, 1e-3)));
 	}
 
 	TEST_CASE("GoldenSection_QuarticFunction_FindsMinimumAtNegOne", "[Optimization][GoldenSection]") {
@@ -227,11 +227,11 @@ namespace MML::Tests::Algorithms::Optimization {
 		QuarticFunc f;
 
 		// Search for minimum at x=-1
-		auto result = Minimization::GoldenSectionSearch(f, -REAL(2.0), -REAL(0.5), TOL(3e-8, 1e-5));
+		auto result = Minimization::GoldenSectionSearch(f, -static_cast<MML::Real>(2.0), -static_cast<MML::Real>(0.5), TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(-REAL(1.0), TOL(1e-5, 1e-3)));
-		REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(0.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(-static_cast<MML::Real>(1.0), TOL(1e-5, 1e-3)));
+		REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-6, 1e-3)));
 	}
 
 	TEST_CASE("GoldenSection_CustomTolerance_RespectsIt", "[Optimization][GoldenSection]") {
@@ -239,37 +239,37 @@ namespace MML::Tests::Algorithms::Optimization {
 		QuadraticFunc f;
 
 		// Looser tolerance should require fewer iterations
-		auto result1 = Minimization::GoldenSectionSearch(f, REAL(0.0), REAL(5.0), 1e-4);
-		auto result2 = Minimization::GoldenSectionSearch(f, REAL(0.0), REAL(5.0), TOL(1e-10, 1e-5));
+		auto result1 = Minimization::GoldenSectionSearch(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), 1e-4);
+		auto result2 = Minimization::GoldenSectionSearch(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5));
 
 		REQUIRE(result1.iterations < result2.iterations);
 	}
 
 	/************************************************************************/
-	/*****     REAL(10.3) Brent's Method (Parabolic Interpolation) Tests      *****/
+	/*****     static_cast<MML::Real>(10.3) Brent's Method (Parabolic Interpolation) Tests      *****/
 	/************************************************************************/
 
 	TEST_CASE("BrentMinimize_QuadraticFunction_FindsMinimum", "[Optimization][Brent]") {
 		TEST_PRECISION_INFO();
 		QuadraticFunc f;
 
-		auto result = Minimization::BrentMinimize(f, REAL(0.0), REAL(5.0), TOL(3e-8, 1e-5));
+		auto result = Minimization::BrentMinimize(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(2.0), TOL(1e-7, 1e-4)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(REAL(1.0), TOL(1e-7, 1e-4)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(2.0), TOL(1e-7, 1e-4)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(static_cast<MML::Real>(1.0), TOL(1e-7, 1e-4)));
 	}
 
 	TEST_CASE("BrentMinimize_WithBracket_FindsMinimum", "[Optimization][Brent]") {
 		TEST_PRECISION_INFO();
 		QuadraticFunc f;
-		auto bracket = Minimization::BracketMinimum(f, -REAL(1.0), REAL(0.0));
+		auto bracket = Minimization::BracketMinimum(f, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0));
 
 		auto result = Minimization::BrentMinimize(f, bracket, TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(2.0), TOL(1e-7, 1e-4)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(REAL(1.0), TOL(1e-7, 1e-4)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(2.0), TOL(1e-7, 1e-4)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(static_cast<MML::Real>(1.0), TOL(1e-7, 1e-4)));
 	}
 
 	TEST_CASE("BrentMinimize_CubicLocalMin_FindsIt", "[Optimization][Brent]") {
@@ -279,9 +279,9 @@ namespace MML::Tests::Algorithms::Optimization {
 		// Create a bracket around the local minimum at x=3
 		// f(x) = x^3 - 6x^2 + 9x + 1, has min at x=3 with f(3)=1
 		MinimumBracket bracket;
-		bracket.ax = REAL(2.0);
-		bracket.bx = REAL(3.0);
-		bracket.cx = REAL(4.0);
+		bracket.ax = static_cast<MML::Real>(2.0);
+		bracket.bx = static_cast<MML::Real>(3.0);
+		bracket.cx = static_cast<MML::Real>(4.0);
 		bracket.fa = f(bracket.ax); // f(2) = 8 - 24 + 18 + 1 = 3
 		bracket.fb = f(bracket.bx); // f(3) = 27 - 54 + 27 + 1 = 1
 		bracket.fc = f(bracket.cx); // f(4) = 64 - 96 + 36 + 1 = 5
@@ -290,8 +290,8 @@ namespace MML::Tests::Algorithms::Optimization {
 		auto result = Minimization::BrentMinimize(f, bracket, TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(3.0), TOL(1e-6, 1e-3)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(REAL(1.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(3.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(static_cast<MML::Real>(1.0), TOL(1e-6, 1e-3)));
 	}
 
 	TEST_CASE("BrentMinimize_SinFunction_FindsMinimum", "[Optimization][Brent]") {
@@ -301,8 +301,8 @@ namespace MML::Tests::Algorithms::Optimization {
 		// Create a known bracket around 3π/2
 		MinimumBracket bracket;
 		bracket.ax = Constants::PI;
-		bracket.bx = REAL(3.0) * Constants::PI / REAL(2.0);
-		bracket.cx = REAL(2.0) * Constants::PI;
+		bracket.bx = static_cast<MML::Real>(3.0) * Constants::PI / static_cast<MML::Real>(2.0);
+		bracket.cx = static_cast<MML::Real>(2.0) * Constants::PI;
 		bracket.fa = f(bracket.ax);
 		bracket.fb = f(bracket.bx);
 		bracket.fc = f(bracket.cx);
@@ -311,16 +311,16 @@ namespace MML::Tests::Algorithms::Optimization {
 		auto result = Minimization::BrentMinimize(f, bracket, TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(3.0) * Constants::PI / REAL(2.0), TOL(1e-6, 1e-3)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(-REAL(1.0), TOL(1e-7, 1e-4)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(3.0) * Constants::PI / static_cast<MML::Real>(2.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(-static_cast<MML::Real>(1.0), TOL(1e-7, 1e-4)));
 	}
 
 	TEST_CASE("BrentMinimize_FasterThanGoldenSection", "[Optimization][Brent]") {
 		TEST_PRECISION_INFO();
 		QuadraticFunc f;
 
-		auto goldenResult = Minimization::GoldenSectionSearch(f, REAL(0.0), REAL(5.0), TOL(1e-8, 1e-4));
-		auto brentResult = Minimization::BrentMinimize(f, REAL(0.0), REAL(5.0), TOL(1e-8, 1e-4));
+		auto goldenResult = Minimization::GoldenSectionSearch(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), TOL(1e-8, 1e-4));
+		auto brentResult = Minimization::BrentMinimize(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), TOL(1e-8, 1e-4));
 
 		// Brent should converge in fewer iterations for smooth quadratic
 		REQUIRE(brentResult.iterations <= goldenResult.iterations);
@@ -332,16 +332,16 @@ namespace MML::Tests::Algorithms::Optimization {
 		TEST_PRECISION_INFO();
 		Rosenbrock1D f;
 
-		auto result = Minimization::BrentMinimize(f, REAL(0.0), REAL(2.0), TOL(3e-8, 1e-5));
+		auto result = Minimization::BrentMinimize(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		// The 1D Rosenbrock slice has minimum around x ≈ REAL(0.79) with f ≈ REAL(0.77)
+		// The 1D Rosenbrock slice has minimum around x ≈ static_cast<MML::Real>(0.79) with f ≈ static_cast<MML::Real>(0.77)
 		// The minimum is not 0 for this 1D slice
-		REQUIRE(result.fmin < REAL(1.0));
+		REQUIRE(result.fmin < static_cast<MML::Real>(1.0));
 	}
 
 	/************************************************************************/
-	/*****    REAL(10.4) Brent with Derivatives Tests                         *****/
+	/*****    static_cast<MML::Real>(10.4) Brent with Derivatives Tests                         *****/
 	/************************************************************************/
 
 	TEST_CASE("BrentWithDeriv_QuadraticFunction_FindsMinimum", "[Optimization][BrentDeriv]") {
@@ -349,24 +349,24 @@ namespace MML::Tests::Algorithms::Optimization {
 		QuadraticFunc f;
 		QuadraticDerivFunc df;
 
-		auto result = Minimization::BrentMinimizeWithDeriv(f, df, REAL(0.0), REAL(5.0), TOL(3e-8, 1e-5));
+		auto result = Minimization::BrentMinimizeWithDeriv(f, df, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(2.0), TOL(1e-7, 1e-4)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(REAL(1.0), TOL(1e-7, 1e-4)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(2.0), TOL(1e-7, 1e-4)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(static_cast<MML::Real>(1.0), TOL(1e-7, 1e-4)));
 	}
 
 	TEST_CASE("BrentWithDeriv_WithBracket_FindsMinimum", "[Optimization][BrentDeriv]") {
 		TEST_PRECISION_INFO();
 		QuadraticFunc f;
 		QuadraticDerivFunc df;
-		auto bracket = Minimization::BracketMinimum(f, -REAL(1.0), REAL(0.0));
+		auto bracket = Minimization::BracketMinimum(f, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0));
 
 		auto result = Minimization::BrentMinimizeWithDeriv(f, df, bracket, TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(2.0), TOL(1e-7, 1e-4)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(REAL(1.0), TOL(1e-7, 1e-4)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(2.0), TOL(1e-7, 1e-4)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(static_cast<MML::Real>(1.0), TOL(1e-7, 1e-4)));
 	}
 
 	TEST_CASE("BrentWithDeriv_CubicLocalMin_FindsIt", "[Optimization][BrentDeriv]") {
@@ -376,9 +376,9 @@ namespace MML::Tests::Algorithms::Optimization {
 
 		// Create a bracket around the local minimum at x=3
 		MinimumBracket bracket;
-		bracket.ax = REAL(2.0);
-		bracket.bx = REAL(3.0);
-		bracket.cx = REAL(4.0);
+		bracket.ax = static_cast<MML::Real>(2.0);
+		bracket.bx = static_cast<MML::Real>(3.0);
+		bracket.cx = static_cast<MML::Real>(4.0);
 		bracket.fa = f(bracket.ax);
 		bracket.fb = f(bracket.bx);
 		bracket.fc = f(bracket.cx);
@@ -387,8 +387,8 @@ namespace MML::Tests::Algorithms::Optimization {
 		auto result = Minimization::BrentMinimizeWithDeriv(f, df, bracket, TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(3.0), TOL(1e-6, 1e-3)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(REAL(1.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(3.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(static_cast<MML::Real>(1.0), TOL(1e-6, 1e-3)));
 	}
 
 	TEST_CASE("BrentWithDeriv_SinFunction_FindsMinimum", "[Optimization][BrentDeriv]") {
@@ -399,8 +399,8 @@ namespace MML::Tests::Algorithms::Optimization {
 		// Create a known bracket around 3π/2
 		MinimumBracket bracket;
 		bracket.ax = Constants::PI;
-		bracket.bx = REAL(3.0) * Constants::PI / REAL(2.0);
-		bracket.cx = REAL(2.0) * Constants::PI;
+		bracket.bx = static_cast<MML::Real>(3.0) * Constants::PI / static_cast<MML::Real>(2.0);
+		bracket.cx = static_cast<MML::Real>(2.0) * Constants::PI;
 		bracket.fa = f(bracket.ax);
 		bracket.fb = f(bracket.bx);
 		bracket.fc = f(bracket.cx);
@@ -409,8 +409,8 @@ namespace MML::Tests::Algorithms::Optimization {
 		auto result = Minimization::BrentMinimizeWithDeriv(f, df, bracket, TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(3.0) * Constants::PI / REAL(2.0), TOL(1e-6, 1e-3)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(-REAL(1.0), TOL(1e-7, 1e-4)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(3.0) * Constants::PI / static_cast<MML::Real>(2.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(-static_cast<MML::Real>(1.0), TOL(1e-7, 1e-4)));
 	}
 
 	TEST_CASE("BrentWithDeriv_QuarticFunction_FindsMinimum", "[Optimization][BrentDeriv]") {
@@ -418,11 +418,11 @@ namespace MML::Tests::Algorithms::Optimization {
 		QuarticFunc f;
 		QuarticDerivFunc df;
 
-		auto result = Minimization::BrentMinimizeWithDeriv(f, df, REAL(0.5), REAL(2.0), TOL(3e-8, 1e-5));
+		auto result = Minimization::BrentMinimizeWithDeriv(f, df, static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0), TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(1.0), TOL(1e-6, 1e-3)));
-		REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(1.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("BrentWithDeriv_FasterThanBrentWithoutDeriv", "[Optimization][BrentDeriv]") {
@@ -430,8 +430,8 @@ namespace MML::Tests::Algorithms::Optimization {
 		QuadraticFunc f;
 		QuadraticDerivFunc df;
 
-		auto brentResult = Minimization::BrentMinimize(f, REAL(0.0), REAL(5.0), TOL(1e-10, 1e-5));
-		auto dbrentResult = Minimization::BrentMinimizeWithDeriv(f, df, REAL(0.0), REAL(5.0), TOL(1e-10, 1e-5));
+		auto brentResult = Minimization::BrentMinimize(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5));
+		auto dbrentResult = Minimization::BrentMinimizeWithDeriv(f, df, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5));
 
 		// With derivatives should converge in fewer or equal iterations
 		REQUIRE(dbrentResult.iterations <= brentResult.iterations);
@@ -446,20 +446,20 @@ namespace MML::Tests::Algorithms::Optimization {
 	TEST_CASE("GoldenSectionMaximize_NegativeQuadratic_FindsMaximum", "[Optimization][Maximize]") {
 		TEST_PRECISION_INFO();
 		// f(x) = -(x-3)^2 + 5, maximum at x=3, f(3)=5
-		RealFunctionFromStdFunc f([](Real x) { return -(x - REAL(3.0)) * (x - REAL(3.0)) + REAL(5.0); });
+		RealFunctionFromStdFunc f([](Real x) { return -(x - static_cast<MML::Real>(3.0)) * (x - static_cast<MML::Real>(3.0)) + static_cast<MML::Real>(5.0); });
 
-		auto result = Minimization::GoldenSectionMaximize(f, REAL(0.0), REAL(6.0), TOL(3e-8, 1e-5));
+		auto result = Minimization::GoldenSectionMaximize(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(6.0), TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(3.0), TOL(1e-6, 1e-3)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(REAL(5.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(3.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(static_cast<MML::Real>(5.0), TOL(1e-6, 1e-3)));
 	}
 
 	TEST_CASE("BrentMaximize_SinFunction_FindsMaximum", "[Optimization][Maximize]") {
 		TEST_PRECISION_INFO();
 		SinFunc f;
 
-		// sin(x) has maximum at x = π/2 ≈ REAL(1.571)
+		// sin(x) has maximum at x = π/2 ≈ static_cast<MML::Real>(1.571)
 		// For maximize, we negate the function, so need bracket where sin is high
 		// Use simple bounds where the maximum is clearly inside
 		// The convenience function auto-brackets, which can expand.
@@ -467,8 +467,8 @@ namespace MML::Tests::Algorithms::Optimization {
 		RealFunctionFromStdFunc negF([&f](Real x) { return -f(x); });
 
 		MinimumBracket bracket;
-		bracket.ax = REAL(0.0);
-		bracket.bx = Constants::PI / REAL(2.0);
+		bracket.ax = static_cast<MML::Real>(0.0);
+		bracket.bx = Constants::PI / static_cast<MML::Real>(2.0);
 		bracket.cx = Constants::PI;
 		bracket.fa = negF(bracket.ax); // -sin(0) = 0
 		bracket.fb = negF(bracket.bx); // -sin(π/2) = -1
@@ -479,8 +479,8 @@ namespace MML::Tests::Algorithms::Optimization {
 		result.fmin = -result.fmin; // Restore original sign
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(Constants::PI / REAL(2.0), TOL(1e-6, 1e-3)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(REAL(1.0), TOL(1e-7, 1e-4)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(Constants::PI / static_cast<MML::Real>(2.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(static_cast<MML::Real>(1.0), TOL(1e-7, 1e-4)));
 	}
 
 	TEST_CASE("BrentMaximize_CubicLocalMax_FindsIt", "[Optimization][Maximize]") {
@@ -493,9 +493,9 @@ namespace MML::Tests::Algorithms::Optimization {
 		RealFunctionFromStdFunc negF([&f](Real x) { return -f(x); });
 
 		MinimumBracket bracket;
-		bracket.ax = REAL(0.0);
-		bracket.bx = REAL(1.0);
-		bracket.cx = REAL(2.0);
+		bracket.ax = static_cast<MML::Real>(0.0);
+		bracket.bx = static_cast<MML::Real>(1.0);
+		bracket.cx = static_cast<MML::Real>(2.0);
 		bracket.fa = negF(bracket.ax); // -1
 		bracket.fb = negF(bracket.bx); // -5 (minimum of negated = maximum of original)
 		bracket.fc = negF(bracket.cx); // -3
@@ -505,8 +505,8 @@ namespace MML::Tests::Algorithms::Optimization {
 		result.fmin = -result.fmin;
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(1.0), TOL(1e-5, 1e-3)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(REAL(5.0), TOL(1e-5, 1e-3)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(1.0), TOL(1e-5, 1e-3)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(static_cast<MML::Real>(5.0), TOL(1e-5, 1e-3)));
 	}
 
 	/************************************************************************/
@@ -517,7 +517,7 @@ namespace MML::Tests::Algorithms::Optimization {
 		TEST_PRECISION_INFO();
 		QuadraticFunc f;
 
-		auto bracket = Minimization::BracketMinimum(f, REAL(1.9), REAL(2.1));
+		auto bracket = Minimization::BracketMinimum(f, static_cast<MML::Real>(1.9), static_cast<MML::Real>(2.1));
 
 		REQUIRE(bracket.valid);
 	}
@@ -526,7 +526,7 @@ namespace MML::Tests::Algorithms::Optimization {
 		TEST_PRECISION_INFO();
 		QuadraticFunc f;
 
-		auto bracket = Minimization::BracketMinimum(f, -REAL(100.0), REAL(100.0));
+		auto bracket = Minimization::BracketMinimum(f, -static_cast<MML::Real>(100.0), static_cast<MML::Real>(100.0));
 
 		REQUIRE(bracket.valid);
 	}
@@ -535,102 +535,102 @@ namespace MML::Tests::Algorithms::Optimization {
 		TEST_PRECISION_INFO();
 		QuadraticFunc f;
 
-		auto result = Minimization::GoldenSectionSearch(f, REAL(0.0), REAL(5.0), TOL(1e-12, 1e-5));
+		auto result = Minimization::GoldenSectionSearch(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), TOL(1e-12, 1e-5));
 
 		REQUIRE(result.converged);
 		// Golden section achieves good but not perfect precision
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(2.0), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(2.0), TOL(1e-7, 1e-3)));
 	}
 
 	TEST_CASE("BrentMinimize_FlatRegion_Converges", "[Optimization][EdgeCase]") {
 		TEST_PRECISION_INFO();
 		// f(x) = max(0, (x-2)^2 - 1) - flat at minimum
 		RealFunctionFromStdFunc f([](Real x) {
-			Real val = (x - REAL(2.0)) * (x - REAL(2.0)) - REAL(1.0);
-			return val > 0 ? val : REAL(0.0);
+			Real val = (x - static_cast<MML::Real>(2.0)) * (x - static_cast<MML::Real>(2.0)) - static_cast<MML::Real>(1.0);
+			return val > 0 ? val : static_cast<MML::Real>(0.0);
 		});
 
-		auto result = Minimization::BrentMinimize(f, REAL(0.0), REAL(5.0), TOL(3e-8, 1e-5));
+		auto result = Minimization::BrentMinimize(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
 		// Should find something in the flat region [1, 3]
-		REQUIRE(result.xmin >= REAL(1.0) - REAL(0.1));
-		REQUIRE(result.xmin <= REAL(3.0) + REAL(0.1));
+		REQUIRE(result.xmin >= static_cast<MML::Real>(1.0) - static_cast<MML::Real>(0.1));
+		REQUIRE(result.xmin <= static_cast<MML::Real>(3.0) + static_cast<MML::Real>(0.1));
 	}
 
 	TEST_CASE("Optimization_LambdaFunction_Works", "[Optimization][Lambda]") {
 		TEST_PRECISION_INFO();
 		// Test with lambda wrapped in RealFunctionFromStdFunc
-		RealFunctionFromStdFunc f([](Real x) { return (x - REAL(1.5)) * (x - REAL(1.5)) + REAL(0.5); });
+		RealFunctionFromStdFunc f([](Real x) { return (x - static_cast<MML::Real>(1.5)) * (x - static_cast<MML::Real>(1.5)) + static_cast<MML::Real>(0.5); });
 
-		auto result = Minimization::BrentMinimize(f, -REAL(5.0), REAL(5.0), TOL(3e-8, 1e-5));
+		auto result = Minimization::BrentMinimize(f, -static_cast<MML::Real>(5.0), static_cast<MML::Real>(5.0), TOL(3e-8, 1e-5));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin, RealWithinRel(REAL(1.5), TOL(1e-7, 1e-4)));
-		REQUIRE_THAT(result.fmin, RealWithinRel(REAL(0.5), TOL(1e-7, 1e-4)));
+		REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(1.5), TOL(1e-7, 1e-4)));
+		REQUIRE_THAT(result.fmin, RealWithinRel(static_cast<MML::Real>(0.5), TOL(1e-7, 1e-4)));
 	}
 
 	TEST_CASE("Optimization_CallableOverloads_AcceptLambdasAndFunctors", "[Optimization][callable][C++20]") {
 		TEST_PRECISION_INFO();
 
-		auto quadratic = [](Real x) { return (x - REAL(2.0)) * (x - REAL(2.0)) + REAL(1.0); };
-		auto derivative = [](Real x) { return REAL(2.0) * (x - REAL(2.0)); };
+		auto quadratic = [](Real x) { return (x - static_cast<MML::Real>(2.0)) * (x - static_cast<MML::Real>(2.0)) + static_cast<MML::Real>(1.0); };
+		auto derivative = [](Real x) { return static_cast<MML::Real>(2.0) * (x - static_cast<MML::Real>(2.0)); };
 
-		auto bracket = Minimization::BracketMinimum(quadratic, REAL(0.0), REAL(1.0));
+		auto bracket = Minimization::BracketMinimum(quadratic, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0));
 		REQUIRE(bracket.valid);
 		REQUIRE(bracket.fb <= bracket.fa);
 		REQUIRE(bracket.fb <= bracket.fc);
 
 		auto goldenFromBracket = Minimization::GoldenSectionSearch(quadratic, bracket, TOL(3e-8, 1e-5));
-		auto goldenFromBounds = Minimization::GoldenSectionSearch(quadratic, REAL(0.0), REAL(5.0), TOL(3e-8, 1e-5));
+		auto goldenFromBounds = Minimization::GoldenSectionSearch(quadratic, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), TOL(3e-8, 1e-5));
 		auto brentFromBracket = Minimization::BrentMinimize(quadratic, bracket, TOL(3e-8, 1e-5));
-		auto brentFromBounds = Minimization::BrentMinimize(quadratic, REAL(0.0), REAL(5.0), TOL(3e-8, 1e-5));
+		auto brentFromBounds = Minimization::BrentMinimize(quadratic, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), TOL(3e-8, 1e-5));
 		auto brentDerivFromBracket = Minimization::BrentMinimizeWithDeriv(quadratic, derivative, bracket, TOL(3e-8, 1e-5));
-		auto brentDerivFromBounds = Minimization::BrentMinimizeWithDeriv(quadratic, derivative, REAL(0.0), REAL(5.0), TOL(3e-8, 1e-5));
+		auto brentDerivFromBounds = Minimization::BrentMinimizeWithDeriv(quadratic, derivative, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), TOL(3e-8, 1e-5));
 
 		for (const auto& result : { goldenFromBracket, goldenFromBounds, brentFromBracket, brentFromBounds, brentDerivFromBracket, brentDerivFromBounds }) {
 			REQUIRE(result.converged);
-			REQUIRE_THAT(result.xmin, RealWithinRel(REAL(2.0), TOL(1e-6, 1e-3)));
-			REQUIRE_THAT(result.fmin, RealWithinRel(REAL(1.0), TOL(1e-6, 1e-3)));
+			REQUIRE_THAT(result.xmin, RealWithinRel(static_cast<MML::Real>(2.0), TOL(1e-6, 1e-3)));
+			REQUIRE_THAT(result.fmin, RealWithinRel(static_cast<MML::Real>(1.0), TOL(1e-6, 1e-3)));
 		}
 
 		Minimization1DConfig config;
 		config.tolerance = TOL(3e-8, 1e-5);
 		config.max_iterations = 100;
-		auto goldenConfig = Minimization::GoldenSectionSearch(quadratic, REAL(0.0), REAL(5.0), config);
-		auto brentConfig = Minimization::BrentMinimize(quadratic, REAL(0.0), REAL(5.0), config);
-		auto brentDerivConfig = Minimization::BrentMinimizeWithDeriv(quadratic, derivative, REAL(0.0), REAL(5.0), config);
+		auto goldenConfig = Minimization::GoldenSectionSearch(quadratic, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), config);
+		auto brentConfig = Minimization::BrentMinimize(quadratic, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), config);
+		auto brentDerivConfig = Minimization::BrentMinimizeWithDeriv(quadratic, derivative, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), config);
 		REQUIRE(goldenConfig.converged);
 		REQUIRE(brentConfig.converged);
 		REQUIRE(brentDerivConfig.converged);
 
-		auto maxFunc = [](Real x) { return -(x - REAL(3.0)) * (x - REAL(3.0)) + REAL(5.0); };
-		auto goldenMax = Minimization::GoldenSectionMaximize(maxFunc, REAL(0.0), REAL(6.0), TOL(3e-8, 1e-5));
-		auto brentMax = Minimization::BrentMaximize(maxFunc, REAL(0.0), REAL(6.0), TOL(3e-8, 1e-5));
+		auto maxFunc = [](Real x) { return -(x - static_cast<MML::Real>(3.0)) * (x - static_cast<MML::Real>(3.0)) + static_cast<MML::Real>(5.0); };
+		auto goldenMax = Minimization::GoldenSectionMaximize(maxFunc, static_cast<MML::Real>(0.0), static_cast<MML::Real>(6.0), TOL(3e-8, 1e-5));
+		auto brentMax = Minimization::BrentMaximize(maxFunc, static_cast<MML::Real>(0.0), static_cast<MML::Real>(6.0), TOL(3e-8, 1e-5));
 		REQUIRE(goldenMax.converged);
 		REQUIRE(brentMax.converged);
-		REQUIRE_THAT(goldenMax.xmin, RealWithinRel(REAL(3.0), TOL(1e-6, 1e-3)));
-		REQUIRE_THAT(brentMax.xmin, RealWithinRel(REAL(3.0), TOL(1e-6, 1e-3)));
-		REQUIRE_THAT(goldenMax.fmin, RealWithinRel(REAL(5.0), TOL(1e-6, 1e-3)));
-		REQUIRE_THAT(brentMax.fmin, RealWithinRel(REAL(5.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(goldenMax.xmin, RealWithinRel(static_cast<MML::Real>(3.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(brentMax.xmin, RealWithinRel(static_cast<MML::Real>(3.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(goldenMax.fmin, RealWithinRel(static_cast<MML::Real>(5.0), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(brentMax.fmin, RealWithinRel(static_cast<MML::Real>(5.0), TOL(1e-6, 1e-3)));
 
-		Real shift = REAL(1.5);
+		Real shift = static_cast<MML::Real>(1.5);
 		auto captured = [shift](Real x) { return (x - shift) * (x - shift); };
-		REQUIRE_THAT(Minimization::BrentMinimize(captured, -REAL(5.0), REAL(5.0), TOL(3e-8, 1e-5)).xmin,
+		REQUIRE_THAT(Minimization::BrentMinimize(captured, -static_cast<MML::Real>(5.0), static_cast<MML::Real>(5.0), TOL(3e-8, 1e-5)).xmin,
 			RealWithinRel(shift, TOL(1e-7, 1e-4)));
 
 		struct QuarticFunctor
 		{
 			Real operator()(Real x) const
 			{
-				Real dx = x - REAL(1.0);
+				Real dx = x - static_cast<MML::Real>(1.0);
 				return dx * dx * dx * dx;
 			}
 		};
 
-		auto functorResult = Minimization::GoldenSectionSearch(QuarticFunctor{}, REAL(0.0), REAL(2.0), TOL(3e-8, 1e-5));
+		auto functorResult = Minimization::GoldenSectionSearch(QuarticFunctor{}, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), TOL(3e-8, 1e-5));
 		REQUIRE(functorResult.converged);
-		REQUIRE_THAT(functorResult.xmin, RealWithinRel(REAL(1.0), TOL(1e-4, 1e-2)));
+		REQUIRE_THAT(functorResult.xmin, RealWithinRel(static_cast<MML::Real>(1.0), TOL(1e-4, 1e-2)));
 	}
 
 	TEST_CASE("Optimization_ConfigAPI_ReportsAlgorithmFailures", "[Optimization][Config][Diagnostics]") {
@@ -639,8 +639,8 @@ namespace MML::Tests::Algorithms::Optimization {
 		config.tolerance = TOL(1e-12, 1e-5);
 		config.max_iterations = 1;
 
-		auto quadratic = [](Real x) { return (x - REAL(2.0)) * (x - REAL(2.0)); };
-		auto maxIterationResult = Minimization::BrentMinimize(quadratic, REAL(0.0), REAL(1.0), config);
+		auto quadratic = [](Real x) { return (x - static_cast<MML::Real>(2.0)) * (x - static_cast<MML::Real>(2.0)); };
+		auto maxIterationResult = Minimization::BrentMinimize(quadratic, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), config);
 		REQUIRE_FALSE(maxIterationResult.converged);
 		REQUIRE(maxIterationResult.status == AlgorithmStatus::MaxIterationsExceeded);
 		REQUIRE_FALSE(maxIterationResult.error_message.empty());

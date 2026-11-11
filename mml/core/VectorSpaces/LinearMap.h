@@ -11,6 +11,7 @@
 #if !defined MML_VECTOR_SPACES_LINEAR_MAP_H
 #define MML_VECTOR_SPACES_LINEAR_MAP_H
 
+#include <mml/algorithms/MatrixAlg/MatrixInversion.h>
 #include <mml/MMLBase.h>
 
 #include <mml/base/Matrix/MatrixNM.h>
@@ -98,7 +99,7 @@ namespace MML::VectorSpaces
 
 		LinearMap inverse() const requires (DomainN == CodomainN)
 		{
-			return LinearMap(_matrix.GetInverse());
+			return LinearMap(MatrixAlg::Inverse(_matrix));
 		}
 
 		MatrixNM<Scalar, CodomainN, DomainN> matrixInBases(const Basis<Scalar, DomainN>& domainBasis,

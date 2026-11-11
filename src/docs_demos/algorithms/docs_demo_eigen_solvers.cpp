@@ -85,7 +85,7 @@ void Docs_Demo_Eigen_Jacobi_Properties()
 	std::cout << "\n--- Orthogonality of Eigenvectors ---\n";
 	std::cout << "For symmetric matrices, eigenvectors form orthonormal basis.\n";
 	
-	Matrix<Real> VtV = result.eigenvectors.transpose() * result.eigenvectors;
+	Matrix<Real> VtV = result.eigenvectors.Transposed() * result.eigenvectors;
 	std::cout << "\nV^T * V (should be identity):\n";
 	VtV.Print(std::cout, 10, 6);
 	

@@ -29,19 +29,19 @@ namespace MML
 		/// @param[out] hessian Output N x N Hessian matrix
 		/// @param h Step size for finite differences (0 = existing per-entry automatic step)
 		template<int N>
-		static void calcHessian(const IScalarFunction<N>& func,
+		static void CalcHessian(const IScalarFunction<N>& func,
 			const VectorN<Real, N>& point,
 			MatrixNM<Real, N, N>& hessian,
-			Real h = REAL(0.0))
+			Real h = static_cast<MML::Real>(0.0))
 		{
-			if (!std::isfinite(h) || h < REAL(0.0))
-				throw ArgumentError("calcHessian: invalid step");
+			if (!std::isfinite(h) || h < static_cast<MML::Real>(0.0))
+				throw ArgumentError("CalcHessian: invalid step");
 
 			for (int row = 0; row < N; ++row)
 			{
 				for (int col = row; col < N; ++col)
 				{
-					const Real value = h > REAL(0.0)
+					const Real value = h > static_cast<MML::Real>(0.0)
 						? NSecDer4Partial(func, row, col, point, h)
 						: NSecDer4Partial(func, row, col, point);
 					hessian(row, col) = value;
@@ -58,13 +58,27 @@ namespace MML
 		/// @param h Step size for finite differences (0 = existing per-entry automatic step)
 		/// @return N x N Hessian matrix where H(i,j) = d^2 f / dx_i dx_j
 		template<int N>
-		static MatrixNM<Real, N, N> calcHessian(const IScalarFunction<N>& func,
-			const VectorN<Real, N>& point, Real h = REAL(0.0))
+		static MatrixNM<Real, N, N> CalcHessian(const IScalarFunction<N>& func,
+			const VectorN<Real, N>& point, Real h = static_cast<MML::Real>(0.0))
 		{
 			MatrixNM<Real, N, N> hessian;
-			calcHessian(func, point, hessian, h);
+			CalcHessian(func, point, hessian, h);
 			return hessian;
 		}
+		/// @deprecated Use CalcHessian() (CONTRACT_POLICY section 11).
+		template<int N>
+		[[deprecated("use CalcHessian()")]]
+		static void calcHessian(const IScalarFunction<N>& func, const VectorN<Real, N>& point,
+			MatrixNM<Real, N, N>& hessian, Real h = static_cast<MML::Real>(0.0))
+		{ CalcHessian<N>(func, point, hessian, h); }
+
+		/// @deprecated Use CalcHessian().
+		template<int N>
+		[[deprecated("use CalcHessian()")]]
+		static MatrixNM<Real, N, N> calcHessian(const IScalarFunction<N>& func,
+			const VectorN<Real, N>& point, Real h = static_cast<MML::Real>(0.0))
+		{ return CalcHessian<N>(func, point, h); }
+
 	}
 }
 

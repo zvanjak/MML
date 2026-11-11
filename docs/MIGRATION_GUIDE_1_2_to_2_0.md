@@ -2,6 +2,31 @@
 
 This guide documents breaking API changes in MinimalMathLibrary and provides migration paths for updating your code.
 
+## Scalar namespace cleanup
+
+Global `Real` and `Complex` aliases and the `REAL(...)` macro are removed.
+Use `MML::Real`, `MML::Complex`, and explicit scalar conversion, or local
+`using MML::Real` / `using MML::Complex` declarations. The former global `GetEnv`
+is an internal visualizer helper, not a public API. There is no compatibility
+macro or global alias; see [ScalarNamespaceMigration.md](ScalarNamespaceMigration.md)
+for precision configuration, collision tests and runnable examples.
+
+## Finite/discrete algebra is optional
+
+The 17 finite/discrete algebra component and algorithm headers moved to
+`include/mml_ext/base/Algebra/` in the private MML-Packages-Private repository.
+Link `MML_Ext` and change their include prefix from `mml/` to `mml_ext/`.
+The extension aggregate is `mml_ext/base/Algebra_base.h`; namespaces, component
+guards and mathematical behavior are unchanged. There are no core forwarding
+headers, and these optional types are no longer in the core single header.
+
+Core `mml/base/Algebra_base.h` now aggregates only the retained Lie/rigid-motion
+types SO2, SO3, SE2 and SE3. Numerical `Polynom.h` also stays core.
+The shared generic `Algebra::FieldMatrixDeterminant` / `FieldMatrixInverse`
+routines remain core at `mml/algorithms/MatrixAlg/FieldMatrixAlgorithms.h`;
+include that owner explicitly when using them. Their arithmetic is unchanged.
+See [Algebra](base/Algebra.md) for the boundary and runnable demo selectors.
+
 ## Version 2.0 API Changes (January 2026)
 
 ### Overview
@@ -16,6 +41,98 @@ All deprecated methods remain functional but emit compiler warnings. They will b
 
 ---
 
+## Version 2.1 update (October 2026) — matrix-family spellings
+
+Version 2.1 adopted a single naming convention for the whole library
+([CONTRACT_POLICY.md §11](CONTRACT_POLICY.md#11-naming-convention)): *casing encodes the
+abstraction level*. STL-shaped protocol stays lowercase (`rows() cols() size() empty() resize()`),
+but **mathematical operations and predicates are PascalCase**, the **verb mutates and the
+noun/participle returns a copy**, and accessors are `getX()`. Several 2.0 spellings therefore
+changed again; the tables and examples below already show the 2.1 names, and every 2.0 spelling
+remains available as a `[[deprecated]]` alias for one minor release.
+
+| 2.0 spelling | 2.1 spelling | Types |
+|---|---|---|
+| `trace()` | `Trace()` | `Matrix` |
+| `transpose()` (copy) | `Transposed()` | `Matrix`, `MatrixNM`; also `TridiagonalMatrix::GetTranspose`, `BandDiagonalMatrix::Transpose` (copy) |
+| container `inverse()`, `GetInverse()`, `Inverse()` | `MatrixAlg::Inverse(matrix)` | `Matrix`, `MatrixNM`, `MatrixSym`, `TridiagonalMatrix`; include `algorithms/MatrixAlg/MatrixInversion.h` |
+| `isIdentity() isAntiSymmetric() isZero() isSquare()` | `IsIdentity() IsAntiSymmetric() IsZero() IsSquare()` (+ new `IsSymmetric()`) | `Matrix`; `SparseMatrixCSR::isSquare/isSymmetric/hasSymmetricPattern → IsSquare/IsSymmetric/HasSymmetricPattern` |
+| `isEmpty()` | `empty()` | `Matrix` |
+| `diagonal()`, `GetDiagonal()` | `getDiagonal()` | `Matrix`, `BandDiagonalMatrix` |
+| `MakeUnitMatrix()` | `SetIdentity()` (+ new `SetZero()`, `Fill(v)`) | `Matrix`, `MatrixNM` |
+| `SetToZero()`, `SetToValue(v)` | `SetZero()`, `Fill(v)` | `MatrixSym` |
+| `Resize(...)` | `resize(...)` | `Vector`, `Matrix`, `MatrixSym`, `Matrix3D` |
+| `Dim()`, `GetDimension()` | `rows()` | `MatrixSym`, `BandDiagonalMatrix` |
+| `GetAsMatrix()` | `ToFullMatrix()` | `MatrixSym` (also new on `TridiagonalMatrix`) |
+| `GetDiagonalMatrix(v)` | `Diagonal(v)` | `MatrixSym` |
+| `GetLowerBandwidth() GetUpperBandwidth()` | `getLowerBandwidth() getUpperBandwidth()` | `BandDiagonalMatrix`, `BandDiagLUSolver` (+ `getDimension()`) |
+| `norm1() normInf() normFrobenius()` | `Norm1() NormInf() NormFrobenius()` | `SparseMatrixCSR` |
+| `multiply multiplyTranspose solveLower solveUpper zeroRow print toDense fromCOO` | `Multiply MultiplyTranspose SolveLower SolveUpper ZeroRow Print ToDense FromCOO` | `SparseMatrixCSR`, `SparseMatrixCSC` (BLAS-named `gemv`, `axpy`, `dot` unchanged) |
+| `laplacian1D/2D/3D identityCSR diagonalCSR` | `Laplacian1D/2D/3D IdentityCSR DiagonalCSR` | `MML::SparseMatrix` factories |
+
+| `isZero() isNearZero(eps)` | `IsZero() IsNearZero(eps)` | `Vector`, `VectorN` (and all `Vector2/3/4…` types) |
+| `Clear()` | `clear()` | `Vector`, `Polygon2D` (remove all elements) |
+| `clear()` on `VectorN` | `SetZero()` (+ new `Fill(v)`) | `VectorN` — fixed size: a value operation, not `clear()` |
+| `GetAsUnitVector()`, `GetAsUnitVectorOrZero()` | `Normalized()`, `NormalizedOrZero()` | `Vector2Cartesian`, `Vector3Cartesian` (`GetAsUnitVectorAtPos` unchanged) |
+| `getAsPoint()` | `ToPoint()` | `Vector3Cartesian` |
+| `getPerpendicularVectors` | `GetPerpendicularVectors` | `Vector2Cartesian` (now same as 3D) |
+| `isTimelike() isSpacelike() isLightlike()` | `IsTimelike() IsSpacelike() IsLightlike()` | `Vector4Minkowski` |
+| `isUnit() isIdentity() isApprox(q)` | `IsUnit() IsIdentity() IsEqualTo(q)` | `Quaternion` |
+| `GetRotationAngle() GetRotationAxis()` | `getRotationAngle() getRotationAxis()` | `Quaternion`, `CoordTransf3DRotationQuaternion` |
+| `At(i,j,k)`, `isEmpty()` | `at(i,j,k)`, `empty()` | `Matrix3D` |
+| `GetCenter GetBoundingBox GetBoundingSphere` | `getCenter getBoundingBox getBoundingSphere` | `IBody` and every body; `Polygon2D`/`Circle2D::getBoundingBox` |
+| `GetRadius GetSide GetHeight GetBaseCenter GetBaseSize GetMajorRadius GetMinorRadius GetNum*` | `getRadius getSide getHeight …` | `Cube3D`, `Sphere3D`, `Cylinder3D`, `Torus3D`, `Pyramid3D`… |
+| `GetSurfaceCount GetSurface GetSolidCount GetSolid` | `getSurfaceCount getSurface getSolidCount getSolid` | `BodyWithTriangleSurfaces`, `BodyWithRectSurfaces`, `ComposedSolidSurfaces3D` |
+| `GetPointOnPlane GetCoordAxisSegments` | `getPointOnPlane getCoordAxisSegments` | `Plane3D` |
+| `GetXYPlane() GetXZPlane() GetYZPlane()` | `XYPlane() XZPlane() YZPlane()` | `Plane3D` factories |
+
+**Behaviour change (2.1):** `Vector3Cartesian::IsParallelTo(b)` now uses ‖a × b‖ ≤ eps·‖a‖·‖b‖ —
+it is scale-invariant, **includes antiparallel vectors** (parallel planes/lines regardless of
+orientation), and returns `false` for the zero vector instead of comparing NaNs. The old
+component-wise unit-vector difference silently rejected antiparallel directions.
+
+**Interface vocabulary (2.1):** everything declared on an `mml/interfaces` type is lowerCamel, and
+implementers override the lowerCamel name. The PascalCase spelling stays on the interface as a
+`[[deprecated]]` *non-virtual* forwarder — callers keep working, but a derived class that still
+overrides the old name fails to compile (`override` of a non-virtual) and must be renamed.
+
+| 2.0 spelling | 2.1 spelling | Interface |
+|---|---|---|
+| `NumContravar() NumCovar() IsContravar(i) Contract(...)` | `numContravar() numCovar() isContravar(i) contract(...)` | `ITensor2..5` (implementers `Tensor2..5`, also `IsCovar → isCovar`) |
+| `Component(i, j, …, pos)` | `component(i, j, …, pos)` | `ITensorField2..5` (metric tensors, `InducedMetric`, tensor-field adapters, your own fields) |
+| `TransformsAsTensor()` | `transformsAsTensor()` | `ITensorField3` |
+| `GetEquidistantCovering(n, pts)` | `getEquidistantCovering(n, pts)` | `IInterval` and all intervals |
+| `GetValues(x1, x2, n, xs, ys)` | `getValues(…)` | `IRealFunction` |
+| `GetTrace(t1, t2, n)` | `getTrace(…)` | `IParametricCurve<N>` |
+
+**Derivation entry points (2.1):** numerical, forward-AD and reverse-AD Jacobians / Hessians /
+gradients share one `Calc<Object>[<Method>]` scheme; argument types select fixed vs dynamic size
+(see [Derivation.md](core/Derivation.md#jacobians-hessians-and-gradients--one-vocabulary)).
+
+| 2.0 spelling | 2.1 spelling |
+|---|---|
+| `Derivation::calcJacobian`, `calcJacobianDyn` | `Derivation::CalcJacobian` (overloads: `IVectorFunction`+`VectorN` → `MatrixNM`; `std::function`+`Vector` → `Matrix`) |
+| `calcJacobianDynInPlace`, `calcJacobianDynColumns`, `calcJacobianDyn2` | `CalcJacobianInPlace`, `CalcJacobianColumns`, `CalcJacobianOrder2` |
+| `calcJacobianODE`, `calcJacobianMap`, `calcHessian` | `CalcJacobianODE`, `CalcJacobianMap`, `CalcHessian` |
+| `AD::jacobianForwardAD`, `AD::jacobianReverseAD`, `AD::hessianForwardAD` | `AD::CalcJacobianForwardAD`, `AD::CalcJacobianReverseAD`, `AD::CalcHessianForwardAD` |
+| `AD::gradient`, `AD::gradientReverse`, `AD::derivative` | `AD::CalcGradientForwardAD`, `AD::CalcGradientReverseAD`, `AD::CalcDerivativeForwardAD` |
+
+**Honest names and the last cross-cutting spellings (2.1):**
+
+| 2.0 spelling | 2.1 spelling | Note |
+|---|---|---|
+| `FindRootX(f, x1, x2, config)` → `RootFindingResult` | `FindRootXDetailed(f, x1, x2, config)`; new `FindRootXDetailed(f, x1, x2, xacc)` | X ∈ Bisection, FalsePosition, Newton (incl. analytic-derivative form), Secant, Ridders, Brent. Plain `FindRootX(f, x1, x2, xacc)` still returns `Real` and throws. |
+| `Matrix::isAntiSymmetric()` | `IsAntiSymmetric()` (plain, no conjugation) **or** `IsSkewHermitian()` (conjugated); new `IsHermitian()` | The 2.0 spelling conjugated for complex types, i.e. tested skew-Hermitian; the alias keeps that meaning. |
+| `ToString()` / `ToString(enum)` | `to_string()` / `to_string(enum)` | `IBody` and all bodies, `Box3D`, `BoundingSphere3D`, `Matrix3D` (`ToStringFull(p)` → `to_string(p)`), `LinearProgram`, `AlgorithmStatus`, `GraphAlgorithmStatus`, `FixedPointType` |
+| `GetMatrix()` | `getMatrix()` (reference accessor) / `Tensor2::ToMatrix()` (copy conversion) | `LinearSystem`, `MatrixAnalyzer`, `Tensor2` |
+| `RealFunctionAnalyzer::isMonotonic/isContinuous/isLocalOptimum/…` | `IsMonotonicOnSamples/AppearsContinuous/IsLocalOptimum/…` | Documented as sampling heuristics, not proofs. |
+
+Re-documented without renaming: `FindRootIntervals` (sampling-based bracketing, not algebraic root
+isolation), `LineMinimizer` (exact Brent line minimization, not a Wolfe search), `RealFFT` (half-spectrum
+storage via a half-size complex FFT, not NR's in-place packed `realft`).
+
+---
+
 ## Quick Migration Reference
 
 ### Matrix Class
@@ -24,21 +141,21 @@ All deprecated methods remain functional but emit compiler warnings. They will b
 |------------|------------|----------|
 | `RowNum()` | `rows()` | Accessor |
 | `ColNum()` | `cols()` | Accessor |
-| `IsEmpty()` | `isEmpty()` | Predicate |
-| `IsUnit(eps)` | `isIdentity(eps)` | Predicate |
+| `IsEmpty()` | `empty()` | Predicate (STL-compatible) |
+| `IsUnit(eps)` | `IsIdentity(eps)` | Predicate |
 | `IsDiagonal(eps)` | `isDiagonal(eps)` | Predicate |
 | `IsDiagDominant()` | `isDiagonallyDominant()` | Predicate |
-| `IsSymmetric()` | `isSymmetric()` | Predicate |
-| `IsAntiSymmetric()` | `isAntiSymmetric()` | Predicate |
-| `IsZero(eps)` | `isZero(eps)` | Predicate |
+| `IsSymmetric()` | `IsSymmetric()` | Predicate |
+| `IsAntiSymmetric()` | `IsAntiSymmetric()` | Predicate |
+| `IsZero(eps)` | `IsZero(eps)` | Predicate |
 | `Identity(n)` | `Identity(n)` | Factory |
-| `GetDiagonalMatrix(v)` | `Diagonal(v)` | Factory |
+| `Diagonal(v)` | `Diagonal(v)` | Factory |
 | `identity(n)` | `Identity(n)` | Factory |
-| `transpose()` | `transpose()` | Accessor (returns copy) |
-| `GetInverse()` | `inverse()` | Accessor (returns copy) |
-| `Trace()` | `trace()` | Accessor |
-| `GetDiagonal()` | `diagonal()` | Accessor |
-| `VectorFromDiagonal()` | `diagonal()` | Accessor |
+| `transpose()` | `Transposed()` | Operation (returns copy) |
+| matrix `GetInverse()` | `MatrixAlg::Inverse(matrix)` | Algorithm operation (returns copy; container method removed) |
+| `Trace()` | `Trace()` | Operation |
+| `GetDiagonal()` | `getDiagonal()` | Accessor |
+| `VectorFromDiagonal()` | `getDiagonal()` | Accessor |
 | `toString()` | `to_string()` | String conversion |
 
 ### Vector Class
@@ -88,7 +205,7 @@ int c = A.cols();
 ```cpp
 // ❌ Old code
 auto I = Matrix<double>::Identity(3);
-auto D = Matrix<double>::GetDiagonalMatrix(vec);
+auto D = Matrix<double>::Diagonal(vec);
 
 // ✅ New code
 auto I = Matrix<double>::Identity(3);
@@ -102,21 +219,21 @@ auto D = Matrix<double>::Diagonal(vec);
 if (A.IsUnit()) { ... }
 if (A.IsSymmetric() && !A.IsEmpty()) { ... }
 
-// ✅ New code
-if (A.isIdentity()) { ... }
-if (A.isSymmetric() && !A.isEmpty()) { ... }
+// ✅ New code (2.1 spelling: mathematical predicates PascalCase, STL protocol lowercase)
+if (A.IsIdentity()) { ... }
+if (A.IsSymmetric() && !A.empty()) { ... }
 ```
 
 ### Matrix Operations (Copy vs In-Place)
 
 ```cpp
-// Copy operation (lowercase) - returns new matrix
-Matrix<double> B = A.transpose();  // A unchanged, B is transpose
-Matrix<double> C = A.inverse();    // A unchanged, C is inverse
+// Copy operation (noun / participle) - returns new matrix
+Matrix<double> B = A.Transposed();  // A unchanged, B is transpose
+Matrix<double> C = MatrixAlg::Inverse(A);     // A unchanged, C is inverse
 
-// In-place operation (PascalCase) - modifies the matrix
+// In-place operation (verb) - modifies the matrix
 A.Transpose();  // A is now transposed
-A.Invert();     // A is now its inverse
+MatrixAlg::Invert(A);     // A is now its inverse
 ```
 
 ### Polynomial Operations
@@ -191,18 +308,18 @@ For bulk migration, use these regex patterns:
 ::identity\(  →  ::Identity(
 
 # Matrix predicates
-\.IsUnit\(  →  .isIdentity(
-\.IsEmpty\(  →  .isEmpty(
-\.IsSymmetric\(  →  .isSymmetric(
+\.IsUnit\(  →  .IsIdentity(
+\.IsEmpty\(  →  .empty(
+\.IsSymmetric\(  →  .IsSymmetric(
 \.IsDiagonal\(  →  .isDiagonal(
 \.IsDiagDominant\(  →  .isDiagonallyDominant(
-\.IsZero\(  →  .isZero(
+\.IsZero\(  →  .IsZero(
 
 # Matrix operations
-\.transpose\(  →  .transpose(
-\.GetInverse\(  →  .inverse(
-\.Trace\(  →  .trace(
-\.GetDiagonal\(  →  .diagonal(
+\.transpose\(  →  .Transposed(
+Matrix inversion aliases are removed; use MatrixAlg::Inverse(matrix).
+\.Trace\(  →  .Trace(
+\.GetDiagonal\(  →  .getDiagonal(
 
 # Polynom
 \.GetDegree\(  →  .degree(
@@ -262,10 +379,12 @@ The following methods now have `noexcept` specifier for better optimization:
 - Signals that the method is a simple getter
 - `noexcept` guarantee is natural for simple accessors
 
-### Why `is...()` predicates?
+### Why `Is...()` predicates? (2.1)
 - Clear intent: returns boolean
-- Consistency: all boolean tests start with `is`
-- Readable: `if (matrix.isSymmetric())`
+- Mathematical/geometric predicates are PascalCase like the other mathematical operations
+  (`IsSymmetric()`, `IsZero()`, `Contains(p)`); STL protocol keeps `empty()`; interface
+  virtuals keep lowerCamel (`isAutonomous()`)
+- Readable: `if (matrix.IsSymmetric())`
 
 ### Why PascalCase mutators?
 - Visual distinction from accessors
@@ -280,4 +399,7 @@ The following methods now have `noexcept` specifier for better optimization:
 
 ## Questions?
 
-See [CODING_STYLE.md](coding/CODING_STYLE.md) for the complete naming convention reference.
+See [CONTRACT_POLICY.md §11](CONTRACT_POLICY.md#11-naming-convention) for the complete naming convention reference.
+
+Matrix inversion now belongs to algorithms, not base containers; see
+[the inversion and formatting migration](algorithms/MatrixInversionAndFormatting.md).

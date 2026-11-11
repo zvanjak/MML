@@ -22,7 +22,7 @@ namespace MML::Tests::Core::DerivationScalarFunctionTests {
 /**
  * COMPREHENSIVE TEST SUITE: Scalar Function Derivatives
  * 
- * Part of Epic 2 (MinimalMathLibrary-ao0) - Task REAL(2.2) (MinimalMathLibrary-1fd)
+ * Part of Epic 2 (MinimalMathLibrary-ao0) - Task static_cast<MML::Real>(2.2) (MinimalMathLibrary-1fd)
  * Created after discovering catastrophic NDer2_uw bug in parametric surfaces.
  * 
  * PURPOSE:
@@ -79,7 +79,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("ScalarFunction - NDer1Partial (Forward Difference)", "[scalar_function][nder1][partial]")
     {
         auto func = GetSimpleFunc()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         VectorN<Real, 3> grad_analytical = GetAnalyticalGradient(GetSimpleFunc(), point);
         
@@ -97,7 +97,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("ScalarFunction - NDer2Partial (Central Difference)", "[scalar_function][nder2][partial]")
     {
         auto func = GetSimpleFunc()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         VectorN<Real, 3> grad_analytical = GetAnalyticalGradient(GetSimpleFunc(), point);
         
@@ -114,7 +114,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("ScalarFunction - NDer4Partial (4th Order)", "[scalar_function][nder4][partial]")
     {
         auto func = GetSimpleFunc()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         VectorN<Real, 3> grad_analytical = GetAnalyticalGradient(GetSimpleFunc(), point);
         
@@ -131,7 +131,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("ScalarFunction - NDer6Partial (6th Order)", "[scalar_function][nder6][partial]")
     {
         auto func = GetSimpleFunc()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         VectorN<Real, 3> grad_analytical = GetAnalyticalGradient(GetSimpleFunc(), point);
         
@@ -148,7 +148,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("ScalarFunction - NDer8Partial (8th Order)", "[scalar_function][nder8][partial]")
     {
         auto func = GetSimpleFunc()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         VectorN<Real, 3> grad_analytical = GetAnalyticalGradient(GetSimpleFunc(), point);
         
@@ -169,7 +169,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("ScalarFunction - NDer1PartialByAll (Gradient)", "[scalar_function][nder1][gradient]")
     {
         auto func = GetSimpleFunc()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         VectorN<Real, 3> grad_numerical = NDer1PartialByAll(func, point);
         VectorN<Real, 3> grad_analytical = GetAnalyticalGradient(GetSimpleFunc(), point);
@@ -184,7 +184,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("ScalarFunction - NDer2PartialByAll (Gradient)", "[scalar_function][nder2][gradient]")
     {
         auto func = GetSimpleFunc()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         VectorN<Real, 3> grad_numerical = NDer2PartialByAll(func, point);
         VectorN<Real, 3> grad_analytical = GetAnalyticalGradient(GetSimpleFunc(), point);
@@ -199,7 +199,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("ScalarFunction - NDer4PartialByAll (Gradient)", "[scalar_function][nder4][gradient]")
     {
         auto func = GetSimpleFunc()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         VectorN<Real, 3> grad_numerical = NDer4PartialByAll(func, point);
         VectorN<Real, 3> grad_analytical = GetAnalyticalGradient(GetSimpleFunc(), point);
@@ -214,7 +214,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("ScalarFunction - NDer6PartialByAll (Gradient)", "[scalar_function][nder6][gradient]")
     {
         auto func = GetSimpleFunc()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         VectorN<Real, 3> grad_numerical = NDer6PartialByAll(func, point);
         VectorN<Real, 3> grad_analytical = GetAnalyticalGradient(GetSimpleFunc(), point);
@@ -229,7 +229,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("ScalarFunction - NDer8PartialByAll (Gradient)", "[scalar_function][nder8][gradient]")
     {
         auto func = GetSimpleFunc()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         VectorN<Real, 3> grad_numerical = NDer8PartialByAll(func, point);
         VectorN<Real, 3> grad_analytical = GetAnalyticalGradient(GetSimpleFunc(), point);
@@ -248,7 +248,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("ScalarFunction - Complex Function NDer4Partial", "[scalar_function][nder4][complex]")
     {
         auto func = GetComplexFunc()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         VectorN<Real, 3> grad_analytical = GetAnalyticalGradient(GetComplexFunc(), point);
         
@@ -268,7 +268,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("ScalarFunction - Complex Function NDer4PartialByAll", "[scalar_function][nder4][complex][gradient]")
     {
         auto func = GetComplexFunc()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         VectorN<Real, 3> grad_numerical = NDer4PartialByAll(func, point);
         VectorN<Real, 3> grad_analytical = GetAnalyticalGradient(GetComplexFunc(), point);
@@ -289,7 +289,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("ScalarFunction - Accuracy Progression", "[scalar_function][accuracy]")
     {
         auto func = GetSimpleFunc()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         // Test on ∂f/∂x (first component, -sin(x))
         int deriv_var = 0;
@@ -326,11 +326,11 @@ namespace   // Anonymous namespace for test helpers
         
         // Test at various points in the domain
         std::vector<VectorN<Real, 3>> test_points = {
-            {REAL(0.5), REAL(0.3), REAL(1.0)},
-            {REAL(1.0), REAL(0.5), REAL(2.0)},
-            {REAL(1.5), REAL(1.0), REAL(1.5)},
-            {REAL(0.1), REAL(0.1), REAL(0.5)},
-            {REAL(2.0), REAL(1.5), REAL(3.0)}
+            {static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.3), static_cast<MML::Real>(1.0)},
+            {static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)},
+            {static_cast<MML::Real>(1.5), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.5)},
+            {static_cast<MML::Real>(0.1), static_cast<MML::Real>(0.1), static_cast<MML::Real>(0.5)},
+            {static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.5), static_cast<MML::Real>(3.0)}
         };
         
         for (const auto& point : test_points)
@@ -354,7 +354,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("ScalarFunction - Gradient Consistency", "[scalar_function][consistency]")
     {
         auto func = GetComplexFunc()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         // Get gradient using PartialByAll
         VectorN<Real, 3> grad_all = NDer4PartialByAll(func, point);

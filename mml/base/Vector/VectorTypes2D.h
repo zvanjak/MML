@@ -15,7 +15,7 @@
 #include <mml/MMLExceptions.h>
 
 #include <mml/base/Vector/VectorN.h>
-#include <mml/base/Geometry/Geometry.h>
+#include <mml/base/Geometry/GeometryBase/GeometryPoints.h>
 
 #include <cmath>
 #include <limits>
@@ -132,7 +132,7 @@ namespace MML
 		/// @brief Checks equality within tolerance.
 		/// @param b Vector to compare
 		/// @param absEps Absolute tolerance
-		bool IsEqualTo(const Vector2Cartesian& b, Real absEps = Defaults::Vec2CartIsEqualTolerance) const
+		bool IsEqualTo(const Vector2Cartesian& b, Real absEps = Precision::Vec2CartIsEqualTolerance) const
 		{
 			return (std::abs(X() - b.X()) < absEps) && (std::abs(Y() - b.Y()) < absEps);
 		}
@@ -142,42 +142,42 @@ namespace MML
 		Vector2Cartesian Normalized() const
 		{
 			Real norm = NormL2();
-			if (norm < std::numeric_limits<Real>::epsilon() * 100)
+			if (norm < Precision::RoundoffZeroThreshold)
 				throw VectorDimensionError("Vector2Cartesian::Normalized - cannot normalize near-zero vector", 2, 0);
 			return Vector2Cartesian{ (*this) / norm };
 		}
-		/// @brief Returns unit vector in this direction.
-		/// @throws VectorDimensionError if the vector norm is near zero
-		Vector2Cartesian GetAsUnitVector() const
+		/// @brief Returns normalized vector, or the zero vector when norm is near zero.
+		Vector2Cartesian NormalizedOrZero() const
 		{
 			Real norm = NormL2();
-			if (norm < std::numeric_limits<Real>::epsilon() * 100)
-				throw VectorDimensionError("Vector2Cartesian::GetAsUnitVector - cannot normalize near-zero vector", 2, 0);
+			if (norm < Precision::RoundoffZeroThreshold)
+				return Vector2Cartesian{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
 			return Vector2Cartesian{ (*this) / norm };
 		}
-		/// @brief Returns unit vector in this direction, or the zero vector when norm is near zero.
-		Vector2Cartesian GetAsUnitVectorOrZero() const
-		{
-			Real norm = NormL2();
-			if (norm < std::numeric_limits<Real>::epsilon() * 100)
-				return Vector2Cartesian{ REAL(0.0), REAL(0.0) };
-			return Vector2Cartesian{ (*this) / norm };
-		}
+		/// @deprecated Use Normalized() — identical semantics (CONTRACT_POLICY §11: one spelling per operation).
+		[[deprecated("use Normalized()")]]
+		Vector2Cartesian GetAsUnitVector() const { return Normalized(); }
+		/// @deprecated Use NormalizedOrZero().
+		[[deprecated("use NormalizedOrZero()")]]
+		Vector2Cartesian GetAsUnitVectorOrZero() const { return NormalizedOrZero(); }
 		/// @brief Returns unit vector at given position (for Cartesian, position doesn't matter).
 		/// @param pos Position (unused in Cartesian coordinates)
 		Vector2Cartesian GetAsUnitVectorAtPos(const Vector2Cartesian& pos) const
 		{
-			return GetAsUnitVector();
+			return Normalized();
 		}
 		
 		/// @brief Computes two perpendicular vectors.
 		/// @param v1 First perpendicular vector (output)
 		/// @param v2 Second perpendicular vector (output)
-		void getPerpendicularVectors(Vector2Cartesian& v1, Vector2Cartesian& v2) const
+		void GetPerpendicularVectors(Vector2Cartesian& v1, Vector2Cartesian& v2) const
 		{
 			v1 = Vector2Cartesian(-Y(), X());
 			v2 = Vector2Cartesian(Y(), -X());
 		}
+		/// @deprecated Use GetPerpendicularVectors() (same spelling as Vector3Cartesian).
+		[[deprecated("use GetPerpendicularVectors()")]]
+		void getPerpendicularVectors(Vector2Cartesian& v1, Vector2Cartesian& v2) const { GetPerpendicularVectors(v1, v2); }
 
 		/// @brief Scalar product (dot product).
 		/// @param b Vector to multiply

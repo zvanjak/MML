@@ -93,8 +93,8 @@ v.NormLInf()            // Infinity norm: max|xᵢ|
 
 // Modification
 v.push_back(val)        // Add element
-v.Resize(newSize)       // Change size
-v.Clear()               // Remove all elements
+v.resize(newSize)       // Change size
+v.clear()               // Remove all elements
 
 // Note: Vector<T> has no Normalize() method.
 // For unit vector: Vector<double> unit = v / v.NormL2();
@@ -221,12 +221,12 @@ A.Print(std::cout, 2)   // Print with 2 decimal places
 A + B, A - B            // Matrix addition/subtraction
 A * B                   // Matrix multiplication
 A * scalar              // Scalar multiplication
-A.transpose()        // Returns transposed matrix
-A.GetInverse()          // Returns inverse matrix (throws if singular)
+A.Transposed()        // Returns transposed matrix
+MatrixAlg::Inverse(A)          // Returns inverse matrix (throws if singular)
 
 // In-place operations
 A.Transpose()           // Transpose in-place (square matrices only)
-A.Invert()              // Invert in-place (throws if singular)
+MatrixAlg::Invert(A)              // Invert in-place (throws if singular)
 
 // Properties
 A.Trace()               // Trace (sum of diagonal)
@@ -267,20 +267,23 @@ Vector<double> check = A * x;
 double error = (check - b).NormL2();  // Should be ~0
 
 // Matrix operations
-Matrix<double> AtA = A.transpose() * A;   // Normal equations
+Matrix<double> AtA = A.Transposed() * A;   // Normal equations
 // Note: Condition number available via SVDecompositionSolver
 ```
 
 #### Memory Safety
 
 ```cpp
-// Protected against overflow and OOM
+// Element-budget validation runs before allocation; OS allocation can still fail.
 try {
-    Matrix<double> huge(1000000, 1000000);  // Throws std::bad_alloc
-} catch (const std::exception& e) {
-    // Gracefully handle allocation failure
+    Matrix<double> huge(1000000, 1000000);  // Throws MatrixAllocationError
+} catch (const MatrixAllocationError& e) {
+    std::cout << "Allocation rejected: " << e.what() << '\n';
 }
 ```
+
+The limit is 100 million elements, not a cap on either matrix axis. The checked
+counterpart runs in `MML_DocsApp --trajectory-resources`.
 
 ---
 
@@ -389,7 +392,7 @@ Tensor3<double> T3(n, m, k);
 T3(i, j, k) = value;
 
 // Tensor operations
-T2.Contract(indices);        // Tensor contraction
+T2.contract(indices);        // Tensor contraction
 T2.Transpose(idx1, idx2);    // Generalized transpose
 ```
 
@@ -511,7 +514,7 @@ public:
     virtual Box3D GetBoundingBox() const = 0;
     virtual BoundingSphere3D GetBoundingSphere() const = 0;
     virtual bool IsInside(const Pnt3Cart& pnt) const = 0;
-    virtual std::string ToString() const = 0;
+    virtual std::string to_string() const = 0;
 };
 ```
 
@@ -547,17 +550,17 @@ Pyramid3D pyramid(4.0, 6.0);                   // Base side 4, height 6
 // Query geometric properties
 Real v = sphere.Volume();           // (4/3)π·125 ≈ 523.599
 Real sa = sphere.SurfaceArea();     // 4π·25 ≈ 314.159
-Pnt3Cart c = sphere.GetCenter();    // (0, 0, 0)
+Pnt3Cart c = sphere.getCenter();    // (0, 0, 0)
 
 // Bounding volumes for collision detection
-Box3D bbox = cube.GetBoundingBox();
-BoundingSphere3D bsphere = cube.GetBoundingSphere();
+Box3D bbox = cube.getBoundingBox();
+BoundingSphere3D bsphere = cube.getBoundingSphere();
 
 // Point-in-body test
 bool inside = sphere.IsInside(Pnt3Cart(1, 1, 1));  // true
 
 // String output for debugging
-std::cout << sphere.ToString();
+std::cout << sphere.to_string();
 // Sphere3D{Center=(0, 0, 0), Radius=5, Volume=523.599, SurfaceArea=314.159}
 ```
 
@@ -580,8 +583,8 @@ class BodyWithRectSurfaces : public IBody {
 
 // Example: Surface integration over a cube
 CubeWithTriangles3D meshCube(1.0);
-for (int i = 0; i < meshCube.GetSurfaceCount(); i++) {
-    const Triangle3D& tri = meshCube.GetSurface(i);
+for (int i = 0; i < meshCube.getSurfaceCount(); i++) {
+    const Triangle3D& tri = meshCube.getSurface(i);
     // Process each triangle surface
 }
 ```
@@ -956,7 +959,7 @@ double length = a.getLength();
 
 // Generate uniform points
 std::vector<double> points;
-a.GetEquidistantCovering(10, points);
+a.getEquidistantCovering(10, points);
 ```
 
 ---
@@ -1412,7 +1415,7 @@ All base types throw meaningful exceptions:
 ```cpp
 try {
     Matrix<double> A(3, 3);
-    A.Invert();  // May throw if singular
+    MatrixAlg::Invert(A);  // May throw if singular
 } catch (const SingularMatrixError& e) {
     std::cerr << "Matrix is singular: " << e.what() << "\n";
 } catch (const MatrixDimensionError& e) {
@@ -1497,3 +1500,6 @@ All types are:
 
 *Last Updated: December 27, 2025*  
 *MML Version: 1.0*
+
+Matrix inversion now belongs to algorithms, not base containers; see
+[the inversion and formatting migration](../algorithms/MatrixInversionAndFormatting.md).

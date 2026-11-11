@@ -355,7 +355,7 @@ namespace MML::AD
     }
 
     template<typename F>
-    std::vector<Real> gradientReverse(F&& f, const std::vector<Real>& x)
+    std::vector<Real> CalcGradientReverseAD(F&& f, const std::vector<Real>& x)
     {
         Tape tape;
         std::vector<ADVar> variables;
@@ -373,6 +373,12 @@ namespace MML::AD
 
         return grad;
     }
+
+    // ---- Deprecated 2.0 spelling (CONTRACT_POLICY section 11) ----
+    template<typename F>
+    [[deprecated("use CalcGradientReverseAD()")]]
+    std::vector<Real> gradientReverse(F&& f, const std::vector<Real>& x) { return CalcGradientReverseAD(std::forward<F>(f), x); }
+
 }
 
 #endif // MML_AD_REVERSE_AD_H

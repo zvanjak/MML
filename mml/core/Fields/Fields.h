@@ -202,7 +202,7 @@ namespace MML::Fields
 			if (r_sq < Singularity::DEFAULT_SINGULARITY_TOL * Singularity::DEFAULT_SINGULARITY_TOL) return VectorN<Real, 3>{0.0, 0.0, 0.0};  // On the wire
 			
 			// B direction: d × r̂ (right-hand rule), magnitude: constant/r
-			Vec3Cart B_dir = VectorProduct(_line.Direction(), radial.GetAsUnitVector());
+			Vec3Cart B_dir = VectorProduct(_line.Direction(), radial.Normalized());
 			Real factor = _constant / std::sqrt(r_sq);
 			
 			return VectorN<Real, 3>{factor * B_dir.X(), factor * B_dir.Y(), factor * B_dir.Z()};

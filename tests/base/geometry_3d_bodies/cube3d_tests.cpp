@@ -85,7 +85,7 @@ TEST_CASE("Cube3D::GetCenter", "[geometry][cube][center]")
     SECTION("Cube centered at origin")
     {
         Cube3D cube(5.0);
-        Pnt3Cart center = cube.GetCenter();
+        Pnt3Cart center = cube.getCenter();
         REQUIRE_THAT(center.X() , RealApprox(0.0));
         REQUIRE_THAT(center.Y() , RealApprox(0.0));
         REQUIRE_THAT(center.Z() , RealApprox(0.0));
@@ -95,7 +95,7 @@ TEST_CASE("Cube3D::GetCenter", "[geometry][cube][center]")
     {
         Pnt3Cart expected(10.0, 20.0, 30.0);
         Cube3D cube(5.0, expected);
-        Pnt3Cart center = cube.GetCenter();
+        Pnt3Cart center = cube.getCenter();
         REQUIRE_THAT(center.X() , RealApprox(10.0));
         REQUIRE_THAT(center.Y() , RealApprox(20.0));
         REQUIRE_THAT(center.Z() , RealApprox(30.0));
@@ -107,7 +107,7 @@ TEST_CASE("Cube3D::GetBoundingBox", "[geometry][cube][bounding]")
     SECTION("Unit cube centered at origin")
     {
         Cube3D cube(1.0);
-        Box3D bbox = cube.GetBoundingBox();
+        Box3D bbox = cube.getBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-0.5));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(-0.5));
@@ -121,7 +121,7 @@ TEST_CASE("Cube3D::GetBoundingBox", "[geometry][cube][bounding]")
     SECTION("Cube with side 10 centered at origin")
     {
         Cube3D cube(10.0);
-        Box3D bbox = cube.GetBoundingBox();
+        Box3D bbox = cube.getBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-5.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(-5.0));
@@ -136,7 +136,7 @@ TEST_CASE("Cube3D::GetBoundingBox", "[geometry][cube][bounding]")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         Cube3D cube(6.0, center);
-        Box3D bbox = cube.GetBoundingBox();
+        Box3D bbox = cube.getBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(7.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(17.0));
@@ -150,7 +150,7 @@ TEST_CASE("Cube3D::GetBoundingBox", "[geometry][cube][bounding]")
     SECTION("Bounding box dimensions match cube side")
     {
         Cube3D cube(8.0);
-        Box3D bbox = cube.GetBoundingBox();
+        Box3D bbox = cube.getBoundingBox();
         Real width = bbox.Max().X() - bbox.Min().X();
         Real height = bbox.Max().Y() - bbox.Min().Y();
         Real depth = bbox.Max().Z() - bbox.Min().Z();
@@ -166,7 +166,7 @@ TEST_CASE("Cube3D::GetBoundingSphere", "[geometry][cube][bounding]")
     SECTION("Bounding sphere centered at origin")
     {
         Cube3D cube(2.0);
-        BoundingSphere3D bsphere = cube.GetBoundingSphere();
+        BoundingSphere3D bsphere = cube.getBoundingSphere();
         
         REQUIRE_THAT(bsphere.Center().X() , RealApprox(0.0));
         REQUIRE_THAT(bsphere.Center().Y() , RealApprox(0.0));
@@ -181,7 +181,7 @@ TEST_CASE("Cube3D::GetBoundingSphere", "[geometry][cube][bounding]")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         Cube3D cube(4.0, center);
-        BoundingSphere3D bsphere = cube.GetBoundingSphere();
+        BoundingSphere3D bsphere = cube.getBoundingSphere();
         
         REQUIRE_THAT(bsphere.Center().X() , RealApprox(10.0));
         REQUIRE_THAT(bsphere.Center().Y() , RealApprox(20.0));
@@ -195,7 +195,7 @@ TEST_CASE("Cube3D::GetBoundingSphere", "[geometry][cube][bounding]")
     SECTION("Bounding sphere contains all corners")
     {
         Cube3D cube(6.0);
-        BoundingSphere3D bsphere = cube.GetBoundingSphere();
+        BoundingSphere3D bsphere = cube.getBoundingSphere();
         
         // Corner at maximum distance: (3, 3, 3) from origin
         Pnt3Cart corner(3.0, 3.0, 3.0);
@@ -213,7 +213,7 @@ TEST_CASE("Cube3D::ToString", "[geometry][cube][string]")
     SECTION("Cube at origin")
     {
         Cube3D cube(5.0);
-        std::string str = cube.ToString();
+        std::string str = cube.to_string();
         
         REQUIRE(str.find("Cube3D") != std::string::npos);
         REQUIRE(str.find("Center") != std::string::npos);
@@ -226,7 +226,7 @@ TEST_CASE("Cube3D::ToString", "[geometry][cube][string]")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         Cube3D cube(3.0, center);
-        std::string str = cube.ToString();
+        std::string str = cube.to_string();
         
         REQUIRE(str.find("10") != std::string::npos);
         REQUIRE(str.find("20") != std::string::npos);
@@ -240,14 +240,14 @@ TEST_CASE("Cube3D::GetSide", "[geometry][cube][getters]")
     SECTION("GetSide returns correct value")
     {
         Cube3D cube(7.5);
-        REQUIRE_THAT(cube.GetSide() , RealApprox(7.5));
+        REQUIRE_THAT(cube.getSide() , RealApprox(7.5));
     }
 
     SECTION("GetSide for cube at arbitrary center")
     {
         Pnt3Cart center(1.0, 2.0, 3.0);
         Cube3D cube(12.0, center);
-        REQUIRE_THAT(cube.GetSide() , RealApprox(12.0));
+        REQUIRE_THAT(cube.getSide() , RealApprox(12.0));
     }
 }
 
@@ -334,12 +334,12 @@ TEST_CASE("BodyWithRectSurfaces derives geometry from a closed quad mesh", "[geo
     REQUIRE_THAT(cube.BodyWithRectSurfaces::Volume(), RealApprox(8.0));
     REQUIRE_THAT(cube.BodyWithRectSurfaces::SurfaceArea(), RealApprox(24.0));
 
-    const Pnt3Cart center = cube.BodyWithRectSurfaces::GetCenter();
+    const Pnt3Cart center = cube.BodyWithRectSurfaces::getCenter();
     REQUIRE_THAT(center.X(), RealApprox(3.0));
     REQUIRE_THAT(center.Y(), RealApprox(4.0));
     REQUIRE_THAT(center.Z(), RealApprox(5.0));
 
-    const Box3D box = cube.BodyWithRectSurfaces::GetBoundingBox();
+    const Box3D box = cube.BodyWithRectSurfaces::getBoundingBox();
     REQUIRE_THAT(box.Min().X(), RealApprox(2.0));
     REQUIRE_THAT(box.Min().Y(), RealApprox(3.0));
     REQUIRE_THAT(box.Min().Z(), RealApprox(4.0));
@@ -360,19 +360,19 @@ TEST_CASE("ISolidBodyWithBoundary numerically derives body geometry", "[geometry
     REQUIRE_THAT(box.Volume(), RealApprox(24.0));
     REQUIRE_THAT(box.SurfaceArea(), RealApprox(52.0));
 
-    const Pnt3Cart center = box.GetCenter();
+    const Pnt3Cart center = box.getCenter();
     REQUIRE_THAT(center.X(), RealApprox(3.0));
     REQUIRE_THAT(center.Y(), RealApprox(0.5));
     REQUIRE_THAT(center.Z(), RealApprox(7.0));
 
-    const Box3D bounds = box.GetBoundingBox();
+    const Box3D bounds = box.getBoundingBox();
     REQUIRE_THAT(bounds.Min().X(), RealApprox(2.0));
     REQUIRE_THAT(bounds.Min().Y(), RealApprox(-1.0));
     REQUIRE_THAT(bounds.Min().Z(), RealApprox(5.0));
     REQUIRE_THAT(bounds.Max().X(), RealApprox(4.0));
     REQUIRE_THAT(bounds.Max().Y(), RealApprox(2.0));
     REQUIRE_THAT(bounds.Max().Z(), RealApprox(9.0));
-    REQUIRE_THAT(box.GetBoundingSphere().Radius(), RealApprox(std::sqrt(7.25)));
+    REQUIRE_THAT(box.getBoundingSphere().Radius(), RealApprox(std::sqrt(7.25)));
 
     REQUIRE(box.IsInside(Pnt3Cart(3.0, 0.0, 7.0)));
     REQUIRE_FALSE(box.IsInside(Pnt3Cart(4.1, 0.0, 7.0)));

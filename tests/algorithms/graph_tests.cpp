@@ -10,6 +10,11 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <algorithm>
+#include <limits>
+#include <numeric>
+#include <random>
+
 using namespace MML;
 
 namespace MML::Tests::Algorithms::GraphTests
@@ -145,9 +150,9 @@ TEST_CASE("Graph - edge weights are stored correctly", "[Graph][edge]")
 	g.addEdge(0, 1, 1.5);
 	g.addEdge(1, 2, 2.7);
 
-	REQUIRE_THAT(g.edgeWeight(0, 1), Catch::Matchers::WithinRel(REAL(1.5), TOL(1e-10, 1e-5)));
-	REQUIRE_THAT(g.edgeWeight(1, 0), Catch::Matchers::WithinRel(REAL(1.5), TOL(1e-10, 1e-5)));
-	REQUIRE_THAT(g.edgeWeight(1, 2), Catch::Matchers::WithinRel(REAL(2.7), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(g.edgeWeight(0, 1), Catch::Matchers::WithinRel(static_cast<MML::Real>(1.5), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(g.edgeWeight(1, 0), Catch::Matchers::WithinRel(static_cast<MML::Real>(1.5), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(g.edgeWeight(1, 2), Catch::Matchers::WithinRel(static_cast<MML::Real>(2.7), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Graph - addEdge throws for duplicate edge", "[Graph][edge]")
@@ -172,7 +177,7 @@ TEST_CASE("Graph - self-loops allowed when enabled", "[Graph][edge]")
 	g.addEdge(0, 0, 5.0);
 
 	REQUIRE(g.hasEdge(0, 0));
-	REQUIRE_THAT(g.edgeWeight(0, 0), Catch::Matchers::WithinRel(REAL(5.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(g.edgeWeight(0, 0), Catch::Matchers::WithinRel(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Graph - removeEdge removes edges", "[Graph][edge]")
@@ -282,10 +287,10 @@ TEST_CASE("Graph - toAdjacencyMatrix for undirected graph", "[Graph][matrix]")
 	REQUIRE(A.cols() == 3);
 
 	// Check symmetric structure
-	REQUIRE_THAT(A(0, 1), Catch::Matchers::WithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
-	REQUIRE_THAT(A(1, 0), Catch::Matchers::WithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
-	REQUIRE_THAT(A(1, 2), Catch::Matchers::WithinRel(REAL(2.0), TOL(1e-10, 1e-5)));
-	REQUIRE_THAT(A(2, 1), Catch::Matchers::WithinRel(REAL(2.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(A(0, 1), Catch::Matchers::WithinRel(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(A(1, 0), Catch::Matchers::WithinRel(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(A(1, 2), Catch::Matchers::WithinRel(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(A(2, 1), Catch::Matchers::WithinRel(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
 
 	// Check zeros
 	REQUIRE_THAT(A(0, 0), Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
@@ -307,17 +312,17 @@ TEST_CASE("Graph - toLaplacianMatrix", "[Graph][matrix]")
 	// [-1   2  -1 ]
 	// [ 0  -1   1 ]
 
-	REQUIRE_THAT(L(0, 0), Catch::Matchers::WithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
-	REQUIRE_THAT(L(0, 1), Catch::Matchers::WithinRel(REAL(-1.0), TOL(1e-10, 1e-5)));
-	REQUIRE_THAT(L(0, 2), Catch::Matchers::WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(0, 0), Catch::Matchers::WithinRel(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(0, 1), Catch::Matchers::WithinRel(static_cast<MML::Real>(-1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(0, 2), Catch::Matchers::WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 
-	REQUIRE_THAT(L(1, 0), Catch::Matchers::WithinRel(REAL(-1.0), TOL(1e-10, 1e-5)));
-	REQUIRE_THAT(L(1, 1), Catch::Matchers::WithinRel(REAL(2.0), TOL(1e-10, 1e-5)));
-	REQUIRE_THAT(L(1, 2), Catch::Matchers::WithinRel(REAL(-1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(1, 0), Catch::Matchers::WithinRel(static_cast<MML::Real>(-1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(1, 1), Catch::Matchers::WithinRel(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(1, 2), Catch::Matchers::WithinRel(static_cast<MML::Real>(-1.0), TOL(1e-10, 1e-5)));
 
-	REQUIRE_THAT(L(2, 0), Catch::Matchers::WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-	REQUIRE_THAT(L(2, 1), Catch::Matchers::WithinRel(REAL(-1.0), TOL(1e-10, 1e-5)));
-	REQUIRE_THAT(L(2, 2), Catch::Matchers::WithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(2, 0), Catch::Matchers::WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(2, 1), Catch::Matchers::WithinRel(static_cast<MML::Real>(-1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(2, 2), Catch::Matchers::WithinRel(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Graph - Laplacian row sums are zero", "[Graph][matrix]")
@@ -1110,7 +1115,7 @@ TEST_CASE("FloydWarshall - computes weighted all-pairs paths", "[Graph][FloydWar
 	REQUIRE(result.status == AlgorithmStatus::Success);
 	REQUIRE(result.graphStatus == GraphAlgorithmStatus::Success);
 	REQUIRE(result.succeeded());
-	REQUIRE_THAT(result.distance[0][3], Catch::Matchers::WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(result.distance[0][3], Catch::Matchers::WithinAbs(static_cast<MML::Real>(6.0), TOL(1e-10, 1e-5)));
 	REQUIRE(result.path(0, 3) == std::vector<size_t>{0, 1, 2, 3});
 	REQUIRE_FALSE(result.hasPath(3, 0));
 }
@@ -1127,7 +1132,7 @@ TEST_CASE("FloydWarshall - supports negative edges without negative cycle", "[Gr
 
 	REQUIRE(result.status == AlgorithmStatus::Success);
 	REQUIRE(result.graphStatus == GraphAlgorithmStatus::Success);
-	REQUIRE_THAT(result.distance[0][3], Catch::Matchers::WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(result.distance[0][3], Catch::Matchers::WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
 	REQUIRE(result.path(0, 3) == std::vector<size_t>{0, 1, 2, 3});
 }
 
@@ -1408,8 +1413,8 @@ TEST_CASE("EdmondsKarp and Dinic - compute canonical max flow and min cut", "[Gr
 	REQUIRE(edmondsKarp.graphStatus == GraphAlgorithmStatus::Success);
 	REQUIRE(dinic.status == AlgorithmStatus::Success);
 	REQUIRE(dinic.graphStatus == GraphAlgorithmStatus::Success);
-	REQUIRE_THAT(edmondsKarp.maxFlow, Catch::Matchers::WithinAbs(REAL(23.0), TOL(1e-10, 1e-5)));
-	REQUIRE_THAT(dinic.maxFlow, Catch::Matchers::WithinAbs(REAL(23.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(edmondsKarp.maxFlow, Catch::Matchers::WithinAbs(static_cast<MML::Real>(23.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(dinic.maxFlow, Catch::Matchers::WithinAbs(static_cast<MML::Real>(23.0), TOL(1e-10, 1e-5)));
 	REQUIRE(edmondsKarp.sourceSide == std::vector<size_t>{0, 1, 2, 4});
 	REQUIRE(edmondsKarp.sinkSide == std::vector<size_t>{3, 5});
 	REQUIRE(edmondsKarp.cutEdges.size() == 3);
@@ -1757,6 +1762,484 @@ TEST_CASE("Prim and Kruskal produce same total weight", "[Graph][MST]")
 	REQUIRE(kruskalResult.isComplete);
 	REQUIRE(primResult.isComplete);
 	REQUIRE(kruskalResult.totalWeight == primResult.totalWeight);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+///                  SEEDED RANDOMIZED DIFFERENTIAL TESTS                               ///
+///////////////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+	using TestGraph = Graph<int, Real>;
+	constexpr unsigned GraphSeeds[] = {17u, 20261014u, 0xC0FFEEu};
+	constexpr size_t GraphSizes[] = {0, 1, 2, 5, 11};
+	constexpr unsigned GraphDensities[] = {0, 25, 75, 100};
+
+	TestGraph RandomGraph(std::mt19937& rng, size_t n, TestGraph::Type type,
+		unsigned density, int minWeight, int maxWeight, bool dag = false)
+	{
+		TestGraph graph(n, type);
+		std::vector<size_t> order(n);
+		std::iota(order.begin(), order.end(), size_t{0});
+		if (dag)
+			for (size_t remaining = n; remaining > 1; --remaining)
+				std::swap(order[remaining - 1], order[rng() % remaining]);
+		for (size_t u = 0; u < n; ++u)
+			for (size_t v = 0; v < n; ++v)
+			{
+				if (u == v || ((graph.isUndirected() || dag) && u > v))
+					continue;
+				// Use engine output directly so the graph is reproducible across standard libraries.
+				if (rng() % 100 < density)
+				{
+					int weight = minWeight + static_cast<int>(rng() % (maxWeight - minWeight + 1));
+					graph.addEdge(order[u], order[v], static_cast<Real>(weight));
+				}
+			}
+		return graph;
+	}
+
+	void RequirePath(const TestGraph& graph, const std::vector<size_t>& path,
+		size_t source, size_t target, Real expectedDistance)
+	{
+		if (expectedDistance == std::numeric_limits<Real>::infinity())
+		{
+			REQUIRE(path.empty());
+			return;
+		}
+		REQUIRE_FALSE(path.empty());
+		REQUIRE(path.size() <= graph.numVertices());
+		REQUIRE(path.front() == source);
+		REQUIRE(path.back() == target);
+		std::vector<bool> seen(graph.numVertices(), false);
+		Real weight = 0;
+		for (size_t i = 0; i < path.size(); ++i)
+		{
+			REQUIRE(path[i] < graph.numVertices());
+			REQUIRE_FALSE(seen[path[i]]);
+			seen[path[i]] = true;
+			if (i > 0)
+			{
+				REQUIRE(graph.hasEdge(path[i - 1], path[i]));
+				weight += graph.edgeWeight(path[i - 1], path[i]);
+			}
+		}
+		// Small integral weights and their sums are represented exactly.
+		REQUIRE(weight == expectedDistance);
+	}
+
+	void RequireTraversalTree(const TestGraph& graph, const TraversalResult& result,
+		size_t source, const std::vector<Real>& expected)
+	{
+		REQUIRE(result.succeeded());
+		REQUIRE(result.distance == expected);
+		REQUIRE(result.parent.size() == graph.numVertices());
+		size_t reachable = 0;
+		for (size_t target = 0; target < graph.numVertices(); ++target)
+		{
+			if (expected[target] == std::numeric_limits<Real>::infinity())
+			{
+				REQUIRE(result.parent[target] == GRAPH_NOT_FOUND);
+				continue;
+			}
+			++reachable;
+			std::vector<size_t> path;
+			size_t current = target;
+			while (current != GRAPH_NOT_FOUND)
+			{
+				REQUIRE(current < graph.numVertices());
+				REQUIRE(path.size() < graph.numVertices());
+				path.push_back(current);
+				current = result.parent[current];
+			}
+			std::reverse(path.begin(), path.end());
+			RequirePath(graph, path, source, target, expected[target]);
+		}
+		REQUIRE(result.nodesVisited == reachable);
+	}
+
+	void RequireForest(const TestGraph& graph, const MSTResult& result)
+	{
+		std::vector<size_t> component(graph.numVertices());
+		std::iota(component.begin(), component.end(), size_t{0});
+		Real total = 0;
+		for (const auto& [u, v, weight] : result.edges)
+		{
+			REQUIRE(u < graph.numVertices());
+			REQUIRE(v < graph.numVertices());
+			REQUIRE(graph.hasEdge(u, v));
+			REQUIRE(graph.edgeWeight(u, v) == weight);
+			REQUIRE(component[u] != component[v]);
+			const size_t oldComponent = component[v];
+			const size_t newComponent = component[u];
+			std::replace(component.begin(), component.end(), oldComponent, newComponent);
+			total += weight;
+		}
+		REQUIRE(total == result.totalWeight);
+	}
+}
+
+TEST_CASE("Graph differential - nonnegative shortest paths agree on seeded random graphs",
+	"[Graph][differential][shortest-path]")
+{
+	for (unsigned seed : GraphSeeds)
+	{
+		std::mt19937 rng(seed);
+		for (size_t n : GraphSizes)
+			for (unsigned density : GraphDensities)
+				for (auto type : {TestGraph::Type::Directed, TestGraph::Type::Undirected})
+				{
+					CAPTURE(seed, n, density, type);
+					auto graph = RandomGraph(rng, n, type, density, 0, 9);
+					auto floyd = FloydWarshall(graph);
+					auto johnson = Johnson(graph);
+					REQUIRE(floyd.succeeded());
+					REQUIRE(johnson.succeeded());
+					REQUIRE(floyd.distance.size() == n);
+					REQUIRE(johnson.distance == floyd.distance);
+					for (size_t source = 0; source < n; ++source)
+					{
+						CAPTURE(source);
+						auto dijkstra = Dijkstra(graph, source);
+						auto bellman = BellmanFord(graph, source);
+						RequireTraversalTree(graph, dijkstra, source, floyd.distance[source]);
+						RequireTraversalTree(graph, bellman, source, floyd.distance[source]);
+						for (size_t target = 0; target < n; ++target)
+						{
+							CAPTURE(target);
+							Real distance = floyd.distance[source][target];
+							bool reachable = distance != std::numeric_limits<Real>::infinity();
+							auto path = DijkstraPath(graph, source, target);
+							auto astar = AStarPath(graph, source, target,
+								[](size_t, size_t) { return Real{0}; });
+							REQUIRE(path.found == reachable);
+							REQUIRE(astar.found == reachable);
+							REQUIRE(path.succeeded() == reachable);
+							REQUIRE(astar.succeeded() == reachable);
+							REQUIRE(floyd.hasPath(source, target) == reachable);
+							REQUIRE(johnson.hasPath(source, target) == reachable);
+							RequirePath(graph, path.path, source, target, distance);
+							RequirePath(graph, astar.path, source, target, distance);
+							RequirePath(graph, floyd.path(source, target), source, target, distance);
+							RequirePath(graph, johnson.path(source, target), source, target, distance);
+							if (reachable)
+							{
+								REQUIRE(path.totalWeight == distance);
+								REQUIRE(astar.totalWeight == distance);
+							}
+							else
+							{
+								REQUIRE(path.graphStatus == GraphAlgorithmStatus::UnreachableTarget);
+								REQUIRE(astar.graphStatus == GraphAlgorithmStatus::UnreachableTarget);
+							}
+						}
+					}
+				}
+	}
+}
+
+TEST_CASE("Graph differential - negative weight DAG shortest paths and topological order",
+	"[Graph][differential][shortest-path][TopologicalSort]")
+{
+	for (unsigned seed : GraphSeeds)
+	{
+		std::mt19937 rng(seed);
+		for (size_t n : GraphSizes)
+			for (unsigned density : GraphDensities)
+			{
+				CAPTURE(seed, n, density);
+				auto graph = RandomGraph(rng, n, TestGraph::Type::Directed, density, -9, 9, true);
+				auto floyd = FloydWarshall(graph);
+				auto johnson = Johnson(graph);
+				REQUIRE(floyd.succeeded());
+				REQUIRE(johnson.succeeded());
+				REQUIRE(johnson.distance == floyd.distance);
+				auto topological = TopologicalSort(graph);
+				REQUIRE(topological.succeeded());
+				REQUIRE(topological.isDAG);
+				REQUIRE(topological.order.size() == n);
+				std::vector<size_t> position(n, GRAPH_NOT_FOUND);
+				for (size_t i = 0; i < n; ++i)
+				{
+					size_t vertex = topological.order[i];
+					REQUIRE(vertex < n);
+					REQUIRE(position[vertex] == GRAPH_NOT_FOUND);
+					position[vertex] = i;
+				}
+				for (const auto& [u, v, weight] : graph.edges())
+				{
+					(void)weight;
+					REQUIRE(position[u] < position[v]);
+				}
+				for (size_t source = 0; source < n; ++source)
+				{
+					CAPTURE(source);
+					RequireTraversalTree(graph, BellmanFord(graph, source), source, floyd.distance[source]);
+					for (size_t target = 0; target < n; ++target)
+					{
+						CAPTURE(target);
+						RequirePath(graph, floyd.path(source, target), source, target, floyd.distance[source][target]);
+						RequirePath(graph, johnson.path(source, target), source, target, floyd.distance[source][target]);
+					}
+				}
+			}
+	}
+}
+
+TEST_CASE("Graph differential - unit weight traversals and components agree",
+	"[Graph][differential][BFS][DFS]")
+{
+	for (unsigned seed : GraphSeeds)
+	{
+		std::mt19937 rng(seed);
+		for (size_t n : GraphSizes)
+			for (unsigned density : GraphDensities)
+				for (auto type : {TestGraph::Type::Directed, TestGraph::Type::Undirected})
+				{
+					CAPTURE(seed, n, density, type);
+					auto graph = RandomGraph(rng, n, type, density, 1, 1);
+					auto floyd = FloydWarshall(graph);
+					REQUIRE(floyd.succeeded());
+					for (size_t source = 0; source < n; ++source)
+					{
+						CAPTURE(source);
+						auto bfs = BFS(graph, source);
+						auto dfs = DFS(graph, source);
+						RequireTraversalTree(graph, bfs, source, floyd.distance[source]);
+						RequireTraversalTree(graph, Dijkstra(graph, source), source, bfs.distance);
+						RequireTraversalTree(graph, dfs, source, dfs.distance);
+						auto bfsOrder = bfs.visitOrder;
+						auto dfsOrder = dfs.visitOrder;
+						std::sort(bfsOrder.begin(), bfsOrder.end());
+						std::sort(dfsOrder.begin(), dfsOrder.end());
+						REQUIRE(bfsOrder == dfsOrder);
+						REQUIRE(std::adjacent_find(bfsOrder.begin(), bfsOrder.end()) == bfsOrder.end());
+						REQUIRE(bfsOrder.size() == bfs.nodesVisited);
+						for (size_t target = 0; target < n; ++target)
+							REQUIRE((bfs.distance[target] != std::numeric_limits<Real>::infinity()) ==
+								(dfs.distance[target] != std::numeric_limits<Real>::infinity()));
+					}
+					if (graph.isUndirected())
+					{
+						auto components = ConnectedComponents(graph);
+						REQUIRE(components.succeeded());
+						REQUIRE(components.componentId.size() == n);
+						REQUIRE(components.numComponents == components.components.size());
+						std::vector<bool> seen(n, false);
+						for (size_t id = 0; id < components.numComponents; ++id)
+						{
+							REQUIRE_FALSE(components.components[id].empty());
+							for (size_t v : components.components[id])
+							{
+								REQUIRE(v < n);
+								REQUIRE_FALSE(seen[v]);
+								seen[v] = true;
+								REQUIRE(components.componentId[v] == id);
+							}
+						}
+						REQUIRE(std::all_of(seen.begin(), seen.end(), [](bool v) { return v; }));
+						REQUIRE(IsConnected(graph) == (n == 0 || components.numComponents == 1));
+						for (size_t u = 0; u < n; ++u)
+							for (size_t v = 0; v < n; ++v)
+								REQUIRE((components.componentId[u] == components.componentId[v]) == floyd.hasPath(u, v));
+					}
+				}
+	}
+}
+
+TEST_CASE("Graph differential - vertex potentials preserve cyclic shortest paths",
+	"[Graph][differential][shortest-path][Johnson]")
+{
+	for (unsigned seed : GraphSeeds)
+	{
+		std::mt19937 rng(seed);
+		for (size_t n : GraphSizes)
+			for (unsigned density : GraphDensities)
+			{
+				CAPTURE(seed, n, density);
+				auto nonnegative = RandomGraph(rng, n, TestGraph::Type::Directed, density, 0, 9);
+				std::vector<Real> potential(n);
+				for (Real& value : potential)
+					value = static_cast<Real>(static_cast<int>(rng() % 19) - 9);
+				TestGraph graph(n, TestGraph::Type::Directed);
+				// Potentials telescope on paths and cancel on cycles: no negative cycle is possible.
+				for (const auto& [u, v, weight] : nonnegative.edges())
+					graph.addEdge(u, v, weight + potential[v] - potential[u]);
+				auto reference = FloydWarshall(nonnegative);
+				auto floyd = FloydWarshall(graph);
+				auto johnson = Johnson(graph);
+				REQUIRE(reference.succeeded());
+				REQUIRE(floyd.succeeded());
+				REQUIRE(johnson.succeeded());
+				REQUIRE(floyd.distance.size() == n);
+				REQUIRE(johnson.distance == floyd.distance);
+				for (size_t source = 0; source < n; ++source)
+				{
+					CAPTURE(source);
+					std::vector<Real> expected = reference.distance[source];
+					for (size_t target = 0; target < n; ++target)
+						if (reference.hasPath(source, target))
+							expected[target] += potential[target] - potential[source];
+					REQUIRE(floyd.distance[source] == expected);
+					RequireTraversalTree(graph, BellmanFord(graph, source), source, expected);
+					for (size_t target = 0; target < n; ++target)
+					{
+						CAPTURE(target);
+						RequirePath(graph, floyd.path(source, target), source, target, expected[target]);
+						RequirePath(graph, johnson.path(source, target), source, target, expected[target]);
+					}
+				}
+			}
+	}
+}
+
+TEST_CASE("Graph differential - Prim and Kruskal agree on random trees and forests",
+	"[Graph][differential][MST]")
+{
+	for (unsigned seed : GraphSeeds)
+	{
+		std::mt19937 rng(seed);
+		for (size_t n : GraphSizes)
+			for (unsigned density : GraphDensities)
+			{
+				CAPTURE(seed, n, density);
+				auto graph = RandomGraph(rng, n, TestGraph::Type::Undirected, density, -5, 5);
+				auto components = ConnectedComponents(graph);
+				auto kruskal = Kruskal(graph);
+				bool connected = n == 0 || components.numComponents == 1;
+				REQUIRE(kruskal.isComplete == connected);
+				REQUIRE(kruskal.succeeded() == connected);
+				REQUIRE(kruskal.edges.size() == n - components.numComponents);
+				RequireForest(graph, kruskal);
+				if (n == 0)
+				{
+					auto prim = Prim(graph);
+					REQUIRE(prim.succeeded());
+					REQUIRE(prim.isComplete);
+					REQUIRE(prim.edges.empty());
+					REQUIRE(prim.totalWeight == kruskal.totalWeight);
+				}
+				for (size_t start = 0; start < n; ++start)
+				{
+					CAPTURE(start);
+					auto prim = Prim(graph, start);
+					REQUIRE(prim.isComplete == connected);
+					REQUIRE(prim.succeeded() == connected);
+					RequireForest(graph, prim);
+					size_t id = components.componentId[start];
+					REQUIRE(prim.edges.size() == components.components[id].size() - 1);
+					Real componentWeight = 0;
+					for (const auto& [u, v, weight] : kruskal.edges)
+					{
+						(void)v;
+						if (components.componentId[u] == id)
+							componentWeight += weight;
+					}
+					for (const auto& [u, v, weight] : prim.edges)
+					{
+						(void)weight;
+						REQUIRE(components.componentId[u] == id);
+						REQUIRE(components.componentId[v] == id);
+					}
+					REQUIRE(prim.totalWeight == componentWeight);
+					if (!connected)
+					{
+						REQUIRE(prim.graphStatus == GraphAlgorithmStatus::DisconnectedGraph);
+						REQUIRE(kruskal.graphStatus == GraphAlgorithmStatus::DisconnectedGraph);
+					}
+				}
+			}
+	}
+}
+
+TEST_CASE("Graph differential - strong components match mutual reachability",
+	"[Graph][differential][SCC]")
+{
+	for (unsigned seed : GraphSeeds)
+	{
+		std::mt19937 rng(seed);
+		for (size_t n : GraphSizes)
+			for (unsigned density : GraphDensities)
+			{
+				CAPTURE(seed, n, density);
+				auto graph = RandomGraph(rng, n, TestGraph::Type::Directed, density, 1, 1);
+				auto floyd = FloydWarshall(graph);
+				auto scc = StronglyConnectedComponents(graph);
+				REQUIRE(floyd.succeeded());
+				REQUIRE(scc.succeeded());
+				REQUIRE(scc.componentId.size() == n);
+				REQUIRE(scc.numComponents == scc.components.size());
+				std::vector<bool> seen(n, false);
+				for (size_t id = 0; id < scc.numComponents; ++id)
+				{
+					REQUIRE_FALSE(scc.components[id].empty());
+					for (size_t v : scc.components[id])
+					{
+						REQUIRE(v < n);
+						REQUIRE_FALSE(seen[v]);
+						seen[v] = true;
+						REQUIRE(scc.componentId[v] == id);
+					}
+				}
+				REQUIRE(std::all_of(seen.begin(), seen.end(), [](bool v) { return v; }));
+				for (size_t u = 0; u < n; ++u)
+					for (size_t v = 0; v < n; ++v)
+						REQUIRE((scc.componentId[u] == scc.componentId[v]) ==
+							(floyd.hasPath(u, v) && floyd.hasPath(v, u)));
+				TestGraph condensation(scc.numComponents, TestGraph::Type::Directed);
+				for (const auto& [u, v] : scc.condensationEdges)
+					condensation.addEdge(u, v);
+				REQUIRE(TopologicalSort(condensation).succeeded());
+			}
+	}
+}
+
+TEST_CASE("Graph differential - negative cycle detection respects source reachability",
+	"[Graph][differential][BellmanFord]")
+{
+	for (unsigned seed : GraphSeeds)
+	{
+		std::mt19937 rng(seed);
+		for (size_t cycleSize : {size_t{2}, size_t{5}, size_t{11}})
+		{
+			CAPTURE(seed, cycleSize);
+			TestGraph graph(cycleSize + 1, TestGraph::Type::Directed);
+			Real total = 0;
+			for (size_t u = 0; u + 1 < cycleSize; ++u)
+			{
+				Real weight = static_cast<Real>(rng() % 10);
+				graph.addEdge(u, u + 1, weight);
+				total += weight;
+			}
+			graph.addEdge(cycleSize - 1, 0, -total - 1);
+			auto floyd = FloydWarshall(graph);
+			auto johnson = Johnson(graph);
+			REQUIRE_FALSE(floyd.succeeded());
+			REQUIRE_FALSE(johnson.succeeded());
+			REQUIRE(floyd.graphStatus == GraphAlgorithmStatus::NegativeCycle);
+			REQUIRE(johnson.graphStatus == GraphAlgorithmStatus::NegativeCycle);
+			for (size_t source = 0; source <= cycleSize; ++source)
+			{
+				CAPTURE(source);
+				auto bellman = BellmanFord(graph, source);
+				bool onCycle = source < cycleSize;
+				REQUIRE(bellman.succeeded() == !onCycle);
+				REQUIRE(HasNegativeCycle(graph, source) == onCycle);
+				if (onCycle)
+				{
+					REQUIRE(bellman.graphStatus == GraphAlgorithmStatus::NegativeCycle);
+					REQUIRE(bellman.distance.empty());
+					REQUIRE(bellman.parent.empty());
+				}
+				else
+				{
+					std::vector<Real> expected(cycleSize + 1, std::numeric_limits<Real>::infinity());
+					expected[source] = 0;
+					RequireTraversalTree(graph, bellman, source, expected);
+				}
+			}
+		}
+	}
 }
 
 // Spectral graph analysis + centrality tests moved to MML-Packages

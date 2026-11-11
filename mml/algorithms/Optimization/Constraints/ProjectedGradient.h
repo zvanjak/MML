@@ -24,28 +24,22 @@ namespace MML::Optimization
 	{
 		Real gradient_tolerance = PrecisionValues<Real>::OptimizationGradientTolerance;
 		Real step_tolerance = PrecisionValues<Real>::OptimizationTolerance;
-		Real initial_step = REAL(1.0);
-		Real min_step = REAL(1e-14);
-		Real contraction = REAL(0.5);
-		Real armijo = REAL(1e-4);
+		Real initial_step = static_cast<MML::Real>(1.0);
+		Real min_step = Precision::RoundoffZeroThreshold;
+		Real contraction = static_cast<MML::Real>(0.5);
+		Real armijo = Precision::ArmijoSufficientDecrease;
 		int max_iterations = 1000;
 		bool verbose = false;
 	};
 
 	template<int N>
-	struct ProjectedGradientResult
-	{
+	struct [[nodiscard]] ProjectedGradientResult : IterativeResultBase {
 		VectorN<Real, N> xmin;
-		Real fmin = REAL(0.0);
-		Real projected_gradient_norm = REAL(0.0);
-		Real step_norm = REAL(0.0);
+		Real fmin = static_cast<MML::Real>(0.0);
+		Real projected_gradient_norm = static_cast<MML::Real>(0.0);
+		Real step_norm = static_cast<MML::Real>(0.0);
 		int iterations = 0;
-		int function_evaluations = 0;
 		int gradient_evaluations = 0;
-		bool converged = false;
-		AlgorithmStatus status = AlgorithmStatus::Success;
-		std::string error_message;
-		double elapsed_time_ms = 0.0;
 	};
 
 	namespace Detail
@@ -53,7 +47,7 @@ namespace MML::Optimization
 		template<int N>
 		Real Dot(const VectorN<Real, N>& left, const VectorN<Real, N>& right)
 		{
-			Real result = REAL(0.0);
+			Real result = static_cast<MML::Real>(0.0);
 			for (int index = 0; index < N; ++index)
 				result += left[index] * right[index];
 			return result;
@@ -88,9 +82,9 @@ namespace MML::Optimization
 			ValidateMultidimTolerance(_config.step_tolerance, "ProjectedGradient step_tolerance");
 			ValidateMultidimTolerance(_config.initial_step, "ProjectedGradient initial_step");
 			ValidateMultidimTolerance(_config.min_step, "ProjectedGradient min_step");
-			if (_config.contraction <= REAL(0.0) || _config.contraction >= REAL(1.0))
+			if (_config.contraction <= static_cast<MML::Real>(0.0) || _config.contraction >= static_cast<MML::Real>(1.0))
 				throw MultidimOptimizationInputError("ProjectedGradient contraction must be in (0, 1)");
-			if (_config.armijo <= REAL(0.0) || _config.armijo >= REAL(1.0))
+			if (_config.armijo <= static_cast<MML::Real>(0.0) || _config.armijo >= static_cast<MML::Real>(1.0))
 				throw MultidimOptimizationInputError("ProjectedGradient armijo must be in (0, 1)");
 			if (_config.max_iterations <= 0)
 				throw MultidimOptimizationInputError("ProjectedGradient max_iterations must be positive");
@@ -128,7 +122,7 @@ namespace MML::Optimization
 				result.gradient_evaluations++;
 				ValidateVectorFinite<N>(gradient, "ProjectedGradient gradient");
 
-				VectorN<Real, N> unitStep = bounds.Project(Detail::GradientStepPoint(x, gradient, REAL(1.0)));
+				VectorN<Real, N> unitStep = bounds.Project(Detail::GradientStepPoint(x, gradient, static_cast<MML::Real>(1.0)));
 				VectorN<Real, N> projectedGradient = Detail::Difference(x, unitStep);
 				result.projected_gradient_norm = projectedGradient.NormL2();
 				if (result.projected_gradient_norm <= _config.gradient_tolerance) {
@@ -157,7 +151,7 @@ namespace MML::Optimization
 						continue;
 					}
 
-					if (directionalDerivative >= REAL(0.0)) {
+					if (directionalDerivative >= static_cast<MML::Real>(0.0)) {
 						step *= _config.contraction;
 						continue;
 					}
@@ -188,6 +182,14 @@ namespace MML::Optimization
 
 			result.xmin = x;
 			result.fmin = f;
+			result.iterations_used = result.iterations;
+			func.Gradient(x, gradient);
+			result.gradient_evaluations++;
+			ValidateVectorFinite<N>(gradient, "ProjectedGradient final gradient");
+			const auto projectedPoint = bounds.Project(Detail::GradientStepPoint(x, gradient, static_cast<MML::Real>(1.0)));
+			result.projected_gradient_norm = Detail::Difference(x, projectedPoint).NormL2();
+			result.achieved_tolerance = result.projected_gradient_norm;
+			result.algorithm_name = "ProjectedGradient";
 			auto endTime = std::chrono::steady_clock::now();
 			result.elapsed_time_ms = std::chrono::duration<double, std::milli>(endTime - startTime).count();
 			return result;

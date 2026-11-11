@@ -1,4 +1,5 @@
 #include <catch2/catch_all.hpp>
+#include <type_traits>
 #include "../TestPrecision.h"
 #include "../TestMatchers.h"
 
@@ -280,7 +281,7 @@ namespace MML::Tests::Core::ComplexAnalysisTests
 	TEST_CASE("ContourIntegral_one_over_z_around_origin", "[complex][integration]")
 	{
 		// ∮ (1/z) dz around unit circle = 2πi
-		ComplexFunctionFromStdFunc f([](Complex z) -> Complex { return REAL(1.0) / z; });
+		ComplexFunctionFromStdFunc f([](Complex z) -> Complex { return static_cast<MML::Real>(1.0) / z; });
 		ComplexAnalysis::CircleContour unit_circle(Complex(0.0, 0.0), 1.0);
 
 		auto result = ComplexAnalysis::ContourIntegral(f, unit_circle);
@@ -288,6 +289,15 @@ namespace MML::Tests::Core::ComplexAnalysisTests
 
 		REQUIRE_THAT(result.value.real(), WithinAbs(expected.real(), TOL(1e-8, 1e-4)));
 		REQUIRE_THAT(result.value.imag(), WithinAbs(expected.imag(), TOL(1e-8, 1e-4)));
+
+		// error_estimate is the accumulated Richardson estimate of the accepted leaves, not an
+		// invented tol / |value|*1e-6 placeholder (analysis v4, CORE C10); it must bound the true error.
+		// (Here f(gamma(t)) gamma'(t) = i is constant, Simpson is exact and the honest estimate is 0.)
+		REQUIRE(result.converged);
+		REQUIRE(result.error_estimate >= static_cast<MML::Real>(0.0));
+		REQUIRE(std::abs(result.value - expected) <= std::max(result.error_estimate, TOL(1e-12, 1e-6)));
+		static_assert(!std::is_convertible_v<ComplexAnalysis::ContourIntegrationResult, Complex>, "conversion must be explicit");
+		REQUIRE(static_cast<Complex>(result) == result.value);
 	}
 
 	TEST_CASE("ContourIntegral_z_squared_analytic", "[complex][integration]")
@@ -398,7 +408,7 @@ namespace MML::Tests::Core::ComplexAnalysisTests
 	TEST_CASE("Residue_one_over_z", "[complex][residue]")
 	{
 		// f(z) = 1/z has Res(f, 0) = 1
-		ComplexFunctionFromStdFunc f([](Complex z) -> Complex { return REAL(1.0) / z; });
+		ComplexFunctionFromStdFunc f([](Complex z) -> Complex { return static_cast<MML::Real>(1.0) / z; });
 
 		Complex res = ComplexAnalysis::Residue(f, Complex(0.0, 0.0), 0.5);
 		REQUIRE_THAT(res.real(), WithinAbs(1.0, 1e-6));
@@ -409,7 +419,7 @@ namespace MML::Tests::Core::ComplexAnalysisTests
 	{
 		// f(z) = 1/(z^2 + 1) = 1/((z-i)(z+i))
 		// Res(f, i) = 1/(i + i) = 1/(2i) = -i/2
-		ComplexFunctionFromStdFunc f([](Complex z) -> Complex { return REAL(1.0) / (z * z + REAL(1.0)); });
+		ComplexFunctionFromStdFunc f([](Complex z) -> Complex { return static_cast<MML::Real>(1.0) / (z * z + static_cast<MML::Real>(1.0)); });
 
 		Complex res = ComplexAnalysis::Residue(f, Complex(0.0, 1.0), 0.5);
 		REQUIRE_THAT(res.real(), WithinAbs(0.0, 1e-5));
@@ -419,7 +429,7 @@ namespace MML::Tests::Core::ComplexAnalysisTests
 	TEST_CASE("ResidueSimplePole_one_over_z", "[complex][residue]")
 	{
 		// f(z) = 1/z, Res(f, 0) = lim_{z→0} z·(1/z) = 1
-		ComplexFunctionFromStdFunc f([](Complex z) -> Complex { return REAL(1.0) / z; });
+		ComplexFunctionFromStdFunc f([](Complex z) -> Complex { return static_cast<MML::Real>(1.0) / z; });
 
 		Complex res = ComplexAnalysis::ResidueSimplePole(f, Complex(0.0, 0.0));
 		REQUIRE_THAT(res.real(), WithinAbs(1.0, 1e-5));
@@ -434,7 +444,7 @@ namespace MML::Tests::Core::ComplexAnalysisTests
 	{
 		// f(z) = z^2 + 1, roots at ±i
 		// A circle of radius 2 around origin contains both roots → N = 2
-		ComplexFunctionFromStdFunc f([](Complex z) -> Complex { return z * z + REAL(1.0); });
+		ComplexFunctionFromStdFunc f([](Complex z) -> Complex { return z * z + static_cast<MML::Real>(1.0); });
 		ComplexAnalysis::CircleContour contour(Complex(0.0, 0.0), 2.0);
 
 		int n = ComplexAnalysis::ArgumentPrinciple(f, contour);
@@ -456,7 +466,7 @@ namespace MML::Tests::Core::ComplexAnalysisTests
 	{
 		// f(z) = z^2 + 1, roots at ±i
 		// Circle of radius 0.5 centered at i should contain exactly 1 root
-		ComplexFunctionFromStdFunc f([](Complex z) -> Complex { return z * z + REAL(1.0); });
+		ComplexFunctionFromStdFunc f([](Complex z) -> Complex { return z * z + static_cast<MML::Real>(1.0); });
 		ComplexAnalysis::CircleContour contour(Complex(0.0, 1.0), 0.5);
 
 		int n = ComplexAnalysis::CountZeros(f, contour);
@@ -467,7 +477,7 @@ namespace MML::Tests::Core::ComplexAnalysisTests
 	{
 		// f(z) = z^2 + 1, roots at ±i
 		// Circle of radius 0.5 centered at (5, 0) contains no roots
-		ComplexFunctionFromStdFunc f([](Complex z) -> Complex { return z * z + REAL(1.0); });
+		ComplexFunctionFromStdFunc f([](Complex z) -> Complex { return z * z + static_cast<MML::Real>(1.0); });
 		ComplexAnalysis::CircleContour contour(Complex(5.0, 0.0), 0.5);
 
 		int n = ComplexAnalysis::CountZeros(f, contour);

@@ -53,7 +53,7 @@ namespace MML::Tests::Core::Derivation::ReverseADTests
             return v[0] * v[0] + v[0] * v[1] + v[1] * v[1];
         };
 
-        auto grad = gradientReverse(quadratic, std::vector<Real>{ 2.0, 3.0 });
+        auto grad = CalcGradientReverseAD(quadratic, std::vector<Real>{ 2.0, 3.0 });
 
         REQUIRE(grad.size() == 2);
         REQUIRE(grad[0] == Catch::Approx(7.0));

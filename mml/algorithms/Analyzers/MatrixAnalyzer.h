@@ -17,8 +17,6 @@
 #include <deque>
 #include <exception>
 #include <optional>
-#include <sstream>
-#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -36,6 +34,9 @@ namespace MML
 		explicit MatrixAnalyzer(const Matrix<Scalar>& matrix) : _matrix(matrix) {}
 		explicit MatrixAnalyzer(Matrix<Scalar>&& matrix) : _matrix(std::move(matrix)) {}
 
+		const Matrix<Scalar>& getMatrix() const noexcept { return _matrix; }
+		/// @deprecated Use getMatrix() (CONTRACT_POLICY section 11: accessors are getX()).
+		[[deprecated("use getMatrix()")]]
 		const Matrix<Scalar>& GetMatrix() const noexcept { return _matrix; }
 
 		int Rows() const noexcept { return MatrixAlg::Rows(_matrix); }
@@ -94,7 +95,7 @@ namespace MML
 
 		Scalar Determinant() const { return MatrixAlg::Determinant(_matrix); }
 		Matrix<Scalar> Inverse() const { return MatrixAlg::Inverse(_matrix); }
-		int RankGaussian(Magnitude tolerance = static_cast<Magnitude>(Defaults::RankAlgEPS)) const {
+		int RankGaussian(Magnitude tolerance = static_cast<Magnitude>(Precision::RankAlgEPS)) const {
 			return MatrixAlg::RankGaussian(_matrix, tolerance);
 		}
 		MatrixAlg::FaddeevLeVerrierResult<Scalar> FaddeevLeVerrier() const {
@@ -279,7 +280,6 @@ namespace MML
 			result.expectedDigitsLost = MatrixAlg::Detail::DigitsLostFromConditionNumber(result.conditionNumber);
 			if (IsSelfAdjointResult(result))
 				result.definiteness = ClassifyAcceptedSelfAdjointDefiniteness(symmetryTolerance, definitenessTolerance);
-			result.report = GenerateReport(result);
 			return result;
 		}
 
@@ -325,16 +325,6 @@ namespace MML
 				cache.push_back({key, std::nullopt, std::current_exception()});
 				std::rethrow_exception(cache.back().error);
 			}
-		}
-
-		static std::string GenerateReport(const MatrixAlg::MatrixAnalysis<Scalar>& analysis) {
-			std::ostringstream report;
-			report << "Matrix: " << analysis.rows << 'x' << analysis.cols << '\n';
-			report << "Rank: " << analysis.rank << ", nullity: " << analysis.nullity << '\n';
-			report << "Condition number: " << analysis.conditionNumber << '\n';
-			if (analysis.definiteness.has_value())
-				report << "Definiteness: " << static_cast<int>(*analysis.definiteness) << '\n';
-			return report.str();
 		}
 
 		bool IsSelfAdjoint(ComparisonTolerance tolerance) const {

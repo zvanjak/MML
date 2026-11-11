@@ -33,19 +33,19 @@ namespace MML
 		/// @param x2 End of parameter range
 		/// @param numPoints Number of evaluation points (must be >= 2)
 		/// @param precision Decimal places for output (default: 15)
-		/// @return SerializeResult with success flag and error details
-		inline SerializeResult SaveRealFunc(std::ostream& out, const IRealFunction& f, std::string title,
-											Real x1, Real x2, int numPoints, int precision = 15)
-		{
+		/// @return IOResult with success flag and error details
+		inline IOResult SaveRealFunc(std::ostream& out, const IRealFunction& f, std::string title, Real x1, Real x2, int numPoints,
+																 int precision = 15) {
 			if (numPoints < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPoints must be >= 2"};
+				return {false, IOError::INVALID_PARAMETERS, "numPoints must be >= 2"};
 			if (x1 >= x2)
-				return {false, SerializeError::INVALID_PARAMETERS, "x1 must be less than x2"};
+				return {false, IOError::INVALID_PARAMETERS, "x1 must be less than x2"};
 
 			try
 			{
-				out.precision(precision);
-				WriteRealFuncHeader(out, SerializeFormatType::REAL_FUNCTION, title, x1, x2, numPoints);
+				Serializer::detail::ApplyTextFormat(out, precision);
+				if (auto headerResult = WriteRealFuncHeader(out, SerializeFormatType::REAL_FUNCTION, title, x1, x2, numPoints); !headerResult.success)
+					return headerResult;
 
 				Real step = (x2 - x1) / (numPoints - 1);
 				for (int i = 0; i < numPoints; i++)
@@ -53,86 +53,82 @@ namespace MML
 					Real x = x1 + i * step;
 					out << x << " " << f(x) << std::endl;
 				}
-				return {true, SerializeError::OK, "Success"};
+				return Serializer::detail::StreamResult(out);
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return {false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()};
 			}
 		}
 
 		/// @brief Serialize a real function to file at equally-spaced points (file version)
 		/// @details Convenience wrapper that opens file and delegates to stream version
-		inline SerializeResult SaveRealFunc(const IRealFunction& f, std::string title,
-											Real x1, Real x2, int numPoints, std::string fileName, int precision = 15)
-		{
+		inline IOResult SaveRealFunc(const IRealFunction& f, std::string title, Real x1, Real x2, int numPoints, std::string fileName,
+																 int precision = 15) {
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			auto result = SaveRealFunc(file, f, title, x1, x2, numPoints, precision);
-			file.close();
-			return result;
+			return Serializer::detail::FinishFile(file, fileName, result);
 		}
 
 		/// @brief Serialize a real function to a stream at specified points
 		/// @details Core stream version - writes to any std::ostream (stringstream, cout, etc.)
-		inline SerializeResult SaveRealFunc(std::ostream& out, const IRealFunction& f, std::string title,
-											Vector<Real> points, int precision = 15)
-		{
+		inline IOResult SaveRealFunc(std::ostream& out, const IRealFunction& f, std::string title, Vector<Real> points, int precision = 15) {
 			if (points.size() < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "points vector must have at least 2 elements"};
+				return {false, IOError::INVALID_PARAMETERS, "points vector must have at least 2 elements"};
 
 			try
 			{
-				out.precision(precision);
-				WriteRealFuncHeader(out, SerializeFormatType::REAL_FUNCTION, title, points[0], points[points.size() - 1], static_cast<int>(points.size()));
+				Serializer::detail::ApplyTextFormat(out, precision);
+				if (auto headerResult = WriteRealFuncHeader(out, SerializeFormatType::REAL_FUNCTION, title, points[0], points[points.size() - 1], static_cast<int>(points.size())); !headerResult.success)
+					return headerResult;
 
 				for (int i = 0; i < points.size(); i++)
 				{
 					Real x = points[i];
 					out << x << " " << f(x) << std::endl;
 				}
-				return {true, SerializeError::OK, "Success"};
+				return Serializer::detail::StreamResult(out);
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return {false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()};
 			}
 		}
 
 		/// @brief Serialize a real function to file at specified points (file version)
-		inline SerializeResult SaveRealFunc(const IRealFunction& f, std::string title,
-											Vector<Real> points, std::string fileName, int precision = 15)
-		{
+		inline IOResult SaveRealFunc(const IRealFunction& f, std::string title, Vector<Real> points, std::string fileName, int precision = 15) {
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			auto result = SaveRealFunc(file, f, title, points, precision);
-			file.close();
-			return result;
+			return Serializer::detail::FinishFile(file, fileName, result);
 		}
 
 		/// @brief Serialize a real function to stream saving only function values (space-optimized)
-		inline SerializeResult SaveRealFuncEquallySpaced(std::ostream& out, const IRealFunction& f, std::string title,
-														 Real x1, Real x2, int numPoints, int precision = 15)
-		{
+		inline IOResult SaveRealFuncEquallySpaced(std::ostream& out, const IRealFunction& f, std::string title, Real x1, Real x2, int numPoints,
+																							int precision = 15) {
 			if (numPoints < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPoints must be >= 2"};
+				return {false, IOError::INVALID_PARAMETERS, "numPoints must be >= 2"};
 			if (x1 >= x2)
-				return {false, SerializeError::INVALID_PARAMETERS, "x1 must be less than x2"};
+				return {false, IOError::INVALID_PARAMETERS, "x1 must be less than x2"};
 
 			try
 			{
-				out.precision(precision);
-				WriteRealFuncHeader(out, SerializeFormatType::REAL_FUNCTION_EQUALLY_SPACED, title, x1, x2, numPoints);
+				Serializer::detail::ApplyTextFormat(out, precision);
+				if (auto headerResult = WriteRealFuncHeader(out, SerializeFormatType::REAL_FUNCTION_EQUALLY_SPACED, title, x1, x2, numPoints); !headerResult.success)
+					return headerResult;
 
 				Real step = (x2 - x1) / (numPoints - 1);
 				for (int i = 0; i < numPoints; i++)
@@ -140,28 +136,27 @@ namespace MML
 					Real x = x1 + i * step;
 					out << f(x) << std::endl;
 				}
-				return {true, SerializeError::OK, "Success"};
+				return Serializer::detail::StreamResult(out);
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return {false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()};
 			}
 		}
 
 		/// @brief Serialize a real function saving only function values to file (space-optimized)
-		inline SerializeResult SaveRealFuncEquallySpaced(const IRealFunction& f, std::string title,
-														 Real x1, Real x2, int numPoints, std::string fileName, int precision = 15)
-		{
+		inline IOResult SaveRealFuncEquallySpaced(const IRealFunction& f, std::string title, Real x1, Real x2, int numPoints,
+																							std::string fileName, int precision = 15) {
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			auto result = SaveRealFuncEquallySpaced(file, f, title, x1, x2, numPoints, precision);
-			file.close();
-			return result;
+			return Serializer::detail::FinishFile(file, fileName, result);
 		}
 
 		//===================================================================================
@@ -169,23 +164,22 @@ namespace MML
 		//===================================================================================
 
 		/// @brief Serialize multiple real functions to a stream
-		inline SerializeResult SaveRealMultiFunc(std::ostream& out, const std::vector<IRealFunction*> &funcs, std::string title,
-												 std::vector<std::string> legend, 
-												 Real x1, Real x2, int numPoints, int precision = 15)
-		{
+		inline IOResult SaveRealMultiFunc(std::ostream& out, const std::vector<IRealFunction*>& funcs, std::string title,
+																			std::vector<std::string> legend, Real x1, Real x2, int numPoints, int precision = 15) {
 			if (funcs.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "funcs vector cannot be empty"};
+				return {false, IOError::INVALID_PARAMETERS, "funcs vector cannot be empty"};
 			if (numPoints < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPoints must be >= 2"};
+				return {false, IOError::INVALID_PARAMETERS, "numPoints must be >= 2"};
 			if (x1 >= x2)
-				return {false, SerializeError::INVALID_PARAMETERS, "x1 must be less than x2"};
+				return {false, IOError::INVALID_PARAMETERS, "x1 must be less than x2"};
 			if (funcs.size() != legend.size())
-				return {false, SerializeError::INVALID_PARAMETERS, "funcs and legend sizes must match"};
+				return {false, IOError::INVALID_PARAMETERS, "funcs and legend sizes must match"};
 
 			try
 			{
-				out.precision(precision);
-				WriteRealMultiFuncHeader(out, title, funcs.size(), legend, x1, x2, numPoints);
+				Serializer::detail::ApplyTextFormat(out, precision);
+				if (auto headerResult = WriteRealMultiFuncHeader(out, title, funcs.size(), legend, x1, x2, numPoints); !headerResult.success)
+					return headerResult;
 
 				for (int i = 0; i < numPoints; i++)
 				{
@@ -197,55 +191,53 @@ namespace MML
 
 					out << std::endl;
 				}
-				return {true, SerializeError::OK, "Success"};
+				return Serializer::detail::StreamResult(out);
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return {false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()};
 			}
 		}
 
 		/// @brief Serialize multiple real functions to a single file
-		inline SerializeResult SaveRealMultiFunc(const std::vector<IRealFunction*> &funcs, std::string title,
-												 std::vector<std::string> legend, 
-												 Real x1, Real x2, int numPoints, std::string fileName, int precision = 15)
-		{
+		inline IOResult SaveRealMultiFunc(const std::vector<IRealFunction*>& funcs, std::string title, std::vector<std::string> legend, Real x1,
+																			Real x2, int numPoints, std::string fileName, int precision = 15) {
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			auto result = SaveRealMultiFunc(file, funcs, title, legend, x1, x2, numPoints, precision);
-			file.close();
-			return result;
+			return Serializer::detail::FinishFile(file, fileName, result);
 		}
 
 		/// @brief Serialize multiple interpolation functions to file
 		template<class InterpFunc>
-		SerializeResult SaveRealMultiFunc(const std::vector<InterpFunc>& funcs, std::string title,
-									 std::vector<std::string> legend,
-									 Real x1, Real x2, int numPoints, std::string fileName)
-		{
+		IOResult SaveRealMultiFunc(const std::vector<InterpFunc>& funcs, std::string title, std::vector<std::string> legend, Real x1, Real x2,
+															 int numPoints, std::string fileName) {
 			if (funcs.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "funcs vector cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "funcs vector cannot be empty"}.WithFile(fileName);
 			if (numPoints < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPoints must be >= 2"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "numPoints must be >= 2"}.WithFile(fileName);
 			if (x1 >= x2)
-				return {false, SerializeError::INVALID_PARAMETERS, "x1 must be less than x2"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "x1 must be less than x2"}.WithFile(fileName);
 			if (funcs.size() != legend.size())
-				return {false, SerializeError::INVALID_PARAMETERS, "funcs and legend sizes must match"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "funcs and legend sizes must match"}.WithFile(fileName);
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
-				WriteRealMultiFuncHeader(file, title, funcs.size(), legend, x1, x2, numPoints);
+				if (auto headerResult = WriteRealMultiFuncHeader(file, title, funcs.size(), legend, x1, x2, numPoints); !headerResult.success)
+					return (headerResult).WithFile(fileName);
 
 				for (int i = 0; i < numPoints; i++)
 				{
@@ -257,12 +249,11 @@ namespace MML
 
 					file << std::endl;
 				}
-				file.close();
-				return {true, SerializeError::OK, "Success"};
+				return Serializer::detail::FinishFile(file, fileName, "Success");
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 

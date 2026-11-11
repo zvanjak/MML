@@ -12,6 +12,7 @@
 #if !defined MML_MATRIX_ALG_ALGEBRA_H
 #define MML_MATRIX_ALG_ALGEBRA_H
 
+#include <mml/algorithms/MatrixAlg/MatrixInversion.h>
 #include <mml/algorithms/MatrixAlg/Measures.h>
 #include <mml/core/LinAlgEqSolvers.h>
 
@@ -36,20 +37,11 @@ namespace MML::MatrixAlg
 		}
 	}
 
-	template<MMLScalar Scalar>
-	Matrix<Scalar> Inverse(const Matrix<Scalar>& matrix)
-	{
-		if (!IsSquare(matrix) || matrix.rows() == 0)
-			throw MatrixDimensionError("Inverse - matrix must be non-empty and square", matrix.rows(), matrix.cols(), -1, -1);
-		LUSolver<Scalar> solver(matrix);
-		Matrix<Scalar> inverse;
-		solver.inverse(inverse);
-		return inverse;
-	}
+
 
 	template<MMLScalar Scalar>
 	int RankGaussian(const Matrix<Scalar>& matrix,
-					 MatrixMagnitude<Scalar> tolerance = static_cast<MatrixMagnitude<Scalar>>(Defaults::RankAlgEPS))
+					 MatrixMagnitude<Scalar> tolerance = static_cast<MatrixMagnitude<Scalar>>(Precision::RankAlgEPS))
 	{
 		using Magnitude = MatrixMagnitude<Scalar>;
 		if (matrix.rows() == 0 || matrix.cols() == 0)
@@ -97,7 +89,7 @@ namespace MML::MatrixAlg
 
 		const int size = matrix.rows();
 		FaddeevLeVerrierResult<Scalar> result;
-		result.characteristicCoefficients.Resize(size + 1);
+		result.characteristicCoefficients.resize(size + 1);
 		result.characteristicCoefficients[0] = Scalar{1};
 
 		Matrix<Scalar> recurrence = Matrix<Scalar>::Identity(size);

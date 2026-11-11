@@ -121,8 +121,8 @@ enum IntegrationMethod {
 ### Trapezoidal Integration
 
 ```cpp
-// Returns IntegrationResult with adaptive error estimation
-IntegrationResult IntegrateTrap(
+// Plain form: returns the value (adaptive, throws ConvergenceError when the tolerance is not met)
+Real IntegrateTrap(   // value, throws ConvergenceError if not usable; IntegrateTrapDetailed(...) returns IntegrationResult
     const IRealFunction& func,
     Real a, Real b,
     Real eps = Defaults::TrapezoidIntegrationEPS  // Default: 1e-6
@@ -132,8 +132,8 @@ IntegrationResult IntegrateTrap(
 ### Simpson Integration
 
 ```cpp
-// Returns IntegrationResult with adaptive error estimation
-IntegrationResult IntegrateSimpson(
+// Plain form: returns the value (adaptive, throws ConvergenceError when the tolerance is not met)
+Real IntegrateSimpson(   // value, throws ConvergenceError if not usable; IntegrateSimpsonDetailed(...) returns IntegrationResult
     const IRealFunction& func,
     Real a, Real b,
     Real eps = Defaults::SimpsonIntegrationEPS  // Default: 1e-6
@@ -143,8 +143,8 @@ IntegrationResult IntegrateSimpson(
 ### Romberg Integration
 
 ```cpp
-// Returns IntegrationResult with high-order Richardson extrapolation
-IntegrationResult IntegrateRomberg(
+// Plain form: returns the value (Richardson extrapolation; throws ConvergenceError when the tolerance is not met)
+Real IntegrateRomberg(   // value, throws ConvergenceError if not usable; IntegrateRombergDetailed(...) returns IntegrationResult
     const IRealFunction& func,
     Real a, Real b,
     Real eps = Defaults::RombergIntegrationEPS  // Default: 1e-10
@@ -155,8 +155,9 @@ IntegrationResult IntegrateRomberg(
 
 ```cpp
 // Fixed 10-point Gauss-Legendre quadrature
-// Returns IntegrationResult (error_estimate = 0 for non-adaptive method)
-IntegrationResult IntegrateGauss10(
+// Plain form: returns the value; IntegrateGauss10Detailed reports status Completed, converged = false, error_estimate = NoEstimate
+// (fixed rule: nothing is checked - see docs/RESULT_POLICY.md)
+Real IntegrateGauss10(   // value, throws ConvergenceError if not usable; IntegrateGauss10Detailed(...) returns IntegrationResult
     const IRealFunction& func,
     Real a, Real b
 );
@@ -174,7 +175,7 @@ IntegrationResult (*Integrate)(
 );
 
 // Usage:
-auto result = Integrate(func, 0.0, 1.0, 1e-8);
+auto result = IntegrateDetailed(func, 0.0, 1.0, 1e-8);
 ```
 
 ---
@@ -227,7 +228,7 @@ RealFunction abs_func([](Real x) {
 });
 
 // Trapezoidal handles corner gracefully
-auto result = IntegrateTrap(abs_func, 0.0, 1.0, 1e-6);
+auto result = IntegrateTrapDetailed(abs_func, 0.0, 1.0, 1e-6);
 std::cout << "Integral: " << result.value 
           << " (error: " << result.error_estimate
           << ", iters: " << result.iterations << ")" << std::endl;
@@ -290,7 +291,7 @@ RealFunction smooth([](Real x) {
 });
 
 // Simpson's rule - excellent for smooth functions
-auto result = IntegrateSimpson(smooth, 0.0, 10.0, 1e-8);
+auto result = IntegrateSimpsonDetailed(smooth, 0.0, 10.0, 1e-8);
 
 std::cout << "Simpson result: " << result.value << std::endl;
 std::cout << "Error estimate: " << result.error_estimate << std::endl;
@@ -365,7 +366,7 @@ RealFunction gaussian([](Real x) {
 });
 
 // Romberg achieves high accuracy with few evaluations
-auto result = IntegrateRomberg(gaussian, 0.0, 3.0, 1e-12);
+auto result = IntegrateRombergDetailed(gaussian, 0.0, 3.0, 1e-12);
 
 std::cout << "Romberg integral: " << result.value << std::endl;
 std::cout << "Error estimate: " << result.error_estimate << std::endl;
@@ -460,21 +461,25 @@ std::cout << "Error:          " << abs(gauss_result - analytical) << std::endl;
 ```cpp
 struct IntegrationResult {
     Real value;              // Computed integral value
-    Real error_estimate;     // Estimated error
+    Real error_estimate;     // Estimated error; NoEstimate (NaN) for fixed rules - test with HasEstimate()
     int iterations;          // Number of refinement iterations
-    bool converged;          // Did it converge within max steps?
+    bool converged;          // True only if a convergence criterion was checked and met
+    bool error_estimated;    // False for fixed rules (Gauss10, Gauss-Legendre, ...)
     
-    // Constructor
-    IntegrationResult(Real val, Real err, int iters, bool conv);
+    explicit operator Real() const;   // conversion is explicit (see docs/RESULT_POLICY.md)
 };
 ```
+
+Fixed rules never "converge": they report `converged == false`, `error_estimated == false` and
+`error_estimate == NoEstimate`; their Detailed variants carry `status == AlgorithmStatus::Completed`,
+which `IsSuccess()` still treats as a usable value.
 
 ### Usage
 
 **Modern interface (recommended):**
 
 ```cpp
-auto result = IntegrateSimpson(func, 0.0, 1.0, 1e-8);
+auto result = IntegrateSimpsonDetailed(func, 0.0, 1.0, 1e-8);
 
 if (result.converged) {
     std::cout << "Integral = " << result.value 
@@ -490,7 +495,7 @@ if (result.converged) {
 **Using IntegrationResult structure:**
 
 ```cpp
-auto result = IntegrateSimpson(func, 0.0, 1.0, 1e-8);
+auto result = IntegrateSimpsonDetailed(func, 0.0, 1.0, 1e-8);
 
 std::cout << "Value: " << result.value << std::endl;
 std::cout << "Iterations: " << result.iterations << std::endl;
@@ -502,7 +507,7 @@ std::cout << "Converged: " << (result.converged ? "yes" : "no") << std::endl;
 
 The `error_estimate` field contains:
 - **Adaptive methods (Trap/Simpson/Romberg):** |Iₖ - Iₖ₋₁| (last improvement)
-- **Gauss10:** Not available (no error estimate)
+- **Gauss10 and other fixed rules:** `NoEstimate` (NaN) — no criterion is checked, `converged` is `false`
 
 **Convergence criterion:**
 ```
@@ -537,19 +542,19 @@ std::cout << "Integrating f(x) = sin(x)·(1 + 0.5x²) from " << a << " to " << b
 std::cout << "Exact value: " << exact << "\n\n";
 
 // Trapezoidal
-auto trap = IntegrateTrap(f, a, b, 1e-6);
+auto trap = IntegrateTrapDetailed(f, a, b, 1e-6);
 std::cout << "Trapezoidal: " << trap.value 
           << " (error: " << abs(trap.value - exact)
           << ", iters: " << trap.iterations << ")\n";
 
 // Simpson
-auto simp = IntegrateSimpson(f, a, b, 1e-6);
+auto simp = IntegrateSimpsonDetailed(f, a, b, 1e-6);
 std::cout << "Simpson:     " << simp.value
           << " (error: " << abs(simp.value - exact)
           << ", iters: " << simp.iterations << ")\n";
 
 // Romberg
-auto romb = IntegrateRomberg(f, a, b, 1e-10);
+auto romb = IntegrateRombergDetailed(f, a, b, 1e-10);
 std::cout << "Romberg:     " << romb.value
           << " (error: " << abs(romb.value - exact)
           << ", iters: " << romb.iterations << ")\n";
@@ -583,7 +588,7 @@ RealFunction singular([](Real x) {
 
 // Avoid exact singularity by integrating from small ε instead of 0
 Real eps = 1e-10;
-auto result = IntegrateSimpson(singular, eps, 1.0, 1e-6);
+auto result = IntegrateSimpsonDetailed(singular, eps, 1.0, 1e-6);
 
 std::cout << "∫ 1/√x dx from " << eps << " to 1.0\n";
 std::cout << "Numerical: " << result.value << std::endl;
@@ -605,7 +610,7 @@ RealFunction oscillatory([](Real x) {
 Real a = 0.0, b = 2.0 * M_PI;
 
 // Need tight tolerance for oscillatory functions
-auto result = IntegrateSimpson(oscillatory, a, b, 1e-10);
+auto result = IntegrateSimpsonDetailed(oscillatory, a, b, 1e-10);
 
 std::cout << "Oscillatory integral: " << result.value << std::endl;
 std::cout << "Expected: 0.0" << std::endl;
@@ -624,14 +629,14 @@ RealFunction normal_pdf([](Real x) {
 });
 
 // Compute P(0 ≤ X ≤ 1) for X ~ N(0,1)
-auto prob = IntegrateSimpson(normal_pdf, 0.0, 1.0, 1e-10);
+auto prob = IntegrateSimpsonDetailed(normal_pdf, 0.0, 1.0, 1e-10);
 
 std::cout << "P(0 ≤ X ≤ 1) = " << prob.value << std::endl;
 // Expected: ≈ 0.3413 (from standard normal table)
 
 // Verify: total probability from -∞ to +∞ should be 1
 // (In practice, integrate from -5 to +5 for ~1.0 numerically)
-auto total = IntegrateSimpson(normal_pdf, -5.0, 5.0, 1e-8);
+auto total = IntegrateSimpsonDetailed(normal_pdf, -5.0, 5.0, 1e-8);
 std::cout << "Total probability (-5 to +5): " << total.value << std::endl;
 // Should be ≈ 0.9999994 (very close to 1.0)
 ```
@@ -649,7 +654,7 @@ RealFunction spring_force([spring_constant](Real x) {
     return spring_constant * x;  // Magnitude (unsigned)
 });
 
-auto work = IntegrateSimpson(spring_force, 0.0, 0.1, 1e-8);
+auto work = IntegrateSimpsonDetailed(spring_force, 0.0, 0.1, 1e-8);
 
 std::cout << "Work to compress spring 0.1m: " << work.value << " J" << std::endl;
 // Analytical: W = ½kx² = ½·1000·0.01 = 5 J
@@ -707,13 +712,13 @@ or when both estimates are zero.
 **Setting tolerance:**
 ```cpp
 // ✅ GOOD: Reasonable tolerance
-auto result = IntegrateSimpson(func, a, b, 1e-8);
+auto result = IntegrateSimpsonDetailed(func, a, b, 1e-8);
 
 // ⚠️ RISKY: Very tight (may not converge)
-auto result = IntegrateSimpson(func, a, b, 1e-14);
+auto result = IntegrateSimpsonDetailed(func, a, b, 1e-14);
 
 // ❌ BAD: Impossible for double precision
-auto result = IntegrateSimpson(func, a, b, 1e-20);  // Won't converge!
+auto result = IntegrateSimpsonDetailed(func, a, b, 1e-20);  // Won't converge!
 ```
 
 ---
@@ -766,11 +771,11 @@ auto good = IntegrateSimpson(func, 0.0, 1.0, 1e-10);  // Achievable
 
 ```cpp
 // ❌ BAD: Blindly trust result
-auto result = IntegrateSimpson(difficult_func, a, b, 1e-10);
+auto result = IntegrateSimpsonDetailed(difficult_func, a, b, 1e-10);
 Real integral = result.value;  // May not have converged!
 
 // ✅ GOOD: Check convergence
-auto result = IntegrateSimpson(difficult_func, a, b, 1e-10);
+auto result = IntegrateSimpsonDetailed(difficult_func, a, b, 1e-10);
 if (!result.converged) {
     std::cerr << "WARNING: Integration did not converge!" << std::endl;
     std::cerr << "Error estimate: " << result.error_estimate << std::endl;

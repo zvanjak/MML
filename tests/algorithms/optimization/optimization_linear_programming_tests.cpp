@@ -18,7 +18,7 @@ using namespace MML::Optimization;
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
-constexpr Real LPObjectiveTolerance = MML::Testing::Tol(REAL(1e-6), REAL(5e-6));
+constexpr Real LPObjectiveTolerance = MML::Testing::Tol(static_cast<MML::Real>(1e-6), static_cast<MML::Real>(5e-6));
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Problem Construction Tests
@@ -160,11 +160,11 @@ TEST_CASE("LP: Simple 2D minimization", "[LP][solve]")
     
     LPConfig config;
     config.verbose = false;
-    
-    LPResult result = SolveLP(lp, config);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    REQUIRE_THAT(result.x[0], WithinAbs(1.0, 1e-6));
+
+		LinearProgrammingResult result = SolveLP(lp, config);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+		REQUIRE_THAT(result.x[0], WithinAbs(1.0, 1e-6));
     REQUIRE_THAT(result.x[1], WithinAbs(3.0, 1e-6));
     REQUIRE_THAT(result.objectiveValue, WithinAbs(-9.0, 1e-6));
 }
@@ -181,11 +181,11 @@ TEST_CASE("LP: Simple 2D maximization", "[LP][solve]")
     lp.SetObjective({3.0, 2.0}, LPObjective::Maximize);
     lp.AddConstraint({1.0, 1.0}, LPConstraintType::LessEqual, 4.0);
     lp.AddConstraint({2.0, 1.0}, LPConstraintType::LessEqual, 5.0);
-    
-    LPResult result = SolveLP(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    REQUIRE_THAT(result.x[0], WithinAbs(1.0, 1e-6));
+
+		LinearProgrammingResult result = SolveLP(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+		REQUIRE_THAT(result.x[0], WithinAbs(1.0, 1e-6));
     REQUIRE_THAT(result.x[1], WithinAbs(3.0, 1e-6));
     REQUIRE_THAT(result.objectiveValue, WithinAbs(9.0, 1e-6));
 }
@@ -202,11 +202,11 @@ TEST_CASE("LP: Resource allocation problem", "[LP][solve]")
     lp.SetObjective({5.0, 4.0}, LPObjective::Maximize);
     lp.AddConstraint({6.0, 4.0}, LPConstraintType::LessEqual, 24.0);
     lp.AddConstraint({1.0, 2.0}, LPConstraintType::LessEqual, 6.0);
-    
-    LPResult result = SolveLP(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    REQUIRE_THAT(result.x[0], WithinAbs(3.0, 1e-6));
+
+		LinearProgrammingResult result = SolveLP(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+		REQUIRE_THAT(result.x[0], WithinAbs(3.0, 1e-6));
     REQUIRE_THAT(result.x[1], WithinAbs(1.5, 1e-6));
     REQUIRE_THAT(result.objectiveValue, WithinAbs(21.0, LPObjectiveTolerance));
 }
@@ -227,11 +227,11 @@ TEST_CASE("LP: Production planning", "[LP][solve]")
     lp.SetObjective({40.0, 30.0}, LPObjective::Maximize);
     lp.AddConstraint({2.0, 1.0}, LPConstraintType::LessEqual, 40.0, "MachineTime");
     lp.AddConstraint({1.0, 1.0}, LPConstraintType::LessEqual, 32.0, "LaborTime");
-    
-    LPResult result = SolveLP(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    REQUIRE_THAT(result.x[0], WithinAbs(8.0, 1e-6));
+
+		LinearProgrammingResult result = SolveLP(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+		REQUIRE_THAT(result.x[0], WithinAbs(8.0, 1e-6));
     REQUIRE_THAT(result.x[1], WithinAbs(24.0, 1e-6));
     REQUIRE_THAT(result.objectiveValue, WithinAbs(1040.0, 1e-6));
 }
@@ -252,11 +252,11 @@ TEST_CASE("LP: Problem with equality constraint", "[LP][two-phase]")
     lp.SetObjective({1.0, 1.0});
     lp.AddConstraint({1.0, 1.0}, LPConstraintType::Equal, 5.0);
     lp.AddConstraint({1.0, 2.0}, LPConstraintType::LessEqual, 8.0);
-    
-    LPResult result = SolveLP(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    REQUIRE_THAT(result.x[0] + result.x[1], WithinAbs(5.0, 1e-6));
+
+		LinearProgrammingResult result = SolveLP(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+		REQUIRE_THAT(result.x[0] + result.x[1], WithinAbs(5.0, 1e-6));
     REQUIRE_THAT(result.objectiveValue, WithinAbs(5.0, 1e-6));
 }
 
@@ -272,11 +272,11 @@ TEST_CASE("LP: Problem with >= constraint", "[LP][two-phase]")
     lp.SetObjective({1.0, 2.0});
     lp.AddConstraint({1.0, 1.0}, LPConstraintType::GreaterEqual, 3.0);
     lp.AddConstraint({2.0, 1.0}, LPConstraintType::LessEqual, 10.0);
-    
-    LPResult result = SolveLP(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    // x + y >= 3, min x + 2y => want x large, y small
+
+		LinearProgrammingResult result = SolveLP(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+		// x + y >= 3, min x + 2y => want x large, y small
     REQUIRE(result.x[0] + result.x[1] >= 3.0 - 1e-6);
     REQUIRE_THAT(result.objectiveValue, WithinAbs(3.0, 1e-6));
 }
@@ -294,12 +294,12 @@ TEST_CASE("LP: Mixed constraint types", "[LP][two-phase]")
     lp.AddConstraint({1.0, 1.0, 1.0}, LPConstraintType::Equal, 6.0);
     lp.AddConstraint({1.0, 2.0, 0.0}, LPConstraintType::GreaterEqual, 4.0);
     lp.AddConstraint({0.0, 1.0, 1.0}, LPConstraintType::LessEqual, 5.0);
-    
-    LPResult result = SolveLP(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    
-    // Verify constraints
+
+		LinearProgrammingResult result = SolveLP(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+
+		// Verify constraints
     Real sum = result.x[0] + result.x[1] + result.x[2];
     REQUIRE_THAT(sum, WithinAbs(6.0, 1e-6));
     
@@ -321,10 +321,10 @@ TEST_CASE("LP: Unbounded problem", "[LP][edge-cases]")
     LinearProgram lp(2);
     lp.SetObjective({1.0, 1.0}, LPObjective::Maximize);
     lp.AddConstraint({1.0, -1.0}, LPConstraintType::LessEqual, 1.0);
-    
-    LPResult result = SolveLP(lp);
-    
-    REQUIRE(result.status == LPStatus::Unbounded);
+
+		LinearProgrammingResult result = SolveLP(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Unbounded);
 }
 
 TEST_CASE("LP: Infeasible problem", "[LP][edge-cases]")
@@ -339,10 +339,10 @@ TEST_CASE("LP: Infeasible problem", "[LP][edge-cases]")
     lp.SetObjective({1.0, 1.0});
     lp.AddConstraint({1.0, 1.0}, LPConstraintType::LessEqual, 2.0);
     lp.AddConstraint({1.0, 1.0}, LPConstraintType::GreaterEqual, 5.0);
-    
-    LPResult result = SolveLP(lp);
-    
-    REQUIRE(result.status == LPStatus::Infeasible);
+
+		LinearProgrammingResult result = SolveLP(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Infeasible);
 }
 
 TEST_CASE("LP: Degenerate problem", "[LP][edge-cases]")
@@ -360,11 +360,11 @@ TEST_CASE("LP: Degenerate problem", "[LP][edge-cases]")
     lp.AddConstraint({1.0, 0.0}, LPConstraintType::LessEqual, 1.0);
     lp.AddConstraint({0.0, 1.0}, LPConstraintType::LessEqual, 1.0);
     lp.AddConstraint({1.0, 1.0}, LPConstraintType::LessEqual, 2.0);
-    
-    LPResult result = SolveLP(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    REQUIRE_THAT(result.x[0], WithinAbs(1.0, 1e-6));
+
+		LinearProgrammingResult result = SolveLP(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+		REQUIRE_THAT(result.x[0], WithinAbs(1.0, 1e-6));
     REQUIRE_THAT(result.x[1], WithinAbs(1.0, 1e-6));
     REQUIRE_THAT(result.objectiveValue, WithinAbs(-2.0, 1e-6));
 }
@@ -378,11 +378,11 @@ TEST_CASE("LP: Single variable", "[LP][edge-cases]")
     lp.SetObjective({1.0});
     lp.AddConstraint({1.0}, LPConstraintType::GreaterEqual, 3.0);
     lp.AddConstraint({1.0}, LPConstraintType::LessEqual, 10.0);
-    
-    LPResult result = SolveLP(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    REQUIRE_THAT(result.x[0], WithinAbs(3.0, 1e-6));
+
+		LinearProgrammingResult result = SolveLP(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+		REQUIRE_THAT(result.x[0], WithinAbs(3.0, 1e-6));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -423,12 +423,12 @@ TEST_CASE("LP: Verify complementary slackness", "[LP][solution-quality]")
     lp.SetObjective({3.0, 2.0}, LPObjective::Maximize);
     lp.AddConstraint({1.0, 1.0}, LPConstraintType::LessEqual, 4.0);
     lp.AddConstraint({2.0, 1.0}, LPConstraintType::LessEqual, 5.0);
-    
-    LPResult result = SolveLP(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    
-    // At optimum (1, 3):
+
+		LinearProgrammingResult result = SolveLP(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+
+		// At optimum (1, 3):
     // Constraint 1: 1 + 3 = 4 (tight, slack = 0)
     // Constraint 2: 2 + 3 = 5 (tight, slack = 0)
     REQUIRE_THAT(result.slacks[0], WithinAbs(0.0, 1e-6));
@@ -442,12 +442,12 @@ TEST_CASE("LP: Solution feasibility check", "[LP][solution-quality]")
     lp.AddConstraint({1.0, 1.0, 1.0}, LPConstraintType::LessEqual, 10.0);
     lp.AddConstraint({2.0, 1.0, 0.0}, LPConstraintType::LessEqual, 8.0);
     lp.AddConstraint({0.0, 1.0, 2.0}, LPConstraintType::LessEqual, 12.0);
-    
-    LPResult result = SolveLP(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    
-    // Check all constraints satisfied
+
+		LinearProgrammingResult result = SolveLP(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+
+		// Check all constraints satisfied
     const auto& cons = lp.Constraints();
     for (int i = 0; i < lp.NumConstraints(); ++i) {
         Real lhs = 0;
@@ -474,7 +474,7 @@ TEST_CASE("LP: ToString output", "[LP][output]")
     lp.SetObjective({3.0, -2.0}, LPObjective::Maximize);
     lp.AddConstraint({1.0, 1.0}, LPConstraintType::LessEqual, 4.0, "con1");
     
-    std::string output = lp.ToString();
+    std::string output = lp.to_string();
     
     REQUIRE(output.find("TestProblem") != std::string::npos);
     REQUIRE(output.find("Maximize") != std::string::npos);
@@ -499,12 +499,12 @@ TEST_CASE("LP: 3D transportation-like problem", "[LP][3d]")
     lp.AddConstraint({1.0, 1.0, 1.0}, LPConstraintType::GreaterEqual, 10.0);
     lp.AddConstraint({1.0, 1.0, 0.0}, LPConstraintType::LessEqual, 8.0);
     lp.AddConstraint({0.0, 1.0, 1.0}, LPConstraintType::LessEqual, 9.0);
-    
-    LPResult result = SolveLP(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    
-    // Verify x + y + z >= 10
+
+		LinearProgrammingResult result = SolveLP(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+
+		// Verify x + y + z >= 10
     Real sum = result.x[0] + result.x[1] + result.x[2];
     REQUIRE(sum >= 10.0 - 1e-6);
 }
@@ -523,12 +523,12 @@ TEST_CASE("LP: 4-variable problem", "[LP][4d]")
     lp.AddConstraint({0.0, 1.0, 1.0, 0.0}, LPConstraintType::GreaterEqual, 3.0);
     lp.AddConstraint({0.0, 0.0, 1.0, 1.0}, LPConstraintType::GreaterEqual, 3.0);
     lp.AddConstraint({1.0, 0.0, 0.0, 1.0}, LPConstraintType::LessEqual, 4.0);
-    
-    LPResult result = SolveLP(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    
-    // Verify constraints
+
+		LinearProgrammingResult result = SolveLP(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+
+		// Verify constraints
     REQUIRE(result.x[0] + result.x[1] >= 3.0 - 1e-6);
     REQUIRE(result.x[1] + result.x[2] >= 3.0 - 1e-6);
     REQUIRE(result.x[2] + result.x[3] >= 3.0 - 1e-6);
@@ -552,17 +552,17 @@ TEST_CASE("LP: Dual simplex - simple minimization with non-negative costs", "[LP
     lp.AddConstraint({1.0, 2.0}, LPConstraintType::LessEqual, 6.0);
     
     // Solve with primal for comparison
-    LPResult primalResult = SolveLP(lp);
-    REQUIRE(primalResult.status == LPStatus::Optimal);
-    
-    // Solve with dual simplex
+		LinearProgrammingResult primalResult = SolveLP(lp);
+		REQUIRE(primalResult.lp_status == LPStatus::Optimal);
+
+		// Solve with dual simplex
     SimplexSolver solver;
-    LPResult dualResult = solver.SolveDual(lp);
-    
-    // Both should give optimal (or dual may return error if not dual-feasible initially)
-    if (dualResult.status == LPStatus::Optimal) {
-        REQUIRE_THAT(dualResult.objectiveValue, WithinAbs(primalResult.objectiveValue, 1e-6));
-    }
+		LinearProgrammingResult dualResult = solver.SolveDual(lp);
+
+		// Both should give optimal (or dual may return error if not dual-feasible initially)
+		if (dualResult.lp_status == LPStatus::Optimal) {
+			REQUIRE_THAT(dualResult.objectiveValue, WithinAbs(primalResult.objectiveValue, 1e-6));
+		}
 }
 
 TEST_CASE("LP: Dual simplex via convenience function", "[LP][dual-simplex]")
@@ -576,15 +576,15 @@ TEST_CASE("LP: Dual simplex via convenience function", "[LP][dual-simplex]")
     A(0, 0) = 1.0; A(0, 1) = 1.0;
     A(1, 0) = 2.0; A(1, 1) = 1.0;
     Vector<Real> b({5.0, 8.0});
-    
-    LPResult primalResult = SolveLP(c, A, b);
-    LPResult dualResult = SolveLPDual(c, A, b);
-    
-    REQUIRE(primalResult.status == LPStatus::Optimal);
-    // Dual may or may not find solution depending on initial feasibility
-    if (dualResult.status == LPStatus::Optimal) {
-        REQUIRE_THAT(dualResult.objectiveValue, WithinAbs(primalResult.objectiveValue, 1e-6));
-    }
+
+		LinearProgrammingResult primalResult = SolveLP(c, A, b);
+		LinearProgrammingResult dualResult = SolveLPDual(c, A, b);
+
+		REQUIRE(primalResult.lp_status == LPStatus::Optimal);
+		// Dual may or may not find solution depending on initial feasibility
+		if (dualResult.lp_status == LPStatus::Optimal) {
+			REQUIRE_THAT(dualResult.objectiveValue, WithinAbs(primalResult.objectiveValue, 1e-6));
+		}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -603,12 +603,12 @@ TEST_CASE("LP: Sensitivity analysis - basic ranges", "[LP][sensitivity]")
     lp.SetObjective({-3.0, -2.0});  // Minimize negative = maximize
     lp.AddConstraint({1.0, 1.0}, LPConstraintType::LessEqual, 4.0);
     lp.AddConstraint({2.0, 1.0}, LPConstraintType::LessEqual, 5.0);
-    
-    LPResult result = SolveLPWithSensitivity(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    
-    // Check that sensitivity data is populated
+
+		LinearProgrammingResult result = SolveLPWithSensitivity(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+
+		// Check that sensitivity data is populated
     REQUIRE(result.objectiveRanges.size() == 2);
     REQUIRE(result.rhsRanges.size() == 2);
     
@@ -635,11 +635,11 @@ TEST_CASE("LP: Sensitivity analysis - shadow prices", "[LP][sensitivity]")
     lp.SetObjective({-1.0, -1.0});
     lp.AddConstraint({1.0, 2.0}, LPConstraintType::LessEqual, 10.0);
     lp.AddConstraint({3.0, 1.0}, LPConstraintType::LessEqual, 15.0);
-    
-    LPResult result = SolveLPWithSensitivity(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    REQUIRE(result.dualValues.size() == 2);
+
+		LinearProgrammingResult result = SolveLPWithSensitivity(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+		REQUIRE(result.dualValues.size() == 2);
     
     // Shadow prices should be non-negative for <= constraints in minimization
     // (binding constraints have positive shadow prices)
@@ -656,12 +656,12 @@ TEST_CASE("LP: Sensitivity analysis - basis condition number", "[LP][sensitivity
     lp.SetObjective({1.0, 1.0});
     lp.AddConstraint({1.0, 0.0}, LPConstraintType::LessEqual, 5.0);
     lp.AddConstraint({0.0, 1.0}, LPConstraintType::LessEqual, 5.0);
-    
-    LPResult result = SolveLPWithSensitivity(lp);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    
-    // Condition number should be computed and reasonable
+
+		LinearProgrammingResult result = SolveLPWithSensitivity(lp);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+
+		// Condition number should be computed and reasonable
     REQUIRE(result.basisConditionNumber >= 1.0);  // Condition number >= 1
     REQUIRE(result.basisConditionNumber < 1e10);  // Not ill-conditioned
 }
@@ -673,11 +673,11 @@ TEST_CASE("LP: Sensitivity analysis via matrix form", "[LP][sensitivity]")
     A(0, 0) = 1.0; A(0, 1) = 1.0;
     A(1, 0) = 1.0; A(1, 1) = 2.0;
     Vector<Real> b({4.0, 6.0});
-    
-    LPResult result = SolveLPWithSensitivity(c, A, b);
-    
-    REQUIRE(result.status == LPStatus::Optimal);
-    REQUIRE(result.objectiveRanges.size() == 2);
+
+		LinearProgrammingResult result = SolveLPWithSensitivity(c, A, b);
+
+		REQUIRE(result.lp_status == LPStatus::Optimal);
+		REQUIRE(result.objectiveRanges.size() == 2);
     REQUIRE(result.rhsRanges.size() == 2);
     REQUIRE(result.basisConditionNumber >= 1.0);
 }
@@ -689,14 +689,14 @@ TEST_CASE("LP: Compare primal and sensitivity solutions", "[LP][sensitivity]")
     lp.SetObjective({-5.0, -4.0});  // max 5x + 4y
     lp.AddConstraint({1.0, 1.0}, LPConstraintType::LessEqual, 5.0);
     lp.AddConstraint({10.0, 6.0}, LPConstraintType::LessEqual, 45.0);
-    
-    LPResult normalResult = SolveLP(lp);
-    LPResult sensitivityResult = SolveLPWithSensitivity(lp);
-    
-    REQUIRE(normalResult.status == LPStatus::Optimal);
-    REQUIRE(sensitivityResult.status == LPStatus::Optimal);
-    
-    REQUIRE_THAT(sensitivityResult.objectiveValue,
+
+		LinearProgrammingResult normalResult = SolveLP(lp);
+		LinearProgrammingResult sensitivityResult = SolveLPWithSensitivity(lp);
+
+		REQUIRE(normalResult.lp_status == LPStatus::Optimal);
+		REQUIRE(sensitivityResult.lp_status == LPStatus::Optimal);
+
+		REQUIRE_THAT(sensitivityResult.objectiveValue,
                  WithinAbs(normalResult.objectiveValue, LPObjectiveTolerance));
     
     for (int i = 0; i < lp.NumVariables(); ++i) {

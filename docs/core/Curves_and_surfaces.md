@@ -6,15 +6,32 @@
 
 Parametric curves and surfaces provide geometric primitives for modeling, visualization, and differential geometry analysis. MML includes predefined curves/surfaces and comprehensive differential geometry operations.
 
+For opt-in scalar-generic definitions with automatic derivatives, see
+[Automatic differentiation for geometry and fields](Automatic_differentiation.md).
+AD curves feed tangent/Frenet/curvature/torsion and path-integration consumers;
+AD surfaces provide normals, fundamental forms, and a separately differentiated
+induced metric for intrinsic Riemann/Ricci curvature. Existing Real-only curves
+and surfaces remain compatible.
+
+## Core and Shared Fixture Boundary
+
+Core retains numerical geometry operations, curve/surface interfaces, standard primitives,
+logarithmic/Archimedean spirals and quadrics. The seven showcase curves and six showcase
+surfaces now live in the existing `test_data/parametric_curves_defs.h` and
+`test_data/parametric_surfaces_defs.h`, with shared catalog access in `test_beds/`.
+They are not bundled in `MML.h`, and no old-namespace forwarding aliases remain.
+Tests, docs demos and visualization examples explicitly include these shared definitions.
+See [the full migration and parameterization guide](../testbeds/ParametricCurvesSurfaces_testbed.md#shared-showcase-definitions-not-core-api).
+
 ## Overview
 
 **Curves:**
 - **2D Curves**: Planar curves in Cartesian/polar coordinates (circles, spirals, closed curves)
-- **3D Curves**: Space curves with Frenet-Serret analysis (lines, helices, twisted curves)
+- **3D Curves**: Space curves with Frenet-Serret analysis (lines, circles, helices)
 
 **Surfaces:**
 - **Parametric surfaces**: 2-parameter mappings ℝ² → ℝ³ with differential geometry
-- **Predefined surfaces**: Planes, quadrics, topological objects
+- **Core predefined surfaces**: Planes, cylinders, sphere, torus and standard quadrics
 
 All curves and surfaces support:
 - Analytical derivatives (tangent, normal, curvature)
@@ -32,10 +49,6 @@ All curves and surfaces support:
 |-------|------|------------|-------------|
 | `Circle2DCurve` | Cartesian | radius, center | Circle in 2D plane |
 | `LogSpiralCurve` | Cartesian | λ (<0), c | Logarithmic spiral |
-| `LemniscateCurve` | Cartesian | — | Figure-8 lemniscate |
-| `DeltoidCurve` | Cartesian | n | Hypocycloid (deltoid) |
-| `AstroidCurve` | Cartesian | c | Four-cusped hypocycloid |
-| `EpitrochoidCurve` | Cartesian | R, c, n | Roulette curve |
 | `ArchimedeanSpiralCurve` | Cartesian | a | Linear-growth spiral |
 
 ### 3D Curves (Space)
@@ -46,8 +59,6 @@ All curves and surfaces support:
 | `Circle3DXYCurve`, `Circle3DXZCurve`, `Circle3DYZCurve` | Cartesian | radius, center | Axis-aligned circles |
 | `Circle` | Cartesian | R, normal, center | General 3D circle |
 | `HelixCurve` | Cartesian | R, b | Circular helix |
-| `TwistedCubicCurve` | Cartesian | — | Polynomial space curve |
-| `ToroidalSpiralCurve` | Cartesian | n, scale | Toroidal spiral |
 
 ### Surfaces
 
@@ -60,8 +71,6 @@ All curves and surfaces support:
 | `Ellipsoid` | a, b, c | Triaxial ellipsoid |
 | `Hyperboloid` | a, b, c | One-sheet hyperboloid |
 | `Paraboloid` | a, h | Circular paraboloid |
-| `MobiusStrip` | — | Non-orientable surface |
-| `MonkeySaddle` | — | Saddle with 3-fold symmetry |
 
 ---
 
@@ -136,77 +145,25 @@ for (Real t = 0; t < 10.0; t += 0.5) {
 }
 ```
 
-### LemniscateCurve
+### LemniscateCurve (shared fixture)
 
-Figure-8 curve (lemniscate of Gerono).
+This showcase is not part of the core API. Use `MML::TestBeds::ShowcaseCurves::LemniscateCurve` from the corresponding `test_data` definition header.
+See [shared showcase definitions](../testbeds/ParametricCurvesSurfaces_testbed.md#shared-showcase-definitions-not-core-api) for includes, test-bed access and runnable examples.
 
-**Parameterization:** t ∈ (-∞, ∞)  
-**Equation:**  
-- x(t) = cos(t) / (1 + sin²(t))
-- y(t) = sin(t)·cos(t) / (1 + sin²(t))
+### DeltoidCurve (shared fixture)
 
-**Properties:**
-- Symmetric about both axes
-- Self-intersecting at origin
-- Periodic with period 2π
+This showcase is not part of the core API. Use `MML::TestBeds::ShowcaseCurves::DeltoidCurve` from the corresponding `test_data` definition header.
+See [shared showcase definitions](../testbeds/ParametricCurvesSurfaces_testbed.md#shared-showcase-definitions-not-core-api) for includes, test-bed access and runnable examples.
 
-### DeltoidCurve
+### AstroidCurve (shared fixture)
 
-Hypocycloid with 3 cusps (deltoid).
+This showcase is not part of the core API. Use `MML::TestBeds::ShowcaseCurves::AstroidCurve` from the corresponding `test_data` definition header.
+See [shared showcase definitions](../testbeds/ParametricCurvesSurfaces_testbed.md#shared-showcase-definitions-not-core-api) for includes, test-bed access and runnable examples.
 
-**Constructor:**
-```cpp
-DeltoidCurve();       // n=1
-DeltoidCurve(int n);  // Scaled version
-```
+### EpitrochoidCurve (shared fixture)
 
-**Equation:**  
-- x(t) = 2n·cos(t)·(1 + cos(t))
-- y(t) = 2n·sin(t)·(1 - cos(t))
-
-**Example:**
-```cpp
-DeltoidCurve deltoid(2);  // Larger deltoid
-
-Vec2Cart pt = deltoid(Constants::PI / 3);
-```
-
-### AstroidCurve
-
-Four-cusped hypocycloid (astroid).
-
-**Constructor:**
-```cpp
-AstroidCurve();       // c=1
-AstroidCurve(Real c); // c > 0 required
-```
-
-**Equation:**  
-- x(t) = c·cos³(t)
-- y(t) = c·sin³(t)
-
-**Properties:**
-- Four cusps at (±c, 0) and (0, ±c)
-- Parametric form of x^(2/3) + y^(2/3) = c^(2/3)
-
-### EpitrochoidCurve
-
-Roulette curve traced by point on rolling circle.
-
-**Constructor:**
-```cpp
-EpitrochoidCurve();                        // R=1, c=1, n=1
-EpitrochoidCurve(Real R, Real c, int n);
-```
-
-**Equation:**  
-- x(t) = cos(t) - c·cos(n·t)
-- y(t) = sin(t) - c·sin(n·t)
-
-**Example:**
-```cpp
-EpitrochoidCurve epi(1.0, 0.5, 3);  // 3-lobed pattern
-```
+This showcase is not part of the core API. Use `MML::TestBeds::ShowcaseCurves::EpitrochoidCurve` from the corresponding `test_data` definition header.
+See [shared showcase definitions](../testbeds/ParametricCurvesSurfaces_testbed.md#shared-showcase-definitions-not-core-api) for includes, test-bed access and runnable examples.
 
 ### ArchimedeanSpiralCurve
 
@@ -358,42 +315,15 @@ Real kappa = helix.getCurvature(0.0);  // 2/(4+0.25) = 0.47
 Real tau = helix.getTorsion(0.0);      // 0.5/(4+0.25) = 0.12
 ```
 
-### TwistedCubicCurve
+### TwistedCubicCurve (shared fixture)
 
-Polynomial space curve.
+This showcase is not part of the core API. Use `MML::TestBeds::ShowcaseCurves::TwistedCubicCurve` from the corresponding `test_data` definition header.
+See [shared showcase definitions](../testbeds/ParametricCurvesSurfaces_testbed.md#shared-showcase-definitions-not-core-api) for includes, test-bed access and runnable examples.
 
-**Parameterization:** t ∈ (-∞, ∞)  
-**Equation:**  
-- x(t) = t
-- y(t) = t²
-- z(t) = t³
+### ToroidalSpiralCurve (shared fixture)
 
-**Properties:**
-- Non-planar for all t
-- Osculating plane changes continuously
-- Used in graphics and numerical examples
-
-### ToroidalSpiralCurve
-
-Spiral on torus surface.
-
-**Constructor:**
-```cpp
-ToroidalSpiralCurve();                    // n=1, scale=1
-ToroidalSpiralCurve(int n);                // Winding number
-ToroidalSpiralCurve(int n, Real scale);
-```
-
-**Equation:**  
-- x(t) = scale·(4 + sin(n·t))·cos(t)
-- y(t) = scale·(4 + sin(n·t))·sin(t)
-- z(t) = scale·cos(n·t)
-
-**Properties:**
-- Winds n times around torus
-- scale adjusts overall size
-
----
+This showcase is not part of the core API. Use `MML::TestBeds::ShowcaseCurves::ToroidalSpiralCurve` from the corresponding `test_data` definition header.
+See [shared showcase definitions](../testbeds/ParametricCurvesSurfaces_testbed.md#shared-showcase-definitions-not-core-api) for includes, test-bed access and runnable examples.
 
 ## Surfaces
 
@@ -631,39 +561,15 @@ Paraboloid(Real a, Real h);
 - y(u,w) = a·√(u/h)·sin(w)
 - z(u,w) = u
 
-### MobiusStrip
+### MobiusStrip (shared fixture)
 
-Non-orientable surface (one-sided).
+This showcase is not part of the core API. Use `MML::TestBeds::ShowcaseSurfaces::MobiusStrip` from the corresponding `test_data` definition header.
+See [shared showcase definitions](../testbeds/ParametricCurvesSurfaces_testbed.md#shared-showcase-definitions-not-core-api) for includes, test-bed access and runnable examples.
 
-**Parameterization:**  
-- u ∈ [0, 2π]
-- w ∈ [-1, 1]
+### MonkeySaddle (shared fixture)
 
-**Equation:**  
-- x(u,w) = (1 + w·cos(u/2))·cos(u)
-- y(u,w) = (1 + w·cos(u/2))·sin(u)
-- z(u,w) = w·sin(u/2)
-
-**Properties:**
-- Non-orientable (one-sided)
-- Single edge
-- Topologically interesting
-
-### MonkeySaddle
-
-Saddle surface with 3-fold rotational symmetry.
-
-**Parameterization:** u, w ∈ [-10, 10]  
-**Equation:**  
-- x(u,w) = u
-- y(u,w) = w
-- z(u,w) = u·(u² - 3w²)
-
-**Properties:**
-- Saddle point at origin
-- Three "downward" directions (like monkey with tail)
-
----
+This showcase is not part of the core API. Use `MML::TestBeds::ShowcaseSurfaces::MonkeySaddle` from the corresponding `test_data` definition header.
+See [shared showcase definitions](../testbeds/ParametricCurvesSurfaces_testbed.md#shared-showcase-definitions-not-core-api) for includes, test-bed access and runnable examples.
 
 ## Differential Geometry Operations
 

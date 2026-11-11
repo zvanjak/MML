@@ -109,7 +109,11 @@ namespace MML
 		 * @param numPoints Number of points to generate
 		 * @param[out] points Vector to store the generated points
 		 */
-		virtual void GetEquidistantCovering(int numPoints, std::vector<Real>& points) const = 0;
+		virtual void getEquidistantCovering(int numPoints, std::vector<Real>& points) const = 0;
+		/// @deprecated Use getEquidistantCovering() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use getEquidistantCovering()")]]
+		void GetEquidistantCovering(int numPoints, std::vector<Real>& points) const { getEquidistantCovering(numPoints, points); }
 
 		virtual ~IInterval() {}
 	};

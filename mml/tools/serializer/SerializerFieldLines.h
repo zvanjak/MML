@@ -33,26 +33,25 @@ namespace MML
 		/// @param lines Vector of point vectors (each inner vector is one field line)
 		/// @param title Descriptive title for the visualization
 		/// @param fileName Output file path
-		/// @return SerializeResult with success/error information
-		inline SerializeResult SaveFieldLines2D(const std::vector<std::vector<VectorN<Real, 2>>>& lines,
-		                                         const std::string& title,
-		                                         const std::string& fileName)
-		{
+		/// @return IOResult with success/error information
+		inline IOResult SaveFieldLines2D(const std::vector<std::vector<VectorN<Real, 2>>>& lines, const std::string& title,
+																		 const std::string& fileName) {
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 			if (lines.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "lines vector cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "lines vector cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
 				// Write header
 				auto headerResult = WriteFieldLinesHeader(file, SerializeFormatType::FIELD_LINES_2D, title, static_cast<int>(lines.size()));
 				if (!headerResult.success)
-					return headerResult;
+					return (headerResult).WithFile(fileName);
 
 				// Write each line
 				for (size_t i = 0; i < lines.size(); ++i)
@@ -67,13 +66,12 @@ namespace MML
 					}
 				}
 
-				file.close();
-				return {true, SerializeError::OK, "Successfully saved " + std::to_string(lines.size()) + " field lines"};
+				return Serializer::detail::FinishFile(file, fileName, "Successfully saved " + std::to_string(lines.size()) + " field lines");
 			}
 			catch (const std::exception& e)
 			{
 				file.close();
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 
@@ -82,25 +80,24 @@ namespace MML
 		//===================================================================================
 
 		/// @brief Save 3D field lines from raw point vectors
-		inline SerializeResult SaveFieldLines3D(const std::vector<std::vector<VectorN<Real, 3>>>& lines,
-		                                         const std::string& title,
-		                                         const std::string& fileName)
-		{
+		inline IOResult SaveFieldLines3D(const std::vector<std::vector<VectorN<Real, 3>>>& lines, const std::string& title,
+																		 const std::string& fileName) {
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 			if (lines.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "lines vector cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "lines vector cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
 				// Write header
 				auto headerResult = WriteFieldLinesHeader(file, SerializeFormatType::FIELD_LINES_3D, title, static_cast<int>(lines.size()));
 				if (!headerResult.success)
-					return headerResult;
+					return (headerResult).WithFile(fileName);
 
 				// Write each line
 				for (size_t i = 0; i < lines.size(); ++i)
@@ -115,13 +112,12 @@ namespace MML
 					}
 				}
 
-				file.close();
-				return {true, SerializeError::OK, "Successfully saved " + std::to_string(lines.size()) + " field lines"};
+				return Serializer::detail::FinishFile(file, fileName, "Successfully saved " + std::to_string(lines.size()) + " field lines");
 			}
 			catch (const std::exception& e)
 			{
 				file.close();
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 

@@ -29,11 +29,11 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		// Circle: r(t) = (cos t, sin t, 0), t ∈ [0, 2π]
 		// |r'(t)| = 1, so L = 2π
 		ParametricCurve<3> circle([](Real t) {
-			return VectorN<Real, 3>{std::cos(t), std::sin(t), REAL(0.0)};
+			return VectorN<Real, 3>{std::cos(t), std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		Real length = PathIntegration::ParametricCurveLength(circle, REAL(0.0), REAL(2.0) * Constants::PI);
-		Real expected = REAL(2.0) * Constants::PI;
+		Real length = PathIntegration::ParametricCurveLength(circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI);
+		Real expected = static_cast<MML::Real>(2.0) * Constants::PI;
 
 		REQUIRE_THAT(length, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
@@ -43,13 +43,13 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			TEST_PRECISION_INFO();
 		// Circle radius R=3: r(t) = (3cos t, 3sin t, 0)
 		// |r'(t)| = 3, so L = 6π
-		Real R = REAL(3.0);
+		Real R = static_cast<MML::Real>(3.0);
 		ParametricCurveFromStdFunc<3> circle([R](Real t) {
-			return VectorN<Real, 3>{R * std::cos(t), R * std::sin(t), REAL(0.0)};
+			return VectorN<Real, 3>{R * std::cos(t), R * std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		Real length = PathIntegration::ParametricCurveLength(circle, REAL(0.0), REAL(2.0) * Constants::PI);
-		Real expected = REAL(2.0) * Constants::PI * R;
+		Real length = PathIntegration::ParametricCurveLength(circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI);
+		Real expected = static_cast<MML::Real>(2.0) * Constants::PI * R;
 
 		REQUIRE_THAT(length, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
@@ -59,10 +59,10 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			TEST_PRECISION_INFO();
 		// Semicircle: L = π
 		ParametricCurve<3> semicircle([](Real t) {
-			return VectorN<Real, 3>{std::cos(t), std::sin(t), REAL(0.0)};
+			return VectorN<Real, 3>{std::cos(t), std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		Real length = PathIntegration::ParametricCurveLength(semicircle, REAL(0.0), Constants::PI);
+		Real length = PathIntegration::ParametricCurveLength(semicircle, static_cast<MML::Real>(0.0), Constants::PI);
 		Real expected = Constants::PI;
 
 		REQUIRE_THAT(length, WithinRel(expected, TOL(1e-4, 5e-4)));
@@ -78,8 +78,8 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{std::cos(t), std::sin(t), t};
 		});
 
-		Real length = PathIntegration::ParametricCurveLength(helix, REAL(0.0), REAL(2.0) * Constants::PI);
-		Real expected = REAL(2.0) * Constants::PI * std::sqrt(REAL(2.0));
+		Real length = PathIntegration::ParametricCurveLength(helix, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI);
+		Real expected = static_cast<MML::Real>(2.0) * Constants::PI * std::sqrt(static_cast<MML::Real>(2.0));
 
 		REQUIRE_THAT(length, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
@@ -90,13 +90,13 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		// General helix: r(t) = (a cos t, a sin t, b t)
 		// |r'(t)| = √(a² + b²)
 		// L = 2π√(a² + b²)
-		Real a = REAL(2.0), b = REAL(3.0);
+		Real a = static_cast<MML::Real>(2.0), b = static_cast<MML::Real>(3.0);
 		ParametricCurveFromStdFunc<3> helix([a, b](Real t) {
 			return VectorN<Real, 3>{a * std::cos(t), a * std::sin(t), b * t};
 		});
 
-		Real length = PathIntegration::ParametricCurveLength(helix, REAL(0.0), REAL(2.0) * Constants::PI);
-		Real expected = REAL(2.0) * Constants::PI * std::sqrt(a * a + b * b);
+		Real length = PathIntegration::ParametricCurveLength(helix, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI);
+		Real expected = static_cast<MML::Real>(2.0) * Constants::PI * std::sqrt(a * a + b * b);
 
 		REQUIRE_THAT(length, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
@@ -106,13 +106,13 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			TEST_PRECISION_INFO();
 		// Line from (0,0,0) to (3,4,0): length = 5
 		ParametricCurve<3> line([](Real t) {
-			return VectorN<Real, 3>{REAL(3.0) * t, REAL(4.0) * t, REAL(0.0)};
+			return VectorN<Real, 3>{static_cast<MML::Real>(3.0) * t, static_cast<MML::Real>(4.0) * t, static_cast<MML::Real>(0.0)};
 		});
 
-		Real length = PathIntegration::ParametricCurveLength(line, REAL(0.0), REAL(1.0));
-		Real expected = REAL(5.0);
+		Real length = PathIntegration::ParametricCurveLength(line, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0));
+		Real expected = static_cast<MML::Real>(5.0);
 
-		REQUIRE_THAT(length, WithinRel(expected, REAL(1e-6)));
+		REQUIRE_THAT(length, WithinRel(expected, static_cast<MML::Real>(1e-6)));
 	}
 
 	TEST_CASE("ArcLength::parabola", "[path_integration][arc_length]")
@@ -120,17 +120,17 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			TEST_PRECISION_INFO();
 		// Parabola: r(t) = (t, t², 0), t ∈ [0, 1]
 		// |r'(t)| = √(1 + 4t²)
-		// L = ∫[0,1] √(1 + 4t²) dt = (√5 + asinh(2)/2) / 2 ≈ REAL(1.4789)
+		// L = ∫[0,1] √(1 + 4t²) dt = (√5 + asinh(2)/2) / 2 ≈ static_cast<MML::Real>(1.4789)
 		ParametricCurve<3> parabola([](Real t) {
-			return VectorN<Real, 3>{t, t * t, REAL(0.0)};
+			return VectorN<Real, 3>{t, t * t, static_cast<MML::Real>(0.0)};
 		});
 
-		Real length = PathIntegration::ParametricCurveLength(parabola, REAL(0.0), REAL(1.0));
+		Real length = PathIntegration::ParametricCurveLength(parabola, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0));
 		// Analytical: (√5 + asinh(2)/2) / 2
-		Real expected = (std::sqrt(REAL(5.0)) + std::asinh(REAL(2.0)) / REAL(2.0)) / REAL(2.0);
-		// Approx REAL(1.4789)
+		Real expected = (std::sqrt(static_cast<MML::Real>(5.0)) + std::asinh(static_cast<MML::Real>(2.0)) / static_cast<MML::Real>(2.0)) / static_cast<MML::Real>(2.0);
+		// Approx static_cast<MML::Real>(1.4789)
 
-		REQUIRE_THAT(length, WithinRel(expected, REAL(1e-3)));
+		REQUIRE_THAT(length, WithinRel(expected, static_cast<MML::Real>(1e-3)));
 	}
 
 	TEST_CASE("ArcLength::2D_circle", "[path_integration][arc_length][2D]")
@@ -141,8 +141,8 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 2>{std::cos(t), std::sin(t)};
 		});
 
-		Real length = PathIntegration::ParametricCurveLength(circle2D, REAL(0.0), REAL(2.0) * Constants::PI);
-		Real expected = REAL(2.0) * Constants::PI;
+		Real length = PathIntegration::ParametricCurveLength(circle2D, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI);
+		Real expected = static_cast<MML::Real>(2.0) * Constants::PI;
 
 		REQUIRE_THAT(length, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
@@ -157,13 +157,13 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			TEST_PRECISION_INFO();
 		// Uniform density ρ=1 should equal arc length
 		ParametricCurve<3> circle([](Real t) {
-			return VectorN<Real, 3>{std::cos(t), std::sin(t), REAL(0.0)};
+			return VectorN<Real, 3>{std::cos(t), std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		RealFunction unit_density([](Real) { return REAL(1.0); });
+		RealFunction unit_density([](Real) { return static_cast<MML::Real>(1.0); });
 
-		Real mass = PathIntegration::ParametricCurveMass(circle, unit_density, REAL(0.0), REAL(2.0) * Constants::PI);
-		Real expected = REAL(2.0) * Constants::PI;  // Same as arc length
+		Real mass = PathIntegration::ParametricCurveMass(circle, unit_density, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI);
+		Real expected = static_cast<MML::Real>(2.0) * Constants::PI;  // Same as arc length
 
 		REQUIRE_THAT(mass, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
@@ -173,13 +173,13 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			TEST_PRECISION_INFO();
 		// Constant density ρ=5 on circle: M = 5 * 2π = 10π
 		ParametricCurve<3> circle([](Real t) {
-			return VectorN<Real, 3>{std::cos(t), std::sin(t), REAL(0.0)};
+			return VectorN<Real, 3>{std::cos(t), std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		RealFunction const_density([](Real) { return REAL(5.0); });
+		RealFunction const_density([](Real) { return static_cast<MML::Real>(5.0); });
 
-		Real mass = PathIntegration::ParametricCurveMass(circle, const_density, REAL(0.0), REAL(2.0) * Constants::PI);
-		Real expected = REAL(5.0) * REAL(2.0) * Constants::PI;
+		Real mass = PathIntegration::ParametricCurveMass(circle, const_density, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI);
+		Real expected = static_cast<MML::Real>(5.0) * static_cast<MML::Real>(2.0) * Constants::PI;
 
 		REQUIRE_THAT(mass, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
@@ -196,10 +196,10 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 
 		RealFunction exp_density([](Real t) { return std::exp(-t); });
 
-		Real mass = PathIntegration::ParametricCurveMass(helix, exp_density, REAL(0.0), REAL(2.0) * Constants::PI);
-		Real expected = std::sqrt(REAL(2.0)) * (REAL(1.0) - std::exp(-REAL(2.0) * Constants::PI));
+		Real mass = PathIntegration::ParametricCurveMass(helix, exp_density, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI);
+		Real expected = std::sqrt(static_cast<MML::Real>(2.0)) * (static_cast<MML::Real>(1.0) - std::exp(-static_cast<MML::Real>(2.0) * Constants::PI));
 
-		REQUIRE_THAT(mass, WithinRel(expected, REAL(1e-3)));
+		REQUIRE_THAT(mass, WithinRel(expected, static_cast<MML::Real>(1e-3)));
 	}
 
 	TEST_CASE("CurveMass::line_linear_density", "[path_integration][curve_mass]")
@@ -209,15 +209,15 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		// |r'(t)| = 1
 		// M = ∫[0,1] t dt = 1/2
 		ParametricCurve<3> line([](Real t) {
-			return VectorN<Real, 3>{t, REAL(0.0), REAL(0.0)};
+			return VectorN<Real, 3>{t, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
 		});
 
 		RealFunction linear_density([](Real t) { return t; });
 
-		Real mass = PathIntegration::ParametricCurveMass(line, linear_density, REAL(0.0), REAL(1.0));
-		Real expected = REAL(0.5);
+		Real mass = PathIntegration::ParametricCurveMass(line, linear_density, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0));
+		Real expected = static_cast<MML::Real>(0.5);
 
-		REQUIRE_THAT(mass, WithinAbs(expected, REAL(1e-6)));
+		REQUIRE_THAT(mass, WithinAbs(expected, static_cast<MML::Real>(1e-6)));
 	}
 
 	TEST_CASE("CurveMass::semicircle_sinusoidal", "[path_integration][curve_mass]")
@@ -227,13 +227,13 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		// |r'(t)| = 1
 		// M = ∫[0,π] sin(t) dt = 2
 		ParametricCurve<3> semicircle([](Real t) {
-			return VectorN<Real, 3>{std::cos(t), std::sin(t), REAL(0.0)};
+			return VectorN<Real, 3>{std::cos(t), std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
 		RealFunction sin_density([](Real t) { return std::sin(t); });
 
-		Real mass = PathIntegration::ParametricCurveMass(semicircle, sin_density, REAL(0.0), Constants::PI);
-		Real expected = REAL(2.0);
+		Real mass = PathIntegration::ParametricCurveMass(semicircle, sin_density, static_cast<MML::Real>(0.0), Constants::PI);
+		Real expected = static_cast<MML::Real>(2.0);
 
 		REQUIRE_THAT(mass, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
@@ -247,16 +247,16 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 	{
 			TEST_PRECISION_INFO();
 		// Constant field f=1 gives arc length
-		ScalarFunction<3> unit_field([](const VectorN<Real, 3>&) { return REAL(1.0); });
+		ScalarFunction<3> unit_field([](const VectorN<Real, 3>&) { return static_cast<MML::Real>(1.0); });
 
 		ParametricCurve<3> circle([](Real t) {
-			return VectorN<Real, 3>{std::cos(t), std::sin(t), REAL(0.0)};
+			return VectorN<Real, 3>{std::cos(t), std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		Real integral = PathIntegration::LineIntegral(unit_field, circle, REAL(0.0), REAL(2.0) * Constants::PI, 1e-5);
-		Real expected = REAL(2.0) * Constants::PI;
+		Real integral = PathIntegration::LineIntegral(unit_field, circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, 1e-5);
+		Real expected = static_cast<MML::Real>(2.0) * Constants::PI;
 
-		REQUIRE_THAT(integral, WithinRel(expected, REAL(1e-3)));
+		REQUIRE_THAT(integral, WithinRel(expected, static_cast<MML::Real>(1e-3)));
 	}
 
 	TEST_CASE("ScalarLineIntegral::linear_field_quarter_circle", "[path_integration][scalar_integral]")
@@ -267,19 +267,19 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		// f(r(t)) = 3cos t + 3sin t
 		// |r'(t)| = 3
 		// ∫ = ∫[0,π/2] (3cos t + 3sin t) * 3 dt = 9[sin t - cos t]₀^(π/2) = 18
-		Real R = REAL(3.0);
+		Real R = static_cast<MML::Real>(3.0);
 		ScalarFunction<3> linear_field([](const VectorN<Real, 3>& r) {
 			return r[0] + r[1];  // x + y
 		});
 
 		ParametricCurveFromStdFunc<3> quarter_circle([R](Real t) {
-			return VectorN<Real, 3>{R * std::cos(t), R * std::sin(t), REAL(0.0)};
+			return VectorN<Real, 3>{R * std::cos(t), R * std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		Real integral = PathIntegration::LineIntegral(linear_field, quarter_circle, REAL(0.0), Constants::PI / REAL(2.0), 1e-5);
-		Real expected = REAL(18.0);
+		Real integral = PathIntegration::LineIntegral(linear_field, quarter_circle, static_cast<MML::Real>(0.0), Constants::PI / static_cast<MML::Real>(2.0), 1e-5);
+		Real expected = static_cast<MML::Real>(18.0);
 
-		REQUIRE_THAT(integral, WithinRel(expected, REAL(1e-3)));
+		REQUIRE_THAT(integral, WithinRel(expected, static_cast<MML::Real>(1e-3)));
 	}
 
 	TEST_CASE("ScalarLineIntegral::radial_field_circle", "[path_integration][scalar_integral]")
@@ -293,13 +293,13 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		});
 
 		ParametricCurve<3> circle([](Real t) {
-			return VectorN<Real, 3>{std::cos(t), std::sin(t), REAL(0.0)};
+			return VectorN<Real, 3>{std::cos(t), std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		Real integral = PathIntegration::LineIntegral(radial_field, circle, REAL(0.0), REAL(2.0) * Constants::PI, 1e-5);
-		Real expected = REAL(2.0) * Constants::PI;
+		Real integral = PathIntegration::LineIntegral(radial_field, circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, 1e-5);
+		Real expected = static_cast<MML::Real>(2.0) * Constants::PI;
 
-		REQUIRE_THAT(integral, WithinRel(expected, REAL(1e-3)));
+		REQUIRE_THAT(integral, WithinRel(expected, static_cast<MML::Real>(1e-3)));
 	}
 
 	TEST_CASE("ScalarLineIntegral::height_on_helix", "[path_integration][scalar_integral]")
@@ -317,10 +317,10 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{std::cos(t), std::sin(t), t};
 		});
 
-		Real integral = PathIntegration::LineIntegral(height_field, helix, REAL(0.0), REAL(2.0) * Constants::PI, 1e-5);
-		Real expected = std::sqrt(REAL(2.0)) * REAL(2.0) * Constants::PI * Constants::PI;
+		Real integral = PathIntegration::LineIntegral(height_field, helix, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, 1e-5);
+		Real expected = std::sqrt(static_cast<MML::Real>(2.0)) * static_cast<MML::Real>(2.0) * Constants::PI * Constants::PI;
 
-		REQUIRE_THAT(integral, WithinRel(expected, REAL(1e-3)));
+		REQUIRE_THAT(integral, WithinRel(expected, static_cast<MML::Real>(1e-3)));
 	}
 
 	/*****************************************************************************
@@ -336,19 +336,19 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		// r'(t) = (1, 0, 0)
 		// F·r' = 1
 		// ∫[0,L] 1 dt = L
-		Real L = REAL(5.0);
+		Real L = static_cast<MML::Real>(5.0);
 		VectorFunction<3> const_field([](const VectorN<Real, 3>&) {
-			return VectorN<Real, 3>{REAL(1.0), REAL(0.0), REAL(0.0)};
+			return VectorN<Real, 3>{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
 		});
 
 		ParametricCurve<3> x_line([](Real t) {
-			return VectorN<Real, 3>{t, REAL(0.0), REAL(0.0)};
+			return VectorN<Real, 3>{t, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
 		});
 
-		Real work = PathIntegration::LineIntegral(const_field, x_line, REAL(0.0), L, 1e-5);
+		Real work = PathIntegration::LineIntegral(const_field, x_line, static_cast<MML::Real>(0.0), L, 1e-5);
 		Real expected = L;
 
-		REQUIRE_THAT(work, WithinRel(expected, REAL(1e-6)));
+		REQUIRE_THAT(work, WithinRel(expected, static_cast<MML::Real>(1e-6)));
 	}
 
 	TEST_CASE("VectorLineIntegral::rotation_field_circle", "[path_integration][vector_integral]")
@@ -360,19 +360,19 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		// F(r(t)) = (-R sin t, R cos t, 0)
 		// F·r' = R²sin²t + R²cos²t = R²
 		// ∫[0,2π] R² dt = 2πR²
-		Real R = REAL(2.0);
+		Real R = static_cast<MML::Real>(2.0);
 		VectorFunction<3> rotation_field([](const VectorN<Real, 3>& r) {
-			return VectorN<Real, 3>{-r[1], r[0], REAL(0.0)};
+			return VectorN<Real, 3>{-r[1], r[0], static_cast<MML::Real>(0.0)};
 		});
 
 		ParametricCurveFromStdFunc<3> circle([R](Real t) {
-			return VectorN<Real, 3>{R * std::cos(t), R * std::sin(t), REAL(0.0)};
+			return VectorN<Real, 3>{R * std::cos(t), R * std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		Real circulation = PathIntegration::LineIntegral(rotation_field, circle, REAL(0.0), REAL(2.0) * Constants::PI, 1e-5);
-		Real expected = REAL(2.0) * Constants::PI * R * R;
+		Real circulation = PathIntegration::LineIntegral(rotation_field, circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, 1e-5);
+		Real expected = static_cast<MML::Real>(2.0) * Constants::PI * R * R;
 
-		REQUIRE_THAT(circulation, WithinRel(expected, REAL(1e-3)));
+		REQUIRE_THAT(circulation, WithinRel(expected, static_cast<MML::Real>(1e-3)));
 	}
 
 	TEST_CASE("VectorLineIntegral::conservative_field_path_independence", "[path_integration][vector_integral][conservative]")
@@ -382,34 +382,34 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		// F = (2x, 2y, 2z)
 		// Work = φ(end) - φ(start)
 		VectorFunction<3> grad_field([](const VectorN<Real, 3>& r) {
-			return VectorN<Real, 3>{REAL(2.0) * r[0], REAL(2.0) * r[1], REAL(2.0) * r[2]};
+			return VectorN<Real, 3>{static_cast<MML::Real>(2.0) * r[0], static_cast<MML::Real>(2.0) * r[1], static_cast<MML::Real>(2.0) * r[2]};
 		});
 
 		// Path 1: Straight line from (1,0,0) to (0,1,1)
 		ParametricCurve<3> path1([](Real t) {
-			return VectorN<Real, 3>{REAL(1.0) - t, t, t};
+			return VectorN<Real, 3>{static_cast<MML::Real>(1.0) - t, t, t};
 		});
 
 		// Path 2: Two segments
 		// (1,0,0) -> (0,0,0) -> (0,1,1)
 		ParametricCurve<3> path2a([](Real t) {
-			return VectorN<Real, 3>{REAL(1.0) - t, REAL(0.0), REAL(0.0)};
+			return VectorN<Real, 3>{static_cast<MML::Real>(1.0) - t, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
 		});
 		ParametricCurve<3> path2b([](Real t) {
-			return VectorN<Real, 3>{REAL(0.0), t, t};
+			return VectorN<Real, 3>{static_cast<MML::Real>(0.0), t, t};
 		});
 
-		Real work1 = PathIntegration::LineIntegral(grad_field, path1, REAL(0.0), REAL(1.0), 1e-5);
-		Real work2a = PathIntegration::LineIntegral(grad_field, path2a, REAL(0.0), REAL(1.0), 1e-5);
-		Real work2b = PathIntegration::LineIntegral(grad_field, path2b, REAL(0.0), REAL(1.0), 1e-5);
+		Real work1 = PathIntegration::LineIntegral(grad_field, path1, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
+		Real work2a = PathIntegration::LineIntegral(grad_field, path2a, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
+		Real work2b = PathIntegration::LineIntegral(grad_field, path2b, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
 		Real work2 = work2a + work2b;
 
 		// Both should equal φ(end) - φ(start) = (0+1+1) - (1+0+0) = 1
-		Real expected = REAL(1.0);
+		Real expected = static_cast<MML::Real>(1.0);
 
-		REQUIRE_THAT(work1, WithinRel(expected, REAL(1e-3)));
-		REQUIRE_THAT(work2, WithinRel(expected, REAL(1e-3)));
-		REQUIRE_THAT(work1, WithinRel(work2, REAL(1e-3)));  // Path independence
+		REQUIRE_THAT(work1, WithinRel(expected, static_cast<MML::Real>(1e-3)));
+		REQUIRE_THAT(work2, WithinRel(expected, static_cast<MML::Real>(1e-3)));
+		REQUIRE_THAT(work1, WithinRel(work2, static_cast<MML::Real>(1e-3)));  // Path independence
 	}
 
 	TEST_CASE("VectorLineIntegral::closed_loop_conservative", "[path_integration][vector_integral][conservative]")
@@ -418,17 +418,17 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		// Conservative field: closed loop integral = 0
 		// F = ∇φ = (2x, 2y, 0)
 		VectorFunction<3> grad_field([](const VectorN<Real, 3>& r) {
-			return VectorN<Real, 3>{REAL(2.0) * r[0], REAL(2.0) * r[1], REAL(0.0)};
+			return VectorN<Real, 3>{static_cast<MML::Real>(2.0) * r[0], static_cast<MML::Real>(2.0) * r[1], static_cast<MML::Real>(0.0)};
 		});
 
 		// Closed circle
 		ParametricCurve<3> circle([](Real t) {
-			return VectorN<Real, 3>{std::cos(t), std::sin(t), REAL(0.0)};
+			return VectorN<Real, 3>{std::cos(t), std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		Real work = PathIntegration::LineIntegral(grad_field, circle, REAL(0.0), REAL(2.0) * Constants::PI, 1e-5);
+		Real work = PathIntegration::LineIntegral(grad_field, circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, 1e-5);
 
-		REQUIRE_THAT(work, WithinAbs(REAL(0.0), REAL(1e-3)));
+		REQUIRE_THAT(work, WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-3)));
 	}
 
 	TEST_CASE("VectorLineIntegral::radial_field_line", "[path_integration][vector_integral]")
@@ -439,17 +439,17 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		// r'(t) = (1, 0, 0)
 		// F(r(t)) = (1+t, 0, 0)
 		// F·r' = 1+t
-		// ∫[0,1] (1+t) dt = [t + t²/2]₀¹ = REAL(1.5)
+		// ∫[0,1] (1+t) dt = [t + t²/2]₀¹ = static_cast<MML::Real>(1.5)
 		VectorFunction<3> radial_field([](const VectorN<Real, 3>& r) {
 			return r;  // F = r
 		});
 
 		ParametricCurve<3> line([](Real t) {
-			return VectorN<Real, 3>{REAL(1.0) + t, REAL(0.0), REAL(0.0)};
+			return VectorN<Real, 3>{static_cast<MML::Real>(1.0) + t, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
 		});
 
-		Real work = PathIntegration::LineIntegral(radial_field, line, REAL(0.0), REAL(1.0), 1e-5);
-		Real expected = REAL(1.5);
+		Real work = PathIntegration::LineIntegral(radial_field, line, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
+		Real expected = static_cast<MML::Real>(1.5);
 
 		REQUIRE_THAT(work, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
@@ -462,7 +462,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		// Work = φ(end) - φ(start) = -k/2 - (-k/1) = -5 + 10 = 5? 
 		// BUT: ∫F·dr = ∫(-k/r²)dr = k/r evaluated at r=2 minus at r=1 = k/2 - k = -k/2
 		// The work is NEGATIVE because we're moving against the (inward) force
-		Real k = REAL(10.0);
+		Real k = static_cast<MML::Real>(10.0);
 		VectorFunctionFromStdFunc<3> inv_sq_field([k](const VectorN<Real, 3>& r) {
 			Real r_mag = r.NormL2();
 			Real factor = -k / (r_mag * r_mag * r_mag);
@@ -471,14 +471,14 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 
 		// Line from (1,0,0) to (2,0,0)
 		ParametricCurve<3> line([](Real t) {
-			return VectorN<Real, 3>{REAL(1.0) + t, REAL(0.0), REAL(0.0)};
+			return VectorN<Real, 3>{static_cast<MML::Real>(1.0) + t, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
 		});
 
-		Real work = PathIntegration::LineIntegral(inv_sq_field, line, REAL(0.0), REAL(1.0), 1e-5);
+		Real work = PathIntegration::LineIntegral(inv_sq_field, line, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
 		// Work = ∫(-k/r²)dr from r=1 to r=2 = k[1/r]₁² = k(1/2 - 1) = -k/2 = -5
-		Real expected = -k / REAL(2.0);  // = -5
+		Real expected = -k / static_cast<MML::Real>(2.0);  // = -5
 
-		REQUIRE_THAT(work, WithinRel(expected, REAL(1e-3)));
+		REQUIRE_THAT(work, WithinRel(expected, static_cast<MML::Real>(1e-3)));
 	}
 
 	/*****************************************************************************
@@ -490,29 +490,29 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		TEST_PRECISION_INFO();
 
 		ParametricCurve<3> line([](Real t) {
-			return VectorN<Real, 3>{REAL(3.0) * t, REAL(4.0) * t, REAL(0.0)};
+			return VectorN<Real, 3>{static_cast<MML::Real>(3.0) * t, static_cast<MML::Real>(4.0) * t, static_cast<MML::Real>(0.0)};
 		});
-		RealFunction density([](Real) { return REAL(2.0); });
-		ScalarFunction<3> scalarField([](const VectorN<Real, 3>&) { return REAL(2.0); });
+		RealFunction density([](Real) { return static_cast<MML::Real>(2.0); });
+		ScalarFunction<3> scalarField([](const VectorN<Real, 3>&) { return static_cast<MML::Real>(2.0); });
 		VectorFunction<3> vectorField([](const VectorN<Real, 3>&) {
-			return VectorN<Real, 3>{REAL(1.0), REAL(2.0), REAL(0.0)};
+			return VectorN<Real, 3>{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0)};
 		});
 
 		for (IntegrationMethod method : {TRAP, SIMPSON, ROMBERG, GAUSS10, GAUSS10KRONROD21})
 		{
 			INFO("Integration method: " << method);
 
-			auto length = PathIntegration::ParametricCurveLength(line, REAL(0.0), REAL(1.0), method);
-			auto mass = PathIntegration::ParametricCurveMass(line, density, REAL(0.0), REAL(1.0), method);
-			auto scalarIntegral = PathIntegration::LineIntegral(
-				scalarField, line, REAL(0.0), REAL(1.0), method);
-			auto vectorIntegral = PathIntegration::LineIntegral(
-				vectorField, line, REAL(0.0), REAL(1.0), method);
+			auto length = PathIntegration::ParametricCurveLengthDetailed(line, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), method);
+			auto mass = PathIntegration::ParametricCurveMassDetailed(line, density, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), method);
+			auto scalarIntegral = PathIntegration::LineIntegralDetailed(
+				scalarField, line, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), method);
+			auto vectorIntegral = PathIntegration::LineIntegralDetailed(
+				vectorField, line, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), method);
 
-			REQUIRE_THAT(length.value, WithinAbs(REAL(5.0), TOL(1e-6, 1e-3)));
-			REQUIRE_THAT(mass.value, WithinAbs(REAL(10.0), TOL(1e-6, 2e-3)));
-			REQUIRE_THAT(scalarIntegral.value, WithinAbs(REAL(10.0), TOL(1e-6, 2e-3)));
-			REQUIRE_THAT(vectorIntegral.value, WithinAbs(REAL(11.0), TOL(1e-6, 2e-3)));
+			REQUIRE_THAT(length.value, WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-6, 1e-3)));
+			REQUIRE_THAT(mass.value, WithinAbs(static_cast<MML::Real>(10.0), TOL(1e-6, 2e-3)));
+			REQUIRE_THAT(scalarIntegral.value, WithinAbs(static_cast<MML::Real>(10.0), TOL(1e-6, 2e-3)));
+			REQUIRE_THAT(vectorIntegral.value, WithinAbs(static_cast<MML::Real>(11.0), TOL(1e-6, 2e-3)));
 		}
 	}
 
@@ -521,12 +521,12 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			TEST_PRECISION_INFO();
 		// Zero interval should give zero
 		ParametricCurve<3> circle([](Real t) {
-			return VectorN<Real, 3>{std::cos(t), std::sin(t), REAL(0.0)};
+			return VectorN<Real, 3>{std::cos(t), std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		Real length = PathIntegration::ParametricCurveLength(circle, REAL(0.0), REAL(0.0));
+		Real length = PathIntegration::ParametricCurveLength(circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
 
-		REQUIRE_THAT(length, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(length, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("PathIntegration::reversed_orientation", "[path_integration][orientation]")
@@ -534,23 +534,23 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			TEST_PRECISION_INFO();
 		// Vector integral with reversed path should negate
 		VectorFunction<3> field([](const VectorN<Real, 3>& r) {
-			return VectorN<Real, 3>{r[0], r[1], REAL(0.0)};
+			return VectorN<Real, 3>{r[0], r[1], static_cast<MML::Real>(0.0)};
 		});
 
 		// Forward: (0,0,0) to (1,1,0)
 		ParametricCurve<3> forward([](Real t) {
-			return VectorN<Real, 3>{t, t, REAL(0.0)};
+			return VectorN<Real, 3>{t, t, static_cast<MML::Real>(0.0)};
 		});
 
 		// Backward: (1,1,0) to (0,0,0)
 		ParametricCurve<3> backward([](Real t) {
-			return VectorN<Real, 3>{REAL(1.0) - t, REAL(1.0) - t, REAL(0.0)};
+			return VectorN<Real, 3>{static_cast<MML::Real>(1.0) - t, static_cast<MML::Real>(1.0) - t, static_cast<MML::Real>(0.0)};
 		});
 
-		Real work_fwd = PathIntegration::LineIntegral(field, forward, REAL(0.0), REAL(1.0), 1e-5);
-		Real work_bwd = PathIntegration::LineIntegral(field, backward, REAL(0.0), REAL(1.0), 1e-5);
+		Real work_fwd = PathIntegration::LineIntegral(field, forward, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
+		Real work_bwd = PathIntegration::LineIntegral(field, backward, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
 
-		REQUIRE_THAT(work_fwd, WithinRel(-work_bwd, REAL(1e-3)));
+		REQUIRE_THAT(work_fwd, WithinRel(-work_bwd, static_cast<MML::Real>(1e-3)));
 	}
 
 	TEST_CASE("PathIntegration::scalar_integral_symmetry", "[path_integration][symmetry]")
@@ -562,17 +562,17 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		});
 
 		ParametricCurve<3> forward([](Real t) {
-			return VectorN<Real, 3>{t, t, REAL(0.0)};
+			return VectorN<Real, 3>{t, t, static_cast<MML::Real>(0.0)};
 		});
 
 		ParametricCurve<3> backward([](Real t) {
-			return VectorN<Real, 3>{REAL(1.0) - t, REAL(1.0) - t, REAL(0.0)};
+			return VectorN<Real, 3>{static_cast<MML::Real>(1.0) - t, static_cast<MML::Real>(1.0) - t, static_cast<MML::Real>(0.0)};
 		});
 
-		Real int_fwd = PathIntegration::LineIntegral(field, forward, REAL(0.0), REAL(1.0), 1e-5);
-		Real int_bwd = PathIntegration::LineIntegral(field, backward, REAL(0.0), REAL(1.0), 1e-5);
+		Real int_fwd = PathIntegration::LineIntegral(field, forward, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
+		Real int_bwd = PathIntegration::LineIntegral(field, backward, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
 
-		REQUIRE_THAT(int_fwd, WithinRel(int_bwd, REAL(1e-3)));  // Same value
+		REQUIRE_THAT(int_fwd, WithinRel(int_bwd, static_cast<MML::Real>(1e-3)));  // Same value
 	}
 
 	/*****************************************************************************
@@ -585,21 +585,21 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		// Work done moving in uniform gravitational field
 		// F = (0, 0, -mg), moving from z=0 to z=h
 		// Work = -mgh (negative = work done against gravity)
-		Real m = REAL(1.0), g = REAL(9.81), h = REAL(10.0);
+		Real m = static_cast<MML::Real>(1.0), g = static_cast<MML::Real>(9.81), h = static_cast<MML::Real>(10.0);
 
 		VectorFunctionFromStdFunc<3> gravity([m, g](const VectorN<Real, 3>&) {
-			return VectorN<Real, 3>{REAL(0.0), REAL(0.0), -m * g};
+			return VectorN<Real, 3>{static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), -m * g};
 		});
 
 		// Vertical line from (0,0,0) to (0,0,h)
 		ParametricCurveFromStdFunc<3> vertical([h](Real t) {
-			return VectorN<Real, 3>{REAL(0.0), REAL(0.0), h * t};
+			return VectorN<Real, 3>{static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), h * t};
 		});
 
-		Real work = PathIntegration::LineIntegral(gravity, vertical, REAL(0.0), REAL(1.0), 1e-6);
+		Real work = PathIntegration::LineIntegral(gravity, vertical, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-6);
 		Real expected = -m * g * h;
 
-		REQUIRE_THAT(work, WithinRel(expected, REAL(1e-5)));
+		REQUIRE_THAT(work, WithinRel(expected, static_cast<MML::Real>(1e-5)));
 	}
 
 	TEST_CASE("Physics::electric_field_work", "[path_integration][physics]")
@@ -607,20 +607,20 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			TEST_PRECISION_INFO();
 		// Uniform electric field E = (E₀, 0, 0)
 		// Work on charge q moving from x=0 to x=d: W = qE₀d
-		Real E0 = REAL(100.0), q = 1.6e-19, d = REAL(0.01);
+		Real E0 = static_cast<MML::Real>(100.0), q = 1.6e-19, d = static_cast<MML::Real>(0.01);
 
 		VectorFunctionFromStdFunc<3> E_field([E0, q](const VectorN<Real, 3>&) {
-			return VectorN<Real, 3>{q * E0, REAL(0.0), REAL(0.0)};  // Force = qE
+			return VectorN<Real, 3>{q * E0, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};  // Force = qE
 		});
 
 		ParametricCurveFromStdFunc<3> path([d](Real t) {
-			return VectorN<Real, 3>{d * t, REAL(0.0), REAL(0.0)};
+			return VectorN<Real, 3>{d * t, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
 		});
 
-		Real work = PathIntegration::LineIntegral(E_field, path, REAL(0.0), REAL(1.0), 1e-6);
+		Real work = PathIntegration::LineIntegral(E_field, path, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-6);
 		Real expected = q * E0 * d;
 
-		REQUIRE_THAT(work, WithinRel(expected, REAL(1e-5)));
+		REQUIRE_THAT(work, WithinRel(expected, static_cast<MML::Real>(1e-5)));
 	}
 
 }  // namespace

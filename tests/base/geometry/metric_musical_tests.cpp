@@ -3,7 +3,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
-#include <mml/base/DifferentialGeometry/Metric.h>
+#include <mml/core/DifferentialGeometry/Metric.h>
 #endif
 
 #include <type_traits>
@@ -33,45 +33,45 @@ namespace MML::Tests::Base::MetricMusicalTests
 		static_assert(G::Dimension == 3, "Metric dimension metadata is fixed at compile time");
 		static_assert(std::is_same<typename G::frame_type, Cartesian3>::value, "Frame tag is part of the metric type");
 
-		REQUIRE(metric(0, 0) == REAL(1.0));
-		REQUIRE(metric(1, 1) == REAL(1.0));
-		REQUIRE(metric(2, 2) == REAL(1.0));
-		REQUIRE(metric(0, 1) == REAL(0.0));
-		REQUIRE(metric.contravariantComponents()(0, 0) == REAL(1.0));
-		REQUIRE(metric.contravariantComponents()(1, 2) == REAL(0.0));
+		REQUIRE(metric(0, 0) == static_cast<MML::Real>(1.0));
+		REQUIRE(metric(1, 1) == static_cast<MML::Real>(1.0));
+		REQUIRE(metric(2, 2) == static_cast<MML::Real>(1.0));
+		REQUIRE(metric(0, 1) == static_cast<MML::Real>(0.0));
+		REQUIRE(metric.contravariantComponents()(0, 0) == static_cast<MML::Real>(1.0));
+		REQUIRE(metric.contravariantComponents()(1, 2) == static_cast<MML::Real>(0.0));
 	}
 
 	TEST_CASE("Metric - Diagonal construction computes inverse components", "[Metric][DifferentialForms]")
 	{
-		Metric<3, Cartesian3> metric = Metric<3, Cartesian3>::Diagonal({ REAL(2.0), REAL(4.0), REAL(5.0) });
+		Metric<3, Cartesian3> metric = Metric<3, Cartesian3>::Diagonal({ static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0) });
 
-		REQUIRE(metric.covariantComponents()(0, 0) == REAL(2.0));
-		REQUIRE(metric.covariantComponents()(1, 1) == REAL(4.0));
-		REQUIRE(metric.covariantComponents()(2, 2) == REAL(5.0));
-		REQUIRE(metric.contravariantComponents()(0, 0) == Catch::Approx(REAL(0.5)));
-		REQUIRE(metric.contravariantComponents()(1, 1) == Catch::Approx(REAL(0.25)));
-		REQUIRE(metric.contravariantComponents()(2, 2) == Catch::Approx(REAL(0.2)));
+		REQUIRE(metric.covariantComponents()(0, 0) == static_cast<MML::Real>(2.0));
+		REQUIRE(metric.covariantComponents()(1, 1) == static_cast<MML::Real>(4.0));
+		REQUIRE(metric.covariantComponents()(2, 2) == static_cast<MML::Real>(5.0));
+		REQUIRE(metric.contravariantComponents()(0, 0) == Catch::Approx(static_cast<MML::Real>(0.5)));
+		REQUIRE(metric.contravariantComponents()(1, 1) == Catch::Approx(static_cast<MML::Real>(0.25)));
+		REQUIRE(metric.contravariantComponents()(2, 2) == Catch::Approx(static_cast<MML::Real>(0.2)));
 	}
 
 	TEST_CASE("Metric - Flat sharp and inner products use explicit metric", "[Metric][DifferentialForms]")
 	{
-		Metric<3, Cartesian3> metric = Metric<3, Cartesian3>::Diagonal({ REAL(2.0), REAL(4.0), REAL(5.0) });
-		TangentVector<3, Cartesian3> a{ REAL(1.0), REAL(2.0), REAL(3.0) };
-		TangentVector<3, Cartesian3> b{ -REAL(2.0), REAL(0.5), REAL(4.0) };
+		Metric<3, Cartesian3> metric = Metric<3, Cartesian3>::Diagonal({ static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0) });
+		TangentVector<3, Cartesian3> a{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) };
+		TangentVector<3, Cartesian3> b{ -static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(4.0) };
 
 		Covector<3, Cartesian3> aFlat = Flat(metric, a);
-		REQUIRE(aFlat[0] == REAL(2.0));
-		REQUIRE(aFlat[1] == REAL(8.0));
-		REQUIRE(aFlat[2] == REAL(15.0));
+		REQUIRE(aFlat[0] == static_cast<MML::Real>(2.0));
+		REQUIRE(aFlat[1] == static_cast<MML::Real>(8.0));
+		REQUIRE(aFlat[2] == static_cast<MML::Real>(15.0));
 
 		TangentVector<3, Cartesian3> roundTrip = Sharp(metric, aFlat);
 		REQUIRE(roundTrip[0] == Catch::Approx(a[0]));
 		REQUIRE(roundTrip[1] == Catch::Approx(a[1]));
 		REQUIRE(roundTrip[2] == Catch::Approx(a[2]));
 
-		Real expectedInner = REAL(2.0) * REAL(1.0) * -REAL(2.0)
-			+ REAL(4.0) * REAL(2.0) * REAL(0.5)
-			+ REAL(5.0) * REAL(3.0) * REAL(4.0);
+		Real expectedInner = static_cast<MML::Real>(2.0) * static_cast<MML::Real>(1.0) * -static_cast<MML::Real>(2.0)
+			+ static_cast<MML::Real>(4.0) * static_cast<MML::Real>(2.0) * static_cast<MML::Real>(0.5)
+			+ static_cast<MML::Real>(5.0) * static_cast<MML::Real>(3.0) * static_cast<MML::Real>(4.0);
 		REQUIRE(Inner(metric, a, b) == expectedInner);
 		REQUIRE(Inner(metric, a, b) == Pair(aFlat, b));
 		REQUIRE(flat(metric, a).components() == aFlat.components());
@@ -98,8 +98,8 @@ namespace MML::Tests::Base::MetricMusicalTests
 	TEST_CASE("Metric - Singular covariant components throw during construction", "[Metric][DifferentialForms]")
 	{
 		MatrixNM<Real, 3, 3> singular;
-		singular(0, 0) = REAL(1.0);
-		singular(1, 1) = REAL(1.0);
+		singular(0, 0) = static_cast<MML::Real>(1.0);
+		singular(1, 1) = static_cast<MML::Real>(1.0);
 
 		REQUIRE_THROWS_AS((Metric<3, Cartesian3>(singular)), SingularMatrixError);
 	}

@@ -74,8 +74,8 @@ namespace MML::Tests::Base::ConceptsTests
 		static_assert(!HasUnitVector<Vector<std::string>>);
 
 		Vector<Real> e1 = Vector<Real>::UnitVector(3, 1);
-		REQUIRE(e1[0] == REAL(0.0));
-		REQUIRE(e1[1] == REAL(1.0));
-		REQUIRE(e1[2] == REAL(0.0));
+		REQUIRE(e1[0] == static_cast<MML::Real>(0.0));
+		REQUIRE(e1[1] == static_cast<MML::Real>(1.0));
+		REQUIRE(e1[2] == static_cast<MML::Real>(0.0));
 	}
 }

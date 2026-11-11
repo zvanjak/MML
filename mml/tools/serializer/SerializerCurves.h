@@ -25,27 +25,27 @@ namespace MML
 		//===================================================================================
 
 		/// @brief Serialize a parametric curve to file at equally-spaced parameter values
-		/// @return SerializeResult with success flag and error details
+		/// @return IOResult with success flag and error details
 		template<int N>
-		inline SerializeResult SaveParamCurve(const IRealToVectorFunction<N>& f, std::string inType, std::string title, 
-		                                      Real t1, Real t2, int numPoints, std::string fileName)
-		{
+		inline IOResult SaveParamCurve(const IRealToVectorFunction<N>& f, std::string inType, std::string title, Real t1, Real t2,
+																	 int numPoints, std::string fileName) {
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 			if (numPoints < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPoints must be >= 2"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "numPoints must be >= 2"}.WithFile(fileName);
 			if (t1 >= t2)
-				return {false, SerializeError::INVALID_PARAMETERS, "t1 must be < t2"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "t1 must be < t2"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
 				auto headerResult = WriteParamCurveHeader(file, inType, title, t1, t2, numPoints);
 				if (!headerResult.success)
-					return headerResult;
+					return (headerResult).WithFile(fileName);
 
 				Real delta = (t2 - t1) / (numPoints - 1);
 				for (int n = 0; n < numPoints; n++)
@@ -57,36 +57,35 @@ namespace MML
 						file << val[i] << " ";
 					file << std::endl;
 				}
-				file.close();
-				return {true, SerializeError::OK, "Successfully saved parametric curve"};
+				return Serializer::detail::FinishFile(file, fileName, "Successfully saved parametric curve");
 			}
 			catch (const std::exception& e)
 			{
 				file.close();
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 
 		/// @brief Serialize a parametric curve to file at specified parameter values
-		/// @return SerializeResult with success flag and error details
+		/// @return IOResult with success flag and error details
 		template<int N>
-		inline SerializeResult SaveParamCurve(const IRealToVectorFunction<N>& f, std::string inType, std::string title, 
-		                                      Vector<Real> points, std::string fileName)
-		{
+		inline IOResult SaveParamCurve(const IRealToVectorFunction<N>& f, std::string inType, std::string title, Vector<Real> points,
+																	 std::string fileName) {
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 			if (points.size() < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "points vector must have at least 2 elements"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "points vector must have at least 2 elements"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
 				auto headerResult = WriteParamCurveHeader(file, inType, title, points[0], points[points.size() - 1], static_cast<int>(points.size()));
 				if (!headerResult.success)
-					return headerResult;
+					return (headerResult).WithFile(fileName);
 
 				for (int i = 0; i < points.size(); i++)
 				{
@@ -98,40 +97,39 @@ namespace MML
 					file << std::endl;
 				}
 
-				file.close();
-				return {true, SerializeError::OK, "Successfully saved parametric curve"};
+				return Serializer::detail::FinishFile(file, fileName, "Successfully saved parametric curve");
 			}
 			catch (const std::exception& e)
 			{
 				file.close();
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 
 		/// @brief Serialize pre-computed curve points to file at equally-spaced parameter values
-		/// @return SerializeResult with success flag and error details
+		/// @return IOResult with success flag and error details
 		template<int N>
-		inline SerializeResult SaveAsParamCurve(std::vector<VectorN<Real, N>> vals, std::string inType, std::string title, 
-		                                        Real t1, Real t2, int numPoints, std::string fileName)
-		{
+		inline IOResult SaveAsParamCurve(std::vector<VectorN<Real, N>> vals, std::string inType, std::string title, Real t1, Real t2,
+																		 int numPoints, std::string fileName) {
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 			if (numPoints < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPoints must be >= 2"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "numPoints must be >= 2"}.WithFile(fileName);
 			if (t1 >= t2)
-				return {false, SerializeError::INVALID_PARAMETERS, "t1 must be < t2"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "t1 must be < t2"}.WithFile(fileName);
 			if (static_cast<int>(vals.size()) < numPoints)
-				return {false, SerializeError::INVALID_PARAMETERS, "vals vector size must be >= numPoints"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "vals vector size must be >= numPoints"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
 				auto headerResult = WriteParamCurveHeader(file, inType, title, t1, t2, numPoints);
 				if (!headerResult.success)
-					return headerResult;
+					return (headerResult).WithFile(fileName);
 
 				Real delta = (t2 - t1) / (numPoints - 1);
 				for (int i = 0; i < numPoints; i++)
@@ -142,38 +140,37 @@ namespace MML
 						file << vals[i][j] << " ";
 					file << std::endl;
 				}
-				file.close();
-				return {true, SerializeError::OK, "Successfully saved parametric curve"};
+				return Serializer::detail::FinishFile(file, fileName, "Successfully saved parametric curve");
 			}
 			catch (const std::exception& e)
 			{
 				file.close();
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 
 		/// @brief Serialize pre-computed curve points to file at specified parameter values
-		/// @return SerializeResult with success flag and error details
+		/// @return IOResult with success flag and error details
 		template<int N>
-		inline SerializeResult SaveAsParamCurve(std::vector<VectorN<Real, N>> vals, std::string inType, std::string title,
-		                                        Vector<Real> points, std::string fileName)
-		{
+		inline IOResult SaveAsParamCurve(std::vector<VectorN<Real, N>> vals, std::string inType, std::string title, Vector<Real> points,
+																		 std::string fileName) {
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 			if (points.size() < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "points vector must have at least 2 elements"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "points vector must have at least 2 elements"}.WithFile(fileName);
 			if (vals.size() < points.size())
-				return {false, SerializeError::INVALID_PARAMETERS, "vals vector size must be >= points size"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "vals vector size must be >= points size"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
 				auto headerResult = WriteParamCurveHeader(file, inType, title, points[0], points[points.size() - 1], static_cast<int>(points.size()));
 				if (!headerResult.success)
-					return headerResult;
+					return (headerResult).WithFile(fileName);
 
 				for (int i = 0; i < points.size(); i++)
 				{
@@ -183,13 +180,12 @@ namespace MML
 						file << vals[i][j] << " ";
 					file << std::endl;
 				}
-				file.close();
-				return {true, SerializeError::OK, "Successfully saved parametric curve"};
+				return Serializer::detail::FinishFile(file, fileName, "Successfully saved parametric curve");
 			}
 			catch (const std::exception& e)
 			{
 				file.close();
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 
@@ -202,67 +198,67 @@ namespace MML
 		/// @param fileName Output file path for the parametric curve
 		/// @param t1 Start of parameter range (default: 0.0, used to label parameter axis)
 		/// @param t2 End of parameter range (default: 1.0, used to label parameter axis)
-		/// @return SerializeResult with success flag and error details
+		/// @return IOResult with success flag and error details
 		/// @pre vec_x.size() >= 2, vec_x.size() == vec_y.size(), t1 < t2, !fileName.empty()
 		/// @post File is closed and flushed; parameter range [t1, t2] mapped across vector indices
 		/// @note Parameter values are computed linearly from t1 to t2 across indices
-		inline SerializeResult SaveAsParamCurve2D(const Vector<Real>& vec_x, const Vector<Real>& vec_y, 
-		                                          std::string title, std::string fileName, Real t1 = 0.0, Real t2 = 1.0)
-		{
+		inline IOResult SaveAsParamCurve2D(const Vector<Real>& vec_x, const Vector<Real>& vec_y, std::string title, std::string fileName,
+																			 Real t1 = 0.0, Real t2 = 1.0) {
 			// Validate parameters
 			if (fileName.empty()) {
-				return { false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty" };
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 			}
 			if (vec_x.size() < 2) {
-				return { false, SerializeError::INVALID_PARAMETERS, "vec_x must have at least 2 elements" };
+				return IOResult{false, IOError::INVALID_PARAMETERS, "vec_x must have at least 2 elements"}.WithFile(fileName);
 			}
 			if (vec_x.size() != vec_y.size()) {
-				return { false, SerializeError::INVALID_PARAMETERS, "vec_x and vec_y must have same size" };
+				return IOResult{false, IOError::INVALID_PARAMETERS, "vec_x and vec_y must have same size"}.WithFile(fileName);
 			}
 			if (t1 >= t2) {
-				return { false, SerializeError::INVALID_PARAMETERS, "t1 must be < t2" };
+				return IOResult{false, IOError::INVALID_PARAMETERS, "t1 must be < t2"}.WithFile(fileName);
 			}
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open()) {
-				return { false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName };
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 			}
 
 			try {
-				WriteParamCurveHeader(file, SerializeFormatType::PARAMETRIC_CURVE_CARTESIAN_2D, title, t1, t2, static_cast<int>(vec_x.size()));
+				if (auto headerResult = WriteParamCurveHeader(file, SerializeFormatType::PARAMETRIC_CURVE_CARTESIAN_2D, title, t1, t2, static_cast<int>(vec_x.size())); !headerResult.success)
+					return (headerResult).WithFile(fileName);
 
 				for (int i = 0; i < vec_x.size(); i++)
 				{
 					Real t = t1 + (t2 - t1) * i / (vec_x.size() - 1);
 					file << t << " " << vec_x[i] << " " << vec_y[i] << std::endl;
 				}
-				file.close();
-				return { true, SerializeError::OK, "Successfully saved parametric curve 2D" };
+				return Serializer::detail::FinishFile(file, fileName, "Successfully saved parametric curve 2D");
 			}
 			catch (const std::exception& e) {
 				file.close();
-				return { false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what() };
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 
 		//===================================================================================
-		// Helper/forwarding functions - SerializeResult versions
+		// Helper/forwarding functions - IOResult versions
 		//===================================================================================
 
 		/// @brief Serialize a 2D Cartesian parametric curve to file
-		/// @return SerializeResult with success flag and error details
-		inline SerializeResult SaveParamCurveCartesian2DResult(const IRealToVectorFunction<2>& f, std::string title, 
-		                                                       Real t1, Real t2, int numPoints, std::string fileName)
-		{
-			return SaveParamCurve<2>(f, SerializeFormatType::PARAMETRIC_CURVE_CARTESIAN_2D, title, t1, t2, numPoints, fileName);
+		/// @return IOResult with success flag and error details
+		inline IOResult SaveParamCurveCartesian2DResult(const IRealToVectorFunction<2>& f, std::string title, Real t1, Real t2, int numPoints,
+																										std::string fileName) {
+			return (SaveParamCurve<2>(f, SerializeFormatType::PARAMETRIC_CURVE_CARTESIAN_2D, title, t1, t2, numPoints, fileName))
+				.WithFile(fileName);
 		}
-		
+
 		/// @brief Serialize a 3D Cartesian parametric curve to file
-		/// @return SerializeResult with success flag and error details
-		inline SerializeResult SaveParamCurveCartesian3DResult(const IRealToVectorFunction<3>& f, std::string title, 
-		                                                       Real t1, Real t2, int numPoints, std::string fileName)
-		{
-			return SaveParamCurve<3>(f, SerializeFormatType::PARAMETRIC_CURVE_CARTESIAN_3D, title, t1, t2, numPoints, fileName);
+		/// @return IOResult with success flag and error details
+		inline IOResult SaveParamCurveCartesian3DResult(const IRealToVectorFunction<3>& f, std::string title, Real t1, Real t2, int numPoints,
+																										std::string fileName) {
+			return (SaveParamCurve<3>(f, SerializeFormatType::PARAMETRIC_CURVE_CARTESIAN_3D, title, t1, t2, numPoints, fileName))
+				.WithFile(fileName);
 		}
 
 	} // namespace Serializer

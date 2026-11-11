@@ -394,88 +394,56 @@ namespace MML
 		/// @note u∈[0,2π], w∈[0,H]. Parabolic surface: K=0 (one principal curvature zero)
 		class CylinderSurface : public ISurfaceCartesian
 		{
-			Real _R, _H;
+			Real _radius, _height;
 		public:
-			CylinderSurface() : _R(1), _H(1) {}
-			CylinderSurface(Real R, Real H) : _R(R), _H(H) {}
+			CylinderSurface() : _radius(1), _height(1) {}
+			CylinderSurface(Real R, Real H) : _radius(R), _height(H) {}
 
 			Real getMinU() const { return 0; }
 			Real getMaxU() const { return 2 * Constants::PI; }
 			Real getMinW() const { return 0; }
-			Real getMaxW() const { return _H; }
+			Real getMaxW() const { return _height; }
 
-			VectorN<Real, 3> operator()(Real u, Real w) const { return VectorN<Real, 3>{static_cast<Real>(_R* cos(u)), static_cast<Real>(_R* sin(u)), w}; }
+			VectorN<Real, 3> operator()(Real u, Real w) const { return VectorN<Real, 3>{static_cast<Real>(_radius* cos(u)), static_cast<Real>(_radius* sin(u)), w}; }
 		};
 		
 		/// @brief Torus r(u,w) = ((R+r·cos(w))·cos(u), (R+r·cos(w))·sin(u), r·sin(w))
 		/// @note R=major radius, r=minor radius. u,w∈[0,2π]. K varies (elliptic inner, hyperbolic outer)
 		class Torus : public ISurfaceCartesian
 		{
-			Real _R, _r;
+			Real _majorRadius, _minorRadius;
 		public:
-			Torus() : _R(1), _r(0.5) {}
-			Torus(Real R, Real r) : _R(R), _r(r) {}
+			Torus() : _majorRadius(1), _minorRadius(0.5) {}
+			Torus(Real R, Real r) : _majorRadius(R), _minorRadius(r) {}
 
 			Real getMinU() const { return 0; }
 			Real getMaxU() const { return 2 * Constants::PI; }
 			Real getMinW() const { return 0; }
 			Real getMaxW() const { return 2 * Constants::PI; }
 
-			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{static_cast<Real>((_R + _r * cos(w)) * cos(u)), static_cast<Real>((_R + _r * cos(w)) * sin(u)), static_cast<Real>(_r * sin(w))}; }
+			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{static_cast<Real>((_majorRadius + _minorRadius * cos(w)) * cos(u)), static_cast<Real>((_majorRadius + _minorRadius * cos(w)) * sin(u)), static_cast<Real>(_minorRadius * sin(w))}; }
 		};
 
 		/// @brief Spherical surface r(u,w) = R·(sin(u)·cos(w), sin(u)·sin(w), cos(u)), radius R
 		/// @note u∈[0,π] (latitude), w∈[0,2π] (longitude). Constant positive curvature K=1/R²
 		class Sphere : public ISurfaceCartesian
 		{
-			Real _R;
+			Real _radius;
 		public:
-			Sphere() : _R(1) {}
-			Sphere(Real R) : _R(R) {}
+			Sphere() : _radius(1) {}
+			Sphere(Real R) : _radius(R) {}
 
 			Real getMinU() const { return 0; }
 			Real getMaxU() const { return Constants::PI; }
 			Real getMinW() const { return 0; }
 			Real getMaxW() const { return 2 * Constants::PI; }
 
-			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{static_cast<Real>(_R * sin(u)* cos(w)), static_cast<Real>(_R * sin(u)* sin(w)), static_cast<Real>(_R * cos(u))}; }
+			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{static_cast<Real>(_radius * sin(u)* cos(w)), static_cast<Real>(_radius * sin(u)* sin(w)), static_cast<Real>(_radius * cos(u))}; }
 		};
 
-		/// @brief Monkey saddle z = u·(u²-3w²), classic example with 3 critical directions
-		/// @note Hyperbolic surface with vanishing Gaussian curvature at origin
-		class MonkeySaddle : public ISurfaceCartesian
-		{
-		public:
-			Real getMinU() const { return -10; }
-			Real getMaxU() const { return 10; }
-			Real getMinW() const { return -10; }
-			Real getMaxW() const { return 10; }
 
-			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{u, w, u* (u * u - 3 * w * w)}; }
-		};
 
-		/// @brief Möbius strip - non-orientable surface with one side and one edge
-		/// @note u∈[0,2π], w∈[-1,1]. Famous example of non-orientability
-		class MobiusStrip : public ISurfaceCartesian
-		{
-			Real _scale;  // Scale factor for visibility
-		public:
-			MobiusStrip() : _scale(1.0) {}
-			MobiusStrip(Real scale) : _scale(scale) {}
 
-			Real getMinU() const { return 0; }
-			Real getMaxU() const { return 2 * Constants::PI; }
-			Real getMinW() const { return -1; }
-			Real getMaxW() const { return 1; }
-
-			VectorN<Real, 3> operator()(Real u, Real w) const { 
-				return VectorN<Real, 3>{
-					static_cast<Real>(_scale * (1 + w * cos(u / 2)) * cos(u)), 
-					static_cast<Real>(_scale * (1 + w * cos(u / 2)) * sin(u)), 
-					static_cast<Real>(_scale * w * sin(u / 2))
-				}; 
-			}
-		};
 
 		/// @brief Ellipsoid r(u,w) = (a·sin(u)·cos(w), b·sin(u)·sin(w), c·cos(u)), semi-axes (a,b,c)
 		/// @note u∈[0,π], w∈[0,2π]. Generalization of sphere (a=b=c gives sphere)
@@ -528,112 +496,13 @@ namespace MML
 			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{static_cast<Real>(_a * sqrt(u/_h) * cos(w)), static_cast<Real>(_a * sqrt(u/_h) * sin(w)), u}; }
 		};
 
-		/// @brief Helicoid - minimal ruled surface like a spiral staircase
-		/// @note u is radial distance, w is angle. Gaussian curvature K = -c²/(u² + c²)²
-		class Helicoid : public ISurfaceCartesian
-		{
-			Real _pitch;  // Controls vertical rise per revolution
-		public:
-			Helicoid() : _pitch(1.0) {}
-			Helicoid(Real pitch) : _pitch(pitch) {}
 
-			Real getMinU() const { return -30; }
-			Real getMaxU() const { return 30; }
-			Real getMinW() const { return 0; }
-			Real getMaxW() const { return 4 * Constants::PI; }
 
-			VectorN<Real, 3> operator()(Real u, Real w) const { 
-				return VectorN<Real, 3>{static_cast<Real>(u * cos(w)), static_cast<Real>(u * sin(w)), _pitch * w}; 
-			}
-		};
 
-		/// @brief Enneper surface - self-intersecting minimal surface with elegant shape
-		/// @note Classic example from differential geometry with K = -16/(1+u²+v²)⁴
-		class EnneperSurface : public ISurfaceCartesian
-		{
-			Real _scale;
-		public:
-			EnneperSurface() : _scale(1.0) {}
-			EnneperSurface(Real scale) : _scale(scale) {}
 
-			Real getMinU() const { return -2; }
-			Real getMaxU() const { return 2; }
-			Real getMinW() const { return -2; }
-			Real getMaxW() const { return 2; }
 
-			VectorN<Real, 3> operator()(Real u, Real v) const { 
-				return VectorN<Real, 3>{
-					static_cast<Real>(_scale * (u - u*u*u/3.0 + u*v*v)),
-					static_cast<Real>(_scale * (v - v*v*v/3.0 + v*u*u)),
-					static_cast<Real>(_scale * (u*u - v*v))
-				}; 
-			}
-		};
 
-		/// @brief Klein Bottle - non-orientable closed surface (Pinched Torus immersion)
-		/// @note Famous topological surface with no distinct "inside" or "outside"
-		/// @note u∈[0,2π], v∈[0,2π]. This immersion creates the classic bottle shape
-		class KleinBottle : public ISurfaceCartesian
-		{
-			Real _scale;
-		public:
-			KleinBottle() : _scale(1.0) {}
-			KleinBottle(Real scale) : _scale(scale) {}
 
-			Real getMinU() const { return 0; }
-			Real getMaxU() const { return 2 * Constants::PI; }
-			Real getMinW() const { return 0; }
-			Real getMaxW() const { return 2 * Constants::PI; }
-
-			VectorN<Real, 3> operator()(Real u, Real v) const { 
-				// Classic "bottle" immersion parametrization
-				// u goes around the main loop, v goes around the tube
-				Real cosu = cos(u), sinu = sin(u);
-				Real cosv = cos(v), sinv = sin(v);
-				Real cos_half_u = cos(u / 2), sin_half_u = sin(u / 2);
-				
-				// Radius varies to create the bottle shape
-				Real r = 2 - cosv;
-				
-				Real x, y, z;
-				if (u < Constants::PI) {
-					// First half: normal torus-like shape
-					x = 6 * cosu * (1 + sinu) + r * cos_half_u * cosv;
-					y = 16 * sinu + r * sin_half_u * cosv;
-				} else {
-					// Second half: tube goes through itself
-					x = 6 * cosu * (1 + sinu) - r * cos_half_u * cosv;
-					y = 16 * sinu;
-				}
-				z = r * sinv;
-				
-				return VectorN<Real, 3>{ _scale * x, _scale * y, _scale * z };
-			}
-		};
-
-		/// @brief Dini's Surface - twisted pseudosphere with constant negative curvature
-		/// @note Elegant spiral shape, u is length along surface, v is angle
-		class DiniSurface : public ISurfaceCartesian
-		{
-			Real _a;  // Scaling factor
-			Real _b;  // Controls twist rate
-		public:
-			DiniSurface() : _a(1.0), _b(0.15) {}
-			DiniSurface(Real a, Real b) : _a(a), _b(b) {}
-
-			Real getMinU() const { return 0.01; }  // Avoid singularity at 0
-			Real getMaxU() const { return 4 * Constants::PI; }
-			Real getMinW() const { return 0.01; }  // Avoid singularity at 0
-			Real getMaxW() const { return 2; }
-
-			VectorN<Real, 3> operator()(Real u, Real v) const { 
-				return VectorN<Real, 3>{
-					static_cast<Real>(_a * cos(u) * sin(v)),
-					static_cast<Real>(_a * sin(u) * sin(v)),
-					static_cast<Real>(_a * (cos(v) + log(tan(v / 2))) + _b * u)
-				}; 
-			}
-		};
 	} // end namespace Surfaces
 }
 

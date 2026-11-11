@@ -19,13 +19,13 @@ namespace MML::Tests::Core::SVDTests
 	bool IsOrthogonal(const Matrix<Real>& mat, Real tolerance = TOL(1e-10, 1e-5))
 	{
 		int n = mat.cols();
-		Matrix<Real> prod = mat.transpose() * mat;
+		Matrix<Real> prod = mat.Transposed() * mat;
 		
 		for (int i = 0; i < n; i++)
 		{
 			for (int j = 0; j < n; j++)
 			{
-				Real expected = (i == j) ? REAL(1.0) : REAL(0.0);
+				Real expected = (i == j) ? static_cast<MML::Real>(1.0) : static_cast<MML::Real>(0.0);
 				if (std::abs(prod[i][j] - expected) > tolerance)
 					return false;
 			}
@@ -47,7 +47,7 @@ namespace MML::Tests::Core::SVDTests
 		{
 			for (int j = 0; j < n; j++)
 			{
-				Real sum = REAL(0.0);
+				Real sum = static_cast<MML::Real>(0.0);
 				for (int k = 0; k < n; k++)
 					sum += U[i][k] * W[k] * V[j][k];
 				reconstructed[i][j] = sum;
@@ -72,9 +72,9 @@ namespace MML::Tests::Core::SVDTests
 	{
 			TEST_PRECISION_INFO();
 		Matrix<Real> A(3, 3, {
-			REAL(1.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(1.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(1.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)
 		});
 
 		SVDecompositionSolver<Real> svd(A);
@@ -83,10 +83,10 @@ namespace MML::Tests::Core::SVDTests
 		auto W = svd.getW();
 		auto V = svd.getV();
 
-		// Singular values should all be REAL(1.0)
-		REQUIRE(std::abs(W[0] - REAL(1.0)) < TOL(1e-10, 1e-5));
-		REQUIRE(std::abs(W[1] - REAL(1.0)) < TOL(1e-10, 1e-5));
-		REQUIRE(std::abs(W[2] - REAL(1.0)) < TOL(1e-10, 1e-5));
+		// Singular values should all be static_cast<MML::Real>(1.0)
+		REQUIRE(std::abs(W[0] - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(W[1] - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(W[2] - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
 
 		// Verify reconstruction
 		REQUIRE(VerifyDecomposition(A, U, W, V, TOL(1e-10, 1e-5)));
@@ -100,9 +100,9 @@ namespace MML::Tests::Core::SVDTests
 	{
 			TEST_PRECISION_INFO();
 		Matrix<Real> A(3, 3, {
-			REAL(3.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(2.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(1.0)
+			static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)
 		});
 
 		SVDecompositionSolver<Real> svd(A);
@@ -112,9 +112,9 @@ namespace MML::Tests::Core::SVDTests
 		auto V = svd.getV();
 
 		// Singular values should be 3, 2, 1 (in descending order)
-		REQUIRE(std::abs(W[0] - REAL(3.0)) < TOL(1e-10, 1e-5));
-		REQUIRE(std::abs(W[1] - REAL(2.0)) < TOL(1e-10, 1e-5));
-		REQUIRE(std::abs(W[2] - REAL(1.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(W[0] - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(W[1] - static_cast<MML::Real>(2.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(W[2] - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
 
 		// Verify reconstruction
 		REQUIRE(VerifyDecomposition(A, U, W, V, TOL(1e-10, 1e-5)));
@@ -128,8 +128,8 @@ namespace MML::Tests::Core::SVDTests
 	{
 			TEST_PRECISION_INFO();
 		Matrix<Real> A(2, 2, {
-			REAL(4.0), REAL(0.0),
-			REAL(3.0), -REAL(5.0)
+			static_cast<MML::Real>(4.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(3.0), -static_cast<MML::Real>(5.0)
 		});
 
 		SVDecompositionSolver<Real> svd(A);
@@ -156,10 +156,10 @@ namespace MML::Tests::Core::SVDTests
 			TEST_PRECISION_INFO();
 		// Overdetermined system (m > n)
 		Matrix<Real> A(4, 3, {
-			REAL(1.0), REAL(2.0), REAL(3.0),
-			REAL(4.0), REAL(5.0), REAL(6.0),
-			REAL(7.0), REAL(8.0), REAL(9.0),
-			REAL(10.0), REAL(11.0), REAL(12.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0),
+			static_cast<MML::Real>(7.0), static_cast<MML::Real>(8.0), static_cast<MML::Real>(9.0),
+			static_cast<MML::Real>(10.0), static_cast<MML::Real>(11.0), static_cast<MML::Real>(12.0)
 		});
 
 		SVDecompositionSolver<Real> svd(A);
@@ -193,9 +193,9 @@ namespace MML::Tests::Core::SVDTests
 			TEST_PRECISION_INFO();
 		// Underdetermined system (m < n)
 		Matrix<Real> A(3, 4, {
-			REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0),
-			REAL(5.0), REAL(6.0), REAL(7.0), REAL(8.0),
-			REAL(9.0), REAL(10.0), REAL(11.0), REAL(12.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0),
+			static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(7.0), static_cast<MML::Real>(8.0),
+			static_cast<MML::Real>(9.0), static_cast<MML::Real>(10.0), static_cast<MML::Real>(11.0), static_cast<MML::Real>(12.0)
 		});
 
 		SVDecompositionSolver<Real> svd(A);
@@ -230,9 +230,9 @@ namespace MML::Tests::Core::SVDTests
 			TEST_PRECISION_INFO();
 		// Symmetric matrix: eigenvalues = singular values
 		Matrix<Real> A(3, 3, {
-			REAL(4.0), REAL(1.0), REAL(2.0),
-			REAL(1.0), REAL(3.0), REAL(1.0),
-			REAL(2.0), REAL(1.0), REAL(5.0)
+			static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(1.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(5.0)
 		});
 
 		SVDecompositionSolver<Real> svd(A);
@@ -257,29 +257,29 @@ namespace MML::Tests::Core::SVDTests
 			TEST_PRECISION_INFO();
 		// Well-conditioned matrix
 		Matrix<Real> A(3, 3, {
-			REAL(2.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(2.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(2.0)
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0)
 		});
 
 		SVDecompositionSolver<Real> svd(A);
 		
-		// Condition number should be REAL(1.0) (all singular values equal)
+		// Condition number should be static_cast<MML::Real>(1.0) (all singular values equal)
 		Real cond = svd.inv_condition();
-		REQUIRE(std::abs(cond - REAL(1.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(cond - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
 
 		// Ill-conditioned matrix
 		Matrix<Real> B(3, 3, {
-			REAL(10.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(1.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(0.1)
+			static_cast<MML::Real>(10.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.1)
 		});
 
 		SVDecompositionSolver<Real> svd2(B);
 		Real cond2 = svd2.inv_condition();
 		
-		// Condition should be REAL(0.1)/10 = REAL(0.01)
-		REQUIRE(std::abs(cond2 - REAL(0.01)) < TOL(1e-10, 1e-5));
+		// Condition should be static_cast<MML::Real>(0.1)/10 = static_cast<MML::Real>(0.01)
+		REQUIRE(std::abs(cond2 - static_cast<MML::Real>(0.01)) < TOL(1e-10, 1e-5));
 	}
 
 	///////////////// PHASE 3: SOLVE TESTS /////////////////
@@ -289,13 +289,13 @@ namespace MML::Tests::Core::SVDTests
 			TEST_PRECISION_INFO();
 		// Simple 3x3 system
 		Matrix<Real> A(3, 3, {
-			REAL(1.0), REAL(2.0), REAL(3.0),
-			REAL(4.0), REAL(5.0), REAL(6.0),
-			REAL(7.0), REAL(8.0), REAL(10.0)  // Modified to make full rank
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0),
+			static_cast<MML::Real>(7.0), static_cast<MML::Real>(8.0), static_cast<MML::Real>(10.0)  // Modified to make full rank
 		});
 
 		Vector<Real> b(3);
-		b[0] = REAL(6.0); b[1] = REAL(15.0); b[2] = REAL(26.0);  // A * [1, 1, 1]^T = b (approximately)
+		b[0] = static_cast<MML::Real>(6.0); b[1] = static_cast<MML::Real>(15.0); b[2] = static_cast<MML::Real>(26.0);  // A * [1, 1, 1]^T = b (approximately)
 
 		SVDecompositionSolver<Real> svd(A);
 		Vector<Real> x = svd.Solve(b);
@@ -304,7 +304,7 @@ namespace MML::Tests::Core::SVDTests
 		Vector<Real> result(3);
 		for (int i = 0; i < 3; i++)
 		{
-			Real sum = REAL(0.0);
+			Real sum = static_cast<MML::Real>(0.0);
 			for (int j = 0; j < 3; j++)
 				sum += A[i][j] * x[j];
 			result[i] = sum;
@@ -320,14 +320,14 @@ namespace MML::Tests::Core::SVDTests
 			TEST_PRECISION_INFO();
 		// Overdetermined system (more equations than unknowns) - least squares solution
 		Matrix<Real> A(4, 3, {
-			REAL(1.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(1.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(1.0),
-			REAL(1.0), REAL(1.0), REAL(1.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0),
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0)
 		});
 
 		Vector<Real> b(4);
-		b[0] = REAL(1.0); b[1] = REAL(2.0); b[2] = REAL(3.0); b[3] = REAL(5.0);  // Inconsistent system
+		b[0] = static_cast<MML::Real>(1.0); b[1] = static_cast<MML::Real>(2.0); b[2] = static_cast<MML::Real>(3.0); b[3] = static_cast<MML::Real>(5.0);  // Inconsistent system
 
 		SVDecompositionSolver<Real> svd(A);
 		Vector<Real> x = svd.Solve(b);
@@ -336,40 +336,40 @@ namespace MML::Tests::Core::SVDTests
 		Vector<Real> residual(4);
 		for (int i = 0; i < 4; i++)
 		{
-			Real sum = REAL(0.0);
+			Real sum = static_cast<MML::Real>(0.0);
 			for (int j = 0; j < 3; j++)
 				sum += A[i][j] * x[j];
 			residual[i] = sum - b[i];
 		}
 
 		// Residual should be small (least squares solution)
-		Real residualNorm = REAL(0.0);
+		Real residualNorm = static_cast<MML::Real>(0.0);
 		for (int i = 0; i < 4; i++)
 			residualNorm += residual[i] * residual[i];
 		residualNorm = std::sqrt(residualNorm);
 
-		REQUIRE(residualNorm < REAL(2.0));  // Should find reasonable least squares solution
+		REQUIRE(residualNorm < static_cast<MML::Real>(2.0));  // Should find reasonable least squares solution
 	}
 
 	TEST_CASE("SVD_Solve_Identity", "[SVD][Solve]")
 	{
 			TEST_PRECISION_INFO();
 		Matrix<Real> A(3, 3, {
-			REAL(1.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(1.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(1.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)
 		});
 
 		Vector<Real> b(3);
-		b[0] = REAL(5.0); b[1] = REAL(7.0); b[2] = REAL(9.0);
+		b[0] = static_cast<MML::Real>(5.0); b[1] = static_cast<MML::Real>(7.0); b[2] = static_cast<MML::Real>(9.0);
 
 		SVDecompositionSolver<Real> svd(A);
 		Vector<Real> x = svd.Solve(b);
 
 		// For identity matrix, solution should equal b
-		REQUIRE(std::abs(x[0] - REAL(5.0)) < TOL(1e-10, 1e-5));
-		REQUIRE(std::abs(x[1] - REAL(7.0)) < TOL(1e-10, 1e-5));
-		REQUIRE(std::abs(x[2] - REAL(9.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(x[0] - static_cast<MML::Real>(5.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(x[1] - static_cast<MML::Real>(7.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(x[2] - static_cast<MML::Real>(9.0)) < TOL(1e-10, 1e-5));
 	}
 
 	TEST_CASE("SVD_Solve_Matrix_RHS", "[SVD][Solve]")
@@ -377,15 +377,15 @@ namespace MML::Tests::Core::SVDTests
 			TEST_PRECISION_INFO();
 		// Solve multiple right-hand sides at once
 		Matrix<Real> A(3, 3, {
-			REAL(2.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(3.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(4.0)
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(4.0)
 		});
 
 		Matrix<Real> B(3, 2, {
-			REAL(4.0), REAL(6.0),
-			REAL(9.0), REAL(12.0),
-			REAL(16.0), REAL(20.0)
+			static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0),
+			static_cast<MML::Real>(9.0), static_cast<MML::Real>(12.0),
+			static_cast<MML::Real>(16.0), static_cast<MML::Real>(20.0)
 		});
 
 		SVDecompositionSolver<Real> svd(A);
@@ -393,12 +393,12 @@ namespace MML::Tests::Core::SVDTests
 		svd.Solve(B, X);
 
 		// Expected solutions: X = [[2,3], [3,4], [4,5]]
-		REQUIRE(std::abs(X[0][0] - REAL(2.0)) < TOL(1e-10, 1e-5));
-		REQUIRE(std::abs(X[0][1] - REAL(3.0)) < TOL(1e-10, 1e-5));
-		REQUIRE(std::abs(X[1][0] - REAL(3.0)) < TOL(1e-10, 1e-5));
-		REQUIRE(std::abs(X[1][1] - REAL(4.0)) < TOL(1e-10, 1e-5));
-		REQUIRE(std::abs(X[2][0] - REAL(4.0)) < TOL(1e-10, 1e-5));
-		REQUIRE(std::abs(X[2][1] - REAL(5.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(X[0][0] - static_cast<MML::Real>(2.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(X[0][1] - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(X[1][0] - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(X[1][1] - static_cast<MML::Real>(4.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(X[2][0] - static_cast<MML::Real>(4.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(X[2][1] - static_cast<MML::Real>(5.0)) < TOL(1e-10, 1e-5));
 	}
 
 	///////////////// PHASE 4: PROPERTY TESTS /////////////////
@@ -407,9 +407,9 @@ namespace MML::Tests::Core::SVDTests
 	{
 			TEST_PRECISION_INFO();
 		Matrix<Real> A(3, 3, {
-			REAL(1.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(1.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(1.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)
 		});
 
 		SVDecompositionSolver<Real> svd(A);
@@ -422,9 +422,9 @@ namespace MML::Tests::Core::SVDTests
 			TEST_PRECISION_INFO();
 		// Rank-deficient matrix (rank 2)
 		Matrix<Real> A(3, 3, {
-			REAL(1.0), REAL(2.0), REAL(3.0),
-			REAL(2.0), REAL(4.0), REAL(6.0),
-			REAL(3.0), REAL(6.0), REAL(9.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0),
+			static_cast<MML::Real>(3.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(9.0)
 		});
 
 		SVDecompositionSolver<Real> svd(A);
@@ -441,9 +441,9 @@ namespace MML::Tests::Core::SVDTests
 	{
 			TEST_PRECISION_INFO();
 		Matrix<Real> A(3, 3, {
-			REAL(1.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(2.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(0.0)  // Zero row - rank 2
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)  // Zero row - rank 2
 		});
 
 		SVDecompositionSolver<Real> svd(A);
@@ -460,10 +460,10 @@ namespace MML::Tests::Core::SVDTests
 		// Columns of range should be orthonormal
 		for (int i = 0; i < 2; i++)
 		{
-			Real norm = REAL(0.0);
+			Real norm = static_cast<MML::Real>(0.0);
 			for (int j = 0; j < 3; j++)
 				norm += range[j][i] * range[j][i];
-			REQUIRE(std::abs(norm - REAL(1.0)) < TOL(1e-9, 1e-4));
+			REQUIRE(std::abs(norm - static_cast<MML::Real>(1.0)) < TOL(1e-9, 1e-4));
 		}
 	}
 
@@ -472,9 +472,9 @@ namespace MML::Tests::Core::SVDTests
 			TEST_PRECISION_INFO();
 		// Matrix with known nullspace
 		Matrix<Real> A(3, 3, {
-			REAL(1.0), REAL(2.0), REAL(3.0),
-			REAL(2.0), REAL(4.0), REAL(6.0),
-			REAL(3.0), REAL(6.0), REAL(9.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0),
+			static_cast<MML::Real>(3.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(9.0)
 		});
 
 		SVDecompositionSolver<Real> svd(A);
@@ -499,7 +499,7 @@ namespace MML::Tests::Core::SVDTests
 			Vector<Real> result(3);
 			for (int i = 0; i < 3; i++)
 			{
-				Real sum = REAL(0.0);
+				Real sum = static_cast<MML::Real>(0.0);
 				for (int j = 0; j < 3; j++)
 					sum += A[i][j] * v[j];
 				result[i] = sum;
@@ -518,19 +518,19 @@ namespace MML::Tests::Core::SVDTests
 
 		// Full rank
 		Matrix<Real> A1(3, 3, {
-			REAL(1.0), REAL(2.0), REAL(3.0),
-			REAL(4.0), REAL(5.0), REAL(6.0),
-			REAL(7.0), REAL(8.0), REAL(10.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0),
+			static_cast<MML::Real>(7.0), static_cast<MML::Real>(8.0), static_cast<MML::Real>(10.0)
 		});
 		SVDecompositionSolver<Real> svd1(A1);
 		REQUIRE(svd1.Rank() + svd1.Nullity() == 3);
 
 		// Rank deficient
 		Matrix<Real> A2(4, 3, {
-			REAL(1.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(1.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(0.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)
 		});
 		SVDecompositionSolver<Real> svd2(A2);
 		REQUIRE(svd2.Rank() + svd2.Nullity() == 3);

@@ -60,7 +60,7 @@
 /// bool hasEndpt = openUnit.contains(0.0);     // false (open at 0)
 /// // Generate sampling points
 /// std::vector<Real> points;
-/// unitInterval.GetEquidistantCovering(10, points);
+/// unitInterval.getEquidistantCovering(10, points);
 /// // points = {0.0, 0.111..., 0.222..., ..., 1.0}
 /// // Set operations with composite intervals
 /// Interval result = Interval::Intersection(
@@ -131,7 +131,10 @@ namespace MML {
 			: _lower(lower)
 			, _lowerType(lowerType)
 			, _upper(upper)
-			, _upperType(upperType) {}
+			, _upperType(upperType) {
+			if (lower > upper)
+				throw ArgumentError("Interval: lower bound must not exceed upper bound");
+		}
 
 	public:
 		virtual ~BaseInterval() {}
@@ -161,11 +164,11 @@ namespace MML {
 		/// @code{.cpp}
 		/// ClosedInterval interval(0.0, 1.0);
 		/// std::vector<Real> pts;
-		/// interval.GetEquidistantCovering(5, pts);
+		/// interval.getEquidistantCovering(5, pts);
 		/// // pts = {0.0, 0.25, 0.5, 0.75, 1.0}
 		/// @endcode
 
-		void GetEquidistantCovering(int numPoints, std::vector<Real>& points) const {
+		void getEquidistantCovering(int numPoints, std::vector<Real>& points) const {
 			points.clear();
 			if (numPoints <= 0)
 				return;
@@ -176,9 +179,9 @@ namespace MML {
 
 			// For infinite bounds, use practical limits (precision-dependent)
 			if (_lowerType == EndpointType::NEG_INF)
-				lower = std::is_same_v<Real, float> ? Real(-1e6) : Real(-1e10);
+				lower = -Precision::UnboundedIntervalSamplingLimit;
 			if (_upperType == EndpointType::POS_INF)
-				upper = std::is_same_v<Real, float> ? Real(1e6) : Real(1e10);
+				upper = Precision::UnboundedIntervalSamplingLimit;
 
 			if (numPoints == 1) {
 				points.push_back((lower + upper) / 2.0);
@@ -250,7 +253,7 @@ namespace MML {
 		/// @brief Returns true if x is not at a hole position.
 		bool contains(Real x) const {
 			Real diff = (x - _hole0) / _holeDelta;
-			if (std::abs(diff - std::round(diff)) < std::numeric_limits<Real>::epsilon() * 100)
+			if (IsNearlyZero(diff - std::round(diff), Precision::RoundoffZeroThreshold))
 				return false;
 
 			return true;
@@ -339,7 +342,7 @@ namespace MML {
 				return false;
 
 			Real diff = (x - _hole0) / _holeDelta;
-			if (std::abs(diff - std::round(diff)) < std::numeric_limits<Real>::epsilon() * 100)
+			if (IsNearlyZero(diff - std::round(diff), Precision::RoundoffZeroThreshold))
 				return false;
 
 			return true;
@@ -518,13 +521,13 @@ namespace MML {
 		}
 
 		/// @brief Adds a subinterval to the composite.
-		/// @tparam _IntervalType Type derived from BaseInterval.
+		/// @tparam IntervalType Type derived from BaseInterval.
 		/// @param interval The interval to add.
 		/// @return Reference to this for chaining.
 
-		template<class _IntervalType>
-		CompositeInterval& AddInterval(const _IntervalType& interval) {
-			_intervals.emplace_back(std::make_shared<_IntervalType>(interval));
+		template<class IntervalType>
+		CompositeInterval& AddInterval(const IntervalType& interval) {
+			_intervals.emplace_back(std::make_shared<IntervalType>(interval));
 			return *this;
 		}
 
@@ -765,7 +768,7 @@ namespace MML {
 		/// @param numPoints Total number of points to generate.
 		/// @param[out] points Vector to receive the generated points.
 
-		void GetEquidistantCovering(int numPoints, std::vector<Real>& points) const {
+		void getEquidistantCovering(int numPoints, std::vector<Real>& points) const {
 			points.clear();
 			if (_intervals.empty() || numPoints <= 0)
 				return;
@@ -778,7 +781,7 @@ namespace MML {
 			for (const auto& interval : _intervals) {
 				int intervalPoints = std::max(1, (int)(numPoints * interval->getLength() / totalLength));
 				std::vector<Real> intervalPointsVec;
-				interval->GetEquidistantCovering(intervalPoints, intervalPointsVec);
+				interval->getEquidistantCovering(intervalPoints, intervalPointsVec);
 				points.insert(points.end(), intervalPointsVec.begin(), intervalPointsVec.end());
 			}
 		}

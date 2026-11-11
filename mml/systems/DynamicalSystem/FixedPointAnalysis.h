@@ -33,28 +33,28 @@ namespace MML::Systems
 			const int dimension = system.getDim();
 			FixedPoint<Real> result;
 			result.location = initialGuess;
-			result.jacobian.Resize(dimension, dimension);
+			result.jacobian.resize(dimension, dimension);
 
 			Vector<Real> state = initialGuess;
 			Vector<Real> function(dimension), step(dimension);
 			Matrix<Real> jacobian(dimension, dimension);
 
 			for (int iteration = 0; iteration < maxIterations; ++iteration) {
-				system.derivs(REAL(0.0), state, function);
+				system.derivs(static_cast<MML::Real>(0.0), state, function);
 				const Real residual = function.NormL2();
 				if (residual < tolerance) {
 					result.location = state;
 					result.convergenceResidual = residual;
 					result.iterations = iteration;
-					system.jacobian(REAL(0.0), state, result.jacobian);
+					system.jacobian(static_cast<MML::Real>(0.0), state, result.jacobian);
 					ClassifyFixedPoint(result);
 					return result;
 				}
 
-				system.jacobian(REAL(0.0), state, jacobian);
+				system.jacobian(static_cast<MML::Real>(0.0), state, jacobian);
 				try {
 					LUSolver<Real> solver(jacobian);
-					step = solver.Solve(function * REAL(-1.0));
+					step = solver.Solve(function * static_cast<MML::Real>(-1.0));
 				}
 				catch (...) {
 					result.type = FixedPointType::Unknown;
@@ -65,7 +65,7 @@ namespace MML::Systems
 				state = state + step;
 			}
 
-			system.derivs(REAL(0.0), state, function);
+			system.derivs(static_cast<MML::Real>(0.0), state, function);
 			result.location = state;
 			result.convergenceResidual = function.NormL2();
 			result.iterations = maxIterations;
@@ -108,8 +108,8 @@ namespace MML::Systems
 			int positiveReal = 0;
 			int negativeReal = 0;
 			bool hasComplex = false;
-			Real maxRealPart = -REAL(1e30);
-			Real minRealPart = REAL(1e30);
+			Real maxRealPart = -Constants::PosInf;
+			Real minRealPart = Constants::PosInf;
 			for (const auto& eigenvalue : fixedPoint.eigenvalues) {
 				const Real realPart = eigenvalue.real();
 				const Real imaginaryPart = eigenvalue.imag();

@@ -43,9 +43,12 @@ or through `IRealFunction`.
 
 ## Configuration and Diagnostics
 
-Every scalar refinement method has a legacy overload returning `Real` and a
-detailed overload accepting `RootFindingConfig` and returning
-`RootFindingResult`:
+Every scalar refinement method follows the library-wide plain / Detailed convention
+([CONTRACT_POLICY §11](../CONTRACT_POLICY.md#11-naming-convention), [RESULT_POLICY](../RESULT_POLICY.md)):
+`FindRootX(f, x1, x2, xacc)` returns the `Real` root and throws `RootFindingError` when it
+cannot be found; `FindRootXDetailed(f, x1, x2, xacc)` and `FindRootXDetailed(f, x1, x2, config)`
+return a `RootFindingResult` and never throw for numerical failure. (Until 2.1 the result-returning
+form was spelled `FindRootX(f, x1, x2, config)`; that overload remains as a deprecated alias.)
 
 ```cpp
 RootFinding::RootFindingConfig config;
@@ -54,7 +57,7 @@ config.f_tolerance = 1e-12;
 config.relative_tolerance = 1e-12;
 config.max_iterations = 100;
 
-auto result = RootFinding::FindRootBrent(
+auto result = RootFinding::FindRootBrentDetailed(
   [](Real x) { return x*x - 2.0; }, 1.0, 2.0, config);
 
 if (result) {
@@ -392,21 +395,23 @@ f'(x) ≈ [-f(x+2h) + 8f(x+h) - 8f(x-h) + f(x-2h)] / (12h)
 ```
 Accuracy: O(h⁴), automatically chooses h
 
-**Implementation Safeguards**:
+**Implementation Safeguards** (Numerical Recipes `rtsafe`, §9.4):
 
-1. **Bracket checking**: Ensures xₙ stays in [x₁, x₂]
-  - Detailed overload returns `Stalled` if a Newton step jumps outside
-  - Legacy `Real` overload converts that failure to `RootFindingError`
-   - Prevents wild divergence
+1. **Bracket maintenance**: a bracket `[xl, xh]` with `f(xl) < 0 < f(xh)` is kept
+   and shrunk at every iteration, so the method can never leave it.
 
-2. **Derivative validation**:
-   ```cpp
-   if (|f'(x)| < √ε) throw "Near-zero derivative"
-   ```
-   - Prevents division by tiny numbers
-   - Detects horizontal tangent situations
+2. **Bisection fallback**: a Newton step is taken only if it stays inside the
+   bracket and at least halves the previous step (`|2f| ≤ |dx_old·f'|`);
+   otherwise a bisection step `x = (xl + xh)/2` is taken instead. A zero or
+   non-finite derivative (stationary point, inflection) therefore costs one
+   bisection step rather than a failure.
 
-3. **NaN/Inf detection**: Checks f'(x) and step dx for non-finite values
+3. **Guaranteed convergence**: for any continuous `f` with a sign change the
+   method converges; the only failure modes are an unbracketed root, a
+   non-finite function value, or exhausting `max_iterations`.
+
+4. **Analytic derivative**: `FindRootNewtonDetailed(f, df, x1, x2, config)` uses a
+   user-supplied `f'` instead of `NDer4` (4 fewer evaluations per step).
 
 4. **Max iterations**: Defaults::NewtonRaphsonMaxSteps (typically 100)
 

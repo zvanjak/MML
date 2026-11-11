@@ -65,8 +65,8 @@ void Docs_Demo_Optimization_GoldenSection()
 	MinimumBracket bracket = Minimization::BracketMinimum(func, 0.0, 1.0);
 	
 	// Golden section search
-	MinimizationResult result = Minimization::GoldenSectionSearch(func, bracket);
-	
+	Minimization1DResult result = Minimization::GoldenSectionSearch(func, bracket);
+
 	std::cout << "\nGolden Section Result:\n";
 	std::cout << "  x_min = " << result.xmin << " (exact: 3.0)\n";
 	std::cout << "  f_min = " << result.fmin << " (exact: 2.0)\n";
@@ -98,8 +98,8 @@ void Docs_Demo_Optimization_Brent()
 	MinimumBracket bracket = Minimization::BracketMinimum(func, -2.0, 2.0);
 	
 	// Brent's method
-	MinimizationResult result = Minimization::BrentMinimize(func, bracket);
-	
+	Minimization1DResult result = Minimization::BrentMinimize(func, bracket);
+
 	std::cout << "\nBrent's Method Result:\n";
 	std::cout << "  x_min = " << result.xmin << std::endl;
 	std::cout << "  f_min = " << result.fmin << std::endl;
@@ -134,8 +134,8 @@ void Docs_Demo_Optimization_Brent_WithDeriv()
 	MinimumBracket bracket = Minimization::BracketMinimum(func, 0.5, 2.0);
 	
 	// Brent with derivatives
-	MinimizationResult result = Minimization::BrentMinimizeWithDeriv(func, dfunc, bracket);
-	
+	Minimization1DResult result = Minimization::BrentMinimizeWithDeriv(func, dfunc, bracket);
+
 	std::cout << "\nBrent with Derivatives Result:\n";
 	std::cout << "  x_min = " << result.xmin << " (exact: " << std::sqrt(1.5) << ")\n";
 	std::cout << "  f_min = " << result.fmin << std::endl;
@@ -172,9 +172,9 @@ void Docs_Demo_Optimization_Bounded()
 	bracket.fb = func(bracket.bx);
 	bracket.fc = func(bracket.cx);
 	bracket.valid = true;
-	
-	MinimizationResult result = Minimization::GoldenSectionSearch(func, bracket, 1e-8);
-	
+
+	Minimization1DResult result = Minimization::GoldenSectionSearch(func, bracket, 1e-8);
+
 	std::cout << "\nConstrained Result:\n";
 	std::cout << "  x_min = " << result.xmin << " (at right boundary ≈ 3)\n";
 	std::cout << "  f_min = " << result.fmin << " (compared to global min = 0 at x=5)\n";
@@ -201,11 +201,11 @@ void Docs_Demo_Optimization_Comparison()
 	MinimumBracket bracket = Minimization::BracketMinimum(func, -5.0, 5.0);
 	
 	// Golden section
-	MinimizationResult golden = Minimization::GoldenSectionSearch(func, bracket);
-	
+	Minimization1DResult golden = Minimization::GoldenSectionSearch(func, bracket);
+
 	// Brent
-	MinimizationResult brent = Minimization::BrentMinimize(func, bracket);
-	
+	Minimization1DResult brent = Minimization::BrentMinimize(func, bracket);
+
 	std::cout << "\nComparison:\n";
 	std::cout << "                Golden Section     Brent\n";
 	std::cout << "  x_min:        " << golden.xmin << "              " << brent.xmin << std::endl;
@@ -254,11 +254,11 @@ void Docs_Demo_Optimization_LinearProgramming()
 
 	Optimization::LinearProgram lp(2, "ProductionPlan");
 	lp.SetVariableNames({ "x", "y" });
-	lp.SetObjective({ REAL(3.0), REAL(2.0) }, Optimization::LPObjective::Maximize);
-	lp.AddConstraint({ REAL(1.0), REAL(1.0) }, Optimization::LPConstraintType::LessEqual, REAL(4.0), "capacity1");
-	lp.AddConstraint({ REAL(2.0), REAL(1.0) }, Optimization::LPConstraintType::LessEqual, REAL(5.0), "capacity2");
+	lp.SetObjective({ static_cast<MML::Real>(3.0), static_cast<MML::Real>(2.0) }, Optimization::LPObjective::Maximize);
+	lp.AddConstraint({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0) }, Optimization::LPConstraintType::LessEqual, static_cast<MML::Real>(4.0), "capacity1");
+	lp.AddConstraint({ static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0) }, Optimization::LPConstraintType::LessEqual, static_cast<MML::Real>(5.0), "capacity2");
 
-	Optimization::LPResult result = Optimization::SolveLP(lp);
+	Optimization::LinearProgrammingResult result = Optimization::SolveLP(lp);
 	std::cout << "\nStatus: " << result.statusMessage() << std::endl;
 	if (result.IsOptimal()) {
 		std::cout << "  x = " << result.x[0] << std::endl;

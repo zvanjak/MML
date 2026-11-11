@@ -150,9 +150,9 @@ void Docs_Demo_Quaternions_Operations()
 	std::cout << "||Normalized()|| = " << qNorm.Norm() << " (should be 1)\n";
 
 	std::cout << "\n--- Unit Checks ---\n";
-	std::cout << "q.isIdentity(): " << (q.isIdentity() ? "yes" : "no") << "\n";
-	std::cout << "qNorm.isIdentity(): " << (qNorm.isIdentity() ? "yes" : "no") << "\n";
-	std::cout << "Identity().isIdentity(): " << (Quaternion::Identity().isIdentity() ? "yes" : "no") << "\n";
+	std::cout << "q.IsIdentity(): " << (q.IsIdentity() ? "yes" : "no") << "\n";
+	std::cout << "qNorm.IsIdentity(): " << (qNorm.IsIdentity() ? "yes" : "no") << "\n";
+	std::cout << "Identity().IsIdentity(): " << (Quaternion::Identity().IsIdentity() ? "yes" : "no") << "\n";
 
 	std::cout << "\n--- Dot Product ---\n";
 	Quaternion p = Quaternion::Identity();
@@ -189,9 +189,9 @@ void Docs_Demo_Quaternions_Rotation()
 	std::cout << "\n--- Extracting Rotation Parameters ---\n";
 	auto q2 = Quaternion::FromAxisAngle(Vec3Cart(1, 0, 0), Constants::PI / 3);
 	std::cout << "Created: 60° around X-axis\n";
-	std::cout << "GetRotationAxis(): " << q2.GetRotationAxis() << "\n";
-	std::cout << "GetRotationAngle(): " << q2.GetRotationAngle() << " rad (≈ " 
-	          << q2.GetRotationAngle() * 180.0 / Constants::PI << "°)\n";
+	std::cout << "GetRotationAxis(): " << q2.getRotationAxis() << "\n";
+	std::cout << "GetRotationAngle(): " << q2.getRotationAngle() << " rad (≈ " 
+	          << q2.getRotationAngle() * 180.0 / Constants::PI << "°)\n";
 
 	Vec3Cart axis;
 	Real angle;
@@ -239,7 +239,7 @@ void Docs_Demo_Quaternions_Interpolation()
 	std::cout << "--------------------------------------------------------------\n";
 	for (Real t = 0; t <= 1.0; t += 0.25) {
 		auto q = Quaternion::Slerp(q1, q2, t);
-		Real angleDeg = q.GetRotationAngle() * 180.0 / Constants::PI;
+		Real angleDeg = q.getRotationAngle() * 180.0 / Constants::PI;
 		std::cout << std::fixed << std::setprecision(2) << t << "\t" << q 
 		          << "\t" << angleDeg << "°\n";
 	}
@@ -299,7 +299,7 @@ void Docs_Demo_Quaternions_Applications()
 	for (int i = 0; i < 5; i++) {
 		orientation = smallRotation * orientation;
 		orientation.Normalize();  // Prevent drift
-		Real angle = orientation.GetRotationAngle() * 180.0 / Constants::PI;
+		Real angle = orientation.getRotationAngle() * 180.0 / Constants::PI;
 		std::cout << "  Step " << (i+1) << ": angle = " << std::fixed << std::setprecision(2) 
 		          << angle << "°\n";
 	}
@@ -325,7 +325,7 @@ void Docs_Demo_Quaternions_Comparison()
 
 	std::cout << "p == q: " << (p == q ? "true" : "false") << "\n";
 	std::cout << "p == r: " << (p == r ? "true" : "false") << "\n";
-	std::cout << "p.isApprox(r, 1e-10): " << (p.isApprox(r, 1e-10) ? "true" : "false") << "\n";
+	std::cout << "p.IsEqualTo(r, 1e-10): " << (p.IsEqualTo(r, 1e-10) ? "true" : "false") << "\n";
 
 	std::cout << "\n--- Note: q and -q represent same rotation ---\n";
 	Quaternion qPos = Quaternion::FromAxisAngle(Vec3Cart(0, 0, 1), Constants::PI / 2);

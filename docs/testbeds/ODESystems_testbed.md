@@ -532,7 +532,7 @@ void testKeplerConservation() {
 |--------|-------|----------|----------|
 | `SolveBackwardEuler()` | 1 | Yes | Very stiff, simple |
 | `SolveBDF2()` | 2 | Yes | Industry standard stiff |
-| `SolveRosenbrock23()` | 2/3 | Yes | Adaptive stiff |
+| `ROS2Solver` / `SolveROS2Detailed()` | 2 | Yes | Adaptive stiff (2-stage Rosenbrock) |
 
 ### Solver Selection Guide
 
@@ -546,7 +546,7 @@ Is the system stiff?
 └── Yes → Use implicit method
     ├── Extreme stiffness (ratio > 10⁸)? → SolveBackwardEuler
     ├── Moderate stiffness? → SolveBDF2
-    └── Want adaptive stepping? → SolveRosenbrock23
+    └── Want adaptive stepping? → ROS2Solver
 ```
 
 ---

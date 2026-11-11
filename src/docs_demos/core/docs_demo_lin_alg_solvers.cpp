@@ -236,7 +236,7 @@ void Docs_Demo_LinAlgSolvers_Cholesky()
 	B(1,0)=1; B(1,1)=3; B(1,2)=1; B(1,3)=0;
 	B(2,0)=0; B(2,1)=1; B(2,2)=4; B(2,3)=1;
 	B(3,0)=0; B(3,1)=0; B(3,2)=1; B(3,3)=5;
-	Matrix<Real> A_spd = B.transpose() * B;
+	Matrix<Real> A_spd = B.Transposed() * B;
 	
 	std::cout << "A (SPD) =\n"; A_spd.Print(std::cout, 8, 3);
 	

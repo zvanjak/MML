@@ -46,8 +46,8 @@ MatrixNM<Real, 3, 3> I = MatrixNM<Real, 3, 3>::Identity();
 
 // Matrix operations
 double det = MatrixAlg::Determinant(A);
-Matrix<Real> At = A.transpose(); // Returns transposed copy
-Matrix<Real> Ainv = A.GetInverse(); // Returns inverse copy
+Matrix<Real> At = A.Transposed(); // Returns transposed copy
+Matrix<Real> Ainv = MatrixAlg::Inverse(A); // Returns inverse copy
 ```
 
 ## Specialized Matrix Types
@@ -63,3 +63,6 @@ MML provides efficient storage for special matrix structures:
 - [Eigen_solvers.md](../algorithms/Eigen_solvers.md) - Computing eigenvalues and eigenvectors
 - [Vectors.md](Vectors.md) - Vector types overview
 
+
+Matrix inversion now belongs to algorithms, not base containers; see
+[the inversion and formatting migration](../algorithms/MatrixInversionAndFormatting.md).

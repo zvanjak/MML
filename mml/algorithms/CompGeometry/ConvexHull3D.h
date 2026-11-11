@@ -37,7 +37,7 @@ struct ConvexHull3D {
 	int NumFaces() const { return static_cast<int>(faces.size()); }
 
 	/// @brief Check if a point is inside or on the convex hull
-	bool Contains(const Point3Cartesian& p, Real tolerance = 1e-10) const {
+	bool Contains(const Point3Cartesian& p, Real tolerance = Precision::GeometryEpsilon) const {
 		// Point is inside if it's on the negative side of all face planes
 		for (int f = 0; f < NumFaces(); f++) {
 			const auto& face = faces[f];
@@ -129,7 +129,7 @@ struct ConvexHull3D {
 //////////////////////////////////////////////////////////////////////////////////////////
 class ConvexHull3DComputer {
 	// Use centralized geometry epsilon from Constants
-	static constexpr Real EPSILON = Constants::GEOMETRY_EPSILON;
+	static constexpr Real EPSILON = Precision::GeometryEpsilon;
 
 public:
 	/// @brief Compute 3D convex hull using incremental algorithm
@@ -289,9 +289,9 @@ public:
 		}
 
 		const Point3Cartesian interiorPoint(
-			(points[p0].X() + points[p1].X() + points[p2].X() + points[p3].X()) / REAL(4.0),
-			(points[p0].Y() + points[p1].Y() + points[p2].Y() + points[p3].Y()) / REAL(4.0),
-			(points[p0].Z() + points[p1].Z() + points[p2].Z() + points[p3].Z()) / REAL(4.0));
+			(points[p0].X() + points[p1].X() + points[p2].X() + points[p3].X()) / static_cast<MML::Real>(4.0),
+			(points[p0].Y() + points[p1].Y() + points[p2].Y() + points[p3].Y()) / static_cast<MML::Real>(4.0),
+			(points[p0].Z() + points[p1].Z() + points[p2].Z() + points[p3].Z()) / static_cast<MML::Real>(4.0));
 		
 		// Assign remaining points to faces they're outside of
 		struct FaceData {
@@ -317,7 +317,7 @@ public:
 			Real len = std::sqrt(fd.normal.X() * fd.normal.X() + 
 			                     fd.normal.Y() * fd.normal.Y() + 
 			                     fd.normal.Z() * fd.normal.Z());
-			if (len > 1e-14) {
+			if (len > Precision::RoundoffZeroThreshold) {
 				fd.normal = Vector3Cartesian(fd.normal.X() / len, fd.normal.Y() / len, fd.normal.Z() / len);
 			}
 			

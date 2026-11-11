@@ -32,96 +32,96 @@ namespace MML::Tests::Algorithms::Optimization
 	public:
 		Real operator()(const VectorN<Real, 2>& point) const override
 		{
-			Real a = REAL(1.0) - point[0];
+			Real a = static_cast<MML::Real>(1.0) - point[0];
 			Real b = point[1] - point[0] * point[0];
-			return a * a + REAL(100.0) * b * b;
+			return a * a + static_cast<MML::Real>(100.0) * b * b;
 		}
 	};
 
 	TEST_CASE("BoxConstrainedNelderMead - Finds interior optimum from infeasible start", "[Optimization][BoxNelderMead][Bounds]")
 	{
-		BoxNelderQuadratic2D objective(REAL(0.25), -REAL(0.5));
-		BoundConstraints bounds(Vector<Real>{ -REAL(1.0), -REAL(1.0) }, Vector<Real>{ REAL(1.0), REAL(1.0) });
+		BoxNelderQuadratic2D objective(static_cast<MML::Real>(0.25), -static_cast<MML::Real>(0.5));
+		BoundConstraints bounds(Vector<Real>{ -static_cast<MML::Real>(1.0), -static_cast<MML::Real>(1.0) }, Vector<Real>{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0) });
 		MultidimOptimizationConfig config;
-		config.tolerance = REAL(1e-10);
+		config.tolerance = static_cast<MML::Real>(1e-10);
 		config.max_iterations = 2000;
-		config.initial_delta = REAL(0.5);
+		config.initial_delta = static_cast<MML::Real>(0.5);
 
-		auto result = BoxConstrainedNelderMeadMinimize(objective, VectorN<Real, 2>{ REAL(5.0), REAL(5.0) }, bounds, config);
+		auto result = BoxConstrainedNelderMeadMinimize(objective, VectorN<Real, 2>{ static_cast<MML::Real>(5.0), static_cast<MML::Real>(5.0) }, bounds, config);
 
 		REQUIRE(result.converged);
 		REQUIRE(result.status == AlgorithmStatus::Success);
-		REQUIRE(bounds.IsFeasible(result.xmin, REAL(1e-10)));
-		REQUIRE(result.xmin[0] == Catch::Approx(REAL(0.25)).margin(REAL(1e-5)));
-		REQUIRE(result.xmin[1] == Catch::Approx(-REAL(0.5)).margin(REAL(1e-5)));
-		REQUIRE(result.fmin < REAL(1e-10));
+		REQUIRE(bounds.IsFeasible(result.xmin, static_cast<MML::Real>(1e-10)));
+		REQUIRE(result.xmin[0] == Catch::Approx(static_cast<MML::Real>(0.25)).margin(static_cast<MML::Real>(1e-5)));
+		REQUIRE(result.xmin[1] == Catch::Approx(-static_cast<MML::Real>(0.5)).margin(static_cast<MML::Real>(1e-5)));
+		REQUIRE(result.fmin < static_cast<MML::Real>(1e-10));
 	}
 
 	TEST_CASE("BoxConstrainedNelderMead - Projects constrained optimum onto active bounds", "[Optimization][BoxNelderMead][Bounds]")
 	{
-		BoxNelderQuadratic2D objective(REAL(2.0), -REAL(3.0));
-		BoundConstraints bounds(Vector<Real>{ -REAL(1.0), -REAL(1.0) }, Vector<Real>{ REAL(1.0), REAL(1.0) });
+		BoxNelderQuadratic2D objective(static_cast<MML::Real>(2.0), -static_cast<MML::Real>(3.0));
+		BoundConstraints bounds(Vector<Real>{ -static_cast<MML::Real>(1.0), -static_cast<MML::Real>(1.0) }, Vector<Real>{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0) });
 		MultidimOptimizationConfig config;
-		config.tolerance = REAL(1e-10);
+		config.tolerance = static_cast<MML::Real>(1e-10);
 		config.max_iterations = 2000;
-		config.initial_delta = REAL(0.5);
+		config.initial_delta = static_cast<MML::Real>(0.5);
 
-		auto result = BoxConstrainedNelderMeadMinimize(objective, VectorN<Real, 2>{ REAL(0.0), REAL(0.0) }, bounds, config);
+		auto result = BoxConstrainedNelderMeadMinimize(objective, VectorN<Real, 2>{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) }, bounds, config);
 
 		REQUIRE(result.converged);
-		REQUIRE(bounds.IsFeasible(result.xmin, REAL(1e-10)));
-		REQUIRE(result.xmin[0] == Catch::Approx(REAL(1.0)).margin(REAL(1e-5)));
-		REQUIRE(result.xmin[1] == Catch::Approx(-REAL(1.0)).margin(REAL(1e-5)));
-		REQUIRE(bounds.IsUpperActive(result.xmin, 0, REAL(1e-5)));
-		REQUIRE(bounds.IsLowerActive(result.xmin, 1, REAL(1e-5)));
+		REQUIRE(bounds.IsFeasible(result.xmin, static_cast<MML::Real>(1e-10)));
+		REQUIRE(result.xmin[0] == Catch::Approx(static_cast<MML::Real>(1.0)).margin(static_cast<MML::Real>(1e-5)));
+		REQUIRE(result.xmin[1] == Catch::Approx(-static_cast<MML::Real>(1.0)).margin(static_cast<MML::Real>(1e-5)));
+		REQUIRE(bounds.IsUpperActive(result.xmin, 0, static_cast<MML::Real>(1e-5)));
+		REQUIRE(bounds.IsLowerActive(result.xmin, 1, static_cast<MML::Real>(1e-5)));
 	}
 
 	TEST_CASE("BoxConstrainedNelderMead - Supports custom repaired simplex deltas", "[Optimization][BoxNelderMead][Bounds]")
 	{
-		BoxNelderQuadratic2D objective(REAL(0.5), REAL(0.5));
-		BoundConstraints bounds(Vector<Real>{ REAL(0.0), REAL(0.0) }, Vector<Real>{ REAL(1.0), REAL(1.0) });
+		BoxNelderQuadratic2D objective(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5));
+		BoundConstraints bounds(Vector<Real>{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) }, Vector<Real>{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0) });
 		MultidimOptimizationConfig config;
-		config.tolerance = REAL(1e-10);
+		config.tolerance = static_cast<MML::Real>(1e-10);
 		config.max_iterations = 2000;
-		Vector<Real> deltas{ REAL(0.25), REAL(0.25) };
+		Vector<Real> deltas{ static_cast<MML::Real>(0.25), static_cast<MML::Real>(0.25) };
 
-		auto result = BoxConstrainedNelderMeadMinimize(objective, VectorN<Real, 2>{ REAL(1.0), REAL(1.0) }, bounds, deltas, config);
+		auto result = BoxConstrainedNelderMeadMinimize(objective, VectorN<Real, 2>{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0) }, bounds, deltas, config);
 
 		REQUIRE(result.converged);
-		REQUIRE(bounds.IsFeasible(result.xmin, REAL(1e-10)));
-		REQUIRE(result.xmin[0] == Catch::Approx(REAL(0.5)).margin(REAL(1e-5)));
-		REQUIRE(result.xmin[1] == Catch::Approx(REAL(0.5)).margin(REAL(1e-5)));
+		REQUIRE(bounds.IsFeasible(result.xmin, static_cast<MML::Real>(1e-10)));
+		REQUIRE(result.xmin[0] == Catch::Approx(static_cast<MML::Real>(0.5)).margin(static_cast<MML::Real>(1e-5)));
+		REQUIRE(result.xmin[1] == Catch::Approx(static_cast<MML::Real>(0.5)).margin(static_cast<MML::Real>(1e-5)));
 	}
 
 	TEST_CASE("BoxConstrainedNelderMead - Handles bounded Rosenbrock valley", "[Optimization][BoxNelderMead][Bounds]")
 	{
 		BoxNelderRosenbrock2D objective;
-		BoundConstraints bounds(Vector<Real>{ -REAL(2.0), -REAL(1.0) }, Vector<Real>{ REAL(2.0), REAL(3.0) });
+		BoundConstraints bounds(Vector<Real>{ -static_cast<MML::Real>(2.0), -static_cast<MML::Real>(1.0) }, Vector<Real>{ static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) });
 		MultidimOptimizationConfig config;
-		config.tolerance = REAL(1e-10);
+		config.tolerance = static_cast<MML::Real>(1e-10);
 		config.max_iterations = 5000;
-		config.initial_delta = REAL(0.5);
+		config.initial_delta = static_cast<MML::Real>(0.5);
 
-		auto result = BoxConstrainedNelderMeadMinimize(objective, VectorN<Real, 2>{ -REAL(1.2), REAL(1.0) }, bounds, config);
+		auto result = BoxConstrainedNelderMeadMinimize(objective, VectorN<Real, 2>{ -static_cast<MML::Real>(1.2), static_cast<MML::Real>(1.0) }, bounds, config);
 
 		REQUIRE(result.converged);
-		REQUIRE(bounds.IsFeasible(result.xmin, REAL(1e-10)));
-		REQUIRE(result.xmin[0] == Catch::Approx(REAL(1.0)).margin(REAL(1e-4)));
-		REQUIRE(result.xmin[1] == Catch::Approx(REAL(1.0)).margin(REAL(1e-4)));
-		REQUIRE(result.fmin < REAL(1e-8));
+		REQUIRE(bounds.IsFeasible(result.xmin, static_cast<MML::Real>(1e-10)));
+		REQUIRE(result.xmin[0] == Catch::Approx(static_cast<MML::Real>(1.0)).margin(static_cast<MML::Real>(1e-4)));
+		REQUIRE(result.xmin[1] == Catch::Approx(static_cast<MML::Real>(1.0)).margin(static_cast<MML::Real>(1e-4)));
+		REQUIRE(result.fmin < static_cast<MML::Real>(1e-8));
 	}
 
 	TEST_CASE("BoxConstrainedNelderMead - Rejects invalid configuration and deltas", "[Optimization][BoxNelderMead][Bounds]")
 	{
-		BoxNelderQuadratic2D objective(REAL(0.0), REAL(0.0));
-		BoundConstraints bounds(Vector<Real>{ -REAL(1.0), -REAL(1.0) }, Vector<Real>{ REAL(1.0), REAL(1.0) });
+		BoxNelderQuadratic2D objective(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+		BoundConstraints bounds(Vector<Real>{ -static_cast<MML::Real>(1.0), -static_cast<MML::Real>(1.0) }, Vector<Real>{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0) });
 		MultidimOptimizationConfig config;
-		config.initial_delta = REAL(0.0);
+		config.initial_delta = static_cast<MML::Real>(0.0);
 		REQUIRE_THROWS_AS(BoxConstrainedNelderMead(config), MultidimOptimizationInputError);
 
-		config.initial_delta = REAL(1.0);
-		Vector<Real> deltas{ REAL(0.25), REAL(0.0) };
+		config.initial_delta = static_cast<MML::Real>(1.0);
+		Vector<Real> deltas{ static_cast<MML::Real>(0.25), static_cast<MML::Real>(0.0) };
 		BoxConstrainedNelderMead optimizer(config);
-		REQUIRE_THROWS_AS(optimizer.Minimize(objective, VectorN<Real, 2>{ REAL(0.0), REAL(0.0) }, bounds, deltas), MultidimOptimizationInputError);
+		REQUIRE_THROWS_AS(optimizer.Minimize(objective, VectorN<Real, 2>{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) }, bounds, deltas), MultidimOptimizationInputError);
 	}
 }

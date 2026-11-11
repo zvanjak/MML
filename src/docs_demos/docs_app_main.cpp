@@ -25,18 +25,26 @@ void Docs_Demo_Random();
 void Docs_Demo_StandardFunctions();
 void Docs_Demo_Tensors();
 void Docs_Demo_Vector();
+void Docs_Demo_UnsignedVector();
+void Docs_Demo_ShowcaseGeometry();
 void Docs_Demo_VectorN();
 void Docs_Demo_VectorTypes();
 
 // Core
 void Docs_Demo_Algebra();
 void Docs_Demo_AlgorithmTypes();
+void Docs_Demo_ResultPolicy();
+void Docs_Demo_ExceptionOwnership();
+void Docs_Demo_SpectrumUtilities();
+void Docs_Demo_MatrixConsolidation();
+void Docs_Demo_ScalarNamespace();
+void Docs_Demo_ProtectedDiracParameter();
 void Docs_Demo_Coord_Transf();
 void Docs_Demo_Derivation();
+void Docs_Demo_AutomaticDifferentiation();
 void Docs_Demo_Diff_geometry();
 void Docs_Demo_Field_operations();
 void Docs_Demo_Fields();
-void Docs_Demo_FunctionSpaces();
 void Docs_Demo_Geometry_2D_3D();
 void Docs_Demo_Integration();
 void Docs_Demo_Integration_multidim();
@@ -53,6 +61,7 @@ void Docs_Demo_Eigen_solvers();
 void Docs_Demo_FieldAnalyzers();
 void Docs_Demo_Fourier();
 void Docs_Demo_FunctionAnalyzer();
+void Docs_Demo_AnalyzerReports();
 void Docs_Demo_GraphAlgorithms();
 void Docs_Demo_MatrixAlg();
 void Docs_Demo_MonteCarlo();
@@ -70,9 +79,12 @@ void Docs_Demo_NSGA2();
 void Docs_Demo_ConsolePrinter();
 void Docs_Demo_DataLoader();
 void Docs_Demo_Serializer();
+void Docs_Demo_PersistencePortability();
+void Docs_Demo_VectorPersistence();
 void Docs_Demo_ThreadPool();
 void Docs_Demo_Timer();
 void Docs_Demo_Visualizers();
+void Docs_Demo_VisualizerConfiguration();
 
 // Systems
 void Docs_Demo_DynamicalSystem();
@@ -87,7 +99,90 @@ void Docs_Demo_PDE_Gallery();
 void Docs_Demo_PDE_Parabolic_Verification();
 void Docs_Demo_PDE_RoomTemperature();
 
-int main() {
+#include <string_view>
+void Docs_Demo_TrajectoryResources();
+void Docs_Demo_GeneralizedLeastSquares();
+void Docs_Demo_ParallelIntegration();
+
+int main(int argc, char** argv) {
+	if (argc == 2 && std::string_view(argv[1]) == "--parallel-integration") {
+		Docs_Demo_ParallelIntegration();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--gls") {
+		Docs_Demo_GeneralizedLeastSquares();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--trajectory-resources") {
+		Docs_Demo_TrajectoryResources();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--algebra") {
+		Docs_Demo_Algebra();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--reserved-members") {
+		Docs_Demo_ProtectedDiracParameter();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--scalar-namespace") {
+		Docs_Demo_ScalarNamespace();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--matrix-consolidation") {
+		Docs_Demo_MatrixConsolidation();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--spectrum-utilities") {
+		Docs_Demo_SpectrumUtilities();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--exception-ownership") {
+		Docs_Demo_ExceptionOwnership();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--showcase-geometry") {
+		Docs_Demo_ShowcaseGeometry();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--unsigned-vector") {
+		Docs_Demo_UnsignedVector();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--vector-persistence") {
+		Docs_Demo_VectorPersistence();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--analyzer-reports") {
+		Docs_Demo_FunctionAnalyzer();
+		Docs_Demo_AnalyzerReports();
+		Docs_Demo_MatrixAlg();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--persistence-portability") {
+		Docs_Demo_PersistencePortability();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--visualizer-configuration") {
+		Docs_Demo_VisualizerConfiguration();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--automatic-differentiation") {
+		Docs_Demo_AutomaticDifferentiation();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--result-policy") {
+		Docs_Demo_ResultPolicy();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--field-operations") {
+		Docs_Demo_Field_operations();
+		return 0;
+	}
+	if (argc == 2 && std::string_view(argv[1]) == "--metric-tensor") {
+		Docs_Demo_Metric_Tensor();
+		return 0;
+	}
 	// Top-level guides
 	// Docs_Demo_ApiCheatsheet();
 	// Docs_Demo_QuickStartGuide();
@@ -115,12 +210,12 @@ int main() {
 	// Core
 	Docs_Demo_Algebra();
 	// Docs_Demo_AlgorithmTypes();
+	// Docs_Demo_ResultPolicy();
 	// Docs_Demo_Coord_Transf();
 	// Docs_Demo_Derivation();
 	// Docs_Demo_Diff_geometry();
 	// Docs_Demo_Fields();
 	// Docs_Demo_Field_operations();
-	// Docs_Demo_FunctionSpaces();
 	// Docs_Demo_FunctionHelpers();
 	// Docs_Demo_Functions();
 	// Docs_Demo_Geometry();

@@ -31,18 +31,18 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 		// Rewrite as system: x' = y, y' = mu*(1-x^2)*y - x
 		// For mu >> 1, this becomes stiff
 
-		Real mu = REAL(10.0); // Stiffness parameter
+		Real mu = static_cast<MML::Real>(10.0); // Stiffness parameter
 
 		// Van der Pol equation as function pointer
 		auto vanDerPolFunc = [](Real t, const Vector<Real>& x, Vector<Real>& dxdt) {
-			Real mu = REAL(10.0);
+			Real mu = static_cast<MML::Real>(10.0);
 			dxdt[0] = x[1];
-			dxdt[1] = mu * (REAL(1.0) - x[0] * x[0]) * x[1] - x[0];
+			dxdt[1] = mu * (static_cast<MML::Real>(1.0) - x[0] * x[0]) * x[1] - x[0];
 		};
 		ODESystem vanDerPol(2, vanDerPolFunc);
 
-		Vector<Real> initCond{REAL(2.0), REAL(0.0)};
-		Real t1 = REAL(0.0), t2 = REAL(10.0);
+		Vector<Real> initCond{static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0)};
+		Real t1 = static_cast<MML::Real>(0.0), t2 = static_cast<MML::Real>(10.0);
 		int numSteps = 5000; // Need more steps for stiff equation
 
 		// Test that higher-order methods can handle stiff equations better
@@ -68,24 +68,24 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 	// Test Leapfrog energy conservation - key property of symplectic integrators
 	TEST_CASE("Test_Leapfrog_EnergyConservation", "[Leapfrog][ODESystemFixedStepSolver]") {
 		TEST_PRECISION_INFO();
-		// For harmonic oscillator, E = REAL(0.5)*(x^2 + v^2) should be conserved
+		// For harmonic oscillator, E = static_cast<MML::Real>(0.5)*(x^2 + v^2) should be conserved
 		TestBeds::SimpleHarmonicOscillatorODE harmOsc;
 
-		Vector<Real> initCond{REAL(1.0), REAL(0.0)}; // x=1, v=0 -> initial E = REAL(0.5)
-		Real t1 = REAL(0.0), t2 = REAL(100.0);		 // Long integration to test stability
+		Vector<Real> initCond{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)}; // x=1, v=0 -> initial E = static_cast<MML::Real>(0.5)
+		Real t1 = static_cast<MML::Real>(0.0), t2 = static_cast<MML::Real>(100.0);		 // Long integration to test stability
 		int numSteps = 10000;
 
 		ODESystemFixedStepSolver fixedSolver(harmOsc, StepCalculators::LeapfrogStepCalc);
 		ODESystemSolution sol = fixedSolver.integrate(initCond, t1, t2, numSteps);
 
 		// Calculate initial and final energy
-		Real E_initial = REAL(0.5) * (initCond[0] * initCond[0] + initCond[1] * initCond[1]);
+		Real E_initial = static_cast<MML::Real>(0.5) * (initCond[0] * initCond[0] + initCond[1] * initCond[1]);
 
 		Vector<Real> finalX = sol.getXValuesAtEnd();
-		Real E_final = REAL(0.5) * (finalX[0] * finalX[0] + finalX[1] * finalX[1]);
+		Real E_final = static_cast<MML::Real>(0.5) * (finalX[0] * finalX[0] + finalX[1] * finalX[1]);
 
 		// Leapfrog should conserve energy very well (symplectic property)
-		REQUIRE_THAT(E_final, WithinRel(E_initial, REAL(1e-4)));
+		REQUIRE_THAT(E_final, WithinRel(E_initial, static_cast<MML::Real>(1e-4)));
 	}
 
 	// Test Leapfrog via ODESystemFixedStepSolver + Leapfrog_StepCalculator
@@ -93,8 +93,8 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 		TEST_PRECISION_INFO();
 		TestBeds::SimpleHarmonicOscillatorODE harmOsc;
 
-		Vector<Real> initCond{REAL(1.0), REAL(2.0)};
-		Real t1 = REAL(0.0), t2 = REAL(10.0);
+		Vector<Real> initCond{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
+		Real t1 = static_cast<MML::Real>(0.0), t2 = static_cast<MML::Real>(10.0);
 		int numSteps = 1000;
 
 		Leapfrog_StepCalculator leapfrogStep;
@@ -107,7 +107,7 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 
 		// Should be accurate
 		for (int i = 0; i < finalX.size(); i++) {
-			REQUIRE_THAT(finalX[i], WithinAbs(exactSol[i], REAL(1e-4)));
+			REQUIRE_THAT(finalX[i], WithinAbs(exactSol[i], static_cast<MML::Real>(1e-4)));
 		}
 	}
 } // namespace MML::Tests::Algorithms::ODESystemSolverTests
@@ -184,8 +184,8 @@ namespace MML::Tests::Algorithms::StiffODETestBed {
 				Vector<Real> dydt(test.dimension);
 				Matrix<Real> J(test.dimension, test.dimension);
 
-				// Compute Jacobian
-				system->jacobian(test.tStart, y, dydt, J);
+				// Compute derivatives and Jacobian
+				system->derivsAndJacobian(test.tStart, y, dydt, J);
 
 				// Verify Jacobian is finite
 				bool jacobianValid = true;
@@ -280,7 +280,7 @@ namespace MML::Tests::Algorithms::StiffODETestBed {
 				REQUIRE(system != nullptr);
 
 				Vector<Real> initCond = test.initialCondition;
-				Real tEnd = std::min(test.tEnd, test.tStart + REAL(0.1)); // Short integration
+				Real tEnd = std::min(test.tEnd, test.tStart + static_cast<MML::Real>(0.1)); // Short integration
 				int numSteps = 1000;									  // Many steps for stability
 
 				ODESystemFixedStepSolver solver(*system, StepCalculators::RK4_Basic);
@@ -302,7 +302,7 @@ namespace MML::Tests::Algorithms::StiffODETestBed {
 					// These should stay non-negative for short integrations
 					bool nonNegative = true;
 					for (int i = 0; i < test.dimension; ++i) {
-						if (finalX[i] < -REAL(0.01)) { // Small tolerance
+						if (finalX[i] < -static_cast<MML::Real>(0.01)) { // Small tolerance
 							nonNegative = false;
 							INFO("Component " << i << " = " << finalX[i] << " < 0");
 						}
@@ -328,7 +328,7 @@ namespace MML::Tests::Algorithms::StiffODETestBed {
 				Vector<Real> initCond = test.initialCondition;
 
 				// Use many small steps with high-order method
-				Real tEnd = std::min(test.tEnd, test.tStart + REAL(0.01)); // Very short
+				Real tEnd = std::min(test.tEnd, test.tStart + static_cast<MML::Real>(0.01)); // Very short
 				int numSteps = 5000;									   // Many steps
 
 				ODESystemFixedStepSolver solver(*system, StepCalculators::DormandPrince5StepCalc);
@@ -342,7 +342,7 @@ namespace MML::Tests::Algorithms::StiffODETestBed {
 				INFO("Error at t=" << tEnd << ": " << error);
 
 				// For exact solution tests with high-order explicit method on short interval
-				REQUIRE(error < REAL(1e-4));
+				REQUIRE(error < static_cast<MML::Real>(1e-4));
 			}
 		}
 	}
@@ -552,7 +552,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 	TEST_CASE("DormandPrince5_Stepper_NativeDenseOutputSupportsBackwardSteps", "[AdaptiveIntegrator][DP5][DenseOutput][i5u3.3.8]") {
 		CountingExponentialGrowthODE ode;
 		DormandPrince5_Stepper stepper(ode);
-		Vector<Real> x{std::exp(REAL(1.0))};
+		Vector<Real> x{std::exp(static_cast<MML::Real>(1.0))};
 		Vector<Real> dxdt{x[0]};
 
 		const StepResult result = stepper.doStep(1.0, x, dxdt, -0.25, 1.0);
@@ -601,8 +601,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		REQUIRE_THAT(dxdt[0], WithinAbs(x[0], TOL(1e-13, 5e-7)));
 
 		const int evaluationsAfterStep = ode.evaluations;
-		REQUIRE_THAT(stepper.interpolate(-1.0)[0], WithinAbs(REAL(1.0), TOL(1e-12, 1e-6)));
-		REQUIRE_THAT(stepper.interpolate(0.0)[0], WithinAbs(REAL(1.0), TOL(1e-12, 1e-6)));
+		REQUIRE_THAT(stepper.interpolate(-1.0)[0], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-12, 1e-6)));
+		REQUIRE_THAT(stepper.interpolate(0.0)[0], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-12, 1e-6)));
 		REQUIRE_THAT(stepper.interpolate(result.hDone)[0], WithinAbs(x[0], TOL(1e-12, 1e-6)));
 		REQUIRE_THAT(stepper.interpolate(1.0)[0], WithinAbs(x[0], TOL(1e-12, 1e-6)));
 		REQUIRE_THAT(stepper.interpolate(0.23)[0], WithinAbs(std::exp(0.23), TOL(5e-9, 2e-6)));
@@ -620,7 +620,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 	TEST_CASE("DormandPrince8_Stepper_DOP853DenseOutputSupportsBackwardSteps", "[AdaptiveIntegrator][DP8][DenseOutput][i5u3.3.9]") {
 		CountingExponentialGrowthODE ode;
 		DormandPrince8_Stepper stepper(ode);
-		Vector<Real> x{std::exp(REAL(1.0))};
+		Vector<Real> x{std::exp(static_cast<MML::Real>(1.0))};
 		Vector<Real> dxdt{x[0]};
 
 		const StepResult result = stepper.doStep(1.0, x, dxdt, -0.5, 1.0);
@@ -657,8 +657,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		if constexpr (std::is_same_v<Real, float>) {
 			REQUIRE(coarseErrors.first > fineErrors.first);
 			REQUIRE(coarseErrors.second > fineErrors.second);
-			REQUIRE(fineErrors.first < REAL(1e-6));
-			REQUIRE(fineErrors.second < REAL(1e-6));
+			REQUIRE(fineErrors.first < static_cast<MML::Real>(1e-6));
+			REQUIRE(fineErrors.second < static_cast<MML::Real>(1e-6));
 		} else {
 			REQUIRE(coarseErrors.first / fineErrors.first > 100.0);
 			REQUIRE(coarseErrors.second / fineErrors.second > 200.0);
@@ -2042,7 +2042,7 @@ namespace MML::Tests::Algorithms::StiffSolverTests
 			dydt[0] = _lambda * (y[0] - std::cos(t)) - std::sin(t);
 		}
 		
-		void jacobian(const Real t, const Vector<Real>& y, Vector<Real>& dydt, Matrix<Real>& J) const override {
+		void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override {
 			J(0, 0) = _lambda;
 		}
 		
@@ -2102,7 +2102,7 @@ namespace MML::Tests::Algorithms::StiffSolverTests
 				REQUIRE(y0.size() == 1);
 				
 				SECTION("Create solver") {
-					Rosenbrock23Solver solver(system, 1e-3, 1e-3);
+					ROS2Solver solver(system, 1e-3, 1e-3);
 					
 					SECTION("Solve") {
 						Real t0 = 0.0;
@@ -2143,7 +2143,7 @@ namespace MML::Tests::Algorithms::StiffSolverTests
 		Real err_bdf2 = std::abs(sol_bdf2.getXValuesAtEnd()[0] - system.exactSolution(t_end));
 		
 		// Rosenbrock (ROS2 - 2nd order, adaptive)
-		Rosenbrock23Solver solver(system, 1e-3, 1e-3);
+		ROS2Solver solver(system, 1e-3, 1e-3);
 		auto sol_ros = solver.Solve(t0, y0, t_end, h);
 		Real err_ros = std::abs(sol_ros.getXValuesAtEnd()[0] - system.exactSolution(t_end));
 		
@@ -2162,7 +2162,7 @@ namespace MML::Tests::Algorithms::StiffSolverTests
 		TEST_PRECISION_INFO();
 		
 		// Van der Pol with moderate stiffness
-		auto system = std::make_unique<VanDerPolStiffODE>(REAL(10.0));
+		auto system = std::make_unique<VanDerPolStiffODE>(static_cast<MML::Real>(10.0));
 		Vector<Real> y0 = VanDerPolStiffODE::getInitialCondition();
 		
 		Real t0 = 0.0;
@@ -2195,7 +2195,7 @@ namespace MML::Tests::Algorithms::StiffSolverTests
 		
 		SECTION("Rosenbrock adapts step size appropriately") {
 			Real h_init = 0.1;
-			Rosenbrock23Solver solver(*system, 1e-2, 1e-2);  // Relaxed tolerances for Van der Pol
+			ROS2Solver solver(*system, 1e-2, 1e-2);  // Relaxed tolerances for Van der Pol
 			auto sol = solver.Solve(t0, y0, t_end, h_init);
 			
 			REQUIRE(sol.getNumStepsOK() > 0);
@@ -2339,7 +2339,7 @@ namespace MML::Tests::Algorithms::ODEDetailedTests
 		void derivs(const Real t, const Vector<Real>& y, Vector<Real>& dydt) const override {
 			dydt[0] = _lambda * (y[0] - std::cos(t)) - std::sin(t);
 		}
-		void jacobian(const Real t, const Vector<Real>& y, Vector<Real>& dydt, Matrix<Real>& J) const override {
+		void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override {
 			J(0, 0) = _lambda;
 		}
 		Real exactSolution(Real t) const { return std::cos(t); }
@@ -2387,7 +2387,7 @@ namespace MML::Tests::Algorithms::ODEDetailedTests
 		REQUIRE_THAT(y_final[0], WithinAbs(system.exactSolution(1.0), 0.005));
 	}
 
-	TEST_CASE("SolveRosenbrock23Detailed - simple stiff ODE returns success", "[StiffSolvers][Detailed]")
+	TEST_CASE("SolveROS2Detailed - simple stiff ODE returns success", "[StiffSolvers][Detailed]")
 	{
 		SimpleStiffODEDetailed system(-50.0);
 		Vector<Real> y0(1);
@@ -2396,12 +2396,12 @@ namespace MML::Tests::Algorithms::ODEDetailedTests
 		ODEStiffConfig config;
 		config.solver.step_size = 0.1;
 		config.solver.tolerance = 1e-3;
-		config.solver.max_steps = 10000;  // Avoid exceeding Matrix MAX_DIMENSION (100000+1)
+		config.solver.max_steps = 10000;
 
-		auto result = SolveRosenbrock23Detailed(system, y0, 0.0, 1.0, config);
+		auto result = SolveROS2Detailed(system, y0, 0.0, 1.0, config);
 
 		REQUIRE(result.IsSuccess());
-		REQUIRE(result.algorithm_name == "Rosenbrock23");
+		REQUIRE(result.algorithm_name == "ROS2");
 		REQUIRE(result.elapsed_time_ms >= 0.0);
 		REQUIRE(result.total_steps > 0);
 

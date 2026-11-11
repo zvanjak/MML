@@ -12,10 +12,10 @@
 ///                                                                                   ///
 ///  Usage:                                                                           ///
 ///    // Arc length of helix from t=0 to t=2π                                        ///
-///    Real len = PathIntegration::ParametricCurveLength<3>(helix, 0, 2*PI);          ///
+///    Real len = PathIntegration::ParametricCurveLength<3>(helix, 0, 2*PI).value;          ///
 ///                                                                                   ///
 ///    // Work done by force field F along path C                                     ///
-///    Real work = PathIntegration::LineIntegral(F, curve, t1, t2);                   ///
+///    Real work = PathIntegration::LineIntegralDetailed(F, curve, t1, t2);                   ///
 ///                                                                                   ///
 ///  Mathematical Background:                                                         ///
 ///    Arc length:     L = ∫_a^b |r'(t)| dt                                          ///
@@ -37,6 +37,7 @@
 #include <mml/base/BaseUtils.h>
 
 #include <mml/core/Derivation.h>
+#include <mml/core/Derivation/DerivativeProviders.h>
 #include <mml/core/Integration.h>
 
 #include <mml/core/Fields/FieldOperations.h>
@@ -75,7 +76,7 @@ namespace MML
 
 			Real operator()(Real t) const
 			{
-				auto tangent_vec = Derivation::DeriveCurve<N>(_curve, t, nullptr);
+				auto tangent_vec = Differential::CurveDerivative<N>(_curve, t, 1);
 				return tangent_vec.NormL2();
 			}
 		};
@@ -93,7 +94,7 @@ namespace MML
 
 			Real operator()(Real t) const
 			{
-				auto tangent_vec = Derivation::DeriveCurve<N>(_curve, t, nullptr);
+				auto tangent_vec = Differential::CurveDerivative<N>(_curve, t, 1);
 				return tangent_vec.NormL2() * _density(t);
 			}
 		};
@@ -111,7 +112,7 @@ namespace MML
 
 			Real operator()(Real t) const
 			{
-				auto tangent_vec = Derivation::DeriveCurve<N>(_curve, t, nullptr);
+				auto tangent_vec = Differential::CurveDerivative<N>(_curve, t, 1);
 				auto field_val = _scalar_field(_curve(t));
 				return field_val * tangent_vec.NormL2();
 			}
@@ -130,7 +131,7 @@ namespace MML
 
 			Real operator()(Real t) const
 			{
-				auto tangent_vec = Derivation::DeriveCurve<N>(_curve, t, nullptr);
+				auto tangent_vec = Differential::CurveDerivative<N>(_curve, t, 1);
 				auto field_vec = _vector_field(_curve(t));
 				return Utils::ScalarProduct<N>(tangent_vec, field_vec);
 			}
@@ -151,7 +152,7 @@ namespace MML
 		/// @param b Ending parameter value
 		/// @param method Integration method to use (default: TRAP)
 		/// @param eps Desired relative precision (ignored by fixed-order methods)
-		/// @return IntegrationResult with arc length as value (implicitly converts to Real)
+		/// @return IntegrationResult with arc length as value (use .value; check converged)
 		///
 		/// @par Example:
 		/// @code
@@ -159,15 +160,22 @@ namespace MML
 		/// ParametricCurve<3> helix([](Real t) {
 		///     return VectorN<3>({cos(t), sin(t), t/(2*PI)});
 		/// });
-		/// Real length = PathIntegration::ParametricCurveLength<3>(helix, 0, 2*PI);
+		/// Real length = PathIntegration::ParametricCurveLength<3>(helix, 0, 2*PI).value;
 		/// // length ≈ 2π√(1 + 1/(4π²)) for one turn
 		/// @endcode
 		template<int N>
-		static IntegrationResult ParametricCurveLength(const IParametricCurve<N>& curve, const Real a, const Real b,
+		static IntegrationResult ParametricCurveLengthDetailed(const IParametricCurve<N>& curve, const Real a, const Real b,
 			IntegrationMethod method = TRAP, const Real eps = Defaults::TrapezoidIntegrationEPS)
 		{
 			HelperCurveLen<N> helper(curve);
-			return Integrate(helper, a, b, method, eps);
+			return IntegrateCore(helper, a, b, method, eps);
+		}
+
+		template<int N>
+		static Real ParametricCurveLength(const IParametricCurve<N>& curve, const Real a, const Real b,
+			IntegrationMethod method = TRAP, const Real eps = Defaults::TrapezoidIntegrationEPS)
+		{
+			return ParametricCurveLengthDetailed<N>(curve, a, b, method, eps).ValueOrThrow("ParametricCurveLength");
 		}
 		
 		///////////////////////////////////////////////////////////////////////
@@ -185,7 +193,7 @@ namespace MML
 		/// @param b Ending parameter value
 		/// @param method Integration method to use (default: TRAP)
 		/// @param eps Desired relative precision (ignored by fixed-order methods)
-		/// @return IntegrationResult with total mass as value (implicitly converts to Real)
+		/// @return IntegrationResult with total mass as value (use .value; check converged)
 		///
 		/// @par Physical interpretation:
 		/// For a wire bent along curve C with density ρ, the mass element
@@ -201,12 +209,20 @@ namespace MML
 		/// Real mass = PathIntegration::ParametricCurveMass<2>(circle, density, 0, 2*PI);
 		/// @endcode
 		template<int N>
-		static IntegrationResult ParametricCurveMass(const IParametricCurve<N>& curve, const IRealFunction &density, 
+		static IntegrationResult ParametricCurveMassDetailed(const IParametricCurve<N>& curve, const IRealFunction &density, 
 													const Real a, const Real b, IntegrationMethod method = TRAP,
 													const Real eps = Defaults::TrapezoidIntegrationEPS)
 		{
 			HelperCurveMass<N> helper(curve, density);
-			return Integrate(helper, a, b, method, eps);
+			return IntegrateCore(helper, a, b, method, eps);
+		}
+
+		template<int N>
+		static Real ParametricCurveMass(const IParametricCurve<N>& curve, const IRealFunction &density, 
+													const Real a, const Real b, IntegrationMethod method = TRAP,
+													const Real eps = Defaults::TrapezoidIntegrationEPS)
+		{
+			return ParametricCurveMassDetailed<N>(curve, density, a, b, method, eps).ValueOrThrow("ParametricCurveMass");
 		}
 
 		///////////////////////////////////////////////////////////////////////
@@ -222,7 +238,7 @@ namespace MML
 		/// @param t1 Starting parameter value
 		/// @param t2 Ending parameter value
 		/// @param eps Desired relative precision (default: WorkIntegralPrecision)
-		/// @return IntegrationResult with line integral value (implicitly converts to Real)
+		/// @return IntegrationResult with line integral value (use .value; check converged)
 		///
 		/// @par Physical interpretation:
 		/// If f represents a scalar quantity (temperature, density, etc.),
@@ -235,24 +251,37 @@ namespace MML
 		/// ScalarFunction<3> temperature([](const VectorN<3>& p) {
 		///     return p[0]*p[0] + p[1]*p[1];
 		/// });
-		/// Real total = PathIntegration::LineIntegral(temperature, helix, 0, 2*PI);
+		/// Real total = PathIntegration::LineIntegralDetailed(temperature, helix, 0, 2*PI);
 		/// @endcode
-		static IntegrationResult LineIntegral(const IScalarFunction<3>& scalarField, const IParametricCurve<3>& curve, 
+		static IntegrationResult LineIntegralDetailed(const IScalarFunction<3>& scalarField, const IParametricCurve<3>& curve, 
 														 const Real t1, const Real t2, const Real eps = Defaults::WorkIntegralPrecision)
 		{
 			HelperLineIntegralScalarFunc<3> helper(scalarField, curve);
-			return Integrate(helper, t1, t2, TRAP, eps);
+			return IntegrateCore(helper, t1, t2, TRAP, eps);
+		}
+
+		static Real LineIntegral(const IScalarFunction<3>& scalarField, const IParametricCurve<3>& curve, 
+														 const Real t1, const Real t2, const Real eps = Defaults::WorkIntegralPrecision)
+		{
+			return LineIntegralDetailed(scalarField, curve, t1, t2, eps).ValueOrThrow("LineIntegral");
 		}
 
 		/// @brief Line integral of a scalar field using an explicitly selected integration method
 		/// @param method Integration method to use
 		/// @param eps Desired relative precision (ignored by fixed-order methods)
-		static IntegrationResult LineIntegral(const IScalarFunction<3>& scalarField, const IParametricCurve<3>& curve,
+		static IntegrationResult LineIntegralDetailed(const IScalarFunction<3>& scalarField, const IParametricCurve<3>& curve,
 												 const Real t1, const Real t2, IntegrationMethod method,
 												 const Real eps = Defaults::WorkIntegralPrecision)
 		{
 			HelperLineIntegralScalarFunc<3> helper(scalarField, curve);
-			return Integrate(helper, t1, t2, method, eps);
+			return IntegrateCore(helper, t1, t2, method, eps);
+		}
+
+		static Real LineIntegral(const IScalarFunction<3>& scalarField, const IParametricCurve<3>& curve,
+												 const Real t1, const Real t2, IntegrationMethod method,
+												 const Real eps = Defaults::WorkIntegralPrecision)
+		{
+			return LineIntegralDetailed(scalarField, curve, t1, t2, method, eps).ValueOrThrow("LineIntegral");
 		}
 
 		///////////////////////////////////////////////////////////////////////
@@ -268,7 +297,7 @@ namespace MML
 		/// @param t1 Starting parameter value
 		/// @param t2 Ending parameter value
 		/// @param eps Desired relative precision (default: LineIntegralPrecision)
-		/// @return IntegrationResult with work integral value (implicitly converts to Real)
+		/// @return IntegrationResult with work integral value (use .value; check converged)
 		///
 		/// @par Physical interpretation:
 		/// This computes the work done by force field F moving a particle
@@ -288,27 +317,40 @@ namespace MML
 		/// ParametricCurve<3> path([](Real t) {
 		///     return VectorN<3>({10*t, 0, -0.5*9.81*t*t});
 		/// });
-		/// Real work = PathIntegration::LineIntegral(gravity, path, 0, 2);
+		/// Real work = PathIntegration::LineIntegralDetailed(gravity, path, 0, 2);
 		/// @endcode
 		///
 		/// @note For circulation of vector fields, ensure curve is closed:
 		///       r(t1) = r(t2). For conservative fields, result will be ≈ 0.
-		static IntegrationResult LineIntegral(const IVectorFunction<3>& vectorField, const IParametricCurve<3>& curve, 
+		static IntegrationResult LineIntegralDetailed(const IVectorFunction<3>& vectorField, const IParametricCurve<3>& curve, 
 														 const Real t1, const Real t2, const Real eps = Defaults::LineIntegralPrecision)
 		{
 			HelperLineIntegralVectorFunc<3> helper(vectorField, curve);
-			return Integrate(helper, t1, t2, TRAP, eps);
+			return IntegrateCore(helper, t1, t2, TRAP, eps);
+		}
+
+		static Real LineIntegral(const IVectorFunction<3>& vectorField, const IParametricCurve<3>& curve, 
+														 const Real t1, const Real t2, const Real eps = Defaults::LineIntegralPrecision)
+		{
+			return LineIntegralDetailed(vectorField, curve, t1, t2, eps).ValueOrThrow("LineIntegral");
 		}
 
 		/// @brief Line integral of a vector field using an explicitly selected integration method
 		/// @param method Integration method to use
 		/// @param eps Desired relative precision (ignored by fixed-order methods)
-		static IntegrationResult LineIntegral(const IVectorFunction<3>& vectorField, const IParametricCurve<3>& curve,
+		static IntegrationResult LineIntegralDetailed(const IVectorFunction<3>& vectorField, const IParametricCurve<3>& curve,
 												 const Real t1, const Real t2, IntegrationMethod method,
 												 const Real eps = Defaults::LineIntegralPrecision)
 		{
 			HelperLineIntegralVectorFunc<3> helper(vectorField, curve);
-			return Integrate(helper, t1, t2, method, eps);
+			return IntegrateCore(helper, t1, t2, method, eps);
+		}
+
+		static Real LineIntegral(const IVectorFunction<3>& vectorField, const IParametricCurve<3>& curve,
+												 const Real t1, const Real t2, IntegrationMethod method,
+												 const Real eps = Defaults::LineIntegralPrecision)
+		{
+			return LineIntegralDetailed(vectorField, curve, t1, t2, method, eps).ValueOrThrow("LineIntegral");
 		}
 	};
 

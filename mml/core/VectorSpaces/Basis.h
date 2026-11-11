@@ -11,11 +11,12 @@
 #if !defined MML_VECTOR_SPACES_BASIS_H
 #define MML_VECTOR_SPACES_BASIS_H
 
+#include <mml/algorithms/MatrixAlg/MatrixInversion.h>
 #include <mml/MMLBase.h>
 
 #include <mml/base/Matrix/MatrixNM.h>
 #include <mml/base/Vector/VectorN.h>
-#include <mml/base/Algebra/Algorithms/FieldMatrixAlgorithms.h>
+#include <mml/algorithms/MatrixAlg/FieldMatrixAlgorithms.h>
 
 #include <array>
 #include <initializer_list>
@@ -35,7 +36,7 @@ namespace MML::VectorSpaces
 			_determinant = Algebra::FieldMatrixDeterminant(_matrix);
 			if (std::abs(_determinant) <= tolerance)
 				throw SingularMatrixError("Basis vectors must be linearly independent");
-			_inverse = _matrix.GetInverse();
+			_inverse = MatrixAlg::Inverse(_matrix);
 		}
 
 	public:
@@ -44,13 +45,13 @@ namespace MML::VectorSpaces
 
 		Basis() : _matrix(MatrixNM<Scalar, N, N>::Identity()), _inverse(MatrixNM<Scalar, N, N>::Identity()), _determinant(Scalar{ 1 }) { }
 
-		explicit Basis(const MatrixNM<Scalar, N, N>& columns, Real tolerance = Defaults::MatrixIsEqualTolerance)
+		explicit Basis(const MatrixNM<Scalar, N, N>& columns, Real tolerance = Precision::MatrixIsEqualTolerance)
 			: _matrix(columns), _inverse(), _determinant()
 		{
 			validate(tolerance);
 		}
 
-		explicit Basis(const std::array<VectorN<Scalar, N>, N>& vectors, Real tolerance = Defaults::MatrixIsEqualTolerance)
+		explicit Basis(const std::array<VectorN<Scalar, N>, N>& vectors, Real tolerance = Precision::MatrixIsEqualTolerance)
 			: _matrix(), _inverse(), _determinant()
 		{
 			for (int col = 0; col < N; col++)
@@ -59,7 +60,7 @@ namespace MML::VectorSpaces
 			validate(tolerance);
 		}
 
-		Basis(std::initializer_list<VectorN<Scalar, N>> vectors, Real tolerance = Defaults::MatrixIsEqualTolerance)
+		Basis(std::initializer_list<VectorN<Scalar, N>> vectors, Real tolerance = Precision::MatrixIsEqualTolerance)
 			: _matrix(), _inverse(), _determinant()
 		{
 			if (static_cast<int>(vectors.size()) != N)
@@ -83,7 +84,7 @@ namespace MML::VectorSpaces
 		const MatrixNM<Scalar, N, N>& inverseMatrix() const noexcept { return _inverse; }
 		Scalar determinant() const noexcept { return _determinant; }
 
-		int orientationSign(Real tolerance = Defaults::MatrixIsEqualTolerance) const requires MMLArithmetic<Scalar>
+		int orientationSign(Real tolerance = Precision::MatrixIsEqualTolerance) const requires MMLArithmetic<Scalar>
 		{
 			if (_determinant > Scalar(tolerance))
 				return 1;

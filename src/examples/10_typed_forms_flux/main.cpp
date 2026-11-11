@@ -16,7 +16,7 @@
 #include <mml/MMLBase.h>
 #include <mml/base/DifferentialGeometry/DifferentialForm.h>
 #include <mml/base/DifferentialGeometry/Hodge.h>
-#include <mml/base/DifferentialGeometry/Metric.h>
+#include <mml/core/DifferentialGeometry/Metric.h>
 #include <mml/core/CoordTransf/CoordTransfCylindrical.h>
 #include <mml/core/DifferentialGeometry/CoordinateMap.h>
 #endif
@@ -46,9 +46,9 @@ int main()
 	Metric<3, Cartesian3> metric = Metric<3, Cartesian3>::Euclidean();
 	Orientation orientation = Orientation::Positive;
 
-	TangentVector<3, Cartesian3> velocity{ REAL(2.0), -REAL(1.0), REAL(3.0) };
-	TangentVector<3, Cartesian3> ru{ REAL(1.0), REAL(0.0), REAL(0.0) };
-	TangentVector<3, Cartesian3> rv{ REAL(0.0), REAL(1.0), REAL(0.0) };
+	TangentVector<3, Cartesian3> velocity{ static_cast<MML::Real>(2.0), -static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0) };
+	TangentVector<3, Cartesian3> ru{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
+	TangentVector<3, Cartesian3> rv{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0) };
 
 	Form1<3, Cartesian3> velocityFlat = ToForm(Flat(metric, velocity));
 	Form2<3, Cartesian3> fluxForm = hodge_star(velocityFlat, metric, orientation);
@@ -71,9 +71,9 @@ int main()
 
 	CoordTransfCylindricalToCartesian cylToCart;
 	CylindricalToCartesian3DMap map = MakeCylindricalToCartesian3DMap(cylToCart);
-	Point<Real, 3, Cylindrical3> cylPoint{ REAL(2.0), Constants::PI / REAL(2.0), REAL(5.0) };
+	Point<Real, 3, Cylindrical3> cylPoint{ static_cast<MML::Real>(2.0), Constants::PI / static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0) };
 	Form3<3, Cartesian3> cartVolume;
-	cartVolume.SetAlternatingComponent(REAL(1.0), 0, 1, 2);
+	cartVolume.SetAlternatingComponent(static_cast<MML::Real>(1.0), 0, 1, 2);
 	Form3<3, Cylindrical3> cylVolume = pull_back(map, cartVolume, cylPoint);
 
 	std::cout << "\nCoordinate pull-back of Cartesian volume form to cylindrical at r=2:\n";

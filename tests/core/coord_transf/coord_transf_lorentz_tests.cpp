@@ -25,7 +25,7 @@ namespace MML::Tests::Core::CoordTransfLorentzTests {
 // Calculate Lorentz factor gamma = 1/sqrt(1 - v^2/c^2)
 inline Real LorentzGamma(Real velocity)
 {
-    return REAL(1.0) / std::sqrt(REAL(1.0) - velocity * velocity);
+    return static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(1.0) - velocity * velocity);
 }
 
 // Calculate proper time interval
@@ -37,7 +37,7 @@ inline Real ProperTime(Real coordinateTime, Real velocity)
 // Velocity addition formula (parallel velocities in units of c)
 inline Real VelocityComposition(Real v1, Real v2)
 {
-    return (v1 + v2) / (REAL(1.0) + v1 * v2);
+    return (v1 + v2) / (static_cast<MML::Real>(1.0) + v1 * v2);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -45,7 +45,7 @@ inline Real VelocityComposition(Real v1, Real v2)
 
 TEST_CASE("CoordTransfLorentzXAxis - Constructor with Valid Velocity", "[lorentz]")
 {
-    CoordTransfLorentzXAxis lorentz(REAL(0.5));
+    CoordTransfLorentzXAxis lorentz(static_cast<MML::Real>(0.5));
     
     // Should construct without throwing
     REQUIRE(true);
@@ -53,7 +53,7 @@ TEST_CASE("CoordTransfLorentzXAxis - Constructor with Valid Velocity", "[lorentz
 
 TEST_CASE("CoordTransfLorentzXAxis - Constructor with Zero Velocity", "[lorentz]")
 {
-    CoordTransfLorentzXAxis lorentz(REAL(0.0));
+    CoordTransfLorentzXAxis lorentz(static_cast<MML::Real>(0.0));
     
     // Zero velocity is valid (stationary frame)
     REQUIRE(true);
@@ -61,13 +61,13 @@ TEST_CASE("CoordTransfLorentzXAxis - Constructor with Zero Velocity", "[lorentz]
 
 TEST_CASE("CoordTransfLorentzXAxis - Constructor Rejects Negative Velocity", "[lorentz]")
 {
-    REQUIRE_THROWS_AS(CoordTransfLorentzXAxis(-REAL(0.1)), DomainError);
+    REQUIRE_THROWS_AS(CoordTransfLorentzXAxis(-static_cast<MML::Real>(0.1)), DomainError);
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Constructor Rejects Superluminal Velocity", "[lorentz]")
 {
-    REQUIRE_THROWS_AS(CoordTransfLorentzXAxis(REAL(1.0)), DomainError);
-    REQUIRE_THROWS_AS(CoordTransfLorentzXAxis(REAL(1.5)), DomainError);
+    REQUIRE_THROWS_AS(CoordTransfLorentzXAxis(static_cast<MML::Real>(1.0)), DomainError);
+    REQUIRE_THROWS_AS(CoordTransfLorentzXAxis(static_cast<MML::Real>(1.5)), DomainError);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -75,15 +75,15 @@ TEST_CASE("CoordTransfLorentzXAxis - Constructor Rejects Superluminal Velocity",
 
 TEST_CASE("CoordTransfLorentzXAxis - Zero Velocity is Identity Transform", "[lorentz]")
 {
-    CoordTransfLorentzXAxis lorentz(REAL(0.0));
+    CoordTransfLorentzXAxis lorentz(static_cast<MML::Real>(0.0));
     
-    Vector4Minkowski event{REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)};  // (t, x, y, z)
+    Vector4Minkowski event{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)};  // (t, x, y, z)
     Vector4Minkowski transformed = lorentz.transf(event);
     
-    REQUIRE_THAT(transformed[0], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[1], WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[2], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[3], WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[0], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[1], WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[2], WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[3], WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-10, 1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -91,73 +91,73 @@ TEST_CASE("CoordTransfLorentzXAxis - Zero Velocity is Identity Transform", "[lor
 
 TEST_CASE("CoordTransfLorentzXAxis - Transform Origin Event", "[lorentz]")
 {
-    Real v = REAL(0.6);
+    Real v = static_cast<MML::Real>(0.6);
     CoordTransfLorentzXAxis lorentz(v);
     
-    Vector4Minkowski origin{REAL(0.0), REAL(0.0), REAL(0.0), REAL(0.0)};
+    Vector4Minkowski origin{static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
     Vector4Minkowski transformed = lorentz.transf(origin);
     
     // Origin maps to origin
-    REQUIRE_THAT(transformed[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[1], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[2], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[3], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[1], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[2], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[3], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Transform Time-Only Event", "[lorentz]")
 {
-    Real v = REAL(0.6);
+    Real v = static_cast<MML::Real>(0.6);
     Real gamma = LorentzGamma(v);
     CoordTransfLorentzXAxis lorentz(v);
     
     // Event at origin but at t=1
-    Vector4Minkowski event{REAL(1.0), REAL(0.0), REAL(0.0), REAL(0.0)};
+    Vector4Minkowski event{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
     Vector4Minkowski transformed = lorentz.transf(event);
     
     // t' = gamma * t (when x=0)
-    REQUIRE_THAT(transformed[0], WithinAbs(gamma * REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[1], WithinAbs(-v * gamma * REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[2], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[3], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[0], WithinAbs(gamma * static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[1], WithinAbs(-v * gamma * static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[2], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[3], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Transform Space-Only Event (X-axis)", "[lorentz]")
 {
-    Real v = REAL(0.6);
+    Real v = static_cast<MML::Real>(0.6);
     Real gamma = LorentzGamma(v);
     CoordTransfLorentzXAxis lorentz(v);
     
     // Event at x=1, t=0
-    Vector4Minkowski event{REAL(0.0), REAL(1.0), REAL(0.0), REAL(0.0)};
+    Vector4Minkowski event{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
     Vector4Minkowski transformed = lorentz.transf(event);
     
     // t' = gamma * (-v * x), x' = gamma * x (when t=0)
-    REQUIRE_THAT(transformed[0], WithinAbs(-v * gamma * REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[1], WithinAbs(gamma * REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[2], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[3], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[0], WithinAbs(-v * gamma * static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[1], WithinAbs(gamma * static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[2], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[3], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Y and Z Coordinates Unchanged", "[lorentz]")
 {
-    Real v = REAL(0.6);
+    Real v = static_cast<MML::Real>(0.6);
     CoordTransfLorentzXAxis lorentz(v);
     
-    Vector4Minkowski event{REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)};
+    Vector4Minkowski event{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)};
     Vector4Minkowski transformed = lorentz.transf(event);
     
     // Y and Z coordinates should be unchanged
-    REQUIRE_THAT(transformed[2], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[3], WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[2], WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[3], WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - General Event Transformation", "[lorentz]")
 {
-    Real v = REAL(0.8);
+    Real v = static_cast<MML::Real>(0.8);
     Real gamma = LorentzGamma(v);
     CoordTransfLorentzXAxis lorentz(v);
     
-    Real t = REAL(5.0), x = REAL(3.0), y = REAL(2.0), z = REAL(1.0);
+    Real t = static_cast<MML::Real>(5.0), x = static_cast<MML::Real>(3.0), y = static_cast<MML::Real>(2.0), z = static_cast<MML::Real>(1.0);
     Vector4Minkowski event{t, x, y, z};
     Vector4Minkowski transformed = lorentz.transf(event);
     
@@ -177,11 +177,11 @@ TEST_CASE("CoordTransfLorentzXAxis - General Event Transformation", "[lorentz]")
 
 TEST_CASE("CoordTransfLorentzXAxis - Preserves Minkowski scalar product", "[lorentz]")
 {
-    Real v = REAL(0.6);
+    Real v = static_cast<MML::Real>(0.6);
     CoordTransfLorentzXAxis lorentz(v);
 
-    Vector4Minkowski a{REAL(5.0), REAL(2.0), -REAL(1.0), REAL(3.0)};
-    Vector4Minkowski b{REAL(4.0), -REAL(3.0), REAL(2.0), REAL(1.0)};
+    Vector4Minkowski a{static_cast<MML::Real>(5.0), static_cast<MML::Real>(2.0), -static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0)};
+    Vector4Minkowski b{static_cast<MML::Real>(4.0), -static_cast<MML::Real>(3.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0)};
 
     Vector4Minkowski a_transformed = lorentz.transf(a);
     Vector4Minkowski b_transformed = lorentz.transf(b);
@@ -195,24 +195,24 @@ TEST_CASE("CoordTransfLorentzXAxis - Preserves Minkowski scalar product", "[lore
 
 TEST_CASE("CoordTransfLorentzXAxis - Inverse Transform of Origin", "[lorentz]")
 {
-    Real v = REAL(0.6);
+    Real v = static_cast<MML::Real>(0.6);
     CoordTransfLorentzXAxis lorentz(v);
     
-    Vector4Minkowski origin{REAL(0.0), REAL(0.0), REAL(0.0), REAL(0.0)};
+    Vector4Minkowski origin{static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
     Vector4Minkowski transformed = lorentz.transfInverse(origin);
     
-    REQUIRE_THAT(transformed[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[1], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[2], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(transformed[3], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[1], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[2], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[3], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Round Trip Transformation", "[lorentz]")
 {
-    Real v = REAL(0.7);
+    Real v = static_cast<MML::Real>(0.7);
     CoordTransfLorentzXAxis lorentz(v);
     
-    Vector4Minkowski original{REAL(2.0), REAL(3.0), REAL(4.0), REAL(5.0)};
+    Vector4Minkowski original{static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0)};
     Vector4Minkowski transformed = lorentz.transf(original);
     Vector4Minkowski back = lorentz.transfInverse(transformed);
     
@@ -224,10 +224,10 @@ TEST_CASE("CoordTransfLorentzXAxis - Round Trip Transformation", "[lorentz]")
 
 TEST_CASE("CoordTransfLorentzXAxis - Inverse Equals Negative Velocity Transform", "[lorentz]")
 {
-    Real v = REAL(0.5);
+    Real v = static_cast<MML::Real>(0.5);
     CoordTransfLorentzXAxis lorentz_forward(v);
     
-    Vector4Minkowski event{REAL(3.0), REAL(2.0), REAL(1.0), REAL(0.5)};
+    Vector4Minkowski event{static_cast<MML::Real>(3.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5)};
     Vector4Minkowski inv_transformed = lorentz_forward.transfInverse(event);
     
     // The inverse Lorentz transformation is the same as forward transformation
@@ -247,10 +247,10 @@ TEST_CASE("CoordTransfLorentzXAxis - Inverse Equals Negative Velocity Transform"
 
 TEST_CASE("CoordTransfLorentzXAxis - Spacetime Interval Invariance", "[lorentz]")
 {
-    Real v = REAL(0.6);
+    Real v = static_cast<MML::Real>(0.6);
     CoordTransfLorentzXAxis lorentz(v);
     
-    Vector4Minkowski event{REAL(5.0), REAL(3.0), REAL(2.0), REAL(1.0)};
+    Vector4Minkowski event{static_cast<MML::Real>(5.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0)};
     Vector4Minkowski transformed = lorentz.transf(event);
     
     // Spacetime interval: s^2 = t^2 - x^2 - y^2 - z^2
@@ -263,11 +263,11 @@ TEST_CASE("CoordTransfLorentzXAxis - Spacetime Interval Invariance", "[lorentz]"
 
 TEST_CASE("CoordTransfLorentzXAxis - Light Cone Invariance", "[lorentz]")
 {
-    Real v = REAL(0.8);
+    Real v = static_cast<MML::Real>(0.8);
     CoordTransfLorentzXAxis lorentz(v);
     
     // Light signal: t = x (moving at speed of light along x-axis)
-    Vector4Minkowski light_event{REAL(2.0), REAL(2.0), REAL(0.0), REAL(0.0)};
+    Vector4Minkowski light_event{static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
     Vector4Minkowski transformed = lorentz.transf(light_event);
     
     // For light-like events: t^2 = x^2 + y^2 + z^2 (spacetime interval = 0)
@@ -276,8 +276,8 @@ TEST_CASE("CoordTransfLorentzXAxis - Light Cone Invariance", "[lorentz]")
     Real interval_transformed = transformed[0]*transformed[0] - transformed[1]*transformed[1] 
                               - transformed[2]*transformed[2] - transformed[3]*transformed[3];
     
-    REQUIRE_THAT(interval_original, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(interval_transformed, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(interval_original, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(interval_transformed, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -285,10 +285,10 @@ TEST_CASE("CoordTransfLorentzXAxis - Light Cone Invariance", "[lorentz]")
 
 TEST_CASE("CoordTransfLorentzXAxis - Proper Time Calculation", "[lorentz]")
 {
-    Real v = REAL(0.6);
+    Real v = static_cast<MML::Real>(0.6);
     Real gamma = LorentzGamma(v);
     
-    Real coordinate_time = REAL(10.0);
+    Real coordinate_time = static_cast<MML::Real>(10.0);
     Real proper_time = ProperTime(coordinate_time, v);
     
     // tau = t / gamma
@@ -298,14 +298,14 @@ TEST_CASE("CoordTransfLorentzXAxis - Proper Time Calculation", "[lorentz]")
 
 TEST_CASE("CoordTransfLorentzXAxis - Time Dilation for Moving Object", "[lorentz]")
 {
-    Real v = REAL(0.8);
+    Real v = static_cast<MML::Real>(0.8);
     Real gamma = LorentzGamma(v);
     CoordTransfLorentzXAxis lorentz(v);
     
     // Object at rest in original frame for time dt
-    Real dt = REAL(1.0);
-    Vector4Minkowski event1{REAL(0.0), REAL(0.0), REAL(0.0), REAL(0.0)};
-    Vector4Minkowski event2{dt, REAL(0.0), REAL(0.0), REAL(0.0)};
+    Real dt = static_cast<MML::Real>(1.0);
+    Vector4Minkowski event1{static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
+    Vector4Minkowski event2{dt, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
     
     Vector4Minkowski trans1 = lorentz.transf(event1);
     Vector4Minkowski trans2 = lorentz.transf(event2);
@@ -321,28 +321,28 @@ TEST_CASE("CoordTransfLorentzXAxis - Time Dilation for Moving Object", "[lorentz
 
 TEST_CASE("CoordTransfLorentzXAxis - Velocity Composition Formula", "[lorentz]")
 {
-    Real v1 = REAL(0.6);
-    Real v2 = REAL(0.5);
+    Real v1 = static_cast<MML::Real>(0.6);
+    Real v2 = static_cast<MML::Real>(0.5);
     
     Real v_composed = VelocityComposition(v1, v2);
     
     // Should be less than c (which is 1 in our units)
-    REQUIRE(v_composed < REAL(1.0));
+    REQUIRE(v_composed < static_cast<MML::Real>(1.0));
     
     // Einstein velocity addition: v = (v1 + v2) / (1 + v1*v2)
-    Real expected = (v1 + v2) / (REAL(1.0) + v1 * v2);
+    Real expected = (v1 + v2) / (static_cast<MML::Real>(1.0) + v1 * v2);
     REQUIRE_THAT(v_composed, WithinAbs(expected, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Successive Transformations", "[lorentz]")
 {
-    Real v1 = REAL(0.5);
-    Real v2 = REAL(0.6);
+    Real v1 = static_cast<MML::Real>(0.5);
+    Real v2 = static_cast<MML::Real>(0.6);
     
     CoordTransfLorentzXAxis lorentz1(v1);
     CoordTransfLorentzXAxis lorentz2(v2);
     
-    Vector4Minkowski event{REAL(1.0), REAL(1.0), REAL(0.0), REAL(0.0)};
+    Vector4Minkowski event{static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
     
     // Apply two successive transformations
     Vector4Minkowski trans1 = lorentz1.transf(event);
@@ -359,16 +359,16 @@ TEST_CASE("CoordTransfLorentzXAxis - Successive Transformations", "[lorentz]")
 
 TEST_CASE("CoordTransfLorentzXAxis - Light Speed Invariance Under Composition", "[lorentz]")
 {
-    Real v1 = REAL(0.9);
-    Real v2 = REAL(0.9);
+    Real v1 = static_cast<MML::Real>(0.9);
+    Real v2 = static_cast<MML::Real>(0.9);
     
     Real v_composed = VelocityComposition(v1, v2);
     
     // Even with two high velocities, composed velocity < c
-    REQUIRE(v_composed < REAL(1.0));
+    REQUIRE(v_composed < static_cast<MML::Real>(1.0));
     
     // Composed velocity approaches c but never reaches it
-    REQUIRE_THAT(v_composed, WithinAbs(REAL(0.9945), REAL(1e-4)));
+    REQUIRE_THAT(v_composed, WithinAbs(static_cast<MML::Real>(0.9945), static_cast<MML::Real>(1e-4)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -376,14 +376,14 @@ TEST_CASE("CoordTransfLorentzXAxis - Light Speed Invariance Under Composition", 
 
 TEST_CASE("CoordTransfLorentzXAxis - Length Contraction", "[lorentz]")
 {
-    Real v = REAL(0.6);
+    Real v = static_cast<MML::Real>(0.6);
     Real gamma = LorentzGamma(v);
     CoordTransfLorentzXAxis lorentz(v);
     
     // Rod of length L at rest, measured at same time (t=0)
-    Real L = REAL(10.0);
-    Vector4Minkowski front{REAL(0.0), L, REAL(0.0), REAL(0.0)};
-    Vector4Minkowski back{REAL(0.0), REAL(0.0), REAL(0.0), REAL(0.0)};
+    Real L = static_cast<MML::Real>(10.0);
+    Vector4Minkowski front{static_cast<MML::Real>(0.0), L, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
+    Vector4Minkowski back{static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
     
     Vector4Minkowski trans_front = lorentz.transf(front);
     Vector4Minkowski trans_back = lorentz.transf(back);
@@ -401,17 +401,17 @@ TEST_CASE("CoordTransfLorentzXAxis - Length Contraction", "[lorentz]")
 
 TEST_CASE("CoordTransfLorentzXAxis - Low Velocity Limit (Galilean)", "[lorentz]")
 {
-    Real v = REAL(0.001);  // Very low velocity
+    Real v = static_cast<MML::Real>(0.001);  // Very low velocity
     Real gamma = LorentzGamma(v);
     CoordTransfLorentzXAxis lorentz(v);
     
-    Vector4Minkowski event{REAL(10.0), REAL(5.0), REAL(3.0), REAL(2.0)};
+    Vector4Minkowski event{static_cast<MML::Real>(10.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(2.0)};
     Vector4Minkowski transformed = lorentz.transf(event);
     
     // At low velocities, should approach Galilean transformation
     // Full Lorentz: t' = γ(t - βx), x' = γ(x - βt)
     // At v << 1: γ ≈ 1, so t' ≈ t - βx ≈ t, x' ≈ x - βt ≈ x - vt
-    REQUIRE_THAT(gamma, WithinAbs(REAL(1.0), REAL(1e-6)));
+    REQUIRE_THAT(gamma, WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-6)));
     
     // For low velocity, t' = γ(t - βx) should be close to the exact formula
     Real expected_t = gamma * (event[0] - v * event[1]);
@@ -423,12 +423,12 @@ TEST_CASE("CoordTransfLorentzXAxis - Low Velocity Limit (Galilean)", "[lorentz]"
 
 TEST_CASE("CoordTransfLorentzXAxis - High Velocity Gamma Factor", "[lorentz]")
 {
-    Real v = REAL(0.99);
+    Real v = static_cast<MML::Real>(0.99);
     Real gamma = LorentzGamma(v);
     
-    // At v = REAL(0.9)9c, gamma should be large
-    REQUIRE(gamma > REAL(7.0));
-    REQUIRE_THAT(gamma, WithinAbs(REAL(7.0889), REAL(1e-3)));
+    // At v = static_cast<MML::Real>(0.9)9c, gamma should be large
+    REQUIRE(gamma > static_cast<MML::Real>(7.0));
+    REQUIRE_THAT(gamma, WithinAbs(static_cast<MML::Real>(7.0889), static_cast<MML::Real>(1e-3)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -436,10 +436,10 @@ TEST_CASE("CoordTransfLorentzXAxis - High Velocity Gamma Factor", "[lorentz]")
 
 TEST_CASE("CoordTransfLorentzXAxis - Coordinate Transform Functions Consistency", "[lorentz]")
 {
-    Real v = REAL(0.5);
+    Real v = static_cast<MML::Real>(0.5);
     CoordTransfLorentzXAxis lorentz(v);
     
-    Vector4Minkowski event{REAL(2.0), REAL(3.0), REAL(4.0), REAL(5.0)};
+    Vector4Minkowski event{static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0)};
     
     // Get transformed vector
     Vector4Minkowski transformed = lorentz.transf(event);
@@ -458,10 +458,10 @@ TEST_CASE("CoordTransfLorentzXAxis - Coordinate Transform Functions Consistency"
 
 TEST_CASE("CoordTransfLorentzXAxis - Inverse Coordinate Functions Consistency", "[lorentz]")
 {
-    Real v = REAL(0.5);
+    Real v = static_cast<MML::Real>(0.5);
     CoordTransfLorentzXAxis lorentz(v);
     
-    Vector4Minkowski event{REAL(2.0), REAL(3.0), REAL(4.0), REAL(5.0)};
+    Vector4Minkowski event{static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0)};
     
     // Get inverse transformed vector
     Vector4Minkowski inv_transformed = lorentz.transfInverse(event);
@@ -480,11 +480,11 @@ TEST_CASE("CoordTransfLorentzXAxis - Inverse Coordinate Functions Consistency", 
 
 TEST_CASE("CoordTransfLorentzBoost - X-axis compatibility", "[lorentz]")
 {
-    Real v = REAL(0.6);
+    Real v = static_cast<MML::Real>(0.6);
     CoordTransfLorentzXAxis xAxis(v);
-    CoordTransfLorentzBoost arbitrary(VectorN<Real, 3>{v, REAL(0.0), REAL(0.0)});
+    CoordTransfLorentzBoost arbitrary(VectorN<Real, 3>{v, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)});
 
-    Vector4Minkowski event{REAL(5.0), REAL(3.0), REAL(2.0), -REAL(1.0)};
+    Vector4Minkowski event{static_cast<MML::Real>(5.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(2.0), -static_cast<MML::Real>(1.0)};
     Vector4Minkowski expected = xAxis.transf(event);
     Vector4Minkowski actual = arbitrary.transf(event);
 
@@ -494,10 +494,10 @@ TEST_CASE("CoordTransfLorentzBoost - X-axis compatibility", "[lorentz]")
 
 TEST_CASE("CoordTransfLorentzBoost - Arbitrary boost preserves Minkowski scalar product", "[lorentz]")
 {
-    CoordTransfLorentzBoost boost(VectorN<Real, 3>{REAL(0.2), -REAL(0.3), REAL(0.1)});
+    CoordTransfLorentzBoost boost(VectorN<Real, 3>{static_cast<MML::Real>(0.2), -static_cast<MML::Real>(0.3), static_cast<MML::Real>(0.1)});
 
-    Vector4Minkowski a{REAL(5.0), REAL(2.0), -REAL(1.0), REAL(3.0)};
-    Vector4Minkowski b{REAL(4.0), -REAL(3.0), REAL(2.0), REAL(1.0)};
+    Vector4Minkowski a{static_cast<MML::Real>(5.0), static_cast<MML::Real>(2.0), -static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0)};
+    Vector4Minkowski b{static_cast<MML::Real>(4.0), -static_cast<MML::Real>(3.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0)};
 
     Vector4Minkowski aTransformed = boost.transf(a);
     Vector4Minkowski bTransformed = boost.transf(b);
@@ -512,15 +512,15 @@ TEST_CASE("CoordTransfLorentzBoost - Arbitrary boost preserves Minkowski scalar 
 TEST_CASE("Lorentz transformation matrices - Spatial rotation and composition", "[lorentz]")
 {
     MatrixNM<Real, 3, 3> rotationZ90;
-    rotationZ90[0][1] = -REAL(1.0);
-    rotationZ90[1][0] = REAL(1.0);
-    rotationZ90[2][2] = REAL(1.0);
+    rotationZ90[0][1] = -static_cast<MML::Real>(1.0);
+    rotationZ90[1][0] = static_cast<MML::Real>(1.0);
+    rotationZ90[2][2] = static_cast<MML::Real>(1.0);
 
     MatrixNM<Real, 4, 4> rotation = LorentzSpatialRotationMatrix(rotationZ90);
-    MatrixNM<Real, 4, 4> boost = LorentzBoostMatrix(VectorN<Real, 3>{REAL(0.25), REAL(0.0), REAL(0.0)});
+    MatrixNM<Real, 4, 4> boost = LorentzBoostMatrix(VectorN<Real, 3>{static_cast<MML::Real>(0.25), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)});
     MatrixNM<Real, 4, 4> composed = ComposeLorentzTransformations(rotation, boost);
 
-    Vector4Minkowski event{REAL(4.0), REAL(2.0), REAL(1.0), REAL(3.0)};
+    Vector4Minkowski event{static_cast<MML::Real>(4.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0)};
     Vector4Minkowski boostedThenRotated = ApplyLorentzTransformation(rotation, ApplyLorentzTransformation(boost, event));
     Vector4Minkowski composedResult = ApplyLorentzTransformation(composed, event);
 
@@ -532,8 +532,8 @@ TEST_CASE("Lorentz transformation matrices - Spatial rotation and composition", 
 
 TEST_CASE("CoordTransfLorentzBoost - Rejects superluminal beta", "[lorentz]")
 {
-    REQUIRE_THROWS_AS(CoordTransfLorentzBoost(VectorN<Real, 3>{REAL(1.0), REAL(0.0), REAL(0.0)}), DomainError);
-    REQUIRE_THROWS_AS(CoordTransfLorentzBoost(VectorN<Real, 3>{REAL(0.8), REAL(0.8), REAL(0.0)}), DomainError);
+    REQUIRE_THROWS_AS(CoordTransfLorentzBoost(VectorN<Real, 3>{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)}), DomainError);
+    REQUIRE_THROWS_AS(CoordTransfLorentzBoost(VectorN<Real, 3>{static_cast<MML::Real>(0.8), static_cast<MML::Real>(0.8), static_cast<MML::Real>(0.0)}), DomainError);
 }
 
 } // namespace MML::Tests::Core::CoordTransfLorentzTests

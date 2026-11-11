@@ -16,6 +16,9 @@
 #include <mml/algorithms/ODESolvers/ODESolverEventDetection.h>
 
 #include <algorithm>
+#include <cmath>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace MML::Systems
@@ -52,44 +55,94 @@ namespace MML::Systems
 		};
 	}
 
-	class PhaseSpaceAnalyzer
+	namespace DynamicalAnalysisDetail
 	{
-	public:
-		static std::vector<Vector<Real>> ComputePoincareSection(IDynamicalSystem& system,
+		struct PoincareSearchOutcome
+		{
+			std::vector<Vector<Real>> intersections;
+			bool complete = false;	///< numberOfIntersections crossings were found within the budget
+			Real searchedTime = static_cast<MML::Real>(0.0); ///< integration time spent after the transient
+		};
+
+		/// Bounded search for section crossings: integrates in windows of DefaultRecordTime until
+		/// numberOfIntersections crossings are collected or maxSearchTime has been integrated.
+		inline PoincareSearchOutcome SearchPoincareCrossings(IDynamicalSystem& system,
 			const Vector<Real>& initialState, const PoincareSection<Real>& section,
-			int numberOfIntersections, Real initialStep = REAL(0.01))
+			int numberOfIntersections, Real initialStep, Real maxSearchTime, Real transientTime)
 		{
 			if (initialStep <= 0)
 				throw ArgumentError("ComputePoincareSection: step size h must be positive");
-			std::vector<Vector<Real>> intersections;
-			if (numberOfIntersections <= 0)
-				return intersections;
+			if (maxSearchTime <= 0 || !std::isfinite(maxSearchTime))
+				throw ArgumentError("ComputePoincareSection: maxSearchTime must be positive and finite");
+			if (transientTime < 0 || !std::isfinite(transientTime))
+				throw ArgumentError("ComputePoincareSection: transientTime must be non-negative and finite");
+			if (section.variable < 0 || section.variable >= system.getDim())
+				throw ArgumentError("ComputePoincareSection: section.variable is outside the system dimension");
 
-			Vector<Real> state = DynamicalAnalysisDetail::Integrate(system, initialState, REAL(0.0),
-				DefaultTransientTime, DefaultTransientTime, initialStep).getXValuesAtEnd();
-			DynamicalAnalysisDetail::PoincareEventSystem eventSystem(system, section);
+			PoincareSearchOutcome outcome;
+			if (numberOfIntersections <= 0) {
+				outcome.complete = true;
+				return outcome;
+			}
+
+			Vector<Real> state = initialState;
+			if (transientTime > 0)
+				state = Integrate(system, initialState, static_cast<MML::Real>(0.0), transientTime, transientTime, initialStep).getXValuesAtEnd();
+
+			PoincareEventSystem eventSystem(system, section);
 			ODEEventDetectionIntegrator<> integrator(eventSystem);
-			Real time = DefaultTransientTime;
+			Real time = transientTime;
 			const Real searchWindow = std::max(DefaultRecordTime, initialStep);
+			const Real searchEnd = transientTime + maxSearchTime;
 
-			while (static_cast<int>(intersections.size()) < numberOfIntersections) {
+			while (static_cast<int>(outcome.intersections.size()) < numberOfIntersections && time < searchEnd) {
+				const Real windowEnd = std::min(time + searchWindow, searchEnd);
 				const auto result = integrator.integrateWithEvents(eventSystem, state, time,
-					time + searchWindow, searchWindow, Precision::ODEDefaultTolerance,
+					windowEnd, windowEnd - time, Precision::ODEDefaultTolerance,
 					Precision::EventTolerance, initialStep);
 				for (const auto& event : result.events) {
-					intersections.push_back(event.state);
-					if (static_cast<int>(intersections.size()) == numberOfIntersections)
+					outcome.intersections.push_back(event.state);
+					if (static_cast<int>(outcome.intersections.size()) == numberOfIntersections)
 						break;
 				}
 				state = result.finalState;
+				if (!(result.finalTime > time))
+					break; // no progress (should not happen with EventAction::Continue); report incomplete rather than spin
 				time = result.finalTime;
 			}
-			return intersections;
+			outcome.searchedTime = time - transientTime;
+			outcome.complete = static_cast<int>(outcome.intersections.size()) >= numberOfIntersections;
+			return outcome;
+		}
+	}
+
+	class PhaseSpaceAnalyzer
+	{
+	public:
+		/// Collect numberOfIntersections crossings of the Poincaré section after a transient.
+		///
+		/// The search is bounded: at most maxSearchTime time units are integrated after the
+		/// transient. If fewer crossings are found in that budget a ConvergenceError is thrown
+		/// (the trajectory does not cross the section, or crosses it in the other direction);
+		/// use ComputePoincareSectionDetailed to receive the partial set with a status instead.
+		static std::vector<Vector<Real>> ComputePoincareSection(IDynamicalSystem& system,
+			const Vector<Real>& initialState, const PoincareSection<Real>& section,
+			int numberOfIntersections, Real initialStep = static_cast<MML::Real>(0.01),
+			Real maxSearchTime = DefaultPoincareMaxSearchTime, Real transientTime = DefaultTransientTime)
+		{
+			auto outcome = DynamicalAnalysisDetail::SearchPoincareCrossings(system, initialState, section,
+				numberOfIntersections, initialStep, maxSearchTime, transientTime);
+			if (!outcome.complete)
+				throw ConvergenceError("ComputePoincareSection: found " + std::to_string(outcome.intersections.size()) +
+					" of " + std::to_string(numberOfIntersections) + " section crossings within maxSearchTime = " +
+					std::to_string(maxSearchTime) + " (trajectory may not cross the section, or not in the requested direction)",
+					static_cast<int>(outcome.intersections.size()));
+			return std::move(outcome.intersections);
 		}
 
 		static std::vector<Vector<Real>> IntegrateTrajectory(IDynamicalSystem& system,
 			const Vector<Real>& initialState, Real totalTime, Real outputInterval,
-			Real initialStep = REAL(0.01))
+			Real initialStep = static_cast<MML::Real>(0.01))
 		{
 			if (totalTime < 0)
 				throw ArgumentError("IntegrateTrajectory: tTotal must be non-negative (reverse-time integration is not supported)");
@@ -102,7 +155,7 @@ namespace MML::Systems
 				return trajectory;
 			}
 			const auto solution = DynamicalAnalysisDetail::Integrate(system, initialState,
-				REAL(0.0), totalTime, outputInterval, initialStep);
+				static_cast<MML::Real>(0.0), totalTime, outputInterval, initialStep);
 			trajectory.reserve(solution.size());
 			for (int point = 0; point < solution.size(); ++point)
 				trajectory.push_back(DynamicalAnalysisDetail::StateAt(solution, point));
@@ -114,6 +167,7 @@ namespace MML::Systems
 	struct PoincareSectionResult : public EvaluationResultBase
 	{
 		std::vector<Vector<Type>> intersections;
+		Type searched_time = Type(0); ///< Integration time spent after the transient looking for crossings
 	};
 
 	template<typename Type = Real>
@@ -122,21 +176,32 @@ namespace MML::Systems
 		std::vector<Vector<Type>> points;
 	};
 
+	/// Detailed variant: never throws for an exhausted search budget. The crossings found so far are
+	/// returned with status MaxIterationsExceeded and an explanatory error_message.
 	inline PoincareSectionResult<Real> ComputePoincareSectionDetailed(IDynamicalSystem& system,
 		const Vector<Real>& initialState, const PoincareSection<Real>& section,
-		int numberOfIntersections, Real initialStep = REAL(0.01), const DynSysConfig& config = {})
+		int numberOfIntersections, Real initialStep = static_cast<MML::Real>(0.01), const DynSysConfig& config = {},
+		Real maxSearchTime = DefaultPoincareMaxSearchTime, Real transientTime = DefaultTransientTime)
 	{
 		return DynSysDetail::ExecuteDynSysDetailed<PoincareSectionResult<Real>>(
 			"PoincareSection", config, [&](PoincareSectionResult<Real>& result) {
-				result.intersections = PhaseSpaceAnalyzer::ComputePoincareSection(
-					system, initialState, section, numberOfIntersections, initialStep);
-				result.function_evaluations = numberOfIntersections;
+				auto outcome = DynamicalAnalysisDetail::SearchPoincareCrossings(system, initialState, section,
+					numberOfIntersections, initialStep, maxSearchTime, transientTime);
+				result.intersections = std::move(outcome.intersections);
+				result.searched_time = outcome.searchedTime;
+				result.function_evaluations = static_cast<int>(result.intersections.size());
+				if (!outcome.complete) {
+					result.status = AlgorithmStatus::MaxIterationsExceeded;
+					result.error_message = "Found " + std::to_string(result.intersections.size()) + " of " +
+						std::to_string(numberOfIntersections) + " section crossings within maxSearchTime = " +
+						std::to_string(maxSearchTime);
+				}
 			});
 	}
 
 	inline TrajectoryResult<Real> IntegrateTrajectoryDetailed(IDynamicalSystem& system,
 		const Vector<Real>& initialState, Real totalTime, Real outputInterval,
-		Real initialStep = REAL(0.01), const DynSysConfig& config = {})
+		Real initialStep = static_cast<MML::Real>(0.01), const DynSysConfig& config = {})
 	{
 		return DynSysDetail::ExecuteDynSysDetailed<TrajectoryResult<Real>>(
 			"TrajectoryIntegration", config, [&](TrajectoryResult<Real>& result) {

@@ -54,7 +54,7 @@ namespace MML
 		/// Factory: Fast configuration (lower precision, fewer iterations)
 		static IterativeSolverConfig Fast() {
 			IterativeSolverConfig cfg;
-			cfg.tolerance = 1e-6;
+			cfg.tolerance = Precision::LooseTolerance;
 			cfg.max_iterations = 200;
 			return cfg;
 		}

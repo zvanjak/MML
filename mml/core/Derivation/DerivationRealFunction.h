@@ -13,6 +13,7 @@
 #define MML_DERIVATION_REAL_FUNCTION_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 
 #include <mml/base/AlgorithmTypes.h>
 #include <mml/MMLNumericValidation.h>
@@ -41,7 +42,7 @@ namespace MML
 
 			inline Real ResolveDerivativeStep(const DerivativeConfig& config, Real default_step, Real x)
 			{
-				return config.step != REAL(0.0) ? config.step : ScaleStep(default_step, x);
+				return config.step != static_cast<MML::Real>(0.0) ? config.step : ScaleStep(default_step, x);
 			}
 
 			template<typename ComputeFn>
@@ -61,9 +62,9 @@ namespace MML
 						config.estimate_error ? evals_with_error : evals_without_error);
 					result.step_used = h;
 
-					Real error_estimate = REAL(0.0);
+					Real error_estimate = static_cast<MML::Real>(0.0);
 					result.value = compute(config.estimate_error ? &error_estimate : nullptr);
-					result.error = config.estimate_error ? error_estimate : REAL(0.0);
+					result.error = config.estimate_error ? error_estimate : static_cast<MML::Real>(0.0);
 
 					if (config.check_finite)
 					{

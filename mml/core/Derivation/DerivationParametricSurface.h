@@ -13,6 +13,7 @@
 #define MML_DERIVATION_PARAMETRIC_SURFACE_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 
 #include "DerivationBase.h"
 #include "FirstDerivativeStencil.h"
@@ -68,8 +69,8 @@ namespace MML
 				Stencil::value_offsets, Stencil::error_offsets,
 				[](const auto& at, const auto& norm, Real step) {
 					auto diff = at(1) - at(-1);
-					return Constants::Eps * norm((at(1) + at(-1)) / (REAL(2.0) * step))
-					     + norm((at(2) - at(-2)) / REAL(2.0) - diff) / (REAL(6.0) * step);
+					return Constants::Eps * norm((at(1) + at(-1)) / (static_cast<MML::Real>(2.0) * step))
+					     + norm((at(2) - at(-2)) / static_cast<MML::Real>(2.0) - diff) / (static_cast<MML::Real>(6.0) * step);
 				});
 			if (error) *error = result.error;
 			return result.value;
@@ -88,8 +89,8 @@ namespace MML
 				Stencil::value_offsets, Stencil::error_offsets,
 				[](const auto& at, const auto& norm, Real step) {
 					auto diff = at(1) - at(-1);
-					return Constants::Eps * norm((at(1) + at(-1)) / (REAL(2.0) * step))
-					     + norm((at(2) - at(-2)) / REAL(2.0) - diff) / (REAL(6.0) * step);
+					return Constants::Eps * norm((at(1) + at(-1)) / (static_cast<MML::Real>(2.0) * step))
+					     + norm((at(2) - at(-2)) / static_cast<MML::Real>(2.0) - diff) / (static_cast<MML::Real>(6.0) * step);
 				});
 			if (error) *error = result.error;
 			return result.value;

@@ -1,5 +1,5 @@
-#if !defined __MML_STIFF_ODE_DEFS_H
-#define __MML_STIFF_ODE_DEFS_H
+#if !defined MML_STIFF_ODE_DEFS_H
+#define MML_STIFF_ODE_DEFS_H
 
 #include <cmath>
 #include <string>
@@ -52,9 +52,8 @@ namespace MML::TestBeds
             dydt[2] = 3.0e7 * y[1] * y[1];
         }
         
-        void jacobian(const Real t, const Vector<Real>& y, Vector<Real>& dxdt, Matrix<Real>& J) const override
+        void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
         {
-            for (int i = 0; i < 3; ++i) dxdt[i] = 0.0;
             
             J[0][0] = -0.04;
             J[0][1] = 1.0e4 * y[2];
@@ -101,9 +100,8 @@ namespace MML::TestBeds
             dydt[1] = _mu * (1.0 - y[0] * y[0]) * y[1] - y[0];
         }
         
-        void jacobian(const Real t, const Vector<Real>& y, Vector<Real>& dxdt, Matrix<Real>& J) const override
+        void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
         {
-            for (int i = 0; i < 2; ++i) dxdt[i] = 0.0;
             
             J[0][0] = 0.0;
             J[0][1] = 1.0;
@@ -135,32 +133,31 @@ namespace MML::TestBeds
      */
     class BrusselatorODE : public IODESystemWithJacobian
     {
-        Real _A, _B;
+        Real _paramA, _paramB;
     public:
-        BrusselatorODE(Real A = 1.0, Real B = 3.0) : _A(A), _B(B) {}
+        BrusselatorODE(Real A = 1.0, Real B = 3.0) : _paramA(A), _paramB(B) {}
         
         int getDim() const override { return 2; }
         
         void derivs(const Real t, const Vector<Real>& y, Vector<Real>& dydt) const override
         {
             Real x = y[0], Y = y[1];
-            dydt[0] = _A + x * x * Y - (_B + 1.0) * x;
-            dydt[1] = _B * x - x * x * Y;
+            dydt[0] = _paramA + x * x * Y - (_paramB + 1.0) * x;
+            dydt[1] = _paramB * x - x * x * Y;
         }
         
-        void jacobian(const Real t, const Vector<Real>& y, Vector<Real>& dxdt, Matrix<Real>& J) const override
+        void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
         {
-            for (int i = 0; i < 2; ++i) dxdt[i] = 0.0;
             
             Real x = y[0], Y = y[1];
-            J[0][0] = 2.0 * x * Y - (_B + 1.0);
+            J[0][0] = 2.0 * x * Y - (_paramB + 1.0);
             J[0][1] = x * x;
-            J[1][0] = _B - 2.0 * x * Y;
+            J[1][0] = _paramB - 2.0 * x * Y;
             J[1][1] = -x * x;
         }
         
-        Real getA() const { return _A; }
-        Real getB() const { return _B; }
+        Real getA() const { return _paramA; }
+        Real getB() const { return _paramB; }
         static Vector<Real> getInitialCondition() { return Vector<Real>{1.5, 3.0}; }
         static std::string getDescription() { return "Brusselator chemical oscillator (A=1, B=3)"; }
     };
@@ -195,9 +192,8 @@ namespace MML::TestBeds
             dydt[2] = _w * (y[0] - y[2]);
         }
         
-        void jacobian(const Real t, const Vector<Real>& y, Vector<Real>& dxdt, Matrix<Real>& J) const override
+        void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
         {
-            for (int i = 0; i < 3; ++i) dxdt[i] = 0.0;
             
             J[0][0] = _s * (-y[1] + 1.0 - 2.0 * _q * y[0]);
             J[0][1] = _s * (1.0 - y[0]);
@@ -242,10 +238,9 @@ namespace MML::TestBeds
             f[7] = -280.0 * y[5] * y[7] + 1.81 * y[6];
         }
         
-        void jacobian(const Real t, const Vector<Real>& y, Vector<Real>& dxdt, Matrix<Real>& J) const override
+        void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
         {
             for (int i = 0; i < 8; ++i) {
-                dxdt[i] = 0.0;
                 for (int j = 0; j < 8; ++j)
                     J[i][j] = 0.0;
             }
@@ -318,9 +313,8 @@ namespace MML::TestBeds
             dydt[1] = 0.04 * y[0] - 1.0e4 * y[1] * y3 - 3.0e7 * y[1] * y[1];
         }
         
-        void jacobian(const Real t, const Vector<Real>& y, Vector<Real>& dxdt, Matrix<Real>& J) const override
+        void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
         {
-            for (int i = 0; i < 2; ++i) dxdt[i] = 0.0;
             
             Real y3 = 1.0 - y[0] - y[1];
             J[0][0] = -0.04 - 1.0e4 * y[1];
@@ -359,10 +353,9 @@ namespace MML::TestBeds
             dydt[3] = k3 * y[2] - k4 * y[3];
         }
         
-        void jacobian(const Real t, const Vector<Real>& y, Vector<Real>& dxdt, Matrix<Real>& J) const override
+        void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
         {
             for (int i = 0; i < 4; ++i) {
-                dxdt[i] = 0.0;
                 for (int j = 0; j < 4; ++j)
                     J[i][j] = 0.0;
             }
@@ -433,11 +426,10 @@ namespace MML::TestBeds
             f[9] = -r9 - r10 + r8;
         }
         
-        void jacobian(const Real t, const Vector<Real>& y, Vector<Real>& dxdt, Matrix<Real>& J) const override
+        void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
         {
             // Zero out
             for (int i = 0; i < 10; ++i) {
-                dxdt[i] = 0.0;
                 for (int j = 0; j < 10; ++j)
                     J[i][j] = 0.0;
             }
@@ -489,10 +481,9 @@ namespace MML::TestBeds
             dydt[2] = -10000.0 * y[2];
         }
         
-        void jacobian(const Real t, const Vector<Real>& y, Vector<Real>& dxdt, Matrix<Real>& J) const override
+        void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
         {
             for (int i = 0; i < 3; ++i) {
-                dxdt[i] = 0.0;
                 for (int j = 0; j < 3; ++j)
                     J[i][j] = 0.0;
             }

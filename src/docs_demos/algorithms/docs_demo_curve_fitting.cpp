@@ -311,6 +311,32 @@ void Demo_EdgeCases()
 ///                               MAIN ENTRY POINT                                      ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
+void Docs_Demo_GeneralizedLeastSquares()
+{
+    Vector<Real> x{0, 1, 2, 3};
+    Vector<Real> y{0, 2, 4, 3};
+    Matrix<Real> covariance(4, 4, {
+        2, 1, 0, 0,
+        1, 2, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    });
+    Vector<std::function<Real(Real)>> basis{
+        [](Real) { return Real(1); },
+        [](Real value) { return value; }
+    };
+    const auto fit = GeneralizedLinearLeastSquares(x, y, covariance, basis);
+    const auto detailed = GeneralizedLinearFitDetailed(x, y, covariance, basis);
+    if (detailed.status != AlgorithmStatus::Completed ||
+        !IsNearlyEqual(fit.coefficients[0], Real(7) / 8, Precision::EqualityTolerance) ||
+        !IsNearlyEqual(fit.coefficients[1], Real(1), Precision::EqualityTolerance) ||
+        !IsNearlyEqual(fit.residual_norm * fit.residual_norm, Real(21) / 8, Precision::EqualityTolerance))
+        throw std::runtime_error("GLS correlated-observation reference failed");
+    std::cout << "GLS: intercept=" << fit.coefficients[0] << ", slope=" << fit.coefficients[1]
+              << ", covariance-weighted squared residual=" << fit.residual_norm * fit.residual_norm
+              << ", R-squared=" << fit.r_squared << ", status=" << to_string(detailed.status) << '\n';
+}
+
 void Docs_Demo_CurveFitting()
 {
     std::cout << "###################################################################" << std::endl;
@@ -323,6 +349,7 @@ void Docs_Demo_CurveFitting()
     Demo_GeneralLinearLeastSquares();
     Demo_ExponentialFit();
     Demo_WeightedAndRegularizedFit();
+    Docs_Demo_GeneralizedLeastSquares();
     Demo_EdgeCases();
     
     std::cout << "\n###################################################################" << std::endl;

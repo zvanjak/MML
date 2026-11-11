@@ -105,15 +105,15 @@ public:
  */
 class TestLogistic : public IODESystem
 {
-    Real _r, _K;
+    Real _r, _carryingCapacity;
 public:
-    TestLogistic(Real r = 1.0, Real K = 10.0) : _r(r), _K(K) {}
+    TestLogistic(Real r = 1.0, Real K = 10.0) : _r(r), _carryingCapacity(K) {}
     int getDim() const override { return 1; }
     void derivs(const Real t, const Vector<Real>& y, Vector<Real>& dydt) const override {
-        dydt[0] = _r * y[0] * (1.0 - y[0] / _K);
+        dydt[0] = _r * y[0] * (1.0 - y[0] / _carryingCapacity);
     }
     Real exact(Real y0, Real t) const {
-        return _K / (1.0 + (_K / y0 - 1.0) * std::exp(-_r * t));
+        return _carryingCapacity / (1.0 + (_carryingCapacity / y0 - 1.0) * std::exp(-_r * t));
     }
 };
 

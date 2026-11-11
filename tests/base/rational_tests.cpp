@@ -88,4 +88,29 @@ TEST_CASE("Rational_stream_output", "[rational]") {
 	REQUIRE(os2.str() == "5");
 }
 
+
+TEST_CASE("Rational_overflow_is_detected_without_undefined_behaviour", "[rational][wewi.1.13]") {
+	// The old checks computed a*b / a+b first and inspected the result - signed overflow is UB
+	// and the optimiser may remove such a check. Pre-checked arithmetic must throw instead.
+	const long long big = std::numeric_limits<long long>::max() / 2 + 1;
+	Rational a(big, 1), b(2, 1);
+	REQUIRE_THROWS_AS(a * b, DomainError);
+	REQUIRE_THROWS_AS(a + a, DomainError);
+	REQUIRE_THROWS_AS(Rational(big, 1) + Rational(big, 1), DomainError);
+
+	// Exactly representable boundary products/sums still work
+	Rational half(1, 2), third(1, 3);
+	REQUIRE((half * third) == Rational(1, 6));
+	REQUIRE((Rational(std::numeric_limits<long long>::max(), 1) * Rational(1, 1)).Num() == std::numeric_limits<long long>::max());
+	REQUIRE((Rational(std::numeric_limits<long long>::max() - 1, 1) + Rational(1, 1)).Num() == std::numeric_limits<long long>::max());
+
+	// -LLONG_MIN is not representable: negation and sign normalisation must throw, not wrap
+	Rational minVal(std::numeric_limits<long long>::min());
+	REQUIRE_THROWS_AS(-minVal, DomainError);
+	REQUIRE_THROWS_AS(Rational(1, std::numeric_limits<long long>::min()), DomainError);
+	REQUIRE_THROWS_AS(Rational(std::numeric_limits<long long>::min(), 3), DomainError);
+	REQUIRE_NOTHROW(Rational(std::numeric_limits<long long>::min() + 1, 1));
+	REQUIRE(Rational(-3, -4) == Rational(3, 4));
+}
+
 } // namespace MML::Tests::Base::RationalTests

@@ -157,7 +157,7 @@ namespace MML {
     public:
         // Arc length
         template<int N>
-        static IntegrationResult ParametricCurveLength(
+        static Real ParametricCurveLength(   // value, throws ConvergenceError if not usable; ParametricCurveLengthDetailed(...) returns IntegrationResult
             const IParametricCurve<N>& curve,
             Real a, Real b,
             IntegrationMethod method = TRAP,
@@ -166,7 +166,7 @@ namespace MML {
         
         // Mass with variable density
         template<int N>
-        static IntegrationResult ParametricCurveMass(
+        static Real ParametricCurveMass(   // value, throws ConvergenceError if not usable; ParametricCurveMassDetailed(...) returns IntegrationResult
             const IParametricCurve<N>& curve,
             const IRealFunction& density,
             Real a, Real b,
@@ -175,14 +175,14 @@ namespace MML {
         );
         
         // Scalar line integral: ∫_C f ds
-        static IntegrationResult LineIntegral(
+        static Real LineIntegral(   // value, throws ConvergenceError if not usable; LineIntegralDetailed(...) returns IntegrationResult
             const IScalarFunction<3>& scalarField,
             const IParametricCurve<3>& curve,
             Real t1, Real t2,
             Real eps = Defaults::WorkIntegralPrecision
         );
 
-        static IntegrationResult LineIntegral(
+        static Real LineIntegral(   // value, throws ConvergenceError if not usable; LineIntegralDetailed(...) returns IntegrationResult
             const IScalarFunction<3>& scalarField,
             const IParametricCurve<3>& curve,
             Real t1, Real t2,
@@ -191,14 +191,14 @@ namespace MML {
         );
         
         // Vector line integral (work): ∫_C F·dr
-        static IntegrationResult LineIntegral(
+        static Real LineIntegral(   // value, throws ConvergenceError if not usable; LineIntegralDetailed(...) returns IntegrationResult
             const IVectorFunction<3>& vectorField,
             const IParametricCurve<3>& curve,
             Real t1, Real t2,
             Real eps = Defaults::LineIntegralPrecision
         );
 
-        static IntegrationResult LineIntegral(
+        static Real LineIntegral(   // value, throws ConvergenceError if not usable; LineIntegralDetailed(...) returns IntegrationResult
             const IVectorFunction<3>& vectorField,
             const IParametricCurve<3>& curve,
             Real t1, Real t2,
@@ -218,7 +218,7 @@ namespace MML {
 **Signature**:
 ```cpp
 template<int N>
-static IntegrationResult ParametricCurveLength(
+static Real ParametricCurveLength(   // value, throws ConvergenceError if not usable; ParametricCurveLengthDetailed(...) returns IntegrationResult
     const IParametricCurve<N>& curve,
     Real a,
     Real b,
@@ -274,7 +274,7 @@ Real length = PathIntegration::ParametricCurveLength(circle, 0, 2*Constants::PI)
 **Signature**:
 ```cpp
 template<int N>
-static IntegrationResult ParametricCurveMass(
+static Real ParametricCurveMass(   // value, throws ConvergenceError if not usable; ParametricCurveMassDetailed(...) returns IntegrationResult
     const IParametricCurve<N>& curve,
     const IRealFunction& density,
     Real a,
@@ -326,7 +326,7 @@ Real mass = PathIntegration::ParametricCurveMass(helix, density, 0, 2*Constants:
 
 **Signature**:
 ```cpp
-static IntegrationResult LineIntegral(
+static Real LineIntegral(   // value, throws ConvergenceError if not usable; LineIntegralDetailed(...) returns IntegrationResult
     const IScalarFunction<3>& scalarField,
     const IParametricCurve<3>& curve,
     Real t1,
@@ -382,7 +382,7 @@ Real integral = PathIntegration::LineIntegral(
 
 **Signature**:
 ```cpp
-static IntegrationResult LineIntegral(
+static Real LineIntegral(   // value, throws ConvergenceError if not usable; LineIntegralDetailed(...) returns IntegrationResult
     const IVectorFunction<3>& vectorField,
     const IParametricCurve<3>& curve,
     Real t1,

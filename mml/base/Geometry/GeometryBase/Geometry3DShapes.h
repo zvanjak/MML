@@ -227,7 +227,7 @@ namespace MML {
 		// Regular tetrahedron (all edges equal)
 		static Tetrahedron Regular(Real edge) { return Tetrahedron(edge, edge, edge, edge, edge, edge); }
 
-		bool IsRegular(Real eps = Defaults::ShapePropertyTolerance) const {
+		bool IsRegular(Real eps = Precision::ShapePropertyTolerance) const {
 			return std::abs(_ab - _ac) < eps && std::abs(_ab - _ad) < eps && std::abs(_ab - _bc) < eps && std::abs(_ab - _bd) < eps &&
 				   std::abs(_ab - _cd) < eps;
 		}
@@ -294,7 +294,7 @@ namespace MML {
 			, _polar(polar) {}
 
 		bool IsValid() const { return _equatorial > 0 && _polar > 0; }
-		bool IsSphere(Real eps = Defaults::ShapePropertyTolerance) const { return std::abs(_equatorial - _polar) < eps; }
+		bool IsSphere(Real eps = Precision::ShapePropertyTolerance) const { return std::abs(_equatorial - _polar) < eps; }
 		bool IsOblate() const { return _equatorial > _polar; }	// flattened at poles (like Earth)
 		bool IsProlate() const { return _polar > _equatorial; } // elongated at poles
 
@@ -338,36 +338,36 @@ namespace MML {
 
 	class TorusGeom {
 	private:
-		Real _R; // major radius (center of tube to center of torus)
-		Real _r; // minor radius (radius of tube)
+		Real _majorRadius; // major radius (center of tube to center of torus)
+		Real _minorRadius; // minor radius (radius of tube)
 
 	public:
-		Real MajorRadius() const { return _R; }
-		Real& MajorRadius() { return _R; }
-		Real MinorRadius() const { return _r; }
-		Real& MinorRadius() { return _r; }
+		Real MajorRadius() const { return _majorRadius; }
+		Real& MajorRadius() { return _majorRadius; }
+		Real MinorRadius() const { return _minorRadius; }
+		Real& MinorRadius() { return _minorRadius; }
 
 		TorusGeom()
-			: _R(0.0)
-			, _r(0.0) {}
+			: _majorRadius(0.0)
+			, _minorRadius(0.0) {}
 		TorusGeom(Real major, Real minor)
-			: _R(major)
-			, _r(minor) {}
+			: _majorRadius(major)
+			, _minorRadius(minor) {}
 
-		bool IsValid() const { return _R > 0 && _r > 0; }
-		bool IsRingTorus() const { return _R > _r; }	// donut shape, hole in middle
-		bool IsHornTorus() const { return _R == _r; }	// tangent to axis
-		bool IsSpindleTorus() const { return _R < _r; } // self-intersecting
+		bool IsValid() const { return _majorRadius > 0 && _minorRadius > 0; }
+		bool IsRingTorus() const { return _majorRadius > _minorRadius; }	// donut shape, hole in middle
+		bool IsHornTorus() const { return _majorRadius == _minorRadius; }	// tangent to axis
+		bool IsSpindleTorus() const { return _majorRadius < _minorRadius; } // self-intersecting
 
-		Real Volume() const { return 2.0 * Constants::PI * Constants::PI * _R * _r * _r; }
-		Real SurfaceArea() const { return 4.0 * Constants::PI * Constants::PI * _R * _r; }
+		Real Volume() const { return 2.0 * Constants::PI * Constants::PI * _majorRadius * _minorRadius * _minorRadius; }
+		Real SurfaceArea() const { return 4.0 * Constants::PI * Constants::PI * _majorRadius * _minorRadius; }
 
 		// Inner and outer radii (for ring torus)
-		Real InnerRadius() const { return _R - _r; }
-		Real OuterRadius() const { return _R + _r; }
+		Real InnerRadius() const { return _majorRadius - _minorRadius; }
+		Real OuterRadius() const { return _majorRadius + _minorRadius; }
 
 		// Cross-section
-		Circle TubeCrossSection() const { return Circle(_r); }
+		Circle TubeCrossSection() const { return Circle(_minorRadius); }
 	};
 
 } // namespace MML

@@ -95,13 +95,13 @@ public:
 	int getAlgDim() const override { return 1; }
 	void diffEqs(Real, const Vector<Real>&, const Vector<Real>&, Vector<Real>& dxdt) const override { dxdt[0] = 0; }
 	void algConstraints(Real, const Vector<Real>&, const Vector<Real>& y, Vector<Real>& g) const override {
-		g[0] = y[0] * y[0] * y[0] - REAL(1.0);
+		g[0] = y[0] * y[0] * y[0] - static_cast<MML::Real>(1.0);
 	}
 	void jacobian_fx(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& J) const override { J(0, 0) = 0; }
 	void jacobian_fy(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& J) const override { J(0, 0) = 0; }
 	void jacobian_gx(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& J) const override { J(0, 0) = 0; }
 	void jacobian_gy(Real, const Vector<Real>&, const Vector<Real>& y, Matrix<Real>& J) const override {
-		J(0, 0) = REAL(3.0) * y[0] * y[0];
+		J(0, 0) = static_cast<MML::Real>(3.0) * y[0] * y[0];
 	}
 };
 
@@ -112,12 +112,12 @@ public:
 	int getAlgDim() const override { return 1; }
 	void diffEqs(Real, const Vector<Real>&, const Vector<Real>&, Vector<Real>& dxdt) const override { dxdt[0] = 0; }
 	void algConstraints(Real t, const Vector<Real>&, const Vector<Real>& y, Vector<Real>& g) const override {
-		g[0] = y[0] * y[0] - (REAL(1.0) + t);
+		g[0] = y[0] * y[0] - (static_cast<MML::Real>(1.0) + t);
 	}
 	void jacobian_fx(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& J) const override { J(0, 0) = 0; }
 	void jacobian_fy(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& J) const override { J(0, 0) = 0; }
 	void jacobian_gx(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& J) const override { J(0, 0) = 0; }
-	void jacobian_gy(Real, const Vector<Real>&, const Vector<Real>& y, Matrix<Real>& J) const override { J(0, 0) = REAL(2.0) * y[0]; }
+	void jacobian_gy(Real, const Vector<Real>&, const Vector<Real>& y, Matrix<Real>& J) const override { J(0, 0) = static_cast<MML::Real>(2.0) * y[0]; }
 };
 
 /// Pendulum DAE (simplified form for testing interface)
@@ -237,8 +237,8 @@ TEST_CASE("DAE::Interface_algConstraints_violation", "[dae][interface]")
 TEST_CASE("DAE::BackwardEuler_reports_inconsistent_initial_conditions", "[dae][diagnostics]")
 {
 	SimpleLinearDAE system;
-	Vector<Real> x{REAL(0.2)}, y{REAL(0.2)};
-	auto result = SolveDAEBackwardEuler(system, REAL(0.0), x, y, REAL(0.1));
+	Vector<Real> x{static_cast<MML::Real>(0.2)}, y{static_cast<MML::Real>(0.2)};
+	auto result = SolveDAEBackwardEuler(system, static_cast<MML::Real>(0.0), x, y, static_cast<MML::Real>(0.1));
 	REQUIRE(result.status == AlgorithmStatus::InvalidInput);
 	REQUIRE(result.failure_reason == DAEFailureReason::InconsistentInitialConditions);
 }
@@ -246,29 +246,29 @@ TEST_CASE("DAE::BackwardEuler_reports_inconsistent_initial_conditions", "[dae][d
 TEST_CASE("DAE::ConsistentIC_detailed_diagnostics", "[dae][diagnostics][consistent-ic]")
 {
 	SimpleLinearDAE system;
-	Vector<Real> x{REAL(0.2)}, y{REAL(0.2)};
-	auto result = ComputeConsistentICDetailed(system, REAL(0.0), x, y);
+	Vector<Real> x{static_cast<MML::Real>(0.2)}, y{static_cast<MML::Real>(0.2)};
+	auto result = ComputeConsistentICDetailed(system, static_cast<MML::Real>(0.0), x, y);
 	REQUIRE(result.converged);
 	REQUIRE(result.iterations > 0);
 	REQUIRE(result.final_residual_norm < result.initial_residual_norm);
-	REQUIRE_THAT(y[0], WithinAbs(REAL(0.8), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(y[0], WithinAbs(static_cast<MML::Real>(0.8), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("DAE::ConsistentIC_uses_damping", "[dae][diagnostics][consistent-ic]")
 {
 	CubicConstraintDAE system;
-	Vector<Real> x{REAL(0.0)}, y{REAL(0.1)};
-	auto result = ComputeConsistentICDetailed(system, REAL(0.0), x, y, 30, TOL(1e-10, 1e-5));
+	Vector<Real> x{static_cast<MML::Real>(0.0)}, y{static_cast<MML::Real>(0.1)};
+	auto result = ComputeConsistentICDetailed(system, static_cast<MML::Real>(0.0), x, y, 30, TOL(1e-10, 1e-5));
 	REQUIRE(result.converged);
 	REQUIRE(result.line_search_reductions > 0);
-	REQUIRE_THAT(y[0], WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
+	REQUIRE_THAT(y[0], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("DAE::ConsistentIC_reports_singular_dgdy", "[dae][diagnostics][consistent-ic]")
 {
 	SingularStepDAE system;
-	Vector<Real> x{REAL(0.0)}, y{REAL(0.0)};
-	auto result = ComputeConsistentICDetailed(system, REAL(1.0), x, y);
+	Vector<Real> x{static_cast<MML::Real>(0.0)}, y{static_cast<MML::Real>(0.0)};
+	auto result = ComputeConsistentICDetailed(system, static_cast<MML::Real>(1.0), x, y);
 	REQUIRE_FALSE(result.converged);
 	REQUIRE(result.failure_reason == DAEFailureReason::HigherIndexSuspected);
 }
@@ -276,8 +276,8 @@ TEST_CASE("DAE::ConsistentIC_reports_singular_dgdy", "[dae][diagnostics][consist
 TEST_CASE("DAE::BackwardEuler_reports_singular_augmented_Jacobian", "[dae][diagnostics]")
 {
 	SingularStepDAE system;
-	Vector<Real> x{REAL(0.0)}, y{REAL(0.0)};
-	auto result = SolveDAEBackwardEuler(system, REAL(0.0), x, y, REAL(0.1));
+	Vector<Real> x{static_cast<MML::Real>(0.0)}, y{static_cast<MML::Real>(0.0)};
+	auto result = SolveDAEBackwardEuler(system, static_cast<MML::Real>(0.0), x, y, static_cast<MML::Real>(0.1));
 	REQUIRE(result.status == AlgorithmStatus::SingularMatrix);
 	REQUIRE(result.failure_reason == DAEFailureReason::SingularJacobian);
 }
@@ -285,11 +285,11 @@ TEST_CASE("DAE::BackwardEuler_reports_singular_augmented_Jacobian", "[dae][diagn
 TEST_CASE("DAE::BackwardEuler_reports_max_steps", "[dae][diagnostics]")
 {
 	SimpleLinearDAE system;
-	Vector<Real> x{REAL(0.8)}, y{REAL(0.2)};
+	Vector<Real> x{static_cast<MML::Real>(0.8)}, y{static_cast<MML::Real>(0.2)};
 	DAESolverConfig config;
-	config.step_size = REAL(0.1);
+	config.step_size = static_cast<MML::Real>(0.1);
 	config.max_steps = 1;
-	auto result = SolveDAEBackwardEuler(system, REAL(0.0), x, y, REAL(1.0), config);
+	auto result = SolveDAEBackwardEuler(system, static_cast<MML::Real>(0.0), x, y, static_cast<MML::Real>(1.0), config);
 	REQUIRE(result.status == AlgorithmStatus::MaxIterationsExceeded);
 	REQUIRE(result.failure_reason == DAEFailureReason::MaxStepsExceeded);
 }
@@ -297,8 +297,8 @@ TEST_CASE("DAE::BackwardEuler_reports_max_steps", "[dae][diagnostics]")
 TEST_CASE("DAE::BackwardEuler_reports_non_finite_initial_state", "[dae][diagnostics]")
 {
 	SimpleLinearDAE system;
-	Vector<Real> x{std::numeric_limits<Real>::quiet_NaN()}, y{REAL(0.0)};
-	auto result = SolveDAEBackwardEuler(system, REAL(0.0), x, y, REAL(0.1));
+	Vector<Real> x{std::numeric_limits<Real>::quiet_NaN()}, y{static_cast<MML::Real>(0.0)};
+	auto result = SolveDAEBackwardEuler(system, static_cast<MML::Real>(0.0), x, y, static_cast<MML::Real>(0.1));
 	REQUIRE(result.status == AlgorithmStatus::NumericalInstability);
 	REQUIRE(result.failure_reason == DAEFailureReason::NonFiniteState);
 }
@@ -306,12 +306,12 @@ TEST_CASE("DAE::BackwardEuler_reports_non_finite_initial_state", "[dae][diagnost
 TEST_CASE("DAE::BackwardEuler_reports_constraint_violation", "[dae][diagnostics]")
 {
 	TimeDependentConstraintDAE system;
-	Vector<Real> x{REAL(0.0)}, y{REAL(1.0)};
+	Vector<Real> x{static_cast<MML::Real>(0.0)}, y{static_cast<MML::Real>(1.0)};
 	DAESolverConfig config;
-	config.step_size = REAL(0.1);
-	config.newton_tol = REAL(1e-4);
-	config.constraint_tol = REAL(1e-12);
-	auto result = SolveDAEBackwardEuler(system, REAL(0.0), x, y, REAL(0.1), config);
+	config.step_size = static_cast<MML::Real>(0.1);
+	config.newton_tol = static_cast<MML::Real>(1e-4);
+	config.constraint_tol = static_cast<MML::Real>(1e-12);
+	auto result = SolveDAEBackwardEuler(system, static_cast<MML::Real>(0.0), x, y, static_cast<MML::Real>(0.1), config);
 	REQUIRE(result.status == AlgorithmStatus::NumericalInstability);
 	REQUIRE(result.failure_reason == DAEFailureReason::ConstraintViolation);
 }
@@ -319,19 +319,19 @@ TEST_CASE("DAE::BackwardEuler_reports_constraint_violation", "[dae][diagnostics]
 TEST_CASE("DAE::AdaptiveBackwardEuler_controls_error_and_rejects_steps", "[dae][adaptive]")
 {
 	SimpleLinearDAE system;
-	Vector<Real> x{REAL(1.0)}, y{REAL(0.0)};
+	Vector<Real> x{static_cast<MML::Real>(1.0)}, y{static_cast<MML::Real>(0.0)};
 	DAESolverConfig config;
-	config.step_size = REAL(0.5);
-	config.max_step_size = REAL(0.5);
-	config.min_step_size = REAL(1e-5);
+	config.step_size = static_cast<MML::Real>(0.5);
+	config.max_step_size = static_cast<MML::Real>(0.5);
+	config.min_step_size = static_cast<MML::Real>(1e-5);
 	config.abs_tolerance = TOL(1e-7, 1e-4);
 	config.rel_tolerance = TOL(1e-6, 1e-3);
-	auto result = SolveDAEBackwardEulerAdaptive(system, REAL(0.0), x, y, REAL(1.0), config);
+	auto result = SolveDAEBackwardEulerAdaptive(system, static_cast<MML::Real>(0.0), x, y, static_cast<MML::Real>(1.0), config);
 	REQUIRE(result.status == AlgorithmStatus::Success);
 	REQUIRE(result.accepted_steps > 0);
 	REQUIRE(result.rejected_steps > 0);
-	REQUIRE(result.solution.getTValue(result.solution.size() - 1) == REAL(1.0));
-	Real expected = REAL(0.5) + REAL(0.5) * std::exp(REAL(-2.0));
+	REQUIRE(result.solution.getTValue(result.solution.size() - 1) == static_cast<MML::Real>(1.0));
+	Real expected = static_cast<MML::Real>(0.5) + static_cast<MML::Real>(0.5) * std::exp(static_cast<MML::Real>(-2.0));
 	REQUIRE_THAT(result.solution.getXValuesAtEnd()[0], WithinAbs(expected, TOL(5e-4, 2e-2)));
 }
 
@@ -784,7 +784,7 @@ TEST_CASE("DAE::BDF4_convergence_order", "[dae][solver][bdf4]")
 	}
 }
 
-TEST_CASE("DAE::RODAS_solves_linearDAE", "[dae][solver][rodas]")
+TEST_CASE("DAE::LinearlyImplicit_solves_linearDAE", "[dae][solver][linearly-implicit]")
 {
 	SimpleLinearDAE linearDAE;
 	
@@ -796,10 +796,10 @@ TEST_CASE("DAE::RODAS_solves_linearDAE", "[dae][solver][rodas]")
 	DAESolverConfig config;
 	config.step_size = 0.01;
 	
-	DAESolverResult result = SolveDAERODAS(linearDAE, t0, x0, y0, t_end, config);
+	DAESolverResult result = SolveDAELinearlyImplicit(linearDAE, t0, x0, y0, t_end, config);
 	
 	REQUIRE(result.status == AlgorithmStatus::Success);
-	REQUIRE(result.algorithm_name == "DAERODAS");
+	REQUIRE(result.algorithm_name == "DAELinearlyImplicit");
 	
 	// Analytical: x(t) = 0.5 + (x0 - 0.5) * exp(-2t)
 	Real x_analytical = 0.5 + (0.8 - 0.5) * std::exp(-2.0);
@@ -814,7 +814,7 @@ TEST_CASE("DAE::RODAS_solves_linearDAE", "[dae][solver][rodas]")
 	REQUIRE_THAT(yEnd[0], WithinAbs(y_analytical, 1e-3));
 }
 
-TEST_CASE("DAE::RODAS_betterThanBDF2", "[dae][solver][rodas]")
+TEST_CASE("DAE::LinearlyImplicit_betterThanBDF2", "[dae][solver][linearly-implicit]")
 {
 	// RODAS (linearly-implicit) vs BDF2 (Newton iteration)
 	// Both are 2nd order, but test that RODAS is comparable accuracy
@@ -829,12 +829,12 @@ TEST_CASE("DAE::RODAS_betterThanBDF2", "[dae][solver][rodas]")
 	config.step_size = 0.05;  // Larger step to see order difference
 	
 	DAESolverResult resultBDF2 = SolveDAEBDF2(linearDAE, t0, x0, y0, t_end, config);
-	DAESolverResult resultRODAS = SolveDAERODAS(linearDAE, t0, x0, y0, t_end, config);
+	DAESolverResult resultLinImpl = SolveDAELinearlyImplicit(linearDAE, t0, x0, y0, t_end, config);
 	
 	Real x_analytical = 0.5 + (0.9 - 0.5) * std::exp(-2.0);
 	
 	Real errorBDF2 = std::abs(resultBDF2.solution.getXValuesAtEnd()[0] - x_analytical);
-	Real errorRODAS = std::abs(resultRODAS.solution.getXValuesAtEnd()[0] - x_analytical);
+	Real errorRODAS = std::abs(resultLinImpl.solution.getXValuesAtEnd()[0] - x_analytical);
 	
 	// Both are 2nd order methods, RODAS uses fewer Newton iterations (none!)
 	// Allow RODAS error to be at most 10x worse than BDF2 for comparable performance
@@ -845,7 +845,7 @@ TEST_CASE("DAE::RODAS_betterThanBDF2", "[dae][solver][rodas]")
 	REQUIRE(errorRODAS < 0.01);
 }
 
-TEST_CASE("DAE::RODAS_noNewtonIterations", "[dae][solver][rodas]")
+TEST_CASE("DAE::LinearlyImplicit_noNewtonIterations", "[dae][solver][linearly-implicit]")
 {
 	// Verify that RODAS uses no Newton iterations (only linear solves)
 	SimpleLinearDAE linearDAE;
@@ -858,7 +858,7 @@ TEST_CASE("DAE::RODAS_noNewtonIterations", "[dae][solver][rodas]")
 	DAESolverConfig config;
 	config.step_size = 0.1;
 	
-	DAESolverResult result = SolveDAERODAS(linearDAE, t0, x0, y0, t_end, config);
+	DAESolverResult result = SolveDAELinearlyImplicit(linearDAE, t0, x0, y0, t_end, config);
 	
 	REQUIRE(result.status == AlgorithmStatus::Success);
 	// RODAS doesn't use Newton iteration, so this should be 0
@@ -867,7 +867,7 @@ TEST_CASE("DAE::RODAS_noNewtonIterations", "[dae][solver][rodas]")
 	REQUIRE(result.jacobian_evaluations > 0);
 }
 
-TEST_CASE("DAE::RODAS_convergence_order", "[dae][solver][rodas]")
+TEST_CASE("DAE::LinearlyImplicit_convergence_order", "[dae][solver][linearly-implicit]")
 {
 	// Test that RODAS achieves convergence (at least 1st order)
 	// The linearly-implicit predictor-corrector gives ~2x ratio on step halving
@@ -884,8 +884,8 @@ TEST_CASE("DAE::RODAS_convergence_order", "[dae][solver][rodas]")
 	config1.step_size = 0.02;
 	config2.step_size = 0.01;  // Half the step size
 	
-	DAESolverResult result1 = SolveDAERODAS(linearDAE, t0, x0, y0, t_end, config1);
-	DAESolverResult result2 = SolveDAERODAS(linearDAE, t0, x0, y0, t_end, config2);
+	DAESolverResult result1 = SolveDAELinearlyImplicit(linearDAE, t0, x0, y0, t_end, config1);
+	DAESolverResult result2 = SolveDAELinearlyImplicit(linearDAE, t0, x0, y0, t_end, config2);
 	
 	Real error1 = std::abs(result1.solution.getXValuesAtEnd()[0] - x_analytical);
 	Real error2 = std::abs(result2.solution.getXValuesAtEnd()[0] - x_analytical);
@@ -1222,7 +1222,7 @@ public:
 	void jacobian_fx(Real t, const Vector<Real>& diff, const Vector<Real>& alg,
 	                 Matrix<Real>& df_dx) const override
 	{
-		df_dx.MakeUnitMatrix();
+		df_dx.SetIdentity();
 		df_dx = df_dx * 0.0;  // Clear
 		df_dx(0, 2) = 1.0;    // dx1/dt depends on v1
 		df_dx(1, 3) = 1.0;    // dx2/dt depends on v2
@@ -1453,8 +1453,8 @@ TEST_CASE("DAE::RCCircuit_analyticalComparison", "[dae][solver][realistic]")
 		Real I_analytical = circuit.analyticalI(t_actual);
 
 		// BDF2 should be accurate to ~0.1% with these step sizes
-		REQUIRE_THAT(Vc_numerical, WithinRel(Vc_analytical, REAL(0.001)));
-		REQUIRE_THAT(I_numerical, WithinRel(I_analytical, REAL(0.001)));
+		REQUIRE_THAT(Vc_numerical, WithinRel(Vc_analytical, static_cast<MML::Real>(0.001)));
+		REQUIRE_THAT(I_numerical, WithinRel(I_analytical, static_cast<MML::Real>(0.001)));
 	}
 
 	// Check final values (at 5τ, Vc ≈ 4.966V, I ≈ 0.034mA)
@@ -1564,20 +1564,20 @@ TEST_CASE("DAE::StiffLinear_constraintTracking", "[dae][solver][realistic]")
 
 TEST_CASE("DAE::AdaptiveBackwardEuler_stiff_index1", "[dae][adaptive][realistic]")
 {
-	StiffLinearDAE stiffDAE(REAL(1000.0));
-	Vector<Real> x0{REAL(1.0)}, y0{REAL(1.0)};
+	StiffLinearDAE stiffDAE(static_cast<MML::Real>(1000.0));
+	Vector<Real> x0{static_cast<MML::Real>(1.0)}, y0{static_cast<MML::Real>(1.0)};
 	DAESolverConfig config;
-	config.step_size = REAL(0.25);
-	config.max_step_size = REAL(0.25);
-	config.min_step_size = REAL(1e-7);
+	config.step_size = static_cast<MML::Real>(0.25);
+	config.max_step_size = static_cast<MML::Real>(0.25);
+	config.min_step_size = static_cast<MML::Real>(1e-7);
 	config.abs_tolerance = TOL(1e-7, 1e-5);
 	config.rel_tolerance = TOL(1e-6, 1e-4);
 	config.constraint_tol = TOL(1e-9, 1e-4);
 
-	auto result = SolveDAEBackwardEulerAdaptive(stiffDAE, REAL(0.0), x0, y0, REAL(0.5), config);
+	auto result = SolveDAEBackwardEulerAdaptive(stiffDAE, static_cast<MML::Real>(0.0), x0, y0, static_cast<MML::Real>(0.5), config);
 	REQUIRE(result.status == AlgorithmStatus::Success);
 	REQUIRE(result.accepted_steps > 0);
-	REQUIRE_THAT(result.solution.getXValuesAtEnd()[0], WithinAbs(stiffDAE.analyticalX(REAL(0.5)), TOL(1e-3, 5e-2)));
+	REQUIRE_THAT(result.solution.getXValuesAtEnd()[0], WithinAbs(stiffDAE.analyticalX(static_cast<MML::Real>(0.5)), TOL(1e-3, 5e-2)));
 	REQUIRE(result.final_constraint_norm <= config.constraint_tol);
 	for (int step = 0; step < result.solution.size(); ++step) {
 		REQUIRE(std::isfinite(result.solution.getXValue(step, 0)));

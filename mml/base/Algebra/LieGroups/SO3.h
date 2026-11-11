@@ -32,11 +32,11 @@ namespace MML
 			static Quaternion Canonicalize(Quaternion quaternion)
 			{
 				quaternion.Normalize();
-				const bool negativeHemisphere = quaternion.w() < REAL(0.0);
+				const bool negativeHemisphere = quaternion.w() < static_cast<MML::Real>(0.0);
 				const bool ambiguousNegative = std::abs(quaternion.w()) <= PrecisionValues<Real>::DefaultTolerance &&
-					(quaternion.x() < REAL(0.0) ||
-					 (quaternion.x() == REAL(0.0) && quaternion.y() < REAL(0.0)) ||
-					 (quaternion.x() == REAL(0.0) && quaternion.y() == REAL(0.0) && quaternion.z() < REAL(0.0)));
+					(quaternion.x() < static_cast<MML::Real>(0.0) ||
+					 (quaternion.x() == static_cast<MML::Real>(0.0) && quaternion.y() < static_cast<MML::Real>(0.0)) ||
+					 (quaternion.x() == static_cast<MML::Real>(0.0) && quaternion.y() == static_cast<MML::Real>(0.0) && quaternion.z() < static_cast<MML::Real>(0.0)));
 				return negativeHemisphere || ambiguousNegative ? -quaternion : quaternion;
 			}
 
@@ -76,9 +76,9 @@ namespace MML
 			static bool IsRotationMatrix(const MatrixNM<Real, 3, 3>& matrix,
 				Real tolerance = PrecisionValues<Real>::OrthogonalityTolerance)
 			{
-				const auto orthogonality = matrix.transpose() * matrix;
+				const auto orthogonality = matrix.Transposed() * matrix;
 				return orthogonality.IsEqualTo(MatrixNM<Real, 3, 3>::Identity(), tolerance) &&
-					std::abs(Determinant(matrix) - REAL(1.0)) <= tolerance;
+					std::abs(Determinant(matrix) - static_cast<MML::Real>(1.0)) <= tolerance;
 			}
 
 			static SO3 FromMatrix(const MatrixNM<Real, 3, 3>& matrix,
@@ -109,7 +109,7 @@ namespace MML
 			static VectorN<Real, 3> Vee(const MatrixNM<Real, 3, 3>& skew,
 				Real tolerance = PrecisionValues<Real>::DefaultTolerance)
 			{
-				if (!skew.IsEqualTo(-skew.transpose(), tolerance))
+				if (!skew.IsEqualTo(-skew.Transposed(), tolerance))
 					throw DomainError("SO3::Vee requires a skew-symmetric matrix");
 				return {skew(2, 1), skew(0, 2), skew(1, 0)};
 			}
@@ -118,9 +118,9 @@ namespace MML
 			{
 				const Real angle = Norm(rotationVector);
 				const Real angleSquared = angle * angle;
-				const Real halfAngle = angle / REAL(2.0);
-				const Real vectorScale = angle <= REAL(1e-8)
-					? REAL(0.5) - angleSquared / REAL(48.0)
+				const Real halfAngle = angle / static_cast<MML::Real>(2.0);
+				const Real vectorScale = angle <= Precision::SqrtEps   // Taylor branch of sin(a/2)/a
+					? static_cast<MML::Real>(0.5) - angleSquared / static_cast<MML::Real>(48.0)
 					: std::sin(halfAngle) / angle;
 				return SO3(Quaternion(std::cos(halfAngle),
 					rotationVector[0] * vectorScale,
@@ -134,10 +134,10 @@ namespace MML
 			{
 				const Real vectorNorm = std::sqrt(_quaternion.x() * _quaternion.x() +
 					_quaternion.y() * _quaternion.y() + _quaternion.z() * _quaternion.z());
-				if (vectorNorm <= REAL(1e-12))
-					return {REAL(2.0) * _quaternion.x(), REAL(2.0) * _quaternion.y(), REAL(2.0) * _quaternion.z()};
-				const Real angle = REAL(2.0) * std::atan2(vectorNorm,
-					std::clamp(_quaternion.w(), REAL(-1.0), REAL(1.0)));
+				if (vectorNorm <= Precision::ZeroTolerance)
+					return {static_cast<MML::Real>(2.0) * _quaternion.x(), static_cast<MML::Real>(2.0) * _quaternion.y(), static_cast<MML::Real>(2.0) * _quaternion.z()};
+				const Real angle = static_cast<MML::Real>(2.0) * std::atan2(vectorNorm,
+					std::clamp(_quaternion.w(), static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1.0)));
 				const Real scale = angle / vectorNorm;
 				return {_quaternion.x() * scale, _quaternion.y() * scale, _quaternion.z() * scale};
 			}
@@ -171,7 +171,7 @@ namespace MML
 					throw DomainError("SO3::Project requires linearly independent columns");
 				second = second / secondNorm;
 				VectorN<Real, 3> third = Cross(first, second);
-				if (Dot(third, originalThird) < REAL(0.0)) {
+				if (Dot(third, originalThird) < static_cast<MML::Real>(0.0)) {
 					second = -second;
 					third = -third;
 				}
@@ -182,7 +182,7 @@ namespace MML
 					projected(row, 1) = second[row];
 					projected(row, 2) = third[row];
 				}
-				return FromMatrix(projected, REAL(100.0) * PrecisionValues<Real>::OrthogonalityTolerance);
+				return FromMatrix(projected, static_cast<MML::Real>(100.0) * PrecisionValues<Real>::OrthogonalityTolerance);
 			}
 
 			const Quaternion& quaternion() const noexcept { return _quaternion; }

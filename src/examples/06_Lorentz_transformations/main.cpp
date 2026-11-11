@@ -46,10 +46,10 @@ namespace
 {
 Vector4Minkowski LorentzBoostXAxis(const Vector4Minkowski& event, Real velocity)
 {
-    if (std::abs(velocity) >= REAL(1.0))
+    if (std::abs(velocity) >= static_cast<MML::Real>(1.0))
         throw std::range_error("Lorentz boost requires |v| < c");
 
-    const Real lorentzFactor = REAL(1.0) / std::sqrt(REAL(1.0) - velocity * velocity);
+    const Real lorentzFactor = static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(1.0) - velocity * velocity);
     return Vector4Minkowski{
         lorentzFactor * (event.T() - velocity * event.X()),
         lorentzFactor * (event.X() - velocity * event.T()),
@@ -738,13 +738,13 @@ void Demo_Worldlines3D()
     // Small offsets to avoid evaluating derivatives exactly at phase boundaries
     const Real eps_t = 1e-6;
 
-    Real tau_num_1 = IntegrateTrap(integrand, 0.0 + eps_t,      T1 - eps_t).value;
-    Real tau_num_2 = IntegrateTrap(integrand, T1 + eps_t,        T2 - eps_t).value;
-    Real tau_num_3 = IntegrateTrap(integrand, T2 + eps_t,        T3 - eps_t).value;
-    Real tau_num_4 = IntegrateTrap(integrand, T3 + eps_t,        T4 - eps_t).value;
-    Real tau_num_5 = IntegrateTrap(integrand, T4 + eps_t,        T5 - eps_t).value;
-    Real tau_num_6 = IntegrateTrap(integrand, T5 + eps_t,        T6 - eps_t).value;
-    Real tau_num_7 = IntegrateTrap(integrand, T6 + eps_t,        T7 - eps_t).value;
+    Real tau_num_1 = IntegrateTrap(integrand, 0.0 + eps_t,      T1 - eps_t);
+    Real tau_num_2 = IntegrateTrap(integrand, T1 + eps_t,        T2 - eps_t);
+    Real tau_num_3 = IntegrateTrap(integrand, T2 + eps_t,        T3 - eps_t);
+    Real tau_num_4 = IntegrateTrap(integrand, T3 + eps_t,        T4 - eps_t);
+    Real tau_num_5 = IntegrateTrap(integrand, T4 + eps_t,        T5 - eps_t);
+    Real tau_num_6 = IntegrateTrap(integrand, T5 + eps_t,        T6 - eps_t);
+    Real tau_num_7 = IntegrateTrap(integrand, T6 + eps_t,        T7 - eps_t);
     Real tau_num_total = tau_num_1 + tau_num_2 + tau_num_3 + tau_num_4 
                        + tau_num_5 + tau_num_6 + tau_num_7;
 

@@ -35,11 +35,11 @@ namespace MML::Systems
 	class LorenzSystem : public DynamicalSystemBase<3, 3> {
 	public:
 		/// @brief Construct with default chaotic parameters
-		LorenzSystem(Real sigma = REAL(10.0), Real rho = REAL(28.0), Real beta = REAL(8.0) / REAL(3.0)) {
+		LorenzSystem(Real sigma = static_cast<MML::Real>(10.0), Real rho = static_cast<MML::Real>(28.0), Real beta = static_cast<MML::Real>(8.0) / static_cast<MML::Real>(3.0)) {
 			_params = {sigma, rho, beta};
 			_stateNames = {"x", "y", "z"};
 			_paramNames = {"sigma", "rho", "beta"};
-			_paramRanges = {{REAL(0.0), REAL(50.0)}, {REAL(0.0), REAL(100.0)}, {REAL(0.0), REAL(10.0)}};
+			_paramRanges = {{static_cast<MML::Real>(0.0), static_cast<MML::Real>(50.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(100.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(10.0)}};
 		}
 
 		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
@@ -57,7 +57,7 @@ namespace MML::Systems
 			Real rho = _params[1];
 			Real beta = _params[2];
 
-			J.Resize(3, 3);
+			J.resize(3, 3);
 			J(0, 0) = -sigma;
 			J(0, 1) = sigma;
 			J(0, 2) = 0;
@@ -89,11 +89,11 @@ namespace MML::Systems
 	class RosslerSystem : public DynamicalSystemBase<3, 3> {
 	public:
 		/// @brief Construct with default parameters
-		RosslerSystem(Real a = REAL(0.2), Real b = REAL(0.2), Real c = REAL(5.7)) {
+		RosslerSystem(Real a = static_cast<MML::Real>(0.2), Real b = static_cast<MML::Real>(0.2), Real c = static_cast<MML::Real>(5.7)) {
 			_params = {a, b, c};
 			_stateNames = {"x", "y", "z"};
 			_paramNames = {"a", "b", "c"};
-			_paramRanges = {{REAL(0.0), REAL(1.0)}, {REAL(0.0), REAL(1.0)}, {REAL(0.0), REAL(20.0)}};
+			_paramRanges = {{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(20.0)}};
 		}
 
 		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
@@ -110,7 +110,7 @@ namespace MML::Systems
 			Real a = _params[0];
 			Real c = _params[2];
 
-			J.Resize(3, 3);
+			J.resize(3, 3);
 			J(0, 0) = 0;
 			J(0, 1) = -1;
 			J(0, 2) = -1;
@@ -136,11 +136,11 @@ namespace MML::Systems
 	class VanDerPolSystem : public DynamicalSystemBase<2, 1> {
 	public:
 		/// @brief Construct with nonlinearity parameter
-		VanDerPolSystem(Real mu = REAL(1.0)) {
+		VanDerPolSystem(Real mu = static_cast<MML::Real>(1.0)) {
 			_params = {mu};
 			_stateNames = {"x", "v"};
 			_paramNames = {"mu"};
-			_paramRanges = {{REAL(0.0), REAL(10.0)}};
+			_paramRanges = {{static_cast<MML::Real>(0.0), static_cast<MML::Real>(10.0)}};
 		}
 
 		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
@@ -151,7 +151,7 @@ namespace MML::Systems
 
 		void jacobian(Real /*t*/, const Vector<Real>& y, Matrix<Real>& J) const override {
 			Real mu = _params[0];
-			J.Resize(2, 2);
+			J.resize(2, 2);
 			J(0, 0) = 0;
 			J(0, 1) = 1;
 			J(1, 0) = -2 * mu * y[0] * y[1] - 1;
@@ -170,11 +170,11 @@ namespace MML::Systems
 	class DuffingSystem : public DynamicalSystemBase<3, 5> {
 	public:
 		/// @brief Construct with parameters
-		DuffingSystem(Real delta = REAL(0.3), Real alpha = REAL(-1.0), Real beta = REAL(1.0), Real gamma = REAL(0.5), Real omega = REAL(1.2)) {
+		DuffingSystem(Real delta = static_cast<MML::Real>(0.3), Real alpha = static_cast<MML::Real>(-1.0), Real beta = static_cast<MML::Real>(1.0), Real gamma = static_cast<MML::Real>(0.5), Real omega = static_cast<MML::Real>(1.2)) {
 			_params = {delta, alpha, beta, gamma, omega};
 			_stateNames = {"x", "v", "theta"};
 			_paramNames = {"delta", "alpha", "beta", "gamma", "omega"};
-			_paramRanges = {{REAL(0.0), REAL(1.0)}, {REAL(-2.0), REAL(2.0)}, {REAL(0.0), REAL(2.0)}, {REAL(0.0), REAL(1.0)}, {REAL(0.0), REAL(3.0)}};
+			_paramRanges = {{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)}, {static_cast<MML::Real>(-2.0), static_cast<MML::Real>(2.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0)}};
 		}
 
 		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
@@ -195,7 +195,7 @@ namespace MML::Systems
 			Real beta = _params[2];
 			Real gamma = _params[3];
 
-			J.Resize(3, 3);
+			J.resize(3, 3);
 			J(0, 0) = 0;
 			J(0, 1) = 1;
 			J(0, 2) = 0;
@@ -224,11 +224,11 @@ namespace MML::Systems
 	/// f(x) = bx + 0.5(a-b)(|x+1| - |x-1|)  (piecewise-linear)
 	class ChuaCircuit : public DynamicalSystemBase<3, 4> {
 	public:
-		ChuaCircuit(Real alpha = REAL(15.6), Real beta = REAL(28.0), Real a = REAL(-1.143), Real b = REAL(-0.714)) {
+		ChuaCircuit(Real alpha = static_cast<MML::Real>(15.6), Real beta = static_cast<MML::Real>(28.0), Real a = static_cast<MML::Real>(-1.143), Real b = static_cast<MML::Real>(-0.714)) {
 			_params = {alpha, beta, a, b};
 			_stateNames = {"x", "y", "z"};
 			_paramNames = {"alpha", "beta", "a", "b"};
-			_paramRanges = {{REAL(0.0), REAL(30.0)}, {REAL(0.0), REAL(50.0)}, {REAL(-2.0), REAL(0.0)}, {REAL(-1.0), REAL(0.0)}};
+			_paramRanges = {{static_cast<MML::Real>(0.0), static_cast<MML::Real>(30.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(50.0)}, {static_cast<MML::Real>(-2.0), static_cast<MML::Real>(0.0)}, {static_cast<MML::Real>(-1.0), static_cast<MML::Real>(0.0)}};
 		}
 
 		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
@@ -262,7 +262,7 @@ namespace MML::Systems
 			else
 				dfx = a;
 
-			J.Resize(3, 3);
+			J.resize(3, 3);
 			J(0, 0) = alpha * (-1 - dfx);
 			J(0, 1) = alpha;
 			J(0, 2) = 0;
@@ -286,11 +286,11 @@ namespace MML::Systems
 	class HenonHeilesSystem : public DynamicalSystemBase<4, 1> {
 	public:
 		/// @brief Construct with energy level
-		HenonHeilesSystem(Real energy = REAL(0.1)) {
+		HenonHeilesSystem(Real energy = static_cast<MML::Real>(0.1)) {
 			_params = {energy};
 			_stateNames = {"x", "y", "px", "py"};
 			_paramNames = {"E"};
-			_paramRanges = {{REAL(0.0), REAL(0.166)}};
+			_paramRanges = {{static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.166)}};
 		}
 
 		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
@@ -302,7 +302,7 @@ namespace MML::Systems
 		}
 
 		void jacobian(Real /*t*/, const Vector<Real>& y, Matrix<Real>& J) const override {
-			J.Resize(4, 4);
+			J.resize(4, 4);
 			// Zero out
 			for (int i = 0; i < 4; ++i)
 				for (int j = 0; j < 4; ++j)
@@ -349,7 +349,7 @@ namespace MML::Systems
 			_params = {m1, m2, L1, L2, gravity};
 			_stateNames = {"theta1", "theta2", "omega1", "omega2"};
 			_paramNames = {"m1", "m2", "L1", "L2", "g"};
-			_paramRanges = {{REAL(0.1), REAL(10.0)}, {REAL(0.1), REAL(10.0)}, {REAL(0.1), REAL(5.0)}, {REAL(0.1), REAL(5.0)}, {REAL(0.0), REAL(20.0)}};
+			_paramRanges = {{static_cast<MML::Real>(0.1), static_cast<MML::Real>(10.0)}, {static_cast<MML::Real>(0.1), static_cast<MML::Real>(10.0)}, {static_cast<MML::Real>(0.1), static_cast<MML::Real>(5.0)}, {static_cast<MML::Real>(0.1), static_cast<MML::Real>(5.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(20.0)}};
 		}
 
 		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
@@ -381,9 +381,9 @@ namespace MML::Systems
 		}
 
 		void jacobian(Real /*t*/, const Vector<Real>& y, Matrix<Real>& J) const override {
-			J.Resize(4, 4);
+			J.resize(4, 4);
 			// Numerical approximation for simplicity (analytical is very complex)
-			Real eps = 1e-6;
+			Real eps = Precision::LooseTolerance;
 			Vector<Real> f0(4), f1(4);
 			Vector<Real> yp = y;
 

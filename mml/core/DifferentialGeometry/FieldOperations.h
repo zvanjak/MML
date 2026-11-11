@@ -12,8 +12,9 @@
 #define MML_CORE_DIFFERENTIAL_GEOMETRY_FIELD_OPERATIONS_H
 
 #include <mml/MMLBase.h>
+#include <array>
 
-#include <mml/base/DifferentialGeometry/Metric.h>
+#include <mml/core/DifferentialGeometry/Metric.h>
 #include <mml/base/DifferentialGeometry/TypedFields.h>
 #include <mml/core/Derivation.h>
 #include <mml/core/Fields/FieldOperations.h>
@@ -70,7 +71,7 @@ namespace MML
 		Real _step;
 
 	public:
-		explicit ExteriorDerivativeScalarField(const IScalarField<N, FrameTag>& field, Real step = REAL(0.0))
+		explicit ExteriorDerivativeScalarField(const IScalarField<N, FrameTag>& field, Real step = static_cast<MML::Real>(0.0))
 			: _field(field), _step(step)
 		{
 		}
@@ -78,7 +79,7 @@ namespace MML
 		Form1<N, FrameTag> operator()(const Point<Real, N, FrameTag>& point) const override
 		{
 			Detail::ScalarFieldFunctionAdapter<N, FrameTag> adapter(_field);
-			VectorN<Real, N> derivatives = _step > REAL(0.0)
+			VectorN<Real, N> derivatives = _step > static_cast<MML::Real>(0.0)
 				? Derivation::NDer4PartialByAll(adapter, point.coordinates(), _step)
 				: Derivation::NDer4PartialByAll(adapter, point.coordinates());
 
@@ -88,13 +89,13 @@ namespace MML
 	};
 
 	template<int N, class FrameTag>
-	ExteriorDerivativeScalarField<N, FrameTag> ExteriorDerivative(const IScalarField<N, FrameTag>& field, Real step = REAL(0.0))
+	ExteriorDerivativeScalarField<N, FrameTag> ExteriorDerivative(const IScalarField<N, FrameTag>& field, Real step = static_cast<MML::Real>(0.0))
 	{
 		return ExteriorDerivativeScalarField<N, FrameTag>(field, step);
 	}
 
 	template<int N, class FrameTag>
-	ExteriorDerivativeScalarField<N, FrameTag> exterior_derivative(const IScalarField<N, FrameTag>& field, Real step = REAL(0.0))
+	ExteriorDerivativeScalarField<N, FrameTag> exterior_derivative(const IScalarField<N, FrameTag>& field, Real step = static_cast<MML::Real>(0.0))
 	{
 		return ExteriorDerivative(field, step);
 	}
@@ -131,13 +132,13 @@ namespace MML
 			int derivativeIndex) const
 		{
 			ComponentFunction component(_field, sourceIndices);
-			if (_step > REAL(0.0))
+			if (_step > static_cast<MML::Real>(0.0))
 				return Derivation::NDer4Partial(component, derivativeIndex, point.coordinates(), _step);
 			return Derivation::NDer4Partial(component, derivativeIndex, point.coordinates());
 		}
 
 	public:
-		explicit ExteriorDerivativeFormField(const IFormField<N, K, FrameTag>& field, Real step = REAL(0.0))
+		explicit ExteriorDerivativeFormField(const IFormField<N, K, FrameTag>& field, Real step = static_cast<MML::Real>(0.0))
 			: _field(field), _step(step)
 		{
 		}
@@ -155,7 +156,7 @@ namespace MML
 					remaining /= N;
 				}
 
-				Real value = REAL(0.0);
+				Real value = static_cast<MML::Real>(0.0);
 				for (int omitted = 0; omitted < K + 1; omitted++) {
 					auto sourceIndices = Detail::OmitFormIndex<K>(indices, omitted);
 					Real term = componentDerivative(point, sourceIndices, indices[omitted]);
@@ -170,7 +171,7 @@ namespace MML
 
 	template<int N, int K, class FrameTag>
 	ExteriorDerivativeFormField<N, K, FrameTag> ExteriorDerivative(const IFormField<N, K, FrameTag>& field,
-		Real step = REAL(0.0))
+		Real step = static_cast<MML::Real>(0.0))
 		requires (K < N)
 	{
 		return ExteriorDerivativeFormField<N, K, FrameTag>(field, step);
@@ -178,7 +179,7 @@ namespace MML
 
 	template<int N, int K, class FrameTag>
 	ExteriorDerivativeFormField<N, K, FrameTag> exterior_derivative(const IFormField<N, K, FrameTag>& field,
-		Real step = REAL(0.0))
+		Real step = static_cast<MML::Real>(0.0))
 		requires (K < N)
 	{
 		return ExteriorDerivative(field, step);
@@ -188,7 +189,7 @@ namespace MML
 	Real DirectionalDerivative(const IScalarField<N, FrameTag>& field,
 		const Point<Real, N, FrameTag>& point,
 		const TangentVector<N, FrameTag>& direction,
-		Real step = REAL(0.0))
+		Real step = static_cast<MML::Real>(0.0))
 	{
 		return ExteriorDerivative(field, step)(point)(direction);
 	}
@@ -197,7 +198,7 @@ namespace MML
 	Real directional_derivative(const IScalarField<N, FrameTag>& field,
 		const Point<Real, N, FrameTag>& point,
 		const TangentVector<N, FrameTag>& direction,
-		Real step = REAL(0.0))
+		Real step = static_cast<MML::Real>(0.0))
 	{
 		return DirectionalDerivative(field, point, direction, step);
 	}
@@ -210,7 +211,7 @@ namespace MML
 		Real _step;
 
 	public:
-		MetricGradientField(const IScalarField<N, FrameTag>& field, const Metric<N, FrameTag>& metric, Real step = REAL(0.0))
+		MetricGradientField(const IScalarField<N, FrameTag>& field, const Metric<N, FrameTag>& metric, Real step = static_cast<MML::Real>(0.0))
 			: _field(field), _metric(metric), _step(step)
 		{
 		}
@@ -223,13 +224,13 @@ namespace MML
 	};
 
 	template<int N, class FrameTag>
-	MetricGradientField<N, FrameTag> Gradient(const IScalarField<N, FrameTag>& field, const Metric<N, FrameTag>& metric, Real step = REAL(0.0))
+	MetricGradientField<N, FrameTag> Gradient(const IScalarField<N, FrameTag>& field, const Metric<N, FrameTag>& metric, Real step = static_cast<MML::Real>(0.0))
 	{
 		return MetricGradientField<N, FrameTag>(field, metric, step);
 	}
 
 	template<int N, class FrameTag>
-	MetricGradientField<N, FrameTag> gradient(const IScalarField<N, FrameTag>& field, const Metric<N, FrameTag>& metric, Real step = REAL(0.0))
+	MetricGradientField<N, FrameTag> gradient(const IScalarField<N, FrameTag>& field, const Metric<N, FrameTag>& metric, Real step = static_cast<MML::Real>(0.0))
 	{
 		return Gradient(field, metric, step);
 	}

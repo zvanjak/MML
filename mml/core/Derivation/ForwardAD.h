@@ -15,6 +15,7 @@
 #define MML_AD_FORWARD_AD_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 
 #include <cmath>
 #include <iostream>
@@ -179,121 +180,175 @@ namespace MML::AD
     // Mathematical functions
     //////////////////////////////////////////////////////////////////////////////////////////
 
-    /// Square root: d/dx(sqrt(x)) = 1/(2*sqrt(x))
+		namespace Detail {
+			template<typename T>
+			T Primal(const T& x) {
+				return x;
+			}
+			template<typename T>
+			auto Primal(const Dual<T>& x) {
+				return Primal(x.value);
+			}
+
+			template<typename T>
+			bool IsZero(const T& x) {
+				return x == T(0);
+			}
+			template<typename T>
+			bool IsZero(const Dual<T>& x) {
+				return IsZero(x.value) && IsZero(x.deriv);
+			}
+		} // namespace Detail
+
+		/// Square root: d/dx(sqrt(x)) = 1/(2*sqrt(x))
     template<typename T>
     Dual<T> sqrt(const Dual<T>& x) {
-        T sq = std::sqrt(x.value);
-        return Dual<T>(sq, x.deriv / (T(2) * sq));
+			using std::sqrt;
+			T sq = sqrt(x.value);
+			return Dual<T>(sq, x.deriv / (T(2) * sq));
     }
 
     /// Power function: d/dx(x^n) = n*x^(n-1)
     template<typename T>
     Dual<T> pow(const Dual<T>& base, const Dual<T>& exp) {
-        if (exp.deriv == T(0)) {
-            // Constant exponent: d/dx(f^n) = n*f^(n-1)*f'
-            T p = std::pow(base.value, exp.value);
-            return Dual<T>(p, exp.value * std::pow(base.value, exp.value - T(1)) * base.deriv);
-        } else if (base.deriv == T(0)) {
-            // Constant base: d/dx(a^g) = a^g * ln(a) * g'
-            T p = std::pow(base.value, exp.value);
-            return Dual<T>(p, p * std::log(base.value) * exp.deriv);
-        } else {
-            // General case: d/dx(f^g) = f^g * (g' * ln(f) + g * f'/f)
-            T p = std::pow(base.value, exp.value);
-            T d = p * (exp.deriv * std::log(base.value) + exp.value * base.deriv / base.value);
-            return Dual<T>(p, d);
-        }
-    }
+			using std::log;
+			using std::pow;
+			if (Detail::IsZero(exp.deriv)) {
+				if (Detail::IsZero(exp.value))
+					return Dual<T>(T(1), T(0));
+				// Constant exponent: d/dx(f^n) = n*f^(n-1)*f'
+				T p = pow(base.value, exp.value);
+				return Dual<T>(p, exp.value * pow(base.value, exp.value - T(1)) * base.deriv);
+			} else if (Detail::IsZero(base.deriv)) {
+				// Constant base: d/dx(a^g) = a^g * ln(a) * g'
+				T p = pow(base.value, exp.value);
+				return Dual<T>(p, p * log(base.value) * exp.deriv);
+			} else {
+				// General case: d/dx(f^g) = f^g * (g' * ln(f) + g * f'/f)
+				T p = pow(base.value, exp.value);
+				T d = p * (exp.deriv * log(base.value) + exp.value * base.deriv / base.value);
+				return Dual<T>(p, d);
+			}
+		}
 
     template<typename T, typename S, typename = std::enable_if_t<std::is_arithmetic_v<S>>>
     Dual<T> pow(const Dual<T>& base, S exp) {
-        T p = std::pow(base.value, static_cast<T>(exp));
-        return Dual<T>(p, static_cast<T>(exp) * std::pow(base.value, static_cast<T>(exp) - T(1)) * base.deriv);
-    }
+			if (exp == S(0))
+				return Dual<T>(T(1), T(0));
+			using std::pow;
+			T p = pow(base.value, exp);
+			return Dual<T>(p, T(exp) * pow(base.value, exp - S(1)) * base.deriv);
+		}
 
     template<typename T, typename S, typename = std::enable_if_t<std::is_arithmetic_v<S>>>
     Dual<T> pow(S base, const Dual<T>& exp) {
         T b = static_cast<T>(base);
-        T p = std::pow(b, exp.value);
-        return Dual<T>(p, p * std::log(b) * exp.deriv);
-    }
+				using std::log;
+				using std::pow;
+				T p = pow(b, exp.value);
+				return Dual<T>(p, p * log(b) * exp.deriv);
+		}
 
     /// Exponential: d/dx(e^x) = e^x
     template<typename T>
     Dual<T> exp(const Dual<T>& x) {
-        T ex = std::exp(x.value);
-        return Dual<T>(ex, ex * x.deriv);
+			using std::exp;
+			T ex = exp(x.value);
+			return Dual<T>(ex, ex * x.deriv);
     }
 
     /// Natural logarithm: d/dx(ln(x)) = 1/x
     template<typename T>
     Dual<T> log(const Dual<T>& x) {
-        return Dual<T>(std::log(x.value), x.deriv / x.value);
-    }
+			using std::log;
+			return Dual<T>(log(x.value), x.deriv / x.value);
+		}
 
     /// Base-10 logarithm: d/dx(log10(x)) = 1/(x*ln(10))
     template<typename T>
     Dual<T> log10(const Dual<T>& x) {
-        static const T ln10 = std::log(T(10));
-        return Dual<T>(std::log10(x.value), x.deriv / (x.value * ln10));
-    }
+			using std::log;
+			using std::log10;
+			static const T ln10 = log(T(10));
+			return Dual<T>(log10(x.value), x.deriv / (x.value * ln10));
+		}
 
     /// Sine: d/dx(sin(x)) = cos(x)
     template<typename T>
     Dual<T> sin(const Dual<T>& x) {
-        return Dual<T>(std::sin(x.value), std::cos(x.value) * x.deriv);
-    }
+			using std::cos;
+			using std::sin;
+			return Dual<T>(sin(x.value), cos(x.value) * x.deriv);
+		}
 
     /// Cosine: d/dx(cos(x)) = -sin(x)
     template<typename T>
     Dual<T> cos(const Dual<T>& x) {
-        return Dual<T>(std::cos(x.value), -std::sin(x.value) * x.deriv);
-    }
+			using std::cos;
+			using std::sin;
+			return Dual<T>(cos(x.value), -sin(x.value) * x.deriv);
+		}
 
     /// Tangent: d/dx(tan(x)) = sec²(x) = 1/cos²(x)
     template<typename T>
     Dual<T> tan(const Dual<T>& x) {
-        T c = std::cos(x.value);
-        return Dual<T>(std::tan(x.value), x.deriv / (c * c));
-    }
+			using std::cos;
+			using std::tan;
+			T c = cos(x.value);
+			return Dual<T>(tan(x.value), x.deriv / (c * c));
+		}
 
     /// Arc sine: d/dx(asin(x)) = 1/sqrt(1-x²)
     template<typename T>
     Dual<T> asin(const Dual<T>& x) {
-        T denom = std::sqrt(std::max(T(1) - x.value * x.value, std::numeric_limits<T>::min()));
-        return Dual<T>(std::asin(x.value), x.deriv / denom);
-    }
+			using std::asin;
+			using std::sqrt;
+			using Scalar = decltype(Detail::Primal(x.value));
+			const T fpmin = T(std::numeric_limits<Scalar>::min());
+			T denom = sqrt(std::max(T(1) - x.value * x.value, fpmin));
+			return Dual<T>(asin(x.value), x.deriv / denom);
+		}
 
     /// Arc cosine: d/dx(acos(x)) = -1/sqrt(1-x²)
     template<typename T>
     Dual<T> acos(const Dual<T>& x) {
-        T denom = std::sqrt(std::max(T(1) - x.value * x.value, std::numeric_limits<T>::min()));
-        return Dual<T>(std::acos(x.value), -x.deriv / denom);
-    }
+			using std::acos;
+			using std::sqrt;
+			using Scalar = decltype(Detail::Primal(x.value));
+			const T fpmin = T(std::numeric_limits<Scalar>::min());
+			T denom = sqrt(std::max(T(1) - x.value * x.value, fpmin));
+			return Dual<T>(acos(x.value), -x.deriv / denom);
+		}
 
     /// Arc tangent: d/dx(atan(x)) = 1/(1+x²)
     template<typename T>
     Dual<T> atan(const Dual<T>& x) {
-        return Dual<T>(std::atan(x.value), x.deriv / (T(1) + x.value * x.value));
-    }
+			using std::atan;
+			return Dual<T>(atan(x.value), x.deriv / (T(1) + x.value * x.value));
+		}
 
     /// Hyperbolic sine: d/dx(sinh(x)) = cosh(x)
     template<typename T>
     Dual<T> sinh(const Dual<T>& x) {
-        return Dual<T>(std::sinh(x.value), std::cosh(x.value) * x.deriv);
-    }
+			using std::cosh;
+			using std::sinh;
+			return Dual<T>(sinh(x.value), cosh(x.value) * x.deriv);
+		}
 
     /// Hyperbolic cosine: d/dx(cosh(x)) = sinh(x)
     template<typename T>
     Dual<T> cosh(const Dual<T>& x) {
-        return Dual<T>(std::cosh(x.value), std::sinh(x.value) * x.deriv);
-    }
+			using std::cosh;
+			using std::sinh;
+			return Dual<T>(cosh(x.value), sinh(x.value) * x.deriv);
+		}
 
     /// Hyperbolic tangent: d/dx(tanh(x)) = sech²(x) = 1 - tanh²(x)
     template<typename T>
     Dual<T> tanh(const Dual<T>& x) {
-        T th = std::tanh(x.value);
-        return Dual<T>(th, (T(1) - th * th) * x.deriv);
+			using std::tanh;
+			T th = tanh(x.value);
+			return Dual<T>(th, (T(1) - th * th) * x.deriv);
     }
 
     /// Absolute value: d/dx(|x|) = sign(x) = x/|x|
@@ -309,14 +364,16 @@ namespace MML::AD
     /// Floor function (derivative is 0 almost everywhere)
     template<typename T>
     Dual<T> floor(const Dual<T>& x) {
-        return Dual<T>(std::floor(x.value), T(0));
-    }
+			using std::floor;
+			return Dual<T>(floor(x.value), T(0));
+		}
 
     /// Ceiling function (derivative is 0 almost everywhere)
     template<typename T>
     Dual<T> ceil(const Dual<T>& x) {
-        return Dual<T>(std::ceil(x.value), T(0));
-    }
+			using std::ceil;
+			return Dual<T>(ceil(x.value), T(0));
+		}
 
     /// Two-argument arc tangent: atan2(y, x)
     template<typename T>
@@ -325,8 +382,9 @@ namespace MML::AD
         // d/dy atan2(y,x) = x/(x²+y²)
         T denom = x.value * x.value + y.value * y.value;
         T d = (x.value * y.deriv - y.value * x.deriv) / denom;
-        return Dual<T>(std::atan2(y.value, x.value), d);
-    }
+				using std::atan2;
+				return Dual<T>(atan2(y.value, x.value), d);
+		}
 
     /// Fused multiply-add: fma(a, b, c) = a*b + c
     template<typename T>
@@ -354,7 +412,7 @@ namespace MML::AD
     /// @param x Point at which to compute derivative
     /// @return Pair of (f(x), f'(x))
     template<typename F, typename T = Real>
-    std::pair<T, T> derivative(F&& f, T x) {
+    std::pair<T, T> CalcDerivativeForwardAD(F&& f, T x) {
         Dual<T> xd(x, T(1));  // dx/dx = 1
         Dual<T> result = f(xd);
         return {result.value, result.deriv};
@@ -363,7 +421,7 @@ namespace MML::AD
     /// Compute gradient of f: R^n -> R at point x using forward-mode AD
     /// Requires n evaluations of f
     template<typename F, typename T = Real>
-    std::vector<T> gradient(F&& f, const std::vector<T>& x) {
+    std::vector<T> CalcGradientForwardAD(F&& f, const std::vector<T>& x) {
         std::vector<T> grad(x.size());
         std::vector<Dual<T>> xd(x.size());
         
@@ -390,6 +448,15 @@ namespace MML::AD
     using DualR = Dual<Real>;
     using DualD = Dual<double>;
     using DualF = Dual<float>;
+
+
+    // ---- Deprecated 2.0 spellings (CONTRACT_POLICY section 11) ----
+    template<typename F, typename T = Real>
+    [[deprecated("use CalcDerivativeForwardAD()")]]
+    std::pair<T, T> derivative(F&& f, T x) { return CalcDerivativeForwardAD(std::forward<F>(f), x); }
+    template<typename F, typename T = Real>
+    [[deprecated("use CalcGradientForwardAD()")]]
+    std::vector<T> gradient(F&& f, const std::vector<T>& x) { return CalcGradientForwardAD(std::forward<F>(f), x); }
 
 } // namespace MML::AD
 

@@ -21,16 +21,16 @@ namespace MML::Tests::Core::CoordTransfTensorTests
 	public:
 		ConnectionLikeRank3Field() : ITensorField3<3>(1, 2) {}
 
-		bool TransformsAsTensor() const override { return false; }
+		bool transformsAsTensor() const override { return false; }
 
 		Tensor3<3> operator()(const VectorN<Real, 3>& pos) const override
 		{
 			Tensor3<3> ret(2, 1);
-			ret(0, 1, 1) = REAL(1.0);
+			ret(0, 1, 1) = static_cast<MML::Real>(1.0);
 			return ret;
 		}
 
-		Real Component(int i, int j, int k, const VectorN<Real, 3>& pos) const override
+		Real component(int i, int j, int k, const VectorN<Real, 3>& pos) const override
 		{
 			return (*this)(pos)(i, j, k);
 		}
@@ -41,7 +41,7 @@ namespace MML::Tests::Core::CoordTransfTensorTests
 		ConnectionLikeRank3Field connection;
 		CoordTransfCartesianToSpherical coordTransf;
 
-		REQUIRE_FALSE(connection.TransformsAsTensor());
+		REQUIRE_FALSE(connection.transformsAsTensor());
 		REQUIRE_THROWS_AS((TransformedTensorField3<Vector3Cartesian, Vector3Spherical, 3>(connection, coordTransf)), std::invalid_argument);
 	}
 } // namespace MML::Tests::Core::CoordTransfTensorTests

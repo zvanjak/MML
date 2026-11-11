@@ -83,10 +83,10 @@ void cheatsheet_matrices()
     Matrix<Real> B{3, 3, {1, 0, 0, 0, 1, 0, 0, 0, 1}};
     Matrix<Real> sum_mat = A + B;
     Matrix<Real> prod = A * B;
-    Matrix<Real> transposed = A.transpose();
+    Matrix<Real> transposed = A.Transposed();
     
     // Properties
-    Real trace = A.trace();
+    Real trace = A.Trace();
     int rows = A.rows();
     int cols = A.cols();
     
@@ -203,19 +203,19 @@ void cheatsheet_integration()
     Real a = 0.0, b = Constants::PI;
     
     // Romberg integration (adaptive, usually best choice)
-    IntegrationResult res1 = IntegrateRomberg(f, a, b);
+    IntegrationResult res1 = IntegrateRombergDetailed(f, a, b);
     std::cout << "Romberg: " << res1.value << " (converged: " << res1.converged << ")" << std::endl;
     
     // Trapezoidal
-    IntegrationResult res2 = IntegrateTrap(f, a, b);
+    IntegrationResult res2 = IntegrateTrapDetailed(f, a, b);
     std::cout << "Trapezoidal: " << res2.value << std::endl;
     
     // Simpson
-    IntegrationResult res3 = IntegrateSimpson(f, a, b);
+    IntegrationResult res3 = IntegrateSimpsonDetailed(f, a, b);
     std::cout << "Simpson: " << res3.value << std::endl;
     
     // Gauss-Legendre quadrature (adaptive order)
-    IntegrationResult gl_result = IntegrateGaussLegendre(f, a, b, 10);
+    IntegrationResult gl_result = IntegrateGaussLegendreDetailed(f, a, b, 10);
     std::cout << "Gauss-Legendre 10: " << gl_result.value << std::endl;
     
     std::cout << "Expected: 2.0" << std::endl;

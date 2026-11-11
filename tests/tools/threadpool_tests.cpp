@@ -17,7 +17,7 @@
 #include <stop_token>
 
 #include <mml/MMLBase.h>
-#include <mml/tools/ThreadPool.h>
+#include <mml/base/ThreadPool.h>
 
 using namespace MML;
 
@@ -379,4 +379,3 @@ namespace MML::Tests::Tools::ThreadPoolTests {
 	}
 
 } // namespace MML::Tests::Tools::ThreadPoolTests
-

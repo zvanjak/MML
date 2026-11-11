@@ -96,33 +96,40 @@ namespace MML
 
 			jac(0, 0) = cosPhi;
 			jac(0, 1) = -radius * sinPhi;
-			jac(0, 2) = REAL(0.0);
+			jac(0, 2) = static_cast<MML::Real>(0.0);
 			jac(1, 0) = sinPhi;
 			jac(1, 1) = radius * cosPhi;
-			jac(1, 2) = REAL(0.0);
-			jac(2, 0) = REAL(0.0);
-			jac(2, 1) = REAL(0.0);
-			jac(2, 2) = REAL(1.0);
+			jac(1, 2) = static_cast<MML::Real>(0.0);
+			jac(2, 0) = static_cast<MML::Real>(0.0);
+			jac(2, 1) = static_cast<MML::Real>(0.0);
+			jac(2, 2) = static_cast<MML::Real>(1.0);
 
 			return jac;
 		}
 
+		using CoordTransfWithInverse<Vector3Cylindrical, Vector3Cartesian, 3>::inverseJacobian;
+
 		MatrixNM<Real, 3, 3> inverseJacobian(const VectorN<Real, 3>& pos) const override
 		{
-			const Real radiusSquared = pos[0] * pos[0] + pos[1] * pos[1];
-			const Real radius = sqrt(radiusSquared);
+			Singularity::RequireFiniteCoordinates<3>(pos, "Cylindrical inverse Jacobian");
+			const Real radius = std::hypot(pos[0], pos[1]);
+			if (!std::isfinite(radius))
+				throw DomainError("Cylindrical inverse Jacobian: radius exceeds the representable range");
+			if (Singularity::IsNearZero(radius))
+				throw SingularMatrixError("Cylindrical inverse Jacobian: axis");
 			MatrixNM<Real, 3, 3> jac;
 
 			jac(0, 0) = pos[0] / radius;
 			jac(0, 1) = pos[1] / radius;
-			jac(0, 2) = REAL(0.0);
-			jac(1, 0) = -pos[1] / radiusSquared;
-			jac(1, 1) = pos[0] / radiusSquared;
-			jac(1, 2) = REAL(0.0);
-			jac(2, 0) = REAL(0.0);
-			jac(2, 1) = REAL(0.0);
-			jac(2, 2) = REAL(1.0);
+			jac(0, 2) = static_cast<MML::Real>(0.0);
+			jac(1, 0) = -(pos[1] / radius) / radius;
+			jac(1, 1) = (pos[0] / radius) / radius;
+			jac(1, 2) = static_cast<MML::Real>(0.0);
+			jac(2, 0) = static_cast<MML::Real>(0.0);
+			jac(2, 1) = static_cast<MML::Real>(0.0);
+			jac(2, 2) = static_cast<MML::Real>(1.0);
 
+			Singularity::RequireFiniteMatrix(jac, "Cylindrical inverse Jacobian result");
 			return jac;
 		}
 	};
@@ -168,41 +175,17 @@ namespace MML
 
 		MatrixNM<Real, 3, 3> jacobian(const VectorN<Real, 3>& pos) const override
 		{
-			const Real radiusSquared = pos[0] * pos[0] + pos[1] * pos[1];
-			const Real radius = sqrt(radiusSquared);
-			MatrixNM<Real, 3, 3> jac;
-
-			jac(0, 0) = pos[0] / radius;
-			jac(0, 1) = pos[1] / radius;
-			jac(0, 2) = REAL(0.0);
-			jac(1, 0) = -pos[1] / radiusSquared;
-			jac(1, 1) = pos[0] / radiusSquared;
-			jac(1, 2) = REAL(0.0);
-			jac(2, 0) = REAL(0.0);
-			jac(2, 1) = REAL(0.0);
-			jac(2, 2) = REAL(1.0);
-
-			return jac;
+			return CoordTransfCylindricalToCartesian{}.inverseJacobian(pos);
 		}
+
+		using CoordTransfWithInverse<Vector3Cartesian, Vector3Cylindrical, 3>::inverseJacobian;
 
 		MatrixNM<Real, 3, 3> inverseJacobian(const VectorN<Real, 3>& pos) const override
 		{
-			const Real radius = pos[0];
-			const Real sinPhi = sin(pos[1]);
-			const Real cosPhi = cos(pos[1]);
-			MatrixNM<Real, 3, 3> jac;
-
-			jac(0, 0) = cosPhi;
-			jac(0, 1) = -radius * sinPhi;
-			jac(0, 2) = REAL(0.0);
-			jac(1, 0) = sinPhi;
-			jac(1, 1) = radius * cosPhi;
-			jac(1, 2) = REAL(0.0);
-			jac(2, 0) = REAL(0.0);
-			jac(2, 1) = REAL(0.0);
-			jac(2, 2) = REAL(1.0);
-
-			return jac;
+			Singularity::RequireFiniteCoordinates<3>(pos, "Cylindrical inverse Jacobian");
+			if (Singularity::IsNearZero(pos[0]))
+				throw SingularMatrixError("Cylindrical inverse Jacobian: axis");
+			return CoordTransfCylindricalToCartesian{}.jacobian(pos);
 		}
 	};
 

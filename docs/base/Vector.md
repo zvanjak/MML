@@ -1,6 +1,6 @@
 # Vector\<T\> - Dynamic-Size Vector
 
-**File**: `mml/base/Vector.h`
+**File**: `mml/base/Vector/Vector.h`
 
 Dynamic-size vector with efficient storage and comprehensive mathematical operations. Template parameter `T` can be any numeric type: `double`, `float`, `Complex`, etc.
 
@@ -29,6 +29,12 @@ Dynamic-size vector with efficient storage and comprehensive mathematical operat
 **When to use**: Variable-size data, I/O operations, dynamic algorithms, large vectors.
 
 **When to use `VectorN<T,N>` instead**: Fixed-size vectors known at compile time for better performance and stack allocation.
+
+File persistence is owned by tools, not this mathematical container. `Vector::SaveToFile`
+and `Vector::LoadFromFile` have been removed without compatibility shims. Use
+`Persistence::Save` / `Persistence::Load` from `mml/tools/Persistence.h`; see
+[vector text persistence](../tools/SerializationPersistence.md#vector-text-persistence)
+for format, precision, transactional loading and runnable examples.
 
 ---
 
@@ -241,23 +247,39 @@ v.erase(0, 2);       // Remove range [0, 2): v = [3.0]
 Vector<double> v({1, 2, 3, 4, 5});
 
 // Resize without preserving elements
-v.Resize(3);  // v = [0, 0, 0] (elements lost)
+v.resize(3);  // v = [0, 0, 0] (elements lost)
 
 // Resize preserving elements
 v = Vector<double>({1, 2, 3, 4, 5});
-v.Resize(3, true);   // v = [1, 2, 3] (elements preserved)
-v.Resize(7, true);   // v = [1, 2, 3, 0, 0, 0, 0] (extended with zeros)
+v.resize(3, true);   // v = [1, 2, 3] (elements preserved)
+v.resize(7, true);   // v = [1, 2, 3, 0, 0, 0, 0] (extended with zeros)
 ```
 
 ### Clearing
 ```cpp
 Vector<double> v({1, 2, 3});
-v.Clear();  // v is now empty, size() == 0
+v.clear();  // v is now empty, size() == 0
 ```
 
 ---
 
 ## I/O and Printing
+
+Unsigned integer vectors support magnitude-based printing and norms. The shared `MML::Abs`
+helper returns the nonnegative value converted to configured `Real`, without selecting a
+signed `std::abs` overload or first narrowing to a signed integer. Large integer magnitudes
+can round when represented as `Real`; printing still streams the original element type.
+Signed, floating-point and complex magnitude behavior is unchanged.
+
+```cpp
+Vector<unsigned int> values{3, 4, 0};
+std::cout << values << '\n';
+Real length = values.NormL2(); // 5
+```
+
+Runnable counterpart: `Docs_Demo_UnsignedVector()` in
+[docs_demo_vector.cpp](../../src/docs_demos/base/docs_demo_vector.cpp).
+Run `MML_DocsApp --unsigned-vector`, including a maximum-width unsigned integer print check.
 
 ### Console Output
 ```cpp

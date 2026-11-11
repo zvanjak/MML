@@ -15,6 +15,7 @@
 /// induced metrics, metric adapters, form integration, and frame helpers.
 ///
 /// Main types and functions included here:
+/// - Metric and its musical isomorphisms - inverse-dependent typed metric construction
 /// - Chart and FunctionChart - chart embeddings with push-forward and pull-back helpers
 /// - Atlas, UnitSphereStereographicChart, and MakeUnitSphereStereographicAtlas
 /// - CoordinateMap, IdentityCoordinateMap, and CoordTransfCoordinateMap
@@ -29,6 +30,7 @@
 #define MML_CORE_DIFFERENTIAL_GEOMETRY_H
 
 #include <mml/core/DifferentialGeometry/Chart.h>
+#include <mml/core/DifferentialGeometry/Metric.h>
 #include <mml/core/DifferentialGeometry/Atlas.h>
 #include <mml/core/DifferentialGeometry/CoordinateMap.h>
 #include <mml/core/DifferentialGeometry/FieldOperations.h>

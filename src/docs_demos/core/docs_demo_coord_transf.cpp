@@ -216,9 +216,9 @@ void Docs_Demo_CoordTransf_CovarContravarBasis()
   //std::cout << "Explicit formula 2     : " << vec_theta2 << std::endl;
   //std::cout << "Explicit formula 3     : " << vec_phi2 << std::endl << std::endl;
 
-  std::cout << "GetAsUnitVector 1      : " << vec_co_1.GetAsUnitVector() << std::endl;
-  std::cout << "GetAsUnitVector 2      : " << vec_co_2.GetAsUnitVector() << std::endl;
-  std::cout << "GetAsUnitVector 3      : " << vec_co_3.GetAsUnitVector() << std::endl << std::endl;
+  std::cout << "GetAsUnitVector 1      : " << vec_co_1.Normalized() << std::endl;
+  std::cout << "GetAsUnitVector 2      : " << vec_co_2.Normalized() << std::endl;
+  std::cout << "GetAsUnitVector 3      : " << vec_co_3.Normalized() << std::endl << std::endl;
 
   std::cout << "CONTRAVARIANT basis vectors\n";
   Vector3Cartesian vec_contra_1 = CoordTransfSpherToCart.getContravarBasisVec(0, p1);
@@ -462,8 +462,8 @@ void Docs_Demo_CoordTransf_Quaternion()
 
     // Get rotation axis and angle from quaternion
     std::cout << "\n=== Extract Axis-Angle from Quaternion ===" << std::endl;
-    Vec3Cart extractedAxis = quatRot.GetRotationAxis();
-    Real extractedAngle = quatRot.GetRotationAngle();
+    Vec3Cart extractedAxis = quatRot.getRotationAxis();
+    Real extractedAngle = quatRot.getRotationAngle();
     std::cout << "Extracted axis: " << extractedAxis << std::endl;
     std::cout << "Extracted angle: " << extractedAngle << " rad (" 
               << extractedAngle * 180 / Constants::PI << "°)" << std::endl;

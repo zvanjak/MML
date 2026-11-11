@@ -150,7 +150,7 @@ struct VoronoiDiagram {
 			Real nx = site.X() - other.X();
 			Real ny = site.Y() - other.Y();
 			Real len = std::sqrt(nx * nx + ny * ny);
-			if (len < 1e-10) continue;
+			if (len < Precision::GeometryEpsilon) continue;
 			nx /= len;
 			ny /= len;
 			
@@ -164,12 +164,12 @@ struct VoronoiDiagram {
 				Real d1 = (p1.X() - midX) * nx + (p1.Y() - midY) * ny;
 				Real d2 = (p2.X() - midX) * nx + (p2.Y() - midY) * ny;
 				
-				if (d1 >= -1e-10) {
+				if (d1 >= -Precision::GeometryEpsilon) {
 					clipped.push_back(p1);
 				}
 				
 				// Edge crosses the bisector line
-				if ((d1 > 1e-10 && d2 < -1e-10) || (d1 < -1e-10 && d2 > 1e-10)) {
+				if ((d1 > Precision::GeometryEpsilon && d2 < -Precision::GeometryEpsilon) || (d1 < -Precision::GeometryEpsilon && d2 > Precision::GeometryEpsilon)) {
 					Real t = d1 / (d1 - d2);
 					Real ix = p1.X() + t * (p2.X() - p1.X());
 					Real iy = p1.Y() + t * (p2.Y() - p1.Y());
@@ -217,11 +217,11 @@ private:
 			Real d1 = (p1.X() - px) * nx + (p1.Y() - py) * ny;
 			Real d2 = (p2.X() - px) * nx + (p2.Y() - py) * ny;
 			
-			if (d1 >= -1e-10) {
+			if (d1 >= -Precision::GeometryEpsilon) {
 				result.push_back(p1);
 			}
 			
-			if ((d1 > 1e-10 && d2 < -1e-10) || (d1 < -1e-10 && d2 > 1e-10)) {
+			if ((d1 > Precision::GeometryEpsilon && d2 < -Precision::GeometryEpsilon) || (d1 < -Precision::GeometryEpsilon && d2 > Precision::GeometryEpsilon)) {
 				Real t = d1 / (d1 - d2);
 				Real ix = p1.X() + t * (p2.X() - p1.X());
 				Real iy = p1.Y() + t * (p2.Y() - p1.Y());
@@ -238,7 +238,7 @@ private:
 //////////////////////////////////////////////////////////////////////////////////////////
 class Voronoi {
 	// Use centralized geometry epsilon from Constants
-	static constexpr Real EPSILON = Constants::GEOMETRY_EPSILON;
+	static constexpr Real EPSILON = Precision::GeometryEpsilon;
 
 public:
 	/// @brief Compute Voronoi diagram from a set of points
@@ -360,7 +360,7 @@ public:
 					// Direction perpendicular to edge
 					Vector2Cartesian perp(-dy, dx);
 					Real len = std::sqrt(perp.X() * perp.X() + perp.Y() * perp.Y());
-					if (len > 1e-10) {
+					if (len > Precision::GeometryEpsilon) {
 						perp = Vector2Cartesian(perp.X() / len, perp.Y() / len);
 					}
 					
@@ -454,7 +454,7 @@ private:
 		Real cx = c.X(), cy = c.Y();
 		
 		Real d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
-		if (std::abs(d) < 1e-14) {
+		if (std::abs(d) < Precision::RoundoffZeroThreshold) {
 			// Degenerate triangle - return centroid
 			return Point2Cartesian((ax + bx + cx) / 3.0, (ay + by + cy) / 3.0);
 		}

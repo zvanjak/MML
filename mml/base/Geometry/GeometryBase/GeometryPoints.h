@@ -59,9 +59,9 @@ namespace MML {
 		bool operator!=(const Point2Cartesian& b) const { return (X() != b.X()) || (Y() != b.Y()); }
 		/// @brief Approximate equality comparison with tolerance
 		/// @param b The other point
-		/// @param eps Tolerance for comparison (default: Defaults::Pnt2CartIsEqualTolerance)
+		/// @param eps Tolerance for comparison (default: Precision::Pnt2CartIsEqualTolerance)
 		/// @return True if distance between points is less than eps
-		bool IsEqualTo(const Point2Cartesian& b, Real eps = Defaults::Pnt2CartIsEqualTolerance) const { return Dist(b) < eps; }
+		bool IsEqualTo(const Point2Cartesian& b, Real eps = Precision::Pnt2CartIsEqualTolerance) const { return Dist(b) < eps; }
 
 		/// @brief Vector addition of two points
 		Point2Cartesian operator+(const Point2Cartesian& b) const { return Point2Cartesian(X() + b.X(), Y() + b.Y()); }
@@ -144,9 +144,9 @@ namespace MML {
 		bool operator!=(const Point2Polar& b) const { return (R() != b.R()) || (Phi() != b.Phi()); }
 		/// @brief Approximate equality comparison with tolerance
 		/// @param b The other point
-		/// @param eps Tolerance for comparison (default: Defaults::Pnt2PolarIsEqualTolerance)
+		/// @param eps Tolerance for comparison (default: Precision::Pnt2PolarIsEqualTolerance)
 		/// @return True if distance between points is less than eps
-		bool IsEqualTo(const Point2Polar& b, Real eps = Defaults::Pnt2PolarIsEqualTolerance) const { return Dist(b) < eps; }
+		bool IsEqualTo(const Point2Polar& b, Real eps = Precision::Pnt2PolarIsEqualTolerance) const { return Dist(b) < eps; }
 
 		/// @brief Converts this polar point to Cartesian coordinates
 		/// @return Equivalent Point2Cartesian (x = r*cos(φ), y = r*sin(φ))
@@ -205,9 +205,9 @@ namespace MML {
 		bool operator!=(const Point3Cartesian& b) const { return (X() != b.X()) || (Y() != b.Y()) || (Z() != b.Z()); }
 		/// @brief Approximate equality comparison with tolerance
 		/// @param b The other point
-		/// @param eps Tolerance for comparison (default: Defaults::Pnt3CartIsEqualTolerance)
+		/// @param eps Tolerance for comparison (default: Precision::Pnt3CartIsEqualTolerance)
 		/// @return True if distance between points is less than eps
-		bool IsEqualTo(const Point3Cartesian& b, Real eps = Defaults::Pnt3CartIsEqualTolerance) const { return Dist(b) < eps; }
+		bool IsEqualTo(const Point3Cartesian& b, Real eps = Precision::Pnt3CartIsEqualTolerance) const { return Dist(b) < eps; }
 
 		/// @brief Vector addition of two points
 		Point3Cartesian operator+(const Point3Cartesian& b) const { return Point3Cartesian(X() + b.X(), Y() + b.Y(), Z() + b.Z()); }
@@ -304,9 +304,9 @@ namespace MML {
 		bool operator!=(const Point3Spherical& b) const { return (R() != b.R()) || (Theta() != b.Theta()) || (Phi() != b.Phi()); }
 		/// @brief Approximate equality comparison with tolerance
 		/// @param b The other point
-		/// @param eps Tolerance for comparison (default: Defaults::Pnt3SphIsEqualTolerance)
+		/// @param eps Tolerance for comparison (default: Precision::Pnt3SphIsEqualTolerance)
 		/// @return True if distance between points is less than eps
-		bool IsEqualTo(const Point3Spherical& b, Real eps = Defaults::Pnt3SphIsEqualTolerance) const { return Dist(b) < eps; }
+		bool IsEqualTo(const Point3Spherical& b, Real eps = Precision::Pnt3SphIsEqualTolerance) const { return Dist(b) < eps; }
 
 		/// @brief Converts this spherical point to Cartesian coordinates
 		/// @return Equivalent Point3Cartesian using spherical-to-Cartesian transformation
@@ -375,9 +375,9 @@ namespace MML {
 		bool operator!=(const Point3Cylindrical& b) const { return (R() != b.R()) || (Phi() != b.Phi()) || (Z() != b.Z()); }
 		/// @brief Approximate equality comparison with tolerance
 		/// @param b The other point
-		/// @param eps Tolerance for comparison (default: Defaults::Pnt3CylIsEqualTolerance)
+		/// @param eps Tolerance for comparison (default: Precision::Pnt3CylIsEqualTolerance)
 		/// @return True if distance between points is less than eps
-		bool IsEqualTo(const Point3Cylindrical& b, Real eps = Defaults::Pnt3CylIsEqualTolerance) const { return Dist(b) < eps; }
+		bool IsEqualTo(const Point3Cylindrical& b, Real eps = Precision::Pnt3CylIsEqualTolerance) const { return Dist(b) < eps; }
 
 		/// @brief Converts this cylindrical point to Cartesian coordinates
 		/// @return Equivalent Point3Cartesian using cylindrical-to-Cartesian transformation

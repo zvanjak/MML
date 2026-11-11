@@ -63,6 +63,97 @@ residual norm, weighted MSE, weighted $R^2$, effective rank, condition number,
 and `weight_sum`. `WeightedPolynomialFit` supplies the power basis, while
 `WeightedGeneralLinearFitDetailed` also reports structured status and timing.
 
+## Generalized Least Squares: Correlated Observation Errors
+
+`GeneralizedLinearLeastSquares(x, y, covariance, basis)` accepts a **full
+observation covariance matrix** C, not a precision matrix or a vector of weights.
+It minimizes
+
+$$
+Q=(y-Ac)^T C^{-1}(y-Ac),\qquad A_{ij}=\phi_j(x_i).
+$$
+
+The implementation factors C = L L^T, whitens the design and observations by
+forward triangular solves, then solves the transformed least-squares system
+using SVD. It does not form C inverse or the normal equations. Covariance is
+normalized internally before factorization so a global change of measurement
+units does not trigger an absolute pivot threshold.
+
+```cpp
+#include <mml/algorithms/CurveFitting.h>
+using namespace MML;
+
+Vector<Real> x{0, 1, 2, 3};
+Vector<Real> y{0, 2, 4, 3};
+Matrix<Real> covariance(4, 4, {
+    2, 1, 0, 0,
+    1, 2, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+});
+Vector<std::function<Real(Real)>> basis{
+    [](Real) { return Real(1); },
+    [](Real value) { return value; }
+};
+auto fit = GeneralizedLinearLeastSquares(x, y, covariance, basis);
+auto detailed = GeneralizedLinearFitDetailed(x, y, covariance, basis);
+// In basis order: intercept = 7/8, slope = 1; Q = 21/8.
+```
+
+Run `MML_DocsApp --gls` for the checked counterpart, `Docs_Demo_GeneralizedLeastSquares`
+in [docs_demo_curve_fitting.cpp](../../src/docs_demos/algorithms/docs_demo_curve_fitting.cpp).
+
+**Input contract**
+
+- There must be m nonempty, matching x/y observations and between 1 and m basis
+  functions. Both callable and `Vector<const IRealFunction*>` bases are supported.
+- C must be m-by-m, finite, symmetric and numerically positive definite.
+  Symmetry uses `PrecisionValues<Scalar>::IsMatrixSymmetricTolerance` after
+  normalizing by the largest covariance entry; accepted roundoff asymmetry is
+  averaged. No diagonal jitter, pseudoinverse of C, or diagonal-only fallback is
+  applied. Singular, indefinite and numerically unresolved covariances are rejected.
+- Observations, callable handles/pointers and evaluated basis values are validated.
+  These safety checks are mandatory even if `check_finite` is false.
+- Rank-deficient **designs** are supported by the SVD minimum-norm solution.
+  This does not mean singular **covariances** are supported.
+- Inputs are not modified; each basis is evaluated once per observation.
+
+**Result semantics**
+
+The direct function returns `GeneralLinearFitResult<Scalar>`, with coefficients
+in basis order and diagnostics for the whitened design. `effective_rank` is the
+SVD rank; `condition_number` is infinite for a rank-deficient design.
+
+- `residual_norm` = sqrt(Q), the Mahalanobis residual norm.
+- `mean_squared_error` = Q / m. This is **not** Q divided by the residual degrees
+  of freedom, and it is not the existing weighted fit's Q / sum(weights).
+- Generalized mean = (1^T C^-1 y) / (1^T C^-1 1).
+- `r_squared` = 1 - Q / ((y - mean * 1)^T C^-1 (y - mean * 1)).
+  It may be negative for a model without an intercept. If centered variation is
+  zero, R-squared and adjusted R-squared are undefined and reported as NaN.
+- Adjusted R-squared uses effective rank r: 1 - (1 - R^2)(m - 1)/(m - r),
+  and is NaN when m <= r.
+- `weight_sum` stays zero: full covariance is not a diagonal weight vector.
+
+Identity covariance reproduces ordinary least squares. Diagonal covariance with
+C_ii = 1 / w_i reproduces weighted coefficients, residual norm and R-squared.
+Multiplying covariance by a positive scalar leaves coefficients, rank, condition
+number and R-squared unchanged; Q and MSE scale inversely with that scalar.
+
+The Detailed API returns `CurveFittingResult<Scalar>` with timing, evaluation count
+and `Completed` on a usable direct fit (not a claim that an accuracy target was
+checked). With `estimate_error=false`, R-squared, adjusted R-squared and MSE are
+NaN; coefficients, residual norm, rank and condition number are still available.
+Default exception policy propagates errors. `ConvertToStatus` reports invalid
+inputs/covariance as `InvalidInput`, unrepresentable numerical diagnostics as
+`NumericalInstability`, and callback runtime failures as `AlgorithmSpecificFailure`
+with their error messages. Nonconvergence of the underlying SVD propagates or is
+converted by the existing curve-fitting exception policy.
+
+This adds correlated-error linear fitting only. Existing diagonal-weighted,
+ordinary, polynomial and regularized APIs retain their behavior. It does not
+estimate covariance from residuals or implement nonlinear/feasible GLS.
+
 ## Regularized Least Squares
 
 `RidgeGeneralLinearLeastSquares` solves

@@ -13,6 +13,7 @@
 #define MML_LINEAR_ALG_DIRECT_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
@@ -296,9 +297,17 @@ namespace MML
 			for (i = 0; i < _n; i++) 
 			{
 				big = 0.0;
-				for (j = 0; j < _n; j++)
-					if ((temp = Abs(_lu[i][j])) > big) 
+				for (j = 0; j < _n; j++) {
+					if constexpr (is_std_complex<Type>::value) {
+						if (!std::isfinite(_lu[i][j].real()) || !std::isfinite(_lu[i][j].imag()))
+							throw MatrixNumericalError("Non-finite values detected in LUSolver input matrix");
+					} else if constexpr (std::is_floating_point_v<Type>) {
+						if (!std::isfinite(_lu[i][j]))
+							throw MatrixNumericalError("Non-finite values detected in LUSolver input matrix");
+					}
+					if ((temp = Abs(_lu[i][j])) > big)
 						big = temp;
+				}
 				
 				// Check for non-finite values in matrix (Real types only)
 				if constexpr (std::is_same_v<Type, Real>) {
@@ -445,7 +454,7 @@ namespace MML
 		void inverse(Matrix<Type>& ainv)
 		{
 			int i, j;
-			ainv.Resize(_n, _n);
+			ainv.resize(_n, _n);
 			for (i = 0; i < _n; i++) {
 				for (j = 0; j < _n; j++) ainv[i][j] = 0.;
 				ainv[i][i] = 1.;
@@ -676,9 +685,9 @@ namespace MML
 		 * The algorithm uses partial pivoting within the band structure.
 		 */
 		BandDiagonalSolver(const BandDiagonalMatrix& a)
-			: _n(a.GetDimension()), 
-			  _m1(a.GetLowerBandwidth()), 
-			  _m2(a.GetUpperBandwidth()),
+			: _n(a.rows()), 
+			  _m1(a.getLowerBandwidth()), 
+			  _m2(a.getUpperBandwidth()),
 			  _au(_n, _m1 + _m2 + 1),
 			  _al(_n, _m1),
 			  _indx(_n)
@@ -860,16 +869,26 @@ namespace MML
 		/**
 		 * @brief Get matrix dimension
 		 */
-		int GetDimension() const { return _n; }
+		int getDimension() const { return _n; }
 
 		/**
 		 * @brief Get lower bandwidth
 		 */
-		int GetLowerBandwidth() const { return _m1; }
+		int getLowerBandwidth() const { return _m1; }
 
 		/**
 		 * @brief Get upper bandwidth
 		 */
+		int getUpperBandwidth() const { return _m2; }
+
+		/// @deprecated Use getDimension() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getDimension()")]]
+		int GetDimension() const { return _n; }
+		/// @deprecated Use getLowerBandwidth().
+		[[deprecated("use getLowerBandwidth()")]]
+		int GetLowerBandwidth() const { return _m1; }
+		/// @deprecated Use getUpperBandwidth().
+		[[deprecated("use getUpperBandwidth()")]]
 		int GetUpperBandwidth() const { return _m2; }
 	};
 
@@ -938,10 +957,10 @@ namespace MML
 			const Magnitude hermitianThreshold = tolerance * (Magnitude{1} + scale);
 			for (int row = 0; row < n; ++row) {
 				if (ImaginaryMagnitude(a[row][row]) > hermitianThreshold)
-					throw MatrixDimensionError("CholeskySolver::ctor - matrix must be Hermitian", n, n, -1, -1);
+					throw DomainError("CholeskySolver::ctor - matrix must be Hermitian");
 				for (int col = row + 1; col < n; ++col)
 					if (std::abs(a[row][col] - Conjugate(a[col][row])) > hermitianThreshold)
-						throw MatrixDimensionError("CholeskySolver::ctor - matrix must be Hermitian", n, n, -1, -1);
+						throw DomainError("CholeskySolver::ctor - matrix must be Hermitian");
 			}
 
 			const Magnitude pivotTolerance = std::numeric_limits<Magnitude>::epsilon() * scale * static_cast<Magnitude>(n * 8);
@@ -984,7 +1003,7 @@ namespace MML
 			if (b.size() != n)
 				throw VectorDimensionError("CholeskySolver::Solve - Vector size mismatch", n, b.size());
 			
-			x.Resize(n);
+			x.resize(n);
 			
 			// Forward substitution: solve L*y = b for y
 			for (int i = 0; i < n; i++)
@@ -1022,7 +1041,7 @@ namespace MML
 			// Computes the inverse of the original matrix A using the Cholesky decomposition
 			// A^-1 = (L*L^T)^-1 = (L^T)^-1 * L^-1
 			
-			ainv.Resize(n, n);
+			ainv.resize(n, n);
 			Vector<Type> ei(n), col(n);
 			
 			// Solve A * ainv[,j] = e_j for each column of the inverse
@@ -1137,8 +1156,8 @@ namespace MML
 			[&](ResultType& result) {
 				BandDiagonalSolver solver(A);
 				result.solution = solver.Solve(b);
-				int n = A.GetDimension();
-				int m = A.GetLowerBandwidth() + A.GetUpperBandwidth() + 1;
+				int n = A.rows();
+				int m = A.getLowerBandwidth() + A.getUpperBandwidth() + 1;
 				result.function_evaluations = n * m * m; // O(n*m²)
 
 				if (config.estimate_error) {

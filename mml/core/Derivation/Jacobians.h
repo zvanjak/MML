@@ -14,6 +14,7 @@
 #define MML_DERIVATION_JACOBIANS_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 
 #include "DerivationBase.h"
 
@@ -44,12 +45,12 @@ namespace MML
 		/// @return N×N Jacobian matrix where J(i,j) = ∂f_i/∂x_j
 		/// Complexity: 4×N full-vector evaluations using one stencil per input column.
 		template<int N>
-		static MatrixNM<Real, N, N> calcJacobian(const IVectorFunction<N>& func,
+		static MatrixNM<Real, N, N> CalcJacobian(const IVectorFunction<N>& func,
 			const VectorN<Real, N>& pos, Real h = 0.0, int* functionEvaluations = nullptr)
 		{
 			MatrixNM<Real, N, N> jac;
 			if (!std::isfinite(h) || h < 0.0)
-				throw ArgumentError("calcJacobian: invalid step");
+				throw ArgumentError("CalcJacobian: invalid step");
 			VectorN<Real, N> perturbed = pos;
 			for (int column = 0; column < N; ++column) {
 				const Real original = pos[column];
@@ -62,7 +63,7 @@ namespace MML
 					VectorN<Real, N> result = func(perturbed);
 					for (int row = 0; row < N; ++row)
 						if (!std::isfinite(result[row]))
-							throw NumericalMethodError("calcJacobian: non-finite function value");
+							throw NumericalMethodError("CalcJacobian: non-finite function value");
 					return result;
 				};
 				VectorN<Real, N> plus2 = evaluate(original + Real(2.0) * step);
@@ -84,12 +85,12 @@ namespace MML
 		/// @param pos Point at which to evaluate the Jacobian
 		/// @return M×N Jacobian matrix where J(i,j) = ∂f_i/∂x_j
 		template<int N, int M>
-		static MatrixNM<Real, M, N> calcJacobian(const IVectorFunctionNM<N, M>& func,
+		static MatrixNM<Real, M, N> CalcJacobian(const IVectorFunctionNM<N, M>& func,
 			const VectorN<Real, N>& pos, Real h = 0.0, int* functionEvaluations = nullptr)
 		{
 			MatrixNM<Real, M, N> jac;
 			if (!std::isfinite(h) || h < 0.0)
-				throw ArgumentError("calcJacobian: invalid step");
+				throw ArgumentError("CalcJacobian: invalid step");
 			VectorN<Real, N> perturbed = pos;
 			for (int column = 0; column < N; ++column) {
 				const Real original = pos[column];
@@ -102,7 +103,7 @@ namespace MML
 					VectorN<Real, M> result = func(perturbed);
 					for (int row = 0; row < M; ++row)
 						if (!std::isfinite(result[row]))
-							throw NumericalMethodError("calcJacobian: non-finite function value");
+							throw NumericalMethodError("CalcJacobian: non-finite function value");
 					return result;
 				};
 				VectorN<Real, M> plus2 = evaluate(original + Real(2.0) * step);
@@ -191,7 +192,7 @@ namespace MML
 			return (f_plus - f_minus) / (2 * h);
 		}
 
-		static void calcJacobianDynColumns(
+		static void CalcJacobianColumns(
 			const std::function<Vector<Real>(const Vector<Real>&)>& func,
 			const Vector<Real>& pos, Matrix<Real>& jac, int outputDim,
 			Real h, int* functionEvaluations);
@@ -206,14 +207,14 @@ namespace MML
 		/// 
 		/// This is the main entry point for dynamic-size Jacobian computation.
 		/// Uses 4th-order accurate central differences for high precision.
-		static Matrix<Real> calcJacobianDyn(
+		static Matrix<Real> CalcJacobian(
 			const std::function<Vector<Real>(const Vector<Real>&)>& func,
 			const Vector<Real>& pos,
 			Real h = 0.0,
 			int* functionEvaluations = nullptr)
 		{
 			Matrix<Real> jac;
-			calcJacobianDynColumns(func, pos, jac, static_cast<int>(pos.size()), h,
+			CalcJacobianColumns(func, pos, jac, static_cast<int>(pos.size()), h,
 				functionEvaluations);
 			return jac;
 		}
@@ -224,7 +225,7 @@ namespace MML
 		/// @param outputDim Number of output components m
 		/// @param h Step size for finite differences (0 = auto-select)
 		/// @return m×n Jacobian matrix where J(i,j) = ∂f_i/∂x_j
-		static Matrix<Real> calcJacobianDyn(
+		static Matrix<Real> CalcJacobian(
 			const std::function<Vector<Real>(const Vector<Real>&)>& func,
 			const Vector<Real>& pos,
 			int outputDim,
@@ -232,7 +233,7 @@ namespace MML
 			int* functionEvaluations = nullptr)
 		{
 			Matrix<Real> jac;
-			calcJacobianDynColumns(func, pos, jac, outputDim, h, functionEvaluations);
+			CalcJacobianColumns(func, pos, jac, outputDim, h, functionEvaluations);
 			return jac;
 		}
 
@@ -245,14 +246,14 @@ namespace MML
 		/// This version avoids allocation by writing directly to a pre-sized matrix.
 		/// Useful in iterative algorithms (Newton-Raphson, etc.) where Jacobian
 		/// is recomputed many times.
-		static void calcJacobianDynInPlace(
+		static void CalcJacobianInPlace(
 			const std::function<Vector<Real>(const Vector<Real>&)>& func,
 			const Vector<Real>& pos,
 			Matrix<Real>& jac,
 			Real h = 0.0,
 			int* functionEvaluations = nullptr)
 		{
-			calcJacobianDynColumns(func, pos, jac, static_cast<int>(pos.size()), h,
+			CalcJacobianColumns(func, pos, jac, static_cast<int>(pos.size()), h,
 				functionEvaluations);
 		}
 
@@ -263,7 +264,7 @@ namespace MML
 		/// @param outputDim Expected output dimension m
 		/// @param h Explicit absolute step; zero selects eps^(1/5)*max(1,|x_j|) per column
 		/// @param functionEvaluations Optional accumulated count of attempted vector evaluations
-		static void calcJacobianDynColumns(
+		static void CalcJacobianColumns(
 			const std::function<Vector<Real>(const Vector<Real>&)>& func,
 			const Vector<Real>& pos,
 			Matrix<Real>& jac,
@@ -273,8 +274,8 @@ namespace MML
 		{
 			const int inputDim = static_cast<int>(pos.size());
 			if (!func || inputDim <= 0 || outputDim <= 0 || !std::isfinite(h) || h < 0.0)
-				throw ArgumentError("calcJacobianDynInPlace: invalid function, dimensions, or step");
-			jac.Resize(outputDim, inputDim);
+				throw ArgumentError("CalcJacobianInPlace: invalid function, dimensions, or step");
+			jac.resize(outputDim, inputDim);
 			Vector<Real> perturbed = pos;
 			for (int column = 0; column < inputDim; ++column) {
 				const Real original = pos[column];
@@ -287,11 +288,11 @@ namespace MML
 					if (functionEvaluations != nullptr) ++(*functionEvaluations);
 					Vector<Real> result = func(perturbed);
 					if (result.size() != outputDim)
-						throw VectorDimensionError("calcJacobianDynInPlace: output dimension mismatch",
+						throw VectorDimensionError("CalcJacobianInPlace: output dimension mismatch",
 							outputDim, result.size());
 					for (int row = 0; row < outputDim; ++row)
 						if (!std::isfinite(result[row]))
-							throw NumericalMethodError("calcJacobianDynInPlace: non-finite function value");
+							throw NumericalMethodError("CalcJacobianInPlace: non-finite function value");
 					return result;
 				};
 
@@ -316,7 +317,7 @@ namespace MML
 		/// 
 		/// Use this when speed is more important than precision, or when the
 		/// function itself has limited accuracy.
-		static Matrix<Real> calcJacobianDyn2(
+		static Matrix<Real> CalcJacobianOrder2(
 			const std::function<Vector<Real>(const Vector<Real>&)>& func,
 			const Vector<Real>& pos,
 			Real h = 0.0)
@@ -350,7 +351,7 @@ namespace MML
 		/// function has the signature: void derivs(Real t, const Vector<Real>& x, Vector<Real>& dxdt)
 		/// 
 		/// The Jacobian is computed as J(i,j) = ∂(dxdt_i)/∂(x_j), holding t constant.
-		static void calcJacobianODE(
+		static void CalcJacobianODE(
 			const std::function<void(Real, const Vector<Real>&, Vector<Real>&)>& derivs,
 			Real t,
 			const Vector<Real>& x,
@@ -358,7 +359,7 @@ namespace MML
 			Real h = 0.0)
 		{
 			int n = static_cast<int>(x.size());
-			jac.Resize(n, n);
+			jac.resize(n, n);
 
 			Vector<Real> f_plus(n), f_minus(n);
 			Vector<Real> xp = x;
@@ -391,14 +392,14 @@ namespace MML
 		/// @param x Current state vector
 		/// @param h Step size (0 = auto)
 		/// @return n×n Jacobian matrix
-		static Matrix<Real> calcJacobianODE(
+		static Matrix<Real> CalcJacobianODE(
 			const std::function<void(Real, const Vector<Real>&, Vector<Real>&)>& derivs,
 			Real t,
 			const Vector<Real>& x,
 			Real h = 0.0)
 		{
 			Matrix<Real> jac;
-			calcJacobianODE(derivs, t, x, jac, h);
+			CalcJacobianODE(derivs, t, x, jac, h);
 			return jac;
 		}
 
@@ -413,14 +414,14 @@ namespace MML
 		/// @param h Step size (0 = auto)
 		/// 
 		/// For discrete dynamical systems and iterated maps.
-		static void calcJacobianMap(
+		static void CalcJacobianMap(
 			const std::function<Vector<Real>(const Vector<Real>&)>& mapFunc,
 			const Vector<Real>& x,
 			Matrix<Real>& jac,
 			Real h = 0.0)
 		{
 			int n = static_cast<int>(x.size());
-			jac.Resize(n, n);
+			jac.resize(n, n);
 
 			Vector<Real> xp = x;
 			Real eps = (h > 0.0) ? h : std::sqrt(std::numeric_limits<Real>::epsilon());
@@ -441,6 +442,62 @@ namespace MML
 				}
 			}
 		}
+
+		/********************************************************************************************************************/
+		/********              Deprecated 2.0 spellings (CONTRACT_POLICY section 11; one minor release)              ********/
+		/********************************************************************************************************************/
+
+		template<int N>
+		[[deprecated("use CalcJacobian()")]]
+		static MatrixNM<Real, N, N> calcJacobian(const IVectorFunction<N>& func,
+			const VectorN<Real, N>& pos, Real h = 0.0, int* functionEvaluations = nullptr)
+		{ return CalcJacobian<N>(func, pos, h, functionEvaluations); }
+
+		template<int N, int M>
+		[[deprecated("use CalcJacobian()")]]
+		static MatrixNM<Real, M, N> calcJacobian(const IVectorFunctionNM<N, M>& func,
+			const VectorN<Real, N>& pos, Real h = 0.0, int* functionEvaluations = nullptr)
+		{ return CalcJacobian<N, M>(func, pos, h, functionEvaluations); }
+
+		[[deprecated("use CalcJacobian() - dynamic size is selected by the argument types")]]
+		static Matrix<Real> calcJacobianDyn(const std::function<Vector<Real>(const Vector<Real>&)>& func,
+			const Vector<Real>& pos, Real h = 0.0, int* functionEvaluations = nullptr)
+		{ return CalcJacobian(func, pos, h, functionEvaluations); }
+
+		[[deprecated("use CalcJacobian() - dynamic size is selected by the argument types")]]
+		static Matrix<Real> calcJacobianDyn(const std::function<Vector<Real>(const Vector<Real>&)>& func,
+			const Vector<Real>& pos, int outputDim, Real h = 0.0, int* functionEvaluations = nullptr)
+		{ return CalcJacobian(func, pos, outputDim, h, functionEvaluations); }
+
+		[[deprecated("use CalcJacobianInPlace()")]]
+		static void calcJacobianDynInPlace(const std::function<Vector<Real>(const Vector<Real>&)>& func,
+			const Vector<Real>& pos, Matrix<Real>& jac, Real h = 0.0, int* functionEvaluations = nullptr)
+		{ CalcJacobianInPlace(func, pos, jac, h, functionEvaluations); }
+
+		[[deprecated("use CalcJacobianColumns()")]]
+		static void calcJacobianDynColumns(const std::function<Vector<Real>(const Vector<Real>&)>& func,
+			const Vector<Real>& pos, Matrix<Real>& jac, int outputDim, Real h, int* functionEvaluations)
+		{ CalcJacobianColumns(func, pos, jac, outputDim, h, functionEvaluations); }
+
+		[[deprecated("use CalcJacobianOrder2()")]]
+		static Matrix<Real> calcJacobianDyn2(const std::function<Vector<Real>(const Vector<Real>&)>& func,
+			const Vector<Real>& pos, Real h = 0.0)
+		{ return CalcJacobianOrder2(func, pos, h); }
+
+		[[deprecated("use CalcJacobianODE()")]]
+		static void calcJacobianODE(const std::function<void(Real, const Vector<Real>&, Vector<Real>&)>& derivs,
+			Real t, const Vector<Real>& x, Matrix<Real>& jac, Real h = 0.0)
+		{ CalcJacobianODE(derivs, t, x, jac, h); }
+
+		[[deprecated("use CalcJacobianODE()")]]
+		static Matrix<Real> calcJacobianODE(const std::function<void(Real, const Vector<Real>&, Vector<Real>&)>& derivs,
+			Real t, const Vector<Real>& x, Real h = 0.0)
+		{ return CalcJacobianODE(derivs, t, x, h); }
+
+		[[deprecated("use CalcJacobianMap()")]]
+		static void calcJacobianMap(const std::function<Vector<Real>(const Vector<Real>&)>& mapFunc,
+			const Vector<Real>& x, Matrix<Real>& jac, Real h = 0.0)
+		{ CalcJacobianMap(mapFunc, x, jac, h); }
 
 	}  // namespace Derivation
 }  // namespace MML

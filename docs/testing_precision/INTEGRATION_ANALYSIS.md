@@ -231,7 +231,7 @@ using namespace MML;
 RealFunction f([](Real x) { return std::sin(x); });
 
 // Trapezoidal rule (adaptive)
-auto result_trap = IntegrateTrap(f, 0.0, Constants::PI);
+auto result_trap = IntegrateTrapDetailed(f, 0.0, Constants::PI);
 std::cout << "Trap: " << result_trap.value 
           << " (converged: " << result_trap.converged << ")\n";
 
@@ -249,7 +249,7 @@ auto result_gauss = IntegrateGauss10(f, 0.0, Constants::PI);
 
 ```cpp
 // Request higher accuracy
-auto result = IntegrateSimpson(f, 0.0, Constants::PI, 1e-12);
+auto result = IntegrateSimpsonDetailed(f, 0.0, Constants::PI, 1e-12);
 
 // Check convergence
 if (!result.converged) {

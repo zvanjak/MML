@@ -67,7 +67,7 @@ namespace MML
 					ap += 1.0;
 					del *= x / ap;
 					sum += del;
-					if (std::abs(del) < std::abs(sum) * REAL(1e-16)) break;
+					if (std::abs(del) < std::abs(sum) * Precision::Eps) break;
 				}
 				return sum * std::exp(-x + a * std::log(x) - gln);
 			}
@@ -89,7 +89,7 @@ namespace MML
 					d = 1.0 / d;
 					Real del = d * c;
 					h *= del;
-					if (std::abs(del - 1.0) < REAL(1e-16)) break;
+					if (std::abs(del - 1.0) < Precision::Eps) break;
 				}
 				return 1.0 - h * std::exp(-x + a * std::log(x) - gln);
 			}
@@ -153,7 +153,7 @@ namespace MML
 				d = 1.0 / d;
 				Real del = d * c;
 				h *= del;
-				if (std::abs(del - 1.0) < REAL(1e-16)) break;
+				if (std::abs(del - 1.0) < Precision::Eps) break;
 			}
 			return front * h;
 		}
@@ -183,8 +183,8 @@ namespace MML
 			const Real inv = 1.0 / x;
 			const Real inv2 = inv * inv;
 			result += std::log(x) - 0.5 * inv;
-			result -= inv2 * (REAL(1.0) / 12 - inv2 * (REAL(1.0) / 120 - inv2 * (REAL(1.0) / 252
-				- inv2 * (REAL(1.0) / 240 - inv2 * (REAL(1.0) / 132)))));
+			result -= inv2 * (static_cast<MML::Real>(1.0) / 12 - inv2 * (static_cast<MML::Real>(1.0) / 120 - inv2 * (static_cast<MML::Real>(1.0) / 252
+				- inv2 * (static_cast<MML::Real>(1.0) / 240 - inv2 * (static_cast<MML::Real>(1.0) / 132)))));
 			return result;
 		}
 
@@ -202,8 +202,8 @@ namespace MML
 
 			const Real inv = 1.0 / x;
 			const Real inv2 = inv * inv;
-			result += inv + 0.5 * inv2 + inv * inv2 * (REAL(1.0) / 6 - inv2 * (REAL(1.0) / 30
-				- inv2 * (REAL(1.0) / 42 - inv2 * (REAL(1.0) / 30))));
+			result += inv + 0.5 * inv2 + inv * inv2 * (static_cast<MML::Real>(1.0) / 6 - inv2 * (static_cast<MML::Real>(1.0) / 30
+				- inv2 * (static_cast<MML::Real>(1.0) / 42 - inv2 * (static_cast<MML::Real>(1.0) / 30))));
 			return result;
 		}
 
@@ -230,8 +230,8 @@ namespace MML
 
 			// Euler–Maclaurin tail of the Hurwitz zeta ζ(s, x).
 			Real tail = std::pow(x, 1.0 - s) / (s - 1) + 0.5 * std::pow(x, -(Real)s);
-			static const Real emC[] = { REAL(1.0) / 12, REAL(-1.0) / 720, REAL(1.0) / 30240,
-										REAL(-1.0) / 1209600, REAL(1.0) / 47900160 };
+			static const Real emC[] = { static_cast<MML::Real>(1.0) / 12, static_cast<MML::Real>(-1.0) / 720, static_cast<MML::Real>(1.0) / 30240,
+										static_cast<MML::Real>(-1.0) / 1209600, static_cast<MML::Real>(1.0) / 47900160 };
 			Real poch = s;                          // (s)_{2j-1}, starts at (s)_1 = s
 			Real xpow = std::pow(x, -(Real)(s + 1)); // x^{-(s+2j-1)}, starts at x^{-(s+1)}
 			const Real xinv2 = 1.0 / (x * x);
@@ -253,7 +253,7 @@ namespace MML
 		/// @details Giles (2010) rational initial guess refined by two Halley iterations against erf.
 		inline Real ErfInv(Real x)
 		{
-			if (x <= -1.0) { if (x == -1.0) return -std::numeric_limits<Real>::infinity(); throw DomainError("SpecialFunctions::ErfInv - |x| must be <= 1"); }
+			if (x <= -1.0) { if (x == -1.0) return -std::numeric_limits<Real>::infinity(); throw DomainError("SpecialFunctions::ErfInv - |x| must be <= 1"); }   // tol-ok: exact special value at the domain edge
 			if (x >= 1.0) { if (x == 1.0) return std::numeric_limits<Real>::infinity(); throw DomainError("SpecialFunctions::ErfInv - |x| must be <= 1"); }
 			if (x == 0.0) return 0.0;
 
@@ -262,33 +262,33 @@ namespace MML
 			if (w < 5.0)
 			{
 				w -= 2.5;
-				p = REAL(2.81022636e-08);
-				p = REAL(3.43273939e-07) + p * w;
-				p = REAL(-3.5233877e-06) + p * w;
-				p = REAL(-4.39150654e-06) + p * w;
-				p = REAL(0.00021858087) + p * w;
-				p = REAL(-0.00125372503) + p * w;
-				p = REAL(-0.00417768164) + p * w;
-				p = REAL(0.246640727) + p * w;
-				p = REAL(1.50140941) + p * w;
+				p = static_cast<MML::Real>(2.81022636e-08);   // tol-ok: Giles erfinv coefficients
+				p = static_cast<MML::Real>(3.43273939e-07) + p * w;
+				p = static_cast<MML::Real>(-3.5233877e-06) + p * w;
+				p = static_cast<MML::Real>(-4.39150654e-06) + p * w;
+				p = static_cast<MML::Real>(0.00021858087) + p * w;
+				p = static_cast<MML::Real>(-0.00125372503) + p * w;
+				p = static_cast<MML::Real>(-0.00417768164) + p * w;
+				p = static_cast<MML::Real>(0.246640727) + p * w;
+				p = static_cast<MML::Real>(1.50140941) + p * w;
 			}
 			else
 			{
 				w = std::sqrt(w) - 3.0;
-				p = REAL(-0.000200214257);
-				p = REAL(0.000100950558) + p * w;
-				p = REAL(0.00134934322) + p * w;
-				p = REAL(-0.00367342844) + p * w;
-				p = REAL(0.00573950773) + p * w;
-				p = REAL(-0.0076224613) + p * w;
-				p = REAL(0.00943887047) + p * w;
-				p = REAL(1.00167406) + p * w;
-				p = REAL(2.83297682) + p * w;
+				p = static_cast<MML::Real>(-0.000200214257);
+				p = static_cast<MML::Real>(0.000100950558) + p * w;
+				p = static_cast<MML::Real>(0.00134934322) + p * w;
+				p = static_cast<MML::Real>(-0.00367342844) + p * w;
+				p = static_cast<MML::Real>(0.00573950773) + p * w;
+				p = static_cast<MML::Real>(-0.0076224613) + p * w;
+				p = static_cast<MML::Real>(0.00943887047) + p * w;
+				p = static_cast<MML::Real>(1.00167406) + p * w;
+				p = static_cast<MML::Real>(2.83297682) + p * w;
 			}
 			Real res = p * x;
 
 			// Halley refinement against erf (2 iterations reach full double precision).
-			const Real twoOverSqrtPi = REAL(2.0) / std::sqrt(Constants::PI);
+			const Real twoOverSqrtPi = static_cast<MML::Real>(2.0) / std::sqrt(Constants::PI);
 			for (int i = 0; i < 2; i++)
 			{
 				Real err = std::erf(res) - x;
@@ -328,7 +328,7 @@ namespace MML
 				Real x0 = (2.30753 + t * 0.27061) / (1.0 + t * (0.99229 + t * 0.04481)) - t;
 				if (p < 0.5) x0 = -x0;
 				x = a * std::pow(1.0 - 1.0 / (9.0 * a) - x0 / (3.0 * std::sqrt(a)), 3.0);
-				x = (x <= 0.0) ? REAL(1e-8) : x;
+				x = (x <= 0.0) ? Precision::ModerateTolerance : x;   // keep the Newton iterate in the domain
 			}
 			else
 			{
@@ -339,14 +339,14 @@ namespace MML
 
 			for (int j = 0; j < 15; j++)
 			{
-				if (x <= 0.0) { x = REAL(1e-8); break; }
+				if (x <= 0.0) { x = Precision::ModerateTolerance; break; }
 				Real err = RegularizedGammaP(a, x) - p;
 				Real deriv = std::exp(-x + a1 * std::log(x) - gln);   // dP/dx
 				Real u = err / deriv;
-				Real correction = u / (1.0 - 0.5 * std::min<Real>(REAL(1.0), u * (a1 / x - REAL(1.0))));
+				Real correction = u / (1.0 - 0.5 * std::min<Real>(static_cast<MML::Real>(1.0), u * (a1 / x - static_cast<MML::Real>(1.0))));
 				x -= correction;
 				if (x <= 0.0) x = 0.5 * (x + correction);
-				if (std::abs(correction) < REAL(1e-14) * std::abs(x)) break;
+				if (IsNegligibleRelativeTo(correction, x, Precision::RoundoffZeroThreshold)) break;
 			}
 			return x;
 		}
@@ -391,11 +391,11 @@ namespace MML
 				Real err = RegularizedBetaI(x, a, b) - p;
 				Real deriv = std::exp(a1 * std::log(x) + b1 * std::log(1.0 - x) + afac);   // dI/dx
 				Real u = err / deriv;
-				Real correction = u / (1.0 - 0.5 * std::min<Real>(REAL(1.0), u * (a1 / x - b1 / (REAL(1.0) - x))));
+				Real correction = u / (1.0 - 0.5 * std::min<Real>(static_cast<MML::Real>(1.0), u * (a1 / x - b1 / (static_cast<MML::Real>(1.0) - x))));
 				x -= correction;
 				if (x <= 0.0) x = 0.5 * (x + correction);
 				if (x >= 1.0) x = 0.5 * (x + correction + 1.0);
-				if (std::abs(correction) < REAL(1e-14) * x) break;
+				if (IsNegligibleRelativeTo(correction, x, Precision::RoundoffZeroThreshold)) break;
 			}
 			return x;
 		}
@@ -409,7 +409,7 @@ namespace MML
 		/// @throws DomainError for n < 0, x < 0, or x == 0 with n in {0,1}.
 		inline Real ExpIntegralEn(int n, Real x)
 		{
-			static const Real EulerGamma = REAL(0.5772156649015328606);
+			static const Real EulerGamma = static_cast<MML::Real>(0.5772156649015328606);
 			const Real eps = std::numeric_limits<Real>::epsilon();
 			const Real big = std::numeric_limits<Real>::max() * eps;
 			const int MAXIT = 100;
@@ -469,7 +469,7 @@ namespace MML
 		/// @throws DomainError if x == 0.
 		inline Real ExpIntegralEi(Real x)
 		{
-			static const Real EulerGamma = REAL(0.5772156649015328606);
+			static const Real EulerGamma = static_cast<MML::Real>(0.5772156649015328606);
 			const Real eps = std::numeric_limits<Real>::epsilon();
 			const Real fpmin = std::numeric_limits<Real>::min() / eps;
 			const int MAXIT = 100;
@@ -511,12 +511,12 @@ namespace MML
 		/// @details Power series for |x| ≤ 2, complex continued fraction otherwise (Numerical Recipes).
 		inline void SinCosIntegral(Real x, Real& si, Real& ci)
 		{
-			static const Real EulerGamma = REAL(0.5772156649015328606);
+			static const Real EulerGamma = static_cast<MML::Real>(0.5772156649015328606);
 			const Real PIBY2 = Constants::PI / 2.0;
 			const Real eps = std::numeric_limits<Real>::epsilon();
-			const Real fpmin = std::numeric_limits<Real>::min() * REAL(4.0);
+			const Real fpmin = std::numeric_limits<Real>::min() * static_cast<MML::Real>(4.0);
 			const Real big = std::numeric_limits<Real>::max() * eps;
-			const Real TMIN = REAL(2.0);
+			const Real TMIN = static_cast<MML::Real>(2.0);
 			const int MAXIT = 100;
 
 			Real t = std::abs(x);
@@ -525,12 +525,12 @@ namespace MML
 			if (t > TMIN)
 			{
 				std::complex<Real> b(1.0, t), c(big, 0.0), d, h, del;
-				d = h = REAL(1.0) / b;
+				d = h = static_cast<MML::Real>(1.0) / b;
 				for (int i = 1; i < MAXIT; i++)
 				{
 					Real a = -Real(i) * Real(i);
 					b += std::complex<Real>(2.0, 0.0);
-					d = REAL(1.0) / (a * d + b);
+					d = static_cast<MML::Real>(1.0) / (a * d + b);
 					c = b + a / c;
 					del = c * d;
 					h *= del;
@@ -580,15 +580,15 @@ namespace MML
 		inline Real Dawson(Real x)
 		{
 			const int NMAX = 6;
-			const Real H = REAL(0.4);
-			const Real A1 = REAL(2.0) / REAL(3.0), A2 = REAL(0.4), A3 = REAL(2.0) / REAL(7.0);
+			const Real H = static_cast<MML::Real>(0.4);
+			const Real A1 = static_cast<MML::Real>(2.0) / static_cast<MML::Real>(3.0), A2 = static_cast<MML::Real>(0.4), A3 = static_cast<MML::Real>(2.0) / static_cast<MML::Real>(7.0);
 			static const std::array<Real, NMAX> ctab = [] {
 				std::array<Real, NMAX> c{};
-				for (int i = 0; i < NMAX; i++) { Real t = (2.0 * i + 1.0) * REAL(0.4); c[i] = std::exp(-t * t); }
+				for (int i = 0; i < NMAX; i++) { Real t = (2.0 * i + 1.0) * static_cast<MML::Real>(0.4); c[i] = std::exp(-t * t); }
 				return c;
 			}();
 
-			if (std::abs(x) < REAL(0.2))
+			if (std::abs(x) < static_cast<MML::Real>(0.2))
 			{
 				Real x2 = x * x;
 				return x * (1.0 - A1 * x2 * (1.0 - A2 * x2 * (1.0 - A3 * x2)));
@@ -605,7 +605,7 @@ namespace MML
 			for (int i = 0; i < NMAX; i++, d1 += 2.0, d2 -= 2.0, e1 *= e2)
 				sum += ctab[i] * (e1 / d1 + 1.0 / (d2 * e1));
 
-			Real val = (REAL(1.0) / std::sqrt(Constants::PI)) * std::exp(-xp * xp) * sum;
+			Real val = (static_cast<MML::Real>(1.0) / std::sqrt(Constants::PI)) * std::exp(-xp * xp) * sum;
 			return (x >= 0.0) ? val : -val;
 		}
 
@@ -616,7 +616,7 @@ namespace MML
 			const Real eps = std::numeric_limits<Real>::epsilon();
 			const Real fpmin = std::numeric_limits<Real>::min();
 			const Real big = std::numeric_limits<Real>::max() * eps;
-			const Real XMIN = REAL(1.5);
+			const Real XMIN = static_cast<MML::Real>(1.5);
 			const Real PIBY2 = Constants::PI / 2.0;
 			const int MAXIT = 100;
 
@@ -646,21 +646,21 @@ namespace MML
 			{
 				Real pix2 = Constants::PI * ax * ax;
 				std::complex<Real> b(1.0, -pix2), cc(big, 0.0), d, h, del, cs;
-				d = h = REAL(1.0) / b;
+				d = h = static_cast<MML::Real>(1.0) / b;
 				int n = -1;
 				for (int k = 2; k <= MAXIT; k++)
 				{
 					n += 2;
 					Real a = -Real(n) * Real(n + 1);
 					b += std::complex<Real>(4.0, 0.0);
-					d = REAL(1.0) / (a * d + b);
+					d = static_cast<MML::Real>(1.0) / (a * d + b);
 					cc = b + a / cc;
 					del = cc * d;
 					h *= del;
 					if (std::abs(std::real(del) - 1.0) + std::abs(std::imag(del)) <= eps) break;
 				}
 				h *= std::complex<Real>(ax, -ax);
-				cs = std::complex<Real>(0.5, 0.5) * (REAL(1.0) - std::complex<Real>(std::cos(0.5 * pix2), std::sin(0.5 * pix2)) * h);
+				cs = std::complex<Real>(0.5, 0.5) * (static_cast<MML::Real>(1.0) - std::complex<Real>(std::cos(0.5 * pix2), std::sin(0.5 * pix2)) * h);
 				c = std::real(cs); s = std::imag(cs);
 			}
 			if (x < 0.0) { c = -c; s = -s; }
@@ -682,23 +682,23 @@ namespace MML
 		/// @throws DomainError if x < -1/e.
 		inline Real LambertW0(Real x)
 		{
-			const Real EE = REAL(2.718281828459045235360287);
-			const Real minX = REAL(-0.36787944117144232159553);  // -1/e
+			const Real EE = static_cast<MML::Real>(2.718281828459045235360287);
+			const Real minX = static_cast<MML::Real>(-0.36787944117144232159553);  // -1/e
 			const Real eps = std::numeric_limits<Real>::epsilon();
 
-			if (x < minX - REAL(1e-12)) throw DomainError("SpecialFunctions::LambertW0 - x must be >= -1/e");
-			if (x <= minX + REAL(1e-10)) return REAL(-1.0);   // at/near the branch point -1/e
+			if (x < minX - Precision::ZeroTolerance) throw DomainError("SpecialFunctions::LambertW0 - x must be >= -1/e");
+			if (x <= minX + Precision::EqualityTolerance) return static_cast<MML::Real>(-1.0);   // at/near the branch point -1/e
 			if (x == 0.0) return 0.0;
 
 			Real w;
-			if (x < REAL(-0.3))
+			if (x < static_cast<MML::Real>(-0.3))
 			{
-				Real arg = REAL(2.0) * (EE * x + REAL(1.0));
-				Real p = std::sqrt(arg < 0.0 ? REAL(0.0) : arg);
-				w = REAL(-1.0) + p - p * p / REAL(3.0) + REAL(11.0) * p * p * p / REAL(72.0);
+				Real arg = static_cast<MML::Real>(2.0) * (EE * x + static_cast<MML::Real>(1.0));
+				Real p = std::sqrt(arg < 0.0 ? static_cast<MML::Real>(0.0) : arg);
+				w = static_cast<MML::Real>(-1.0) + p - p * p / static_cast<MML::Real>(3.0) + static_cast<MML::Real>(11.0) * p * p * p / static_cast<MML::Real>(72.0);
 			}
-			else if (x < REAL(1.5))
-				w = x / (REAL(1.0) + x);   // simple, Halley refines
+			else if (x < static_cast<MML::Real>(1.5))
+				w = x / (static_cast<MML::Real>(1.0) + x);   // simple, Halley refines
 			else
 			{
 				Real l1 = std::log(x);
@@ -710,10 +710,10 @@ namespace MML
 			{
 				Real ew = std::exp(w);
 				Real f = w * ew - x;
-				Real wp1 = w + REAL(1.0);
-				Real dw = f / (ew * wp1 - (w + REAL(2.0)) * f / (REAL(2.0) * wp1));
+				Real wp1 = w + static_cast<MML::Real>(1.0);
+				Real dw = f / (ew * wp1 - (w + static_cast<MML::Real>(2.0)) * f / (static_cast<MML::Real>(2.0) * wp1));
 				w -= dw;
-				if (std::abs(dw) <= eps * (REAL(1.0) + std::abs(w))) break;
+				if (std::abs(dw) <= eps * (static_cast<MML::Real>(1.0) + std::abs(w))) break;
 			}
 			return w;
 		}
@@ -722,19 +722,19 @@ namespace MML
 		/// @throws DomainError if x is outside [-1/e, 0).
 		inline Real LambertWm1(Real x)
 		{
-			const Real EE = REAL(2.718281828459045235360287);
-			const Real minX = REAL(-0.36787944117144232159553);  // -1/e
+			const Real EE = static_cast<MML::Real>(2.718281828459045235360287);
+			const Real minX = static_cast<MML::Real>(-0.36787944117144232159553);  // -1/e
 			const Real eps = std::numeric_limits<Real>::epsilon();
 
-			if (x >= 0.0 || x < minX - REAL(1e-12)) throw DomainError("SpecialFunctions::LambertWm1 - x must be in [-1/e, 0)");
-			if (x <= minX + REAL(1e-10)) return REAL(-1.0);   // at/near the branch point -1/e
+			if (x >= 0.0 || x < minX - Precision::ZeroTolerance) throw DomainError("SpecialFunctions::LambertWm1 - x must be in [-1/e, 0)");
+			if (x <= minX + Precision::EqualityTolerance) return static_cast<MML::Real>(-1.0);   // at/near the branch point -1/e
 
 			Real w;
-			if (x < REAL(-0.3))
+			if (x < static_cast<MML::Real>(-0.3))
 			{
-				Real arg = REAL(2.0) * (EE * x + REAL(1.0));
-				Real p = -std::sqrt(arg < 0.0 ? REAL(0.0) : arg);  // negative branch
-				w = REAL(-1.0) + p - p * p / REAL(3.0) + REAL(11.0) * p * p * p / REAL(72.0);
+				Real arg = static_cast<MML::Real>(2.0) * (EE * x + static_cast<MML::Real>(1.0));
+				Real p = -std::sqrt(arg < 0.0 ? static_cast<MML::Real>(0.0) : arg);  // negative branch
+				w = static_cast<MML::Real>(-1.0) + p - p * p / static_cast<MML::Real>(3.0) + static_cast<MML::Real>(11.0) * p * p * p / static_cast<MML::Real>(72.0);
 			}
 			else
 			{
@@ -747,10 +747,10 @@ namespace MML
 			{
 				Real ew = std::exp(w);
 				Real f = w * ew - x;
-				Real wp1 = w + REAL(1.0);
-				Real dw = f / (ew * wp1 - (w + REAL(2.0)) * f / (REAL(2.0) * wp1));
+				Real wp1 = w + static_cast<MML::Real>(1.0);
+				Real dw = f / (ew * wp1 - (w + static_cast<MML::Real>(2.0)) * f / (static_cast<MML::Real>(2.0) * wp1));
 				w -= dw;
-				if (std::abs(dw) <= eps * (REAL(1.0) + std::abs(w))) break;
+				if (std::abs(dw) <= eps * (static_cast<MML::Real>(1.0) + std::abs(w))) break;
 			}
 			return w;
 		}
@@ -764,13 +764,13 @@ namespace MML
 		inline void Airy(Real x, Real& ai, Real& bi, Real& aip, Real& bip)
 		{
 			const Real sqrtPi = std::sqrt(Constants::PI);
-			const Real c1 = REAL(0.3550280538878172);   // Ai(0)
-			const Real c2 = REAL(0.2588194037928068);   // -Ai'(0)
+			const Real c1 = static_cast<MML::Real>(0.3550280538878172);   // Ai(0)
+			const Real c2 = static_cast<MML::Real>(0.2588194037928068);   // -Ai'(0)
 			const Real eps = std::numeric_limits<Real>::epsilon();
 
-			if (std::abs(x) < REAL(6.0))
+			if (std::abs(x) < static_cast<MML::Real>(6.0))
 			{
-				const Real sqrt3 = std::sqrt(REAL(3.0));
+				const Real sqrt3 = std::sqrt(static_cast<MML::Real>(3.0));
 				if (x == 0.0) { ai = c1; bi = sqrt3 * c1; aip = -c2; bip = sqrt3 * c2; return; }
 				Real x3 = x * x * x;
 				Real F = 1.0, G = x, Fp = 0.0, Gp = 1.0, tF = 1.0, tG = x;
@@ -791,56 +791,56 @@ namespace MML
 			}
 
 			const Real t = std::abs(x);
-			const Real zeta = (REAL(2.0) / REAL(3.0)) * std::pow(t, REAL(1.5));
-			const Real t14 = std::pow(t, REAL(0.25));
-			const Real zinv = REAL(1.0) / zeta;
+			const Real zeta = (static_cast<MML::Real>(2.0) / static_cast<MML::Real>(3.0)) * std::pow(t, static_cast<MML::Real>(1.5));
+			const Real t14 = std::pow(t, static_cast<MML::Real>(0.25));
+			const Real zinv = static_cast<MML::Real>(1.0) / zeta;
 
 			if (x > 0.0)
 			{
 				Real Sc = 0, ScAlt = 0, Sv = 0, SvAlt = 0;
-				Real cm = 1.0, zpow = 1.0, prev = REAL(1e300);
+				Real cm = 1.0, zpow = 1.0, prev = Constants::PosInf;
 				for (int m = 0; m <= 40; m++)
 				{
-					Real vm = (m == 0) ? REAL(1.0) : -cm * Real(6 * m + 1) / Real(6 * m - 1);
+					Real vm = (m == 0) ? static_cast<MML::Real>(1.0) : -cm * Real(6 * m + 1) / Real(6 * m - 1);
 					Real termC = cm * zpow, termV = vm * zpow;
 					if (m > 0 && std::abs(termC) > prev) break;   // asymptotic divergence
-					Real sgn = (m % 2 == 0) ? REAL(1.0) : REAL(-1.0);
+					Real sgn = (m % 2 == 0) ? static_cast<MML::Real>(1.0) : static_cast<MML::Real>(-1.0);
 					Sc += termC; ScAlt += sgn * termC;
 					Sv += termV; SvAlt += sgn * termV;
 					prev = std::abs(termC);
 					if (std::abs(termC) < eps) break;
 					int k = m + 1;
-					cm *= Real(6 * k - 5) * Real(6 * k - 3) * Real(6 * k - 1) / (Real(2 * k - 1) * REAL(216.0) * Real(k));
+					cm *= Real(6 * k - 5) * Real(6 * k - 3) * Real(6 * k - 1) / (Real(2 * k - 1) * static_cast<MML::Real>(216.0) * Real(k));
 					zpow *= zinv;
 				}
 				Real emz = std::exp(-zeta), epz = std::exp(zeta);
-				ai = emz / (REAL(2.0) * sqrtPi * t14) * ScAlt;
+				ai = emz / (static_cast<MML::Real>(2.0) * sqrtPi * t14) * ScAlt;
 				bi = epz / (sqrtPi * t14) * Sc;
-				aip = -t14 * emz / (REAL(2.0) * sqrtPi) * SvAlt;
+				aip = -t14 * emz / (static_cast<MML::Real>(2.0) * sqrtPi) * SvAlt;
 				bip = t14 * epz / sqrtPi * Sv;
 				return;
 			}
 
 			// x < 0
-			const Real theta = zeta - Constants::PI / REAL(4.0);
+			const Real theta = zeta - Constants::PI / static_cast<MML::Real>(4.0);
 			const Real cth = std::cos(theta), sth = std::sin(theta);
 			Real P = 0, Q = 0, R = 0, S = 0;
-			Real cm = 1.0, zpow = 1.0, prev = REAL(1e300);
+			Real cm = 1.0, zpow = 1.0, prev = Constants::PosInf;
 			for (int m = 0; m <= 40; m++)
 			{
-				Real vm = (m == 0) ? REAL(1.0) : -cm * Real(6 * m + 1) / Real(6 * m - 1);
+				Real vm = (m == 0) ? static_cast<MML::Real>(1.0) : -cm * Real(6 * m + 1) / Real(6 * m - 1);
 				Real termC = cm * zpow, termV = vm * zpow;
 				if (m > 0 && std::abs(termC) > prev) break;
-				Real sgn = ((m / 2) % 2 == 0) ? REAL(1.0) : REAL(-1.0);
+				Real sgn = ((m / 2) % 2 == 0) ? static_cast<MML::Real>(1.0) : static_cast<MML::Real>(-1.0);
 				if (m % 2 == 0) { P += sgn * termC; R += sgn * termV; }
 				else { Q += sgn * termC; S += sgn * termV; }
 				prev = std::abs(termC);
 				if (std::abs(termC) < eps) break;
 				int k = m + 1;
-				cm *= Real(6 * k - 5) * Real(6 * k - 3) * Real(6 * k - 1) / (Real(2 * k - 1) * REAL(216.0) * Real(k));
+				cm *= Real(6 * k - 5) * Real(6 * k - 3) * Real(6 * k - 1) / (Real(2 * k - 1) * static_cast<MML::Real>(216.0) * Real(k));
 				zpow *= zinv;
 			}
-			Real inv = REAL(1.0) / (sqrtPi * t14);
+			Real inv = static_cast<MML::Real>(1.0) / (sqrtPi * t14);
 			ai = inv * (cth * P + sth * Q);
 			bi = inv * (-sth * P + cth * Q);
 			Real invd = t14 / sqrtPi;
@@ -862,9 +862,9 @@ namespace MML
 			/// @brief Asymptotic locator T(t) for Airy zeros (DLMF 9.9.6).
 			inline Real AiryZeroT(Real t)
 			{
-				Real u = REAL(1.0) / (t * t);
-				return std::pow(t, REAL(2.0) / REAL(3.0)) *
-					(REAL(1.0) + u * (REAL(5.0) / 48 - u * (REAL(5.0) / 36 - u * (REAL(77125.0) / 82944))));
+				Real u = static_cast<MML::Real>(1.0) / (t * t);
+				return std::pow(t, static_cast<MML::Real>(2.0) / static_cast<MML::Real>(3.0)) *
+					(static_cast<MML::Real>(1.0) + u * (static_cast<MML::Real>(5.0) / 48 - u * (static_cast<MML::Real>(5.0) / 36 - u * (static_cast<MML::Real>(77125.0) / 82944))));
 			}
 		}
 
@@ -872,14 +872,14 @@ namespace MML
 		inline Real AiryAiZero(int n)
 		{
 			if (n < 1) throw DomainError("SpecialFunctions::AiryAiZero - n must be >= 1");
-			Real t = REAL(3.0) * Constants::PI * (REAL(4.0) * n - REAL(1.0)) / REAL(8.0);
+			Real t = static_cast<MML::Real>(3.0) * Constants::PI * (static_cast<MML::Real>(4.0) * n - static_cast<MML::Real>(1.0)) / static_cast<MML::Real>(8.0);
 			Real x = -detail::AiryZeroT(t);
 			for (int i = 0; i < 60; i++)
 			{
 				Real ai, bi, aip, bip; Airy(x, ai, bi, aip, bip);
 				Real dx = ai / aip;
 				x -= dx;
-				if (std::abs(dx) <= REAL(1e-14) * (REAL(1.0) + std::abs(x))) break;
+				if (IsNegligibleRelativeTo(dx, static_cast<MML::Real>(1.0) + std::abs(x), Precision::RoundoffZeroThreshold)) break;
 			}
 			return x;
 		}
@@ -888,14 +888,14 @@ namespace MML
 		inline Real AiryBiZero(int n)
 		{
 			if (n < 1) throw DomainError("SpecialFunctions::AiryBiZero - n must be >= 1");
-			Real t = REAL(3.0) * Constants::PI * (REAL(4.0) * n - REAL(3.0)) / REAL(8.0);
+			Real t = static_cast<MML::Real>(3.0) * Constants::PI * (static_cast<MML::Real>(4.0) * n - static_cast<MML::Real>(3.0)) / static_cast<MML::Real>(8.0);
 			Real x = -detail::AiryZeroT(t);
 			for (int i = 0; i < 60; i++)
 			{
 				Real ai, bi, aip, bip; Airy(x, ai, bi, aip, bip);
 				Real dx = bi / bip;
 				x -= dx;
-				if (std::abs(dx) <= REAL(1e-14) * (REAL(1.0) + std::abs(x))) break;
+				if (IsNegligibleRelativeTo(dx, static_cast<MML::Real>(1.0) + std::abs(x), Precision::RoundoffZeroThreshold)) break;
 			}
 			return x;
 		}

@@ -109,7 +109,6 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		STATIC_REQUIRE(std::same_as<decltype(std::declval<MatrixAnalysis<Scalar>>().stability), MatrixStability>);
 		STATIC_REQUIRE(std::same_as<decltype(std::declval<MatrixAnalysis<Scalar>>().expectedDigitsLost), std::optional<int>>);
 		STATIC_REQUIRE(std::same_as<decltype(std::declval<MatrixAnalysis<Scalar>>().definiteness), std::optional<Definiteness>>);
-		STATIC_REQUIRE(std::same_as<decltype(std::declval<MatrixAnalysis<Scalar>>().report), std::string>);
 	}
 
 	TEST_CASE("MML 2.0 canonical matrix analysis result types", "[MatrixAlg][Contract][MML2][Types]")
@@ -186,10 +185,10 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 
 	TEST_CASE("MML 2.0 current matrix foundation singular value contracts", "[MatrixAlg][Characterization][Contract][MML2]")
 	{
-		const Matrix<Real> singularReal{2, 2, {REAL(1.0), REAL(0.0), REAL(0.0), REAL(0.0)}};
+		const Matrix<Real> singularReal{2, 2, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)}};
 		const Matrix<Complex> singularComplex{2, 2, {Complex{1.0, 1.0}, Complex{}, Complex{}, Complex{}}};
 
-		REQUIRE(Determinant(singularReal) == REAL(0.0));
+		REQUIRE(Determinant(singularReal) == static_cast<MML::Real>(0.0));
 		REQUIRE(Determinant(singularComplex) == Complex{});
 		REQUIRE(std::isinf(ConditionNumber(singularReal)));
 	}
@@ -204,9 +203,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		REQUIRE_FALSE(IsWide(empty));
 
 		const Matrix<Real> tall{3, 2, {
-			REAL(1.0), REAL(2.0),
-			REAL(0.0), REAL(3.0),
-			REAL(0.0), REAL(0.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)
 		}};
 		REQUIRE(IsTall(tall));
 		REQUIRE(IsUpperTriangular(tall));
@@ -214,24 +213,24 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		REQUIRE_FALSE(IsSymmetric(tall));
 
 		const Matrix<Real> wideLower{2, 3, {
-			REAL(1.0), REAL(0.0), REAL(0.0),
-			REAL(2.0), REAL(3.0), REAL(0.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0)
 		}};
 		REQUIRE(IsWide(wideLower));
 		REQUIRE(IsLowerTriangular(wideLower));
 		REQUIRE(IsDiagonal(Matrix<Real>{2, 3, {
-			REAL(1.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(2.0), REAL(0.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0)
 		}}));
 
 		const Matrix<Real> scaled{2, 2, {
-			REAL(1e8), REAL(2.0),
-			REAL(0.005), REAL(1e8)
+			static_cast<MML::Real>(1e8), static_cast<MML::Real>(2.0),
+			static_cast<MML::Real>(0.005), static_cast<MML::Real>(1e8)
 		}};
-		const MatrixComparisonTolerance<Real> tolerance{REAL(1e-10), REAL(1e-10)};
+		const MatrixComparisonTolerance<Real> tolerance{static_cast<MML::Real>(1e-10), static_cast<MML::Real>(1e-10)};
 		REQUIRE(IsUpperTriangular(scaled, tolerance));
-		REQUIRE_FALSE(IsUpperTriangular(scaled, MatrixComparisonTolerance<Real>{REAL(1e-10), REAL(0.0)}));
-		REQUIRE_THROWS_AS(IsDiagonal(scaled, MatrixComparisonTolerance<Real>{REAL(-1.0), REAL(0.0)}), DomainError);
+		REQUIRE_FALSE(IsUpperTriangular(scaled, MatrixComparisonTolerance<Real>{static_cast<MML::Real>(1e-10), static_cast<MML::Real>(0.0)}));
+		REQUIRE_THROWS_AS(IsDiagonal(scaled, MatrixComparisonTolerance<Real>{static_cast<MML::Real>(-1.0), static_cast<MML::Real>(0.0)}), DomainError);
 	}
 
 	TEST_CASE("MML 2.0 MatrixAlg distinguishes complex symmetry families", "[MatrixAlg][Structure][Complex][MML2]")
@@ -272,10 +271,10 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		STATIC_REQUIRE(std::same_as<decltype(Sparsity(matrix)), Real>);
 
 		REQUIRE(Trace(matrix) == Complex{4.0, 2.0});
-		REQUIRE(std::abs(FrobeniusNorm(matrix) - std::sqrt(REAL(30.0))) < TOL(1e-12, 1e-5));
-		REQUIRE(std::abs(OneNorm(matrix) - REAL(5.0)) < TOL(1e-12, 1e-5));
-		REQUIRE(std::abs(InfinityNorm(matrix) - REAL(5.0)) < TOL(1e-12, 1e-5));
-		REQUIRE(std::abs(Sparsity(matrix) - REAL(0.5)) < TOL(1e-12, 1e-5));
+		REQUIRE(std::abs(FrobeniusNorm(matrix) - std::sqrt(static_cast<MML::Real>(30.0))) < TOL(1e-12, 1e-5));
+		REQUIRE(std::abs(OneNorm(matrix) - static_cast<MML::Real>(5.0)) < TOL(1e-12, 1e-5));
+		REQUIRE(std::abs(InfinityNorm(matrix) - static_cast<MML::Real>(5.0)) < TOL(1e-12, 1e-5));
+		REQUIRE(std::abs(Sparsity(matrix) - static_cast<MML::Real>(0.5)) < TOL(1e-12, 1e-5));
 
 		const Matrix<Complex> dominant{2, 2, {
 			Complex{5.0, 0.0}, Complex{1.0, 1.0},
@@ -283,29 +282,29 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		}};
 		REQUIRE(IsDiagonallyDominant(dominant));
 		REQUIRE_FALSE(IsDiagonallyDominant(Matrix<Real>{2, 2, {
-			REAL(1.0), REAL(1.0),
-			REAL(0.0), REAL(1.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)
 		}}));
-		REQUIRE_THROWS_AS(Sparsity(matrix, REAL(-1.0)), DomainError);
+		REQUIRE_THROWS_AS(Sparsity(matrix, static_cast<MML::Real>(-1.0)), DomainError);
 		REQUIRE_THROWS_AS(Trace(Matrix<Real>{2, 3}), MatrixDimensionError);
 		REQUIRE_THROWS_AS(FrobeniusNorm(Matrix<Real>{}), MatrixDimensionError);
 
-		const Real large = std::numeric_limits<Real>::max() / REAL(4.0);
+		const Real large = std::numeric_limits<Real>::max() / static_cast<MML::Real>(4.0);
 		const Real largeNorm = FrobeniusNorm(Matrix<Real>{1, 2, {large, large}});
 		REQUIRE(std::isfinite(largeNorm));
-		REQUIRE(std::abs(largeNorm / large - std::sqrt(REAL(2.0))) < TOL(1e-12, 1e-5));
+		REQUIRE(std::abs(largeNorm / large - std::sqrt(static_cast<MML::Real>(2.0))) < TOL(1e-12, 1e-5));
 	}
 
 	TEST_CASE("MML 2.0 MatrixAlg orthogonal and unitary predicates", "[MatrixAlg][Structure][Complex][MML2]")
 	{
 		const Matrix<Real> rotation{2, 2, {
-			REAL(0.0), REAL(-1.0),
-			REAL(1.0), REAL(0.0)
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(-1.0),
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)
 		}};
 		REQUIRE(IsOrthogonal(rotation));
 		REQUIRE(IsUnitary(rotation));
 
-		const Real inverseSqrt2 = REAL(1.0) / std::sqrt(REAL(2.0));
+		const Real inverseSqrt2 = static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(2.0));
 		const Matrix<Complex> unitary{2, 2, {
 			Complex{inverseSqrt2, 0.0}, Complex{0.0, inverseSqrt2},
 			Complex{0.0, inverseSqrt2}, Complex{inverseSqrt2, 0.0}
@@ -318,12 +317,12 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 	TEST_CASE("MML 2.0 MatrixAlg algebraic properties and direct operations", "[MatrixAlg][Algebraic][MML2]")
 	{
 		const Matrix<Real> nilpotent{2, 2, {
-			REAL(0.0), REAL(1.0),
-			REAL(0.0), REAL(0.0)
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)
 		}};
 		REQUIRE(IsNilpotent(nilpotent));
-		REQUIRE(IsNilpotent(Matrix<Real>{1, 1, {REAL(0.0)}}));
-		REQUIRE_FALSE(IsNilpotent(Matrix<Real>{1, 1, {REAL(1.0)}}));
+		REQUIRE(IsNilpotent(Matrix<Real>{1, 1, {static_cast<MML::Real>(0.0)}}));
+		REQUIRE_FALSE(IsNilpotent(Matrix<Real>{1, 1, {static_cast<MML::Real>(1.0)}}));
 
 		const Matrix<Complex> unipotent{2, 2, {
 			Complex{1.0, 0.0}, Complex{0.0, 1.0},
@@ -337,20 +336,20 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		}};
 		STATIC_REQUIRE(std::same_as<decltype(Determinant(diagonal)), Complex>);
 		REQUIRE(Determinant(diagonal) == Complex{7.0, 1.0});
-		REQUIRE(Determinant(Matrix<Real>{2, 2, {REAL(1.0), REAL(2.0), REAL(2.0), REAL(4.0)}}) == REAL(0.0));
+		REQUIRE(Determinant(Matrix<Real>{2, 2, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0)}}) == static_cast<MML::Real>(0.0));
 		REQUIRE((diagonal * Inverse(diagonal)).IsEqualTo(Matrix<Complex>::Identity(2), TOL(1e-12, 1e-5)));
-		REQUIRE_THROWS_AS(Inverse(Matrix<Real>{2, 2, {REAL(1.0), REAL(2.0), REAL(2.0), REAL(4.0)}}), SingularMatrixError);
+		REQUIRE_THROWS_AS(Inverse(Matrix<Real>{2, 2, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0)}}), SingularMatrixError);
 
 		const Matrix<Real> badlyScaled{2, 2, {
-			REAL(1e20), REAL(0.0),
-			REAL(0.0), REAL(1.0)
+			static_cast<MML::Real>(1e20), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)
 		}};
-		REQUIRE(std::abs(Determinant(badlyScaled) / REAL(1e20) - REAL(1.0)) < TOL(1e-12, 1e-5));
+		REQUIRE(std::abs(Determinant(badlyScaled) / static_cast<MML::Real>(1e20) - static_cast<MML::Real>(1.0)) < TOL(1e-12, 1e-5));
 		REQUIRE((badlyScaled * Inverse(badlyScaled)).IsEqualTo(Matrix<Real>::Identity(2), TOL(1e-12, 1e-5)));
 
 		const Matrix<Real> rankOne{2, 3, {
-			REAL(1.0), REAL(2.0), REAL(3.0),
-			REAL(2.0), REAL(4.0), REAL(6.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0)
 		}};
 		REQUIRE(RankGaussian(rankOne) == 1);
 		REQUIRE(RankGaussian(Matrix<Complex>{2, 2, {
@@ -359,20 +358,20 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		}}) == 1);
 
 		const auto result = FaddeevLeVerrier(Matrix<Real>{2, 2, {
-			REAL(2.0), REAL(0.0),
-			REAL(0.0), REAL(3.0)
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0)
 		}});
-		REQUIRE(result.characteristicCoefficients.IsEqualTo(Vector<Real>{REAL(1.0), REAL(-5.0), REAL(6.0)}, TOL(1e-12, 1e-5)));
-		REQUIRE(result.determinant == REAL(6.0));
+		REQUIRE(result.characteristicCoefficients.IsEqualTo(Vector<Real>{static_cast<MML::Real>(1.0), static_cast<MML::Real>(-5.0), static_cast<MML::Real>(6.0)}, TOL(1e-12, 1e-5)));
+		REQUIRE(result.determinant == static_cast<MML::Real>(6.0));
 		REQUIRE(result.inverse.has_value());
-		REQUIRE(std::abs((*result.inverse)(0, 0) - REAL(0.5)) < TOL(1e-12, 1e-5));
-		REQUIRE(std::abs((*result.inverse)(1, 1) - REAL(1.0 / 3.0)) < TOL(1e-12, 1e-5));
+		REQUIRE(std::abs((*result.inverse)(0, 0) - static_cast<MML::Real>(0.5)) < TOL(1e-12, 1e-5));
+		REQUIRE(std::abs((*result.inverse)(1, 1) - static_cast<MML::Real>(1.0 / 3.0)) < TOL(1e-12, 1e-5));
 
 		const auto singularResult = FaddeevLeVerrier(Matrix<Real>{2, 2, {
-			REAL(1.0), REAL(2.0),
-			REAL(2.0), REAL(4.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0)
 		}});
-		REQUIRE(singularResult.determinant == REAL(0.0));
+		REQUIRE(singularResult.determinant == static_cast<MML::Real>(0.0));
 		REQUIRE_FALSE(singularResult.inverse.has_value());
 
 		const auto complexSingularResult = FaddeevLeVerrier(Matrix<Complex>{2, 2, {
@@ -391,9 +390,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 	TEST_CASE("MML 2.0 MatrixAlg LU QR and Cholesky decompositions", "[MatrixAlg][Decomposition][MML2]")
 	{
 		const Matrix<Real> square{3, 3, {
-			REAL(0.0), REAL(2.0), REAL(1.0),
-			REAL(1.0), REAL(1.0), REAL(0.0),
-			REAL(2.0), REAL(0.0), REAL(1.0)
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0),
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)
 		}};
 		const auto lu = LUDecompose(square);
 		Matrix<Real> permuted(square.rows(), square.cols());
@@ -404,10 +403,10 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		REQUIRE(std::abs(lu.determinant - Determinant(square)) < TOL(1e-10, 1e-5));
 
 		const Matrix<Real> tall{4, 2, {
-			REAL(1.0), REAL(2.0),
-			REAL(2.0), REAL(0.0),
-			REAL(0.0), REAL(3.0),
-			REAL(1.0), REAL(1.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0)
 		}};
 		const auto qr = QRDecompose(tall);
 		REQUIRE(qr.Q.rows() == 4);
@@ -415,15 +414,15 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		REQUIRE(qr.R.rows() == 2);
 		REQUIRE(qr.R.cols() == 2);
 		REQUIRE((qr.Q * qr.R).IsEqualTo(tall, TOL(1e-9, 1e-4)));
-		REQUIRE(IsOrthogonal(qr.Q.transpose() * qr.Q));
+		REQUIRE(IsOrthogonal(qr.Q.Transposed() * qr.Q));
 		REQUIRE_THROWS_AS(QRDecompose(Matrix<Real>{2, 3}), MatrixDimensionError);
 
 		const Matrix<Real> spd{2, 2, {
-			REAL(4.0), REAL(2.0),
-			REAL(2.0), REAL(3.0)
+			static_cast<MML::Real>(4.0), static_cast<MML::Real>(2.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)
 		}};
 		const auto cholesky = CholeskyDecompose(spd);
-		REQUIRE((cholesky.L * cholesky.L.transpose()).IsEqualTo(spd, TOL(1e-10, 1e-5)));
+		REQUIRE((cholesky.L * cholesky.L.Transposed()).IsEqualTo(spd, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("MML 2.0 MatrixAlg full SVD handles tall and wide matrices", "[MatrixAlg][Decomposition][SVD][MML2]")
@@ -448,65 +447,65 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 			Matrix<Real> sigma(matrix.rows(), matrix.cols());
 			for (int index = 0; index < minDimension; ++index)
 				sigma(index, index) = svd.singularValues[index];
-			REQUIRE((svd.U * sigma * svd.V.transpose()).IsEqualTo(matrix, TOL(1e-8, 1e-4)));
+			REQUIRE((svd.U * sigma * svd.V.Transposed()).IsEqualTo(matrix, TOL(1e-8, 1e-4)));
 		};
 
 		verify(Matrix<Real>{4, 2, {
-			REAL(1.0), REAL(2.0),
-			REAL(2.0), REAL(0.0),
-			REAL(0.0), REAL(3.0),
-			REAL(1.0), REAL(1.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0)
 		}});
 		verify(Matrix<Real>{2, 4, {
-			REAL(1.0), REAL(2.0), REAL(0.0), REAL(1.0),
-			REAL(0.0), REAL(1.0), REAL(3.0), REAL(1.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(1.0)
 		}});
 	}
 
 	TEST_CASE("MML 2.0 MatrixAlg shares one SVD threshold", "[MatrixAlg][SVD][Conditioning][MML2]")
 	{
 		const Matrix<Real> diagonal{2, 2, {
-			REAL(10.0), REAL(0.0),
-			REAL(0.0), REAL(0.1)
+			static_cast<MML::Real>(10.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.1)
 		}};
 		const auto automatic = SVDDecompose(diagonal);
 		REQUIRE(automatic.rank == 2);
 		REQUIRE(Rank(diagonal) == 2);
 		REQUIRE(Nullity(diagonal) == 0);
-		REQUIRE(std::abs(ConditionNumber(diagonal) - REAL(100.0)) < TOL(1e-9, 1e-4));
-		REQUIRE(std::abs(ConditionNumber1(diagonal) - REAL(100.0)) < TOL(1e-9, 1e-4));
-		REQUIRE(std::abs(ConditionNumberInfinity(diagonal) - REAL(100.0)) < TOL(1e-9, 1e-4));
+		REQUIRE(std::abs(ConditionNumber(diagonal) - static_cast<MML::Real>(100.0)) < TOL(1e-9, 1e-4));
+		REQUIRE(std::abs(ConditionNumber1(diagonal) - static_cast<MML::Real>(100.0)) < TOL(1e-9, 1e-4));
+		REQUIRE(std::abs(ConditionNumberInfinity(diagonal) - static_cast<MML::Real>(100.0)) < TOL(1e-9, 1e-4));
 
-		const std::optional<Real> threshold{REAL(0.5)};
+		const std::optional<Real> threshold{static_cast<MML::Real>(0.5)};
 		const auto truncated = SVDDecompose(diagonal, threshold);
 		REQUIRE(truncated.threshold == *threshold);
 		REQUIRE(truncated.rank == 1);
 		REQUIRE(Rank(diagonal, threshold) == 1);
 		REQUIRE(Nullity(diagonal, threshold) == 1);
 		REQUIRE(std::isinf(ConditionNumber(diagonal, threshold)));
-		REQUIRE_THROWS_AS(SVDDecompose(diagonal, REAL(-1.0)), DomainError);
+		REQUIRE_THROWS_AS(SVDDecompose(diagonal, static_cast<MML::Real>(-1.0)), DomainError);
 		REQUIRE_THROWS_AS(SVDDecompose(diagonal, std::numeric_limits<Real>::quiet_NaN()), DomainError);
 		REQUIRE_THROWS_AS(SVDDecompose(diagonal, std::numeric_limits<Real>::infinity()), DomainError);
 
 		REQUIRE(AssessStability(Matrix<Real>::Identity(2)) == MatrixStability::WellConditioned);
-		REQUIRE(AssessStability(Matrix<Real>{2, 2, {REAL(1.0), REAL(0.0), REAL(0.0), REAL(0.0)}}) == MatrixStability::Singular);
+		REQUIRE(AssessStability(Matrix<Real>{2, 2, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)}}) == MatrixStability::Singular);
 		REQUIRE(ExpectedDigitsLost(Matrix<Real>::Identity(2)) == std::optional<int>{0});
-		REQUIRE_FALSE(ExpectedDigitsLost(Matrix<Real>{2, 2, {REAL(1.0), REAL(0.0), REAL(0.0), REAL(0.0)}}).has_value());
+		REQUIRE_FALSE(ExpectedDigitsLost(Matrix<Real>{2, 2, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)}}).has_value());
 
 		const Matrix<Real> rectangularIdentity{3, 2, {
-			REAL(1.0), REAL(0.0),
-			REAL(0.0), REAL(1.0),
-			REAL(0.0), REAL(0.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)
 		}};
-		REQUIRE(std::abs(ConditionNumber1(rectangularIdentity) - REAL(1.0)) < TOL(1e-9, 1e-4));
-		REQUIRE(std::abs(ConditionNumberInfinity(rectangularIdentity) - REAL(1.0)) < TOL(1e-9, 1e-4));
+		REQUIRE(std::abs(ConditionNumber1(rectangularIdentity) - static_cast<MML::Real>(1.0)) < TOL(1e-9, 1e-4));
+		REQUIRE(std::abs(ConditionNumberInfinity(rectangularIdentity) - static_cast<MML::Real>(1.0)) < TOL(1e-9, 1e-4));
 	}
 
 	TEST_CASE("MML 2.0 MatrixAlg pseudoinverse and fundamental subspaces", "[MatrixAlg][SVD][Subspaces][MML2]")
 	{
 		const Matrix<Real> matrix{2, 3, {
-			REAL(1.0), REAL(2.0), REAL(3.0),
-			REAL(2.0), REAL(4.0), REAL(6.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0)
 		}};
 		const Matrix<Real> pseudoinverse = PseudoInverse(matrix);
 		REQUIRE((matrix * pseudoinverse * matrix).IsEqualTo(matrix, TOL(1e-8, 1e-4)));
@@ -523,9 +522,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		REQUIRE(spaces.leftNullSpace.rows() == 2);
 		REQUIRE(spaces.leftNullSpace.cols() == 1);
 		REQUIRE(FrobeniusNorm(matrix * spaces.nullSpace) < TOL(1e-8, 1e-4));
-		REQUIRE(FrobeniusNorm(matrix.transpose() * spaces.leftNullSpace) < TOL(1e-8, 1e-4));
-		REQUIRE((spaces.columnSpace.transpose() * spaces.columnSpace).IsEqualTo(Matrix<Real>::Identity(spaces.rank), TOL(1e-8, 1e-4)));
-		REQUIRE((spaces.rowSpace.transpose() * spaces.rowSpace).IsEqualTo(Matrix<Real>::Identity(spaces.rank), TOL(1e-8, 1e-4)));
+		REQUIRE(FrobeniusNorm(matrix.Transposed() * spaces.leftNullSpace) < TOL(1e-8, 1e-4));
+		REQUIRE((spaces.columnSpace.Transposed() * spaces.columnSpace).IsEqualTo(Matrix<Real>::Identity(spaces.rank), TOL(1e-8, 1e-4)));
+		REQUIRE((spaces.rowSpace.Transposed() * spaces.rowSpace).IsEqualTo(Matrix<Real>::Identity(spaces.rank), TOL(1e-8, 1e-4)));
 		REQUIRE(NullSpace(matrix).IsEqualTo(spaces.nullSpace, TOL(1e-8, 1e-4)));
 		REQUIRE(ColumnSpace(matrix).IsEqualTo(spaces.columnSpace, TOL(1e-8, 1e-4)));
 		REQUIRE(RowSpace(matrix).IsEqualTo(spaces.rowSpace, TOL(1e-8, 1e-4)));
@@ -571,9 +570,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 	{
 			TEST_PRECISION_INFO();
 		Matrix<Real> A{3, 3, {
-			REAL(1.0), REAL(2.0), REAL(3.0),
-			REAL(2.0), REAL(4.0), REAL(5.0),
-			REAL(3.0), REAL(5.0), REAL(6.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0),
+			static_cast<MML::Real>(3.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0)
 		}};
 		
 		REQUIRE(IsSymmetric(A));
@@ -583,9 +582,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 	{
 			TEST_PRECISION_INFO();
 		Matrix<Real> A{3, 3, {
-			REAL(1.0), REAL(2.0), REAL(3.0),
-			REAL(4.0), REAL(5.0), REAL(6.0),  // A[1][0] = 4 != 2 = A[0][1]
-			REAL(7.0), REAL(8.0), REAL(9.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0),  // A[1][0] = 4 != 2 = A[0][1]
+			static_cast<MML::Real>(7.0), static_cast<MML::Real>(8.0), static_cast<MML::Real>(9.0)
 		}};
 		
 		REQUIRE_FALSE(IsSymmetric(A));
@@ -595,9 +594,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 	{
 			TEST_PRECISION_INFO();
 		Matrix<Real> A{3, 3, {
-			 REAL(0.0),  REAL(2.0), -REAL(3.0),
-			-REAL(2.0),  REAL(0.0),  REAL(5.0),
-			 REAL(3.0), -REAL(5.0),  REAL(0.0)
+			 static_cast<MML::Real>(0.0),  static_cast<MML::Real>(2.0), -static_cast<MML::Real>(3.0),
+			-static_cast<MML::Real>(2.0),  static_cast<MML::Real>(0.0),  static_cast<MML::Real>(5.0),
+			 static_cast<MML::Real>(3.0), -static_cast<MML::Real>(5.0),  static_cast<MML::Real>(0.0)
 		}};
 		
 		REQUIRE(IsSkewSymmetric(A));
@@ -607,9 +606,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 	{
 			TEST_PRECISION_INFO();
 		Matrix<Real> A{3, 3, {
-			 REAL(1.0),  REAL(2.0), -REAL(3.0),  // Non-zero diagonal
-			-REAL(2.0),  REAL(0.0),  REAL(5.0),
-			 REAL(3.0), -REAL(5.0),  REAL(0.0)
+			 static_cast<MML::Real>(1.0),  static_cast<MML::Real>(2.0), -static_cast<MML::Real>(3.0),  // Non-zero diagonal
+			-static_cast<MML::Real>(2.0),  static_cast<MML::Real>(0.0),  static_cast<MML::Real>(5.0),
+			 static_cast<MML::Real>(3.0), -static_cast<MML::Real>(5.0),  static_cast<MML::Real>(0.0)
 		}};
 		
 		REQUIRE_FALSE(IsSkewSymmetric(A));
@@ -651,10 +650,10 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 	{
 		TEST_PRECISION_INFO();
 		const Real tol = TOL(1e-8, 1e-4);
-		MatrixSym<Real> A{2, {tol * REAL(0.5), REAL(0.0), REAL(2.0)}};
+		MatrixSym<Real> A{2, {tol * static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0)}};
 
 		REQUIRE_FALSE(IsPositiveDefinite(A, tol));
-		REQUIRE(IsPositiveDefinite(A, tol * REAL(0.1)));
+		REQUIRE(IsPositiveDefinite(A, tol * static_cast<MML::Real>(0.1)));
 	}
 	
 	TEST_CASE("IsPositiveSemiDefinite_GraphLaplacian", "[MatrixAlg][Definiteness]")
@@ -672,9 +671,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 	{
 			TEST_PRECISION_INFO();
 		MatrixSym<Real> A{3, {
-			-REAL(4.0),
-			 REAL(0.0), -REAL(5.0),
-			 REAL(0.0),  REAL(0.0), -REAL(6.0)
+			-static_cast<MML::Real>(4.0),
+			 static_cast<MML::Real>(0.0), -static_cast<MML::Real>(5.0),
+			 static_cast<MML::Real>(0.0),  static_cast<MML::Real>(0.0), -static_cast<MML::Real>(6.0)
 		}};
 		
 		REQUIRE(IsNegativeDefinite(A));
@@ -687,9 +686,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 			TEST_PRECISION_INFO();
 		// Indefinite matrix: has both positive and negative eigenvalues
 		MatrixSym<Real> A{3, {
-			 REAL(2.0),
-			 REAL(0.0), -REAL(1.0),
-			 REAL(0.0),  REAL(0.0),  REAL(3.0)
+			 static_cast<MML::Real>(2.0),
+			 static_cast<MML::Real>(0.0), -static_cast<MML::Real>(1.0),
+			 static_cast<MML::Real>(0.0),  static_cast<MML::Real>(0.0),  static_cast<MML::Real>(3.0)
 		}};
 		
 		REQUIRE(IsIndefinite(A));
@@ -701,22 +700,22 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 	{
 			TEST_PRECISION_INFO();
 		// Positive definite
-		MatrixSym<Real> pd{2, {REAL(2.0), REAL(0.5), REAL(2.0)}};
+		MatrixSym<Real> pd{2, {static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)}};
 		REQUIRE(ClassifyDefiniteness(pd) == Definiteness::PositiveDefinite);
 		
 		// Negative definite
-		MatrixSym<Real> nd{2, {-REAL(2.0), REAL(0.5), -REAL(2.0)}};
+		MatrixSym<Real> nd{2, {-static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.5), -static_cast<MML::Real>(2.0)}};
 		REQUIRE(ClassifyDefiniteness(nd) == Definiteness::NegativeDefinite);
 		
 		// Positive semi-definite (singular)
-		MatrixSym<Real> psd{2, {REAL(1.0), REAL(1.0), REAL(1.0)}};  // rank 1 matrix
+		MatrixSym<Real> psd{2, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0)}};  // rank 1 matrix
 		REQUIRE(ClassifyDefiniteness(psd) == Definiteness::PositiveSemidefinite);
 		
 		// Indefinite
-		MatrixSym<Real> indef{2, {REAL(1.0), REAL(0.0), -REAL(1.0)}};
+		MatrixSym<Real> indef{2, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), -static_cast<MML::Real>(1.0)}};
 		REQUIRE(ClassifyDefiniteness(indef) == Definiteness::Indefinite);
 
-		MatrixSym<Real> zero{2, {REAL(0.0), REAL(0.0), REAL(0.0)}};
+		MatrixSym<Real> zero{2, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)}};
 		REQUIRE(ClassifyDefiniteness(zero) == Definiteness::ZeroSemidefinite);
 		REQUIRE(IsPositiveSemiDefinite(zero));
 		REQUIRE(IsNegativeSemiDefinite(zero));
@@ -729,16 +728,16 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 			TEST_PRECISION_INFO();
 		// Symmetric matrices may use the general storage type.
 		Matrix<Real> A{3, 3, {
-			REAL(4.0), REAL(1.0), REAL(0.0),
-			REAL(1.0), REAL(4.0), REAL(1.0),
-			REAL(0.0), REAL(1.0), REAL(4.0)
+			static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0)
 		}};
 		
 		REQUIRE(IsPositiveDefinite(A));
 
 		Matrix<Real> nonsymmetric{2, 2, {
-			REAL(2.0), REAL(1.0),
-			REAL(0.0), REAL(2.0)
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0)
 		}};
 		REQUIRE_THROWS_AS(ClassifyDefiniteness(nonsymmetric), MatrixDimensionError);
 		REQUIRE_THROWS_AS(IsPositiveDefinite(nonsymmetric), MatrixDimensionError);
@@ -752,18 +751,18 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 	{
 			TEST_PRECISION_INFO();
 		Matrix<Real> A{3, 3, {
-			REAL(5.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(3.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(1.0)
+			static_cast<MML::Real>(5.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)
 		}};
 		
 		Vector<Real> sv = SingularValues(A);
 		
 		// Singular values should be sorted in descending order
 		REQUIRE(sv.size() == 3);
-		REQUIRE(std::abs(sv[0] - REAL(5.0)) < TOL(1e-10, 1e-5));
-		REQUIRE(std::abs(sv[1] - REAL(3.0)) < TOL(1e-10, 1e-5));
-		REQUIRE(std::abs(sv[2] - REAL(1.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(sv[0] - static_cast<MML::Real>(5.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(sv[1] - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(sv[2] - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
 	}
 	
 	TEST_CASE("Rank_FullRank", "[MatrixAlg][SVD]")
@@ -780,9 +779,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 			TEST_PRECISION_INFO();
 		// Rank 2 matrix (3x3)
 		Matrix<Real> A{3, 3, {
-			REAL(1.0), REAL(2.0), REAL(3.0),
-			REAL(2.0), REAL(4.0), REAL(6.0),   // Row 2 = 2 * Row 1
-			REAL(3.0), REAL(6.0), REAL(9.0)    // Row 3 = 3 * Row 1
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0),   // Row 2 = 2 * Row 1
+			static_cast<MML::Real>(3.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(9.0)    // Row 3 = 3 * Row 1
 		}};
 		
 		int rank = RankGaussian(A);
@@ -803,9 +802,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 			TEST_PRECISION_INFO();
 		// Rank 1 matrix → nullity = 2
 		Matrix<Real> A{3, 3, {
-			REAL(1.0), REAL(2.0), REAL(3.0),
-			REAL(2.0), REAL(4.0), REAL(6.0),
-			REAL(3.0), REAL(6.0), REAL(9.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0),
+			static_cast<MML::Real>(3.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(9.0)
 		}};
 		
 		int nullity = Nullity(A);
@@ -817,13 +816,13 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 			TEST_PRECISION_INFO();
 		// Diagonal matrix with condition number = 5/1 = 5
 		Matrix<Real> A{3, 3, {
-			REAL(5.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(3.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(1.0)
+			static_cast<MML::Real>(5.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)
 		}};
 		
 		Real cond = ConditionNumber(A);
-		REQUIRE(std::abs(cond - REAL(5.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(cond - static_cast<MML::Real>(5.0)) < TOL(1e-10, 1e-5));
 	}
 	
 	TEST_CASE("ConditionNumber_Identity", "[MatrixAlg][SVD]")
@@ -832,7 +831,7 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		auto I = Matrix<Real>::Identity(5);
 		
 		Real cond = ConditionNumber(I);
-		REQUIRE(std::abs(cond - REAL(1.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(cond - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
 	}
 	
 	TEST_CASE("NullSpace_FullRank", "[MatrixAlg][SVD]")
@@ -851,9 +850,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 			TEST_PRECISION_INFO();
 		// Rank 1 matrix
 		Matrix<Real> A{3, 3, {
-			REAL(1.0), REAL(2.0), REAL(3.0),
-			REAL(2.0), REAL(4.0), REAL(6.0),
-			REAL(3.0), REAL(6.0), REAL(9.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0),
+			static_cast<MML::Real>(3.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(9.0)
 		}};
 		
 		Matrix<Real> ns = NullSpace(A);
@@ -891,9 +890,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 			TEST_PRECISION_INFO();
 		// Rank 1 matrix
 		Matrix<Real> A{3, 3, {
-			REAL(1.0), REAL(2.0), REAL(3.0),
-			REAL(2.0), REAL(4.0), REAL(6.0),
-			REAL(3.0), REAL(6.0), REAL(9.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0),
+			static_cast<MML::Real>(3.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(9.0)
 		}};
 		
 		Matrix<Real> cs = ColumnSpace(A);
@@ -908,10 +907,10 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 			TEST_PRECISION_INFO();
 		// For m×n matrix: rank + nullity = n
 		Matrix<Real> A{4, 3, {
-			REAL(1.0), REAL(2.0), REAL(3.0),
-			REAL(2.0), REAL(4.0), REAL(6.0),
-			REAL(3.0), REAL(6.0), REAL(9.0),
-			REAL(4.0), REAL(8.0), REAL(12.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0),
+			static_cast<MML::Real>(3.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(9.0),
+			static_cast<MML::Real>(4.0), static_cast<MML::Real>(8.0), static_cast<MML::Real>(12.0)
 		}};
 		
 		auto fs = FundamentalSubspacesOf(A);
@@ -937,9 +936,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 			TEST_PRECISION_INFO();
 		// For invertible matrix, pseudoinverse = inverse
 		Matrix<Real> A{3, 3, {
-			REAL(2.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(3.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(4.0)
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(4.0)
 		}};
 		
 		Matrix<Real> Ainv = PseudoInverse(A);
@@ -949,7 +948,7 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		for (int i = 0; i < 3; i++)
 			for (int j = 0; j < 3; j++)
 			{
-				Real expected = (i == j) ? REAL(1.0) : REAL(0.0);
+				Real expected = (i == j) ? static_cast<MML::Real>(1.0) : static_cast<MML::Real>(0.0);
 				REQUIRE(std::abs(I(i, j) - expected) < TOL(1e-10, 1e-5));
 			}
 	}
@@ -959,13 +958,13 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 			TEST_PRECISION_INFO();
 		// Overdetermined system: pseudoinverse gives least squares solution
 		Matrix<Real> A{4, 2, {
-			REAL(1.0), REAL(0.0),
-			REAL(0.0), REAL(1.0),
-			REAL(1.0), REAL(0.0),
-			REAL(0.0), REAL(1.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0),
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)
 		}};
 		
-		Vector<Real> b{REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)};
+		Vector<Real> b{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)};
 		
 		Matrix<Real> Aplus = PseudoInverse(A);
 		
@@ -973,29 +972,29 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		Vector<Real> x(2);
 		for (int i = 0; i < 2; i++)
 		{
-			x[i] = REAL(0.0);
+			x[i] = static_cast<MML::Real>(0.0);
 			for (int j = 0; j < 4; j++)
 				x[i] += Aplus(i, j) * b[j];
 		}
 		
 		// Expected: x = [2, 3] (average of (1,3) and (2,4))
-		REQUIRE(std::abs(x[0] - REAL(2.0)) < TOL(1e-10, 1e-5));
-		REQUIRE(std::abs(x[1] - REAL(3.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(x[0] - static_cast<MML::Real>(2.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(x[1] - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
 	}
 	
 	TEST_CASE("ComputeSVD_Basic", "[MatrixAlg][SVD]")
 	{
 			TEST_PRECISION_INFO();
 		Matrix<Real> A{3, 3, {
-			REAL(1.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(2.0), REAL(0.0),
-			REAL(0.0), REAL(0.0), REAL(3.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0)
 		}};
 		
 		auto svd = SVDDecompose(A);
 		
 		REQUIRE(svd.rank == 3);
-		REQUIRE(std::abs(ConditionNumber(A) - REAL(3.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(ConditionNumber(A) - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
 		REQUIRE(svd.singularValues.size() == 3);
 	}
 

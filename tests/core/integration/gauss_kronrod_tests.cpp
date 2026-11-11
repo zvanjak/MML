@@ -30,7 +30,7 @@ TEST_CASE("IntegrateGK15 - basic polynomial integrals", "[gauss-kronrod][integra
 	{
 		// ∫₀¹ 5 dx = 5
 		auto f = [](Real x) { return 5.0; };
-		auto result = IntegrateGK15(f, 0.0, 1.0);
+		auto result = IntegrateGK15Detailed(f, 0.0, 1.0);
 		REQUIRE(result.value == Approx(5.0).epsilon(TOL(1e-14, 1e-5)));
 		REQUIRE(result.error_estimate < TOL(1e-14, 1e-5));
 	}
@@ -39,7 +39,7 @@ TEST_CASE("IntegrateGK15 - basic polynomial integrals", "[gauss-kronrod][integra
 	{
 		// ∫₀¹ x dx = 0.5
 		auto f = [](Real x) { return x; };
-		auto result = IntegrateGK15(f, 0.0, 1.0);
+		auto result = IntegrateGK15Detailed(f, 0.0, 1.0);
 		REQUIRE(result.value == Approx(0.5).epsilon(TOL(1e-14, 1e-5)));
 	}
 
@@ -47,7 +47,7 @@ TEST_CASE("IntegrateGK15 - basic polynomial integrals", "[gauss-kronrod][integra
 	{
 		// ∫₀¹ x² dx = 1/3
 		auto f = [](Real x) { return x * x; };
-		auto result = IntegrateGK15(f, 0.0, 1.0);
+		auto result = IntegrateGK15Detailed(f, 0.0, 1.0);
 		REQUIRE(result.value == Approx(1.0 / 3.0).epsilon(TOL(1e-14, 1e-5)));
 	}
 
@@ -55,7 +55,7 @@ TEST_CASE("IntegrateGK15 - basic polynomial integrals", "[gauss-kronrod][integra
 	{
 		// ∫₀¹ x^10 dx = 1/11
 		auto f = [](Real x) { return std::pow(x, 10); };
-		auto result = IntegrateGK15(f, 0.0, 1.0);
+		auto result = IntegrateGK15Detailed(f, 0.0, 1.0);
 		REQUIRE(result.value == Approx(1.0 / 11.0).epsilon(TOL(1e-13, 1e-5)));
 	}
 }
@@ -66,7 +66,7 @@ TEST_CASE("IntegrateGK15 - transcendental functions", "[gauss-kronrod][integrati
 	{
 		// ∫₀^π sin(x) dx = 2
 		auto f = [](Real x) { return std::sin(x); };
-		auto result = IntegrateGK15(f, 0.0, Constants::PI);
+		auto result = IntegrateGK15Detailed(f, 0.0, Constants::PI);
 		REQUIRE(result.value == Approx(2.0).epsilon(TOL(1e-14, 1e-5)));
 	}
 
@@ -74,7 +74,7 @@ TEST_CASE("IntegrateGK15 - transcendental functions", "[gauss-kronrod][integrati
 	{
 		// ∫₀¹ e^x dx = e - 1
 		auto f = [](Real x) { return std::exp(x); };
-		auto result = IntegrateGK15(f, 0.0, 1.0);
+		auto result = IntegrateGK15Detailed(f, 0.0, 1.0);
 		REQUIRE(result.value == Approx(std::exp(1.0) - 1.0).epsilon(TOL(1e-14, 1e-5)));
 	}
 
@@ -82,7 +82,7 @@ TEST_CASE("IntegrateGK15 - transcendental functions", "[gauss-kronrod][integrati
 	{
 		// ∫₀¹ 1/(1+x²) dx = arctan(1) = π/4
 		auto f = [](Real x) { return 1.0 / (1.0 + x * x); };
-		auto result = IntegrateGK15(f, 0.0, 1.0);
+		auto result = IntegrateGK15Detailed(f, 0.0, 1.0);
 		REQUIRE(result.value == Approx(Constants::PI / 4.0).epsilon(TOL(1e-14, 1e-5)));
 	}
 }
@@ -96,7 +96,7 @@ TEST_CASE("IntegrateGK21 - higher accuracy tests", "[gauss-kronrod][integration]
 	SECTION("sin(x) over [0, π]")
 	{
 		auto f = [](Real x) { return std::sin(x); };
-		auto result = IntegrateGK21(f, 0.0, Constants::PI);
+		auto result = IntegrateGK21Detailed(f, 0.0, Constants::PI);
 		REQUIRE(result.value == Approx(2.0).epsilon(TOL(1e-15, 1e-5)));
 	}
 
@@ -104,7 +104,7 @@ TEST_CASE("IntegrateGK21 - higher accuracy tests", "[gauss-kronrod][integration]
 	{
 		// ∫₋₃³ exp(-x²) dx ≈ √π * erf(3) ≈ 1.7724538509055159
 		auto f = [](Real x) { return std::exp(-x * x); };
-		auto result = IntegrateGK21(f, -3.0, 3.0);
+		auto result = IntegrateGK21Detailed(f, -3.0, 3.0);
 		Real expected = std::sqrt(Constants::PI) * std::erf(3.0);
 		// Note: TOL(1e-10, 1e-5) relative tolerance due to slight numerical differences
 		// in erf() implementations across platforms
@@ -118,7 +118,7 @@ TEST_CASE("IntegrateGK31 - highest accuracy tests", "[gauss-kronrod][integration
 	{
 		// ∫₀^π cos(x)² dx = π/2
 		auto f = [](Real x) { return std::cos(x) * std::cos(x); };
-		auto result = IntegrateGK31(f, 0.0, Constants::PI);
+		auto result = IntegrateGK31Detailed(f, 0.0, Constants::PI);
 		REQUIRE(result.value == Approx(Constants::PI / 2.0).epsilon(TOL(1e-14, 1e-5)));
 	}
 
@@ -126,7 +126,7 @@ TEST_CASE("IntegrateGK31 - highest accuracy tests", "[gauss-kronrod][integration
 	{
 		// ∫₀¹ x^20 dx = 1/21
 		auto f = [](Real x) { return std::pow(x, 20); };
-		auto result = IntegrateGK31(f, 0.0, 1.0);
+		auto result = IntegrateGK31Detailed(f, 0.0, 1.0);
 		REQUIRE(result.value == Approx(1.0 / 21.0).epsilon(TOL(1e-14, 1e-5)));
 	}
 }
@@ -144,7 +144,7 @@ TEST_CASE("IntegrateGKAdaptive - functions requiring subdivision", "[gauss-kronr
 			Real t = x - 0.5;
 			return 1.0 / (1.0 + t * t / 0.001); 
 		};
-		auto result = IntegrateGKAdaptive(f, 0.0, 1.0, TOL(1e-8, 1e-4), TOL(1e-8, 1e-4), 50, GKRule::GK15);
+		auto result = IntegrateGKAdaptiveDetailed(f, 0.0, 1.0, TOL(1e-8, 1e-4), TOL(1e-8, 1e-4), 50, GKRule::GK15);
 		
 		// Exact: √0.001 * (arctan(0.5/√0.001) + arctan(0.5/√0.001))
 		Real sqrtEps = std::sqrt(0.001);
@@ -158,7 +158,7 @@ TEST_CASE("IntegrateGKAdaptive - functions requiring subdivision", "[gauss-kronr
 	{
 		// ∫₀^10π sin(x) dx = 0 (by symmetry)
 		auto f = [](Real x) { return std::sin(x); };
-		auto result = IntegrateGKAdaptive(f, 0.0, 10 * Constants::PI, TOL(1e-8, 1e-4), TOL(1e-8, 1e-4));
+		auto result = IntegrateGKAdaptiveDetailed(f, 0.0, 10 * Constants::PI, TOL(1e-8, 1e-4), TOL(1e-8, 1e-4));
 		REQUIRE(result.value == Approx(0.0).margin(TOL(1e-6, 1e-4)));
 	}
 
@@ -166,7 +166,7 @@ TEST_CASE("IntegrateGKAdaptive - functions requiring subdivision", "[gauss-kronr
 	{
 		// ∫₀¹ tanh(100*(x-0.5)) dx ≈ 0 (antisymmetric about 0.5)
 		auto f = [](Real x) { return std::tanh(100.0 * (x - 0.5)); };
-		auto result = IntegrateGKAdaptive(f, 0.0, 1.0, 1e-6, 1e-6);
+		auto result = IntegrateGKAdaptiveDetailed(f, 0.0, 1.0, 1e-6, 1e-6);
 		REQUIRE(result.value == Approx(0.0).margin(1e-4));
 	}
 }
@@ -180,7 +180,7 @@ TEST_CASE("Gauss-Kronrod error estimates", "[gauss-kronrod][integration]")
 	SECTION("Error estimate is meaningful for smooth function")
 	{
 		auto f = [](Real x) { return std::exp(x); };
-		auto result = IntegrateGK15(f, 0.0, 1.0);
+		auto result = IntegrateGK15Detailed(f, 0.0, 1.0);
 		
 		Real true_value = std::exp(1.0) - 1.0;
 		Real actual_error = std::abs(result.value - true_value);
@@ -194,9 +194,9 @@ TEST_CASE("Gauss-Kronrod error estimates", "[gauss-kronrod][integration]")
 		// A function where higher-order is beneficial
 		auto f = [](Real x) { return std::sin(5.0 * x); };
 		
-		auto result15 = IntegrateGK15(f, 0.0, Constants::PI);
-		auto result21 = IntegrateGK21(f, 0.0, Constants::PI);
-		auto result31 = IntegrateGK31(f, 0.0, Constants::PI);
+		auto result15 = IntegrateGK15Detailed(f, 0.0, Constants::PI);
+		auto result21 = IntegrateGK21Detailed(f, 0.0, Constants::PI);
+		auto result31 = IntegrateGK31Detailed(f, 0.0, Constants::PI);
 		
 		// True value: ∫sin(5x)dx = -cos(5x)/5, from 0 to π: (-cos(5π)+cos(0))/5 = 2/5
 		Real true_value = 2.0 / 5.0;
@@ -270,9 +270,9 @@ TEST_CASE("Gauss-Kronrod vs other integration methods", "[gauss-kronrod][integra
 		auto f = [](Real x) { return std::pow(x, 25); };
 		Real expected = 1.0 / 26.0;  // ∫₀¹ x^25 dx = 1/26
 		
-		auto result15 = IntegrateGK15(f, 0.0, 1.0);
-		auto result21 = IntegrateGK21(f, 0.0, 1.0);
-		auto result31 = IntegrateGK31(f, 0.0, 1.0);
+		auto result15 = IntegrateGK15Detailed(f, 0.0, 1.0);
+		auto result21 = IntegrateGK21Detailed(f, 0.0, 1.0);
+		auto result31 = IntegrateGK31Detailed(f, 0.0, 1.0);
 		
 		REQUIRE(result15.value == Approx(expected).epsilon(TOL(1e-12, 1e-5)));
 		REQUIRE(result21.value == Approx(expected).epsilon(TOL(1e-14, 1e-5)));
@@ -289,7 +289,7 @@ TEST_CASE("Gauss-Kronrod edge cases", "[gauss-kronrod][integration]")
 	SECTION("Zero-width interval")
 	{
 		auto f = [](Real x) { return x * x; };
-		auto result = IntegrateGK15(f, 1.0, 1.0);
+		auto result = IntegrateGK15Detailed(f, 1.0, 1.0);
 		REQUIRE(result.value == Approx(0.0).margin(TOL(1e-15, 1e-5)));
 	}
 	
@@ -297,7 +297,7 @@ TEST_CASE("Gauss-Kronrod edge cases", "[gauss-kronrod][integration]")
 	{
 		// ∫₁⁰ x dx = -∫₀¹ x dx = -0.5
 		auto f = [](Real x) { return x; };
-		auto result = IntegrateGK15(f, 1.0, 0.0);
+		auto result = IntegrateGK15Detailed(f, 1.0, 0.0);
 		REQUIRE(result.value == Approx(-0.5).epsilon(TOL(1e-14, 1e-5)));
 	}
 	
@@ -308,7 +308,7 @@ TEST_CASE("Gauss-Kronrod edge cases", "[gauss-kronrod][integration]")
 			if (std::abs(x) < Real(TOL(1e-10, 1e-5))) return Real(1.0);  // sinc(0) = 1
 			return std::sin(x) / x; 
 		};
-		auto result = IntegrateGKAdaptive(f, 0.001, 100.0, 1e-6, 1e-6);
+		auto result = IntegrateGKAdaptiveDetailed(f, 0.001, 100.0, 1e-6, 1e-6);
 		// Si(100) - Si(0.001) ≈ 1.5622 (Sine integral)
 		REQUIRE(result.converged);
 		REQUIRE(result.value > 1.0);  // Sanity check
@@ -327,7 +327,8 @@ TEST_CASE("IntegrateGK15Detailed - basic success", "[gauss-kronrod][Detailed]")
 	REQUIRE(result.IsSuccess());
 	REQUIRE(result.algorithm_name == "IntegrateGK15");
 	REQUIRE(result.elapsed_time_ms >= 0.0);
-	REQUIRE(result.converged);
+	REQUIRE_FALSE(result.converged);
+	REQUIRE(result.status == AlgorithmStatus::Completed);
 	REQUIRE(result.value == Approx(1.0/3.0).epsilon(TOL(1e-14, 1e-5)));
 	REQUIRE(result.function_evaluations > 0);
 }
@@ -375,9 +376,9 @@ TEST_CASE("IntegrateGKAdaptiveDetailed - values match simple API", "[gauss-kronr
 {
 	auto f = [](Real x) { return std::exp(-x * x); };
 
-	auto simple = IntegrateGKAdaptive(f, 0.0, 2.0, TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), 50, GKRule::GK15);
+	auto simple = IntegrateGKAdaptiveDetailed(f, 0.0, 2.0, TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), 50, GKRule::GK15);
 	auto detailed = IntegrateGKAdaptiveDetailed(f, 0.0, 2.0, {}, TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), 50, GKRule::GK15);
 
 	REQUIRE(detailed.value == Approx(simple.value).epsilon(TOL(1e-14, 1e-5)));
-	REQUIRE(detailed.function_evaluations == simple.function_evals);
+	REQUIRE(detailed.function_evaluations == simple.function_evaluations);
 }

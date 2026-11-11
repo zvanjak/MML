@@ -67,30 +67,41 @@ The coordinate transformation system provides a comprehensive framework for conv
 ### ICoordTransf
 
 ```cpp
-template<typename VectorFrom, typename VectorTo, int N>
-class ICoordTransf : public IVectorFunction<N>
+template<typename VectorFrom, typename VectorTo, int N = Detail::VectorDimension<VectorFrom>>
+class ICoordTransf : public IFunction<VectorTo, const VectorFrom&>
 {
 public:
+    static constexpr int FromDim = Detail::VectorDimension<VectorFrom>;   // deduced from the vector types
+    static constexpr int ToDim   = Detail::VectorDimension<VectorTo>;
+
     virtual VectorTo transf(const VectorFrom& in) const = 0;
-    virtual const IScalarFunction<N>& coordTransfFunc(int i) const = 0;
+    VectorTo operator()(const VectorFrom& in) const override;            // = transf(in)
+    virtual const IScalarFunction<FromDim>& coordTransfFunc(int i) const = 0;   // i in [0, ToDim)
 };
 ```
 
-**Purpose**: Base interface for coordinate transformations.
+**Purpose**: Base interface for coordinate transformations, a map `VectorFrom -> VectorTo`.
+
+The dimensions are **deduced from the vector types** (`Vector3Spherical` is a `VectorN<Real, 3>`,
+so `FromDim == 3`), not declared separately: the base used to be `IVectorFunction<N>`, which
+claimed every transformation was `N -> N` regardless of `VectorFrom`/`VectorTo`. The optional
+third parameter `N` is kept so `ICoordTransf<From, To, 3>` still compiles, but it must equal
+`FromDim` (compile-time check). Non-square maps such as a surface embedding `R^2 -> R^3` are
+legitimate; their Jacobian is `ToDim x FromDim`.
 
 **Key Methods**:
-- `transf()`: Transform position from source to target coordinates
-- `coordTransfFunc(i)`: Get i-th component transformation function
+- `transf()` / `operator()`: Transform position from source to target coordinates
+- `coordTransfFunc(i)`: Get the i-th target component as a scalar function of the `FromDim` source coordinates
 
 ### ICoordTransfWithInverse
 
 ```cpp
-template<typename VectorFrom, typename VectorTo, int N>
+template<typename VectorFrom, typename VectorTo, int N = Detail::VectorDimension<VectorFrom>>
 class ICoordTransfWithInverse : public virtual ICoordTransf<VectorFrom, VectorTo, N>
 {
 public:
     virtual VectorFrom transfInverse(const VectorTo& in) const = 0;
-    virtual const IScalarFunction<N>& inverseCoordTransfFunc(int i) const = 0;
+    virtual const IScalarFunction<ToDim>& inverseCoordTransfFunc(int i) const = 0;   // i in [0, FromDim)
 };
 ```
 
@@ -107,12 +118,15 @@ public:
 ### CoordTransf - Base Implementation
 
 ```cpp
-template<typename VectorFrom, typename VectorTo, int N>
+template<typename VectorFrom, typename VectorTo, int N = Detail::VectorDimension<VectorFrom>>
 class CoordTransf : public virtual ICoordTransf<VectorFrom, VectorTo, N>
 {
 public:
-    // Compute Jacobian matrix
-    MatrixNM<Real, N, N> jacobian(const VectorN<Real, N>& pos);
+    using JacobianType        = MatrixNM<Real, ToDim, FromDim>;
+    using InverseJacobianType = MatrixNM<Real, FromDim, ToDim>;
+
+    // Compute Jacobian matrix (ToDim x FromDim)
+    JacobianType jacobian(const VectorN<Real, FromDim>& pos);
     
     // Basis vectors
     VectorTo getBasisVec(int ind, const VectorFrom& pos);
@@ -144,13 +158,16 @@ J^i_j = ∂f^i/∂q^j
 ### CoordTransfWithInverse - Extended Implementation
 
 ```cpp
-template<typename VectorFrom, typename VectorTo, int N>
+template<typename VectorFrom, typename VectorTo, int N = Detail::VectorDimension<VectorFrom>>
 class CoordTransfWithInverse : 
     public virtual CoordTransf<VectorFrom, VectorTo, N>,
     public virtual ICoordTransfWithInverse<VectorFrom, VectorTo, N>
 {
 public:
-    // Additional basis vectors
+    // Inverse Jacobian (FromDim x ToDim)
+    InverseJacobianType inverseJacobian(const VectorN<Real, ToDim>& pos);
+
+    // Additional basis vectors (square transformations only)
     VectorFrom getContravarBasisVec(int ind, const VectorTo& pos);
     VectorTo getInverseContravarBasisVec(int ind, const VectorTo& pos);
     
@@ -758,7 +775,7 @@ Tensor2<3> stressSpher =
 ### Automatic Jacobian Matrix
 
 ```cpp
-MatrixNM<Real, N, N> jacobian(const VectorN<Real, N>& pos);
+JacobianType jacobian(const VectorN<Real, FromDim>& pos);   // JacobianType = MatrixNM<Real, ToDim, FromDim>
 ```
 
 Computes the Jacobian matrix J^i_j = ∂f^i/∂q^j numerically using `Derivation::NDer4Partial()`.
@@ -784,6 +801,45 @@ Real detJ = J.Det();
 // dV_cartesian = |det(J)| dV_spherical
 // dV_cartesian = r² sin(θ) dr dθ dφ
 ```
+
+### Inverse Jacobians at singularities
+
+The existing one-argument virtual `inverseJacobian(pos)` is preserved, but built-in
+spherical/cylindrical inverse Jacobians now throw `SingularMatrixError` at the
+origin/poles/axis instead of silently producing NaNs or a rank-deficient matrix.
+The Cartesian-to-spherical/cylindrical forward Jacobians use the same checked
+derivative formulas. Smooth forward parametrization Jacobians are still allowed
+to lose rank; they are not inverses at those points.
+
+`inverseJacobian(pos, policy)` adds explicit root `SingularityPolicy` handling.
+`Throw` is the default. At a singularity, `ReturnNaN`, `ReturnInf`, and `ReturnZero`
+fill the **entire matrix** with NaNs, positive infinities, or zeros respectively.
+These are caller-requested sentinels, never valid inverse matrices.
+`Clamp` throws `DomainError` at singular matrices: no implicit diagonal
+regularization or arbitrary angular direction is selected. On regular inputs,
+all five policies return the same mathematical inverse Jacobian.
+
+Nonfinite coordinates, invalid matrix data, and nonrepresentable results still
+throw; sentinel policies do not mask invalid input. Built-in chart checks use the
+shared near-zero tolerance on radius and, for spherical poles, `sin(theta)`.
+The generic square numerical fallback also checks rank using matrix inversion's
+norm-scaled pivot criterion; rectangular fallbacks validate finiteness only.
+
+The policy overload calls the original one-argument virtual method, so existing
+user overrides still dispatch. A custom override must throw `SingularMatrixError`
+for its own chart/rank singularities. If it hides the overload in a concrete
+derived type, expose it with a `using` declaration or call through a base reference.
+Reciprocal-basis and tensor/vector consumers retain the default throwing path.
+
+```cpp
+auto inverseJac = CoordTransfSpherToCart.inverseJacobian(
+    VectorN<Real, 3>{0, 0, 0}, SingularityPolicy::ReturnNaN);
+std::cout << "Singular inverse Jacobian signals NaN: "
+          << std::isnan(inverseJac(0, 0)) << "\n";
+```
+
+Runnable counterpart: `Docs_Demo_MatrixSingularityPolicy` in
+`src/docs_demos/core/docs_demo_metric_tensor.cpp`; run `MML_DocsApp --metric-tensor`.
 
 ### Basis Vectors
 

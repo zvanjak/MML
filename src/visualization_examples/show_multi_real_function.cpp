@@ -7,6 +7,8 @@
  * Cross-platform: works on Windows, Linux, and macOS.
  */
 
+#include "VisualizationResult.h"
+
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
@@ -32,8 +34,8 @@ void Show_Multi_Real_Function_Examples() {
 		return std::sin(x) / c;
 	}};
 
-	Visualizer::VisualizeMultiRealFunction({&sinFunc, &cosFunc, &tanFunc}, "Trigonometric Functions", {"sin(x)", "cos(x)", "tan(x)"},
-																				 -Constants::PI, Constants::PI, 500, "viz_multi_func_trig.mml");
+	Examples::ReportVisualizationResult(Visualizer::VisualizeMultiRealFunction({&sinFunc, &cosFunc, &tanFunc}, "Trigonometric Functions", {"sin(x)", "cos(x)", "tan(x)"},
+																				 -Constants::PI, Constants::PI, 500, "viz_multi_func_trig.mml"), "VisualizeMultiRealFunction");
 
 	// Example 2: Function and its derivatives
 	std::cout << "2. Function and its 1st and 2nd derivatives: x^3 - 2x^2 + x\n";
@@ -41,9 +43,9 @@ void Show_Multi_Real_Function_Examples() {
 	RealFunction polyDeriv1{[](Real x) -> Real { return 3 * x * x - 4 * x + 1; }}; // Analytical first derivative
 	RealFunction polyDeriv2{[](Real x) -> Real { return 6 * x - 4; }};						 // Analytical second derivative
 
-	Visualizer::VisualizeMultiRealFunction({&polyFunc, &polyDeriv1, &polyDeriv2}, "Polynomial and Derivatives",
+	Examples::ReportVisualizationResult(Visualizer::VisualizeMultiRealFunction({&polyFunc, &polyDeriv1, &polyDeriv2}, "Polynomial and Derivatives",
 																				 {"f(x) = x^3 - 2x^2 + x", "f'(x) = 3x^2 - 4x + 1", "f''(x) = 6x - 4"}, -1.0, 2.0, 300,
-																				 "viz_multi_func_poly_derivs.mml");
+																				 "viz_multi_func_poly_derivs.mml"), "VisualizeMultiRealFunction");
 
 	// Example 3: Damped oscillations with different damping
 	std::cout << "3. Damped oscillations with different damping coefficients\n";
@@ -51,9 +53,9 @@ void Show_Multi_Real_Function_Examples() {
 	RealFunction dampedMed{[](Real x) -> Real { return std::exp(-0.3 * x) * std::cos(2 * x); }};
 	RealFunction dampedHigh{[](Real x) -> Real { return std::exp(-0.5 * x) * std::cos(2 * x); }};
 
-	Visualizer::VisualizeMultiRealFunction({&dampedLow, &dampedMed, &dampedHigh}, "Damped Oscillations",
+	Examples::ReportVisualizationResult(Visualizer::VisualizeMultiRealFunction({&dampedLow, &dampedMed, &dampedHigh}, "Damped Oscillations",
 																				 {"Low damping (0.1)", "Medium damping (0.3)", "High damping (0.5)"}, 0.0, 20.0, 500,
-																				 "viz_multi_func_damped.mml");
+																				 "viz_multi_func_damped.mml"), "VisualizeMultiRealFunction");
 
 	// Example 4: Bessel-like functions (approximations)
 	std::cout << "4. Comparing different wave functions\n";
@@ -61,8 +63,8 @@ void Show_Multi_Real_Function_Examples() {
 	RealFunction wave2{[](Real x) -> Real { return std::cos(x) * std::exp(-x * x / 50); }}; // Gaussian modulated
 	RealFunction wave3{[](Real x) -> Real { return std::sin(2 * x) * std::cos(x / 2); }};		// Beat pattern
 
-	Visualizer::VisualizeMultiRealFunction({&wave1, &wave2, &wave3}, "Wave Functions", {"sinc-like", "Gaussian modulated", "Beat pattern"},
-																				 -10.0, 10.0, 500, "viz_multi_func_waves.mml");
+	Examples::ReportVisualizationResult(Visualizer::VisualizeMultiRealFunction({&wave1, &wave2, &wave3}, "Wave Functions", {"sinc-like", "Gaussian modulated", "Beat pattern"},
+																				 -10.0, 10.0, 500, "viz_multi_func_waves.mml"), "VisualizeMultiRealFunction");
 
 	// Example 5: Exponential growth comparison
 	std::cout << "5. Exponential growth rates comparison\n";
@@ -70,8 +72,8 @@ void Show_Multi_Real_Function_Examples() {
 	RealFunction exp2{[](Real x) -> Real { return std::exp(x); }};
 	RealFunction exp3{[](Real x) -> Real { return std::exp(1.5 * x); }};
 
-	Visualizer::VisualizeMultiRealFunction({&exp1, &exp2, &exp3}, "Exponential Growth", {"exp(0.5x)", "exp(x)", "exp(1.5x)"}, 0.0, 3.0, 200,
-																				 "viz_multi_func_exp.mml");
+	Examples::ReportVisualizationResult(Visualizer::VisualizeMultiRealFunction({&exp1, &exp2, &exp3}, "Exponential Growth", {"exp(0.5x)", "exp(x)", "exp(1.5x)"}, 0.0, 3.0, 200,
+																				 "viz_multi_func_exp.mml"), "VisualizeMultiRealFunction");
 
 	std::cout << "\nMulti real function visualization examples complete!\n";
 }

@@ -217,15 +217,9 @@ runnable demo** in [src/docs_demos/docs_demos_cookbook.cpp](../src/docs_demos/do
 25. ✅ **[DAE solvers](#recipe-25-dae-solvers)**
     - [25.1 Define and solve an index-1 DAE](#251-define-and-solve-an-index-1-dae)
     - [25.2 Compute consistent initial algebraic variables](#252-compute-consistent-initial-algebraic-variables)
-    - [25.3 Compare Backward Euler, BDF2/BDF4, and Radau IIA](#253-compare-backward-euler-bdf2bdf4-and-radau-iia)
+    - [25.3 Compare Backward Euler, BDF2/BDF4, Radau IIA, and RODAS4](#253-compare-backward-euler-bdf2bdf4-radau-iia-and-rodas4)
     - [25.4 Handle DAE events and restart with consistent constraints](#254-handle-dae-events-and-restart-with-consistent-constraints)
 26. ✅ **[Algebra: finite structures, symmetry, and exact arithmetic](#recipe-26-algebra-finite-structures-symmetry-and-exact-arithmetic)**
-    - [26.1 Reorder real data with permutations](#261-reorder-real-data-with-permutations)
-    - [26.2 Model polygon symmetries with a dihedral group](#262-model-polygon-symmetries-with-a-dihedral-group)
-    - [26.3 Count distinct bracelets with Burnside's lemma](#263-count-distinct-bracelets-with-burnsides-lemma)
-    - [26.4 Work exactly with modular arithmetic and prime fields](#264-work-exactly-with-modular-arithmetic-and-prime-fields)
-    - [26.5 Solve an exact linear system over a finite field](#265-solve-an-exact-linear-system-over-a-finite-field)
-    - [26.6 Build a tiny extension field from polynomials](#266-build-a-tiny-extension-field-from-polynomials)
 27. ✅ **[Complex analysis](#recipe-27-complex-analysis)**
     - [27.1 Differentiate an analytic complex function](#271-differentiate-an-analytic-complex-function)
     - [27.2 Integrate along complex contours](#272-integrate-along-complex-contours)
@@ -376,7 +370,7 @@ bool bracketed = RootFinding::BracketRoot(kepler, x1, x2);   // x1, x2 now brack
 // ...then hand the bracket to a robust solver
 RootFinding::RootFindingConfig config;
 config.tolerance = 1e-14;
-auto result = RootFinding::FindRootBrent(kepler, x1, x2, config);
+auto result = RootFinding::FindRootBrentDetailed(kepler, x1, x2, config);
 // result.root = 1.86208... (E for e=0.9, M=1), result.converged, result.iterations_used
 ```
 
@@ -478,7 +472,7 @@ so every method can be checked against the exact value (1 − e^{−π})/2 / 9.2
 RealFunction f([](Real x) { return std::exp(-x / 2) * std::cos(3 * x); });
 const Real a = 0.0, b = 2 * Constants::PI;
 
-Real trap    = IntegrateTrap(f, a, b);       // workhorse; IntegrationResult -> Real
+Real trap    = IntegrateTrap(f, a, b);       // workhorse; throws ConvergenceError if the tolerance is not met
 Real romberg = IntegrateRomberg(f, a, b);    // extrapolated - fast for smooth f
 
 Real gkError = 0.0;                          // adaptive Gauss-Kronrod + error estimate
@@ -509,7 +503,7 @@ Real disk = Integrate2D(f2, IntegrationMethod::GAUSS10,
 ```cpp
 auto g2 = [](Real x, Real y) { return std::sin(x) * std::cos(y); };
 
-auto adaptive = Integration::IntegrateAdaptive2D(g2, 0.0, Constants::PI, 0.0, Constants::PI / 2, 1e-10);
+auto adaptive = Integration::IntegrateAdaptive2DDetailed(g2, 0.0, Constants::PI, 0.0, Constants::PI / 2, 1e-10);
 // adaptive.value == 2 to 1e-12, adaptive.error_estimate, adaptive.function_evaluations (225)
 ```
 
@@ -622,8 +616,11 @@ siblings; `EstimatePi()` and `EstimateUnitBallVolume()` are ready-made classics.
 
 **Notes**
 
-- 1D quadratures return `IntegrationResult` (implicitly convertible to `Real`); adaptive
-  and Monte Carlo results carry error estimates and evaluation counts — read them.
+- Plain 1D quadratures return the value and throw `ConvergenceError` when the requested
+  tolerance is not met; the `...Detailed` variants return `IntegrationResult` with `value`,
+  `converged`, `error_estimate` and `status` (fixed rules such as Gauss10/Gauss-Legendre check
+  no criterion: status `Completed`, no error estimate). Conversion from a result to `Real` is
+  explicit on purpose (`.value`).
 - Improper integrals rely on variable transforms internally; pick the routine that matches
   where the trouble is (infinity vs. endpoint singularity).
 - Runnable version: `Cookbook_Recipe03_Integrals()` in
@@ -802,8 +799,8 @@ VectorN<Real, 2> point{ 1.0, 2.0 };
 **Solve**
 
 ```cpp
-MatrixNM<Real, 2, 2> jacobian = Derivation::calcJacobian(map, point);
-MatrixNM<Real, 2, 2> hessian = Derivation::calcHessian(quadratic, point);
+MatrixNM<Real, 2, 2> jacobian = Derivation::CalcJacobian(map, point);
+MatrixNM<Real, 2, 2> hessian = Derivation::CalcHessian(quadratic, point);
 // Jacobian = [[2, 1], [2, 1]]; Hessian = [[2, 1], [1, 6]]
 ```
 
@@ -843,7 +840,7 @@ continuation implemented with complex-aware operations; non-analytic operations 
   is usually less accurate because roundoff eventually dominates truncation error.
 - Pass an error pointer to the finite-difference routines when an estimate is useful, or use
   the corresponding `...Detailed` real-function API for status and diagnostics.
-- `NDer4PartialAllByAll` and `calcJacobian` compute the same mathematical object; the latter
+- `NDer4PartialAllByAll` and `CalcJacobian` compute the same mathematical object; the latter
   is the clearer intent-level API when the whole Jacobian is wanted.
 - Runnable version: `Cookbook_Recipe04_Derivatives()` in
   [docs_demos_cookbook.cpp](../src/docs_demos/docs_demos_cookbook.cpp).
@@ -879,8 +876,8 @@ RealFunction objective([](Real x) {
 ```cpp
 MinimumBracket bracket = Minimization::BracketMinimum(objective, 0.0, 1.0);
 
-MinimizationResult golden = Minimization::GoldenSectionSearch(objective, bracket, 1e-10);
-MinimizationResult brent = Minimization::BrentMinimize(objective, bracket, 1e-10);
+Minimization1DResult golden = Minimization::GoldenSectionSearch(objective, bracket, 1e-10);
+Minimization1DResult brent = Minimization::BrentMinimize(objective, bracket, 1e-10);
 
 // golden.xmin and brent.xmin should agree; brent.iterations is usually smaller here.
 ```
@@ -957,7 +954,7 @@ lp.AddConstraint({ 1.0, 0.0 }, Optimization::LPConstraintType::LessEqual,
 **Solve**
 
 ```cpp
-Optimization::LPResult result = Optimization::SolveLP(lp);
+Optimization::LinearProgrammingResult result = Optimization::SolveLP(lp);
 
 if (result.IsOptimal()) {
     Real standard = result.x[0];
@@ -967,7 +964,7 @@ if (result.IsOptimal()) {
 ```
 
 For this model the optimum is 20 standard units and 60 premium units, with profit 2600. Slack
-values, dual values, and reduced costs are available on `LPResult` for diagnostics.
+values, dual values, and reduced costs are available on `LinearProgrammingResult` for diagnostics.
 
 **Notes**
 
@@ -1120,8 +1117,8 @@ auto miss = [&](Real theta) { return rangeFor(theta) - targetRange; };
 
 RootFinding::RootFindingConfig config;
 config.tolerance = 1e-10;
-auto lowSol  = RootFinding::FindRootBrent(miss,  5 * deg, 45 * deg, config);  // direct fire
-auto highSol = RootFinding::FindRootBrent(miss, 45 * deg, 85 * deg, config);  // mortar lob
+auto lowSol  = RootFinding::FindRootBrentDetailed(miss,  5 * deg, 45 * deg, config);  // direct fire
+auto highSol = RootFinding::FindRootBrentDetailed(miss, 45 * deg, 85 * deg, config);  // mortar lob
 
 // direct fire at 15.82 deg, mortar lob at 68.13 deg - both land at 400.000 m
 ```
@@ -1146,7 +1143,7 @@ public:
         dydt[0] = -1000.0 * (y[0] - std::sin(t)) + std::cos(t);
     }
 
-    void jacobian(const Real t, const Vector<Real>& y, Vector<Real>& dydt, Matrix<Real>& J) const override {
+    void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override {
         J(0, 0) = -1000.0;
     }
 };
@@ -1154,7 +1151,7 @@ public:
 StiffRelaxation stiff;
 Vector<Real> y0({ 0.0 });
 
-Rosenbrock23Solver solver(stiff, 1e-6, 1e-6);   // 2nd-order: keep tolerances moderate
+ROS2Solver solver(stiff, 1e-6, 1e-6);           // 2-stage 2nd-order Rosenbrock: keep tolerances moderate
 auto sol = solver.Solve(0.0, y0, 1.0, 0.1);
 // y(1) = 0.8414694 vs exact sin 1 = 0.8414710
 ```
@@ -1346,7 +1343,7 @@ Matrix<Real> sigma(A.rows(), A.cols());
 for (int i = 0; i < svd.singularValues.size(); ++i)
     sigma(i, i) = svd.singularValues[i];
 
-Matrix<Real> reconstructed = svd.U * sigma * svd.V.transpose();
+Matrix<Real> reconstructed = svd.U * sigma * svd.V.Transposed();
 Real residual = MatrixAlg::FrobeniusNorm(A - reconstructed);
 // svd.rank is the numerical rank.
 // MatrixAlg::ConditionNumber(A) uses the same SVD machinery.
@@ -1376,11 +1373,11 @@ auto svd = MatrixAlg::SVDDecompose(measurements);
 
 Matrix<Real> sigma1(measurements.rows(), measurements.cols());
 sigma1(0, 0) = svd.singularValues[0];
-Matrix<Real> rank1 = svd.U * sigma1 * svd.V.transpose();
+Matrix<Real> rank1 = svd.U * sigma1 * svd.V.Transposed();
 
 Matrix<Real> sigma2 = sigma1;
 sigma2(1, 1) = svd.singularValues[1];
-Matrix<Real> rank2 = svd.U * sigma2 * svd.V.transpose();
+Matrix<Real> rank2 = svd.U * sigma2 * svd.V.Transposed();
 
 Real rank1Error = MatrixAlg::FrobeniusNorm(measurements - rank1);
 Real rank2Error = MatrixAlg::FrobeniusNorm(measurements - rank2);
@@ -1432,7 +1429,7 @@ Matrix<Real> A(4, 2, { 1.0, 2.0,
 auto qr = MatrixAlg::QRDecompose(A);
 Real reconstruction = MatrixAlg::FrobeniusNorm(A - qr.Q * qr.R);
 Real orthogonality = MatrixAlg::FrobeniusNorm(
-    qr.Q.transpose() * qr.Q - Matrix<Real>::Identity(qr.Q.cols()));
+    qr.Q.Transposed() * qr.Q - Matrix<Real>::Identity(qr.Q.cols()));
 ```
 
 The MML QR helper returns economy QR: `Q` has one column per input column, and `R` is square.
@@ -1482,7 +1479,7 @@ Matrix<Real> covariance(3, 3, { 4.0, 2.0, 0.6,
 
 ```cpp
 auto chol = MatrixAlg::CholeskyDecompose(covariance);
-Real residual = MatrixAlg::FrobeniusNorm(chol.L * chol.L.transpose() - covariance);
+Real residual = MatrixAlg::FrobeniusNorm(chol.L * chol.L.Transposed() - covariance);
 // chol.L is lower triangular
 ```
 
@@ -1646,7 +1643,7 @@ Matrix<Real> samples(4, 4, { 1.0,  2.0,  3.0,  4.0,
 
 ```cpp
 Matrix<Real> center(samples, 1, 1, 2, 2);   // rows 1..2, cols 1..2
-Matrix<Real> gram = center.transpose() * center;
+Matrix<Real> gram = center.Transposed() * center;
 Real centerTrace = MatrixAlg::Trace(center);
 ```
 
@@ -1927,7 +1924,7 @@ SegmentLine3D surveySegment(stationA, stationB);
 
 ```cpp
 Real length = baseline.NormL2();                    // 5
-Vec3Cart direction = baseline.GetAsUnitVector();    // (0.6,0.8,0)
+Vec3Cart direction = baseline.Normalized();    // (0.6,0.8,0)
 Real segmentLength = surveySegment.Length();        // 5
 Pnt3Cart pointAfterTwoUnits = surveyLine(2.0);      // stationA + 2*baseline
 ```
@@ -1942,7 +1939,7 @@ distance queries to the finite segment.
 **Setup**
 
 ```cpp
-Plane3D ground = Plane3D::GetXYPlane();
+Plane3D ground = Plane3D::XYPlane();
 Line3D descendingPath(Pnt3Cart(2.0, -1.0, 5.0), Vec3Cart(0.0, 1.0, -2.0));
 Line3D parallelPath(Pnt3Cart(0.0, 0.0, 3.0), Vec3Cart(1.0, 0.0, 0.0));
 ```
@@ -2035,11 +2032,11 @@ bool probeInBox = equipmentBox.IsInside(probe);
 
 Real sphereVolume = safetyZone.Volume();
 bool probeInZone = safetyZone.IsInside(probe);
-Pnt3Cart tankCenter = tank.GetCenter();
+Pnt3Cart tankCenter = tank.getCenter();
 ```
 
-Bodies share the `IBody` interface: `Volume`, `SurfaceArea`, `IsInside`, `GetCenter`,
-`GetBoundingBox`, and `GetBoundingSphere`.
+Bodies share the `IBody` interface: `Volume`, `SurfaceArea`, `IsInside`, `getCenter`,
+`getBoundingBox`, and `getBoundingSphere`.
 
 ### 11.6 Use bounding volumes for spatial checks
 
@@ -2049,8 +2046,8 @@ Bodies share the `IBody` interface: `Volume`, `SurfaceArea`, `IsInside`, `GetCen
 
 ```cpp
 Cube3D equipmentBox(2.0, Pnt3Cart(1.0, 2.0, 3.0));
-Box3D bounds = equipmentBox.GetBoundingBox();
-BoundingSphere3D sphereBounds = equipmentBox.GetBoundingSphere();
+Box3D bounds = equipmentBox.getBoundingBox();
+BoundingSphere3D sphereBounds = equipmentBox.getBoundingSphere();
 BoundingSphere3D nearbyObject(Pnt3Cart(3.0, 2.0, 3.0), 0.75);
 ```
 
@@ -2176,7 +2173,7 @@ a segment distance is clamped to the finite endpoints.
 **Setup**
 
 ```cpp
-Plane3D floor = Plane3D::GetXYPlane();
+Plane3D floor = Plane3D::XYPlane();
 Plane3D wall(Pnt3Cart(2.0, 0.0, 0.0), Vec3Cart(1.0, 0.0, 0.0));
 Line3D drillPath(Pnt3Cart(2.0, 1.0, 3.0), Vec3Cart(0.0, 0.0, -1.0));
 ```
@@ -2679,7 +2676,8 @@ VectorN<Real, 3> torusPoint = torus(0.0, Constants::PI);
 ```
 
 `Circle2DCurve` and `HelixCurve` are curves: they take one parameter. `Sphere`, `Torus`,
-`CylinderSurface`, `Helicoid`, `EnneperSurface`, and the other surface classes take two parameters.
+`CylinderSurface` and the shared `TestBeds::ShowcaseSurfaces` fixtures take two parameters.
+`Helicoid` and `EnneperSurface` are supplied by `test_data/parametric_surfaces_defs.h`, not core.
 The parameter names are conventionally `u` and `w`; check each class's domain before sampling near
 singularities such as sphere poles.
 
@@ -2791,7 +2789,8 @@ principal curvatures.
 ```cpp
 Surfaces::Sphere sphere(2.0);
 Surfaces::CylinderSurface cylinder(1.5, 4.0);
-Surfaces::Helicoid helicoid(0.4);
+#include <test_data/parametric_surfaces_defs.h>
+MML::TestBeds::ShowcaseSurfaces::Helicoid helicoid(0.4);
 
 Real sphereU = Constants::PI / 3.0;
 Real sphereW = Constants::PI / 5.0;
@@ -3200,7 +3199,7 @@ $f(x)=\log x$, while safely detecting overflow in another function.
 #include <mml/algorithms/Analyzers/FunctionsAnalyzer.h>
 
 RealFunctionFromStdFunc logarithm([](Real x) { return std::log(x); });
-RealFunctionAnalyzer analyzer(logarithm, "log(x)");
+RealFunctionAnalyzer analyzer(logarithm);
 
 auto valid = analyzer.AnalyzePoint(1.0);
 auto invalid = analyzer.AnalyzePoint(-1.0);
@@ -3227,14 +3226,14 @@ $f(x)=x^3-3x$.
 
 ```cpp
 RealFunctionFromStdFunc polynomial([](Real x) { return x*x*x - 3*x; });
-RealFunctionAnalyzer analyzer(polynomial, "x^3-3x");
+RealFunctionAnalyzer analyzer(polynomial);
 
 auto roots = analyzer.GetRoots(-2.0, 2.0, 1e-7);
 auto extrema = analyzer.GetLocalOptimumsClassified(-2.0, 2.0, 1e-4);
 auto inflections = analyzer.GetInflectionPoints(-2.0, 2.0, 1e-4);
 
-bool leftBranch = analyzer.isMonotonic(-2.0, -1.0, 100); // true
-bool wholeRange = analyzer.isMonotonic(-2.0, 2.0, 100);  // false
+bool leftBranch = analyzer.IsMonotonicOnSamples(-2.0, -1.0, 100); // true
+bool wholeRange = analyzer.IsMonotonicOnSamples(-2.0, 2.0, 100);  // false
 ```
 
 The analyzer finds roots $-\sqrt3,0,\sqrt3$, extrema at $-1$ and $1$, and an inflection at $0$.
@@ -3262,7 +3261,7 @@ RealFunctionAnalyzer poleAnalyzer(pole);
 auto jump = stepAnalyzer.ClassifyDiscontinuity(0.0);
 auto hole = removableAnalyzer.ClassifyDiscontinuity(1.0);
 auto infinite = poleAnalyzer.ClassifyDiscontinuity(2.0, 1e-8);
-auto discovered = stepAnalyzer.FindDiscontinuities(-1.0, 1.0, 100);
+auto discovered = stepAnalyzer.FindDiscontinuityCandidates(-1.0, 1.0, 100);
 ```
 
 The step has limits 0 and 1 and jump size 1. The removable hole has matching limits near 2 but an
@@ -3280,7 +3279,7 @@ very narrow features, or poles between coarse sample points may need a denser sc
 RealFunctionFromStdFunc damped([](Real t) {
     return std::exp(-0.05*t) * std::sin(5*t);
 });
-RealFunctionAnalyzer analyzer(damped, "exp(-0.05t)sin(5t)");
+RealFunctionAnalyzer analyzer(damped);
 
 auto roots = analyzer.GetRoots(0.2, 5.5, 1e-7); // 8 roots
 Real zeroSpacing = analyzer.calcRootsPeriod(0.2, 5.5, 1000);
@@ -3321,8 +3320,10 @@ local misses. Relative metrics are also available, but skip sample points where 
 - Sampling resolution and tolerance are part of every result; rerun at finer resolution before
   trusting a narrow or rapidly varying feature.
 - Sampled min/max are not guaranteed global optimization results.
-- `PrintPointAnalysis`, `PrintIntervalAnalysis`, and `PrintDetailedIntervalAnalysis` provide
-  ready-made human-readable reports over the same structured APIs.
+- Optional `AnalysisReports::PrintPointAnalysis`, `PrintIntervalAnalysis`, and
+  `PrintDetailedIntervalAnalysis` consume computed snapshots and an explicit stream.
+  Include `mml/tools/analyzers/FunctionAnalysisReports.h`; reporting is not part of the
+  numerical analyzer. Display names are report arguments, not analyzer constructor arguments.
 - The header description mentions asymptotes and periodicity broadly, but there is no implemented
   high-level asymptote or symmetry detector; period support is root-spacing based.
 - Runnable version: `Cookbook_Recipe18_AnalyzingFunctions()` in
@@ -3493,8 +3494,8 @@ Tensor2<3> T(1, 1, { 2, 0, 1,        // mixed tensor: 1 covariant, 1 contravaria
                      0, 3, 0,
                      0, 0, 4 });
 
-T.NumCovar();                        // 1
-T.Contract();                        // trace = 9 (contraction needs one index of each kind)
+T.numCovar();                        // 1
+T.contract();                        // trace = 9 (contraction needs one index of each kind)
 
 VectorN<Real, 3> u{ 1, 0, 0 }, w{ 0, 0, 1 };
 Real val = T(u, w);                  // tensor as a multilinear machine: = 1
@@ -4161,9 +4162,10 @@ For $x_0=0.8$, the helper updates `yGuess` to `0.2`, gives zero residual, and ve
 This is the right front door for measured or manually prepared DAE initial states: solve constraints
 first, then integrate.
 
-### 25.3 Compare Backward Euler, BDF2/BDF4, and Radau IIA
+### 25.3 Compare Backward Euler, BDF2/BDF4, Radau IIA, and RODAS4
 
-**Problem:** compare the built-in implicit methods on the same system and same step size.
+**Problem:** compare the built-in implicit methods on the same system. RODAS4 adapts from
+the requested initial step; the other methods here use a fixed step.
 
 ```cpp
 DAESolverConfig config;
@@ -4174,6 +4176,9 @@ auto backwardEuler = SolveDAEBackwardEuler(system, 0.0, x0, y0, 1.0, config);
 auto bdf2 = SolveDAEBDF2(system, 0.0, x0, y0, 1.0, config);
 auto bdf4 = SolveDAEBDF4(system, 0.0, x0, y0, 1.0, config);
 auto radau = SolveDAERadauIIA(system, 0.0, x0, y0, 1.0, config);
+auto rodas = SolveDAERODAS4(system, 0.0, x0, y0, 1.0, config);
+if (rodas.status != AlgorithmStatus::Success)
+    throw ODESolverError(rodas.error_message);
 ```
 
 At this step size, the final `x` values are about `0.574321814` (Backward Euler), `0.5677280454`
@@ -4184,6 +4189,11 @@ zero.
 
 Use Backward Euler as a sturdy baseline, BDF methods for efficient stiff trajectories, and Radau IIA
 when high-order stiff accuracy is worth the heavier coupled implicit solve.
+RODAS4 instead uses six linear solves sharing one LU per attempt, an embedded third-order
+error estimate, and adaptive fourth-order updates without Newton iterations. The demo also
+prints its final `x`, accepted/rejected steps and maximum embedded error ratio. This new
+`SolveDAERODAS4` API is distinct from the deprecated `SolveDAERODAS` trapezoid alias; see the
+[RODAS4 contract](algorithms/Differential_equations_solvers.md#genuine-rodas4-for-index-1-daes).
 
 ### 25.4 Handle DAE events and restart with consistent constraints
 
@@ -4241,215 +4251,10 @@ event solver recomputes a consistent algebraic state before continuing; the fina
 
 ## Recipe 26: Algebra: finite structures, symmetry, and exact arithmetic
 
-MML's algebra layer lives in `<mml/base/Algebra_base.h>`. It covers finite permutations,
-finite groups and group actions, modular rings, prime fields, exact polynomial arithmetic,
-finite-field matrices, and small extension fields.
-
-These examples deliberately focus on finite and exact algebra. Continuous rotation and rigid-motion
-groups also live under Algebra, but rotations are introduced in [Recipe 17](#recipe-17-quaternions)
-and fit more naturally with geometry and coordinate-transformation recipes.
-
-### 26.1 Reorder real data with permutations
-
-**Problem:** four hardware channels are wired in the wrong order. Use a permutation to move the
-labels into their corrected positions, then use the inverse to map back to the raw layout.
-
-**Setup**
-
-```cpp
-#include <mml/base/Algebra_base.h>
-
-std::array<std::string, 4> wiredChannels = {
-  "pressure", "temperature", "humidity", "voltage"
-};
-Algebra::Permutation<4> wiringFix = Algebra::Permutation<4>::from_cycles({ {0, 2, 1} });
-```
-
-**Solve**
-
-```cpp
-auto correctedChannels = wiringFix.apply(wiredChannels);
-auto rawChannelsAgain = wiringFix.inverse().apply(correctedChannels);
-
-auto images = wiringFix.images();
-std::size_t order = wiringFix.order();
-int sign = wiringFix.sign();
-```
-
-`images[i]` is the destination of index `i`. Applying the inverse recovers the original channel
-layout. `order()` tells how many repeated applications return to the identity.
-
-### 26.2 Model polygon symmetries with a dihedral group
-
-**Problem:** a square marker can be rotated and mirrored. Work with the full symmetry group instead
-of hand-writing separate rotation/reflection cases.
-
-**Setup**
-
-```cpp
-Algebra::DihedralGroup square(4);
-auto rotation = square.rotation(1);
-auto reflection = square.reflection();
-```
-
-**Solve**
-
-```cpp
-auto relation = square.compose(square.compose(reflection, rotation), reflection);
-auto rotationInverse = square.inverse(rotation);
-auto reflectedVertices = square.permutation(reflection).images();
-auto generated = Algebra::GeneratedSubgroup(square, { rotation, reflection });
-```
-
-The relation `s*r*s == r^-1` is the defining interaction between reflection and rotation in a
-dihedral group. `permutation(element)` shows the action on polygon vertices, while
-`GeneratedSubgroup` confirms that one rotation and one reflection generate all of `D4`.
-
-### 26.3 Count distinct bracelets with Burnside's lemma
-
-**Problem:** count visually distinct binary bracelets with six beads. There are $2^6=64$ raw
-colorings, but many are the same after rotation or reflection.
-
-**Setup**
-
-```cpp
-Algebra::DihedralGroup braceletSymmetry(6);
-std::vector<std::vector<int>> colorings;
-for (int mask = 0; mask < 64; ++mask) {
-  std::vector<int> coloring(6);
-  for (int position = 0; position < 6; ++position)
-    coloring[position] = (mask >> position) & 1;
-  colorings.push_back(coloring);
-}
-
-auto action = Algebra::MakeGroupAction<Algebra::DihedralElement, std::vector<int>>(
-  [&braceletSymmetry](const Algebra::DihedralElement& element,
-            const std::vector<int>& coloring) {
-    return braceletSymmetry.permutation(element).apply(coloring);
-  });
-```
-
-**Solve**
-
-```cpp
-std::size_t distinctBracelets = Algebra::BurnsideCount(braceletSymmetry, action, colorings);
-std::size_t fixedByOneStepRotation = Algebra::FixedPointCount(
-  braceletSymmetry, action, braceletSymmetry.rotation(1), colorings);
-auto orbits = Algebra::OrbitPartition(braceletSymmetry, action, colorings);
-```
-
-Burnside's lemma computes
-
-$$
-|X/G|=\frac{1}{|G|}\sum_{g\in G}|\operatorname{Fix}(g)|.
-$$
-
-`BurnsideCount` also verifies that every transformed coloring remains in the supplied finite set,
-which catches incomplete object lists.
-
-### 26.4 Work exactly with modular arithmetic and prime fields
-
-**Problem:** compare clock arithmetic with arithmetic in a prime field. Both are modular, but only
-the prime field guarantees inverses for every nonzero element.
-
-**Setup**
-
-```cpp
-using Z12 = Algebra::ModInt<12>;
-using F7 = Algebra::PrimeFieldElement<7>;
-Algebra::ModularRing<12> clockRing;
-Algebra::PrimeField<7> field7;
-```
-
-**Solve**
-
-```cpp
-Z12 clockValue = Z12(10) + Z12(5);   // 3 mod 12
-F7 quotient = F7(3) / F7(2);         // exact division in F7
-F7 primitive = Algebra::PrimitiveRoot<7>();
-
-bool ringLaws = Algebra::CheckRingLaws(clockRing);
-bool fieldLaws = Algebra::CheckFieldLaws(field7);
-```
-
-`Z12(6).inverse()` throws because 6 is not a unit modulo 12. In `F7`, every nonzero element is a
-unit, so division is exact finite-field arithmetic rather than floating-point arithmetic.
-
-### 26.5 Solve an exact linear system over a finite field
-
-**Problem:** solve a tiny modular constraint system over $F_7$ exactly, with no rounding or
-conditioning questions.
-
-**Setup**
-
-```cpp
-using F7 = Algebra::PrimeFieldElement<7>;
-MatrixNM<F7, 2, 2> system{{ F7(2), F7(3) }, { F7(4), F7(1) }};
-std::array<F7, 2> rightHandSide = { F7(1), F7(6) };
-```
-
-**Solve**
-
-```cpp
-auto inverse = Algebra::FieldMatrixInverse(system);
-F7 determinant = Algebra::FieldMatrixDeterminant(system);
-
-std::array<F7, 2> solution = {
-  inverse(0, 0) * rightHandSide[0] + inverse(0, 1) * rightHandSide[1],
-  inverse(1, 0) * rightHandSide[0] + inverse(1, 1) * rightHandSide[1]
-};
-```
-
-`FieldMatrixInverse` performs Gaussian elimination over the field type itself. This is the right
-tool for exact finite-field systems; do not use floating-point matrix inversion for this job.
-
-### 26.6 Build a tiny extension field from polynomials
-
-**Problem:** construct $GF(4)$ as $F_2[x]/(x^2+x+1)$ and verify the defining relation for
-`alpha = x`.
-
-**Setup**
-
-```cpp
-using F2 = Algebra::PrimeFieldElement<2>;
-
-struct GF4Modulus {
-  static Algebra::Polynomial<F2> modulus()
-  {
-    return Algebra::Polynomial<F2>({ F2(1), F2(1), F2(1) });
-  }
-};
-
-using GF4 = Algebra::FiniteFieldElement<2, 2, GF4Modulus>;
-GF4 alpha{ F2(0), F2(1) };
-Algebra::ExtensionField<2, 2, GF4Modulus> field;
-```
-
-**Solve**
-
-```cpp
-GF4 alphaSquared = alpha * alpha;
-GF4 alphaPlusOne = alpha + GF4(1);
-GF4 inverse = alpha.inverse();
-
-bool irreducible = Algebra::IsIrreducible(GF4Modulus::modulus());
-bool fieldLaws = Algebra::CheckFieldLaws(field);
-```
-
-The modulus $x^2+x+1$ implies $x^2=x+1$ in characteristic 2, so `alpha * alpha` equals
-`alpha + 1`. This is the same construction pattern used for larger finite fields, just small
-enough to inspect directly.
-
-**Notes**
-
-- Permutations use zero-based images: `images[i]` is the destination of index `i`.
-- `compose(left,right)` means `left * right`; for transformations, `right` is applied first.
-- Finite law checks enumerate all elements, so they are meant for small structures and examples.
-- `ModInt<n>` is a modular ring element; `PrimeFieldElement<p>` is the field-safe alias when `p`
-  is prime.
-- Extension-field modulus polynomials must be monic, irreducible, and have the declared degree.
-- Runnable version: `Cookbook_Recipe26_Algebra()` in
-  [docs_demos_cookbook.cpp](../src/docs_demos/docs_demos_cookbook.cpp).
+This optional recipe and its six runnable examples moved to the private MML_Ext
+discrete algebra extension, alongside their implementation and tests.
+See [the algebra boundary](base/Algebra.md) for the new include/target and retained
+core Lie groups. Plain core MML does not provide the finite/discrete catalog.
 
 ---
 

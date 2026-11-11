@@ -19,6 +19,7 @@
 #include <mml/MMLBase.h>
 #include <mml/interfaces/IFunction.h>
 #include <mml/interfaces/ICoordTransf.h>
+#include <mml/base/Vector/VectorTypes3D.h>
 #include <mml/interfaces/IDynamicalSystem.h>
 #include <mml/interfaces/IInterval.h>
 #include <mml/interfaces/IODESystem.h>
@@ -184,9 +185,11 @@ namespace MML::docs_demos::interfaces
     {
         std::cout << "\n=== ICoordTransf Interface ===\n";
 
-        std::cout << "ICoordTransf<VectorFrom, VectorTo, N> provides:\n";
-        std::cout << "  - transf(in): Transform coordinates\n";
-        std::cout << "  - coordTransfFunc(i): Get i-th component function\n\n";
+        std::cout << "ICoordTransf<VectorFrom, VectorTo> (dimensions deduced from the vector types) provides:\n";
+        std::cout << "  - FromDim / ToDim: static dimensions, e.g. " << ICoordTransf<Vector3Spherical, Vector3Cartesian>::FromDim
+                  << " -> " << ICoordTransf<Vector3Spherical, Vector3Cartesian>::ToDim << "\n";
+        std::cout << "  - transf(in) / operator()(in): Transform coordinates (IFunction<VectorTo, const VectorFrom&>)\n";
+        std::cout << "  - coordTransfFunc(i): i-th target component as IScalarFunction<FromDim>\n\n";
 
         std::cout << "Implementations include:\n";
         std::cout << "  - CoordTransfCart2DSpher (Cartesian to spherical)\n";

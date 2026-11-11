@@ -28,11 +28,19 @@
 #endif
 
 #include "../test_data/parametric_surfaces_defs.h"
+#include <array>
+#include <string>
+#include <stdexcept>
 
 using namespace MML;
 
 namespace MML::TestBeds
 {
+    struct ShowcaseSurfaceCase {
+        const char* name;
+        const MML::Surfaces::ISurfaceCartesian& surface;
+    };
+
     /*******************************************************************************************************************
      * PARAMETRIC SURFACES TEST BED
      * 
@@ -90,6 +98,20 @@ namespace MML::TestBeds
     class ParametricSurfaceTestBed
     {
     public:
+        static const std::array<ShowcaseSurfaceCase, 6>& getShowcaseSurfaces() {
+            static const ShowcaseSurfaces::MonkeySaddle saddle;
+            static const ShowcaseSurfaces::MobiusStrip mobius;
+            static const ShowcaseSurfaces::Helicoid helicoid;
+            static const ShowcaseSurfaces::EnneperSurface enneper;
+            static const ShowcaseSurfaces::KleinBottle klein;
+            static const ShowcaseSurfaces::DiniSurface dini;
+            static const std::array<ShowcaseSurfaceCase, 6> surfaces{{
+                {"MonkeySaddle", saddle}, {"MobiusStrip", mobius}, {"Helicoid", helicoid},
+                {"EnneperSurface", enneper}, {"KleinBottle", klein}, {"DiniSurface", dini}
+            }};
+            return surfaces;
+        }
+
         static int getNumTestSurfaces3() { return 18; }  // 12 original + 6 new
 
         const static TestParametricSurfaceRect3& getTestSurface3(int i) { return getListSurfaces()[i]; }
@@ -343,7 +365,7 @@ namespace MML::TestBeds
               -0.99, 0.99, 
               [](Real x, Real y) { 
                   Real r2 = x*x + y*y;
-                  return VectorN<Real,3>{ x, y, r2 < REAL(1.0) ? std::sqrt(REAL(1.0) - r2) : REAL(0.0) }; 
+                  return VectorN<Real,3>{ x, y, r2 < static_cast<MML::Real>(1.0) ? std::sqrt(static_cast<MML::Real>(1.0) - r2) : static_cast<MML::Real>(0.0) };
               },
               Constants::PI,              // Area of hemisphere = 2πR² = 2π for R=1 (but domain is square)
               1.0,                         // K = 1

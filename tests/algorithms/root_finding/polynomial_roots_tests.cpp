@@ -41,10 +41,10 @@ bool verifyRoot(const PolynomReal& poly, const Complex& root, Real tol = TOL(1e-
 {
   // Evaluate polynomial at complex root using Horner's method
   int degree = poly.degree();
-  Complex result = Complex(poly[degree], REAL(0.0));
+  Complex result = Complex(poly[degree], static_cast<MML::Real>(0.0));
   
   for (int i = degree - 1; i >= 0; i--)
-    result = result * root + Complex(poly[i], REAL(0.0));
+    result = result * root + Complex(poly[i], static_cast<MML::Real>(0.0));
   
   return std::abs(result) < tol;
 }
@@ -104,9 +104,9 @@ TEST_CASE("PolynomialRoots::Laguerre - Simple polynomials", "[RootFinding][Polyn
     {
       if (isCloseComplex(root, Complex(1, 0)))
         foundReal = true;
-      if (isCloseComplex(root, Complex(-REAL(0.5), std::sqrt(REAL(3.0))/REAL(2.0))))
+      if (isCloseComplex(root, Complex(-static_cast<MML::Real>(0.5), std::sqrt(static_cast<MML::Real>(3.0))/static_cast<MML::Real>(2.0))))
         foundComplex1 = true;
-      if (isCloseComplex(root, Complex(-REAL(0.5), -std::sqrt(REAL(3.0))/REAL(2.0))))
+      if (isCloseComplex(root, Complex(-static_cast<MML::Real>(0.5), -std::sqrt(static_cast<MML::Real>(3.0))/static_cast<MML::Real>(2.0))))
         foundComplex2 = true;
     }
     CHECK(foundReal);
@@ -331,7 +331,7 @@ TEST_CASE("PolynomialRoots::Chebyshev polynomial T_4", "[RootFinding][Polynomial
   for (const auto& root : roots)
   {
     CHECK(std::abs(root.imag()) < TOL(1e-6, 1e-3));  // Nearly real
-    CHECK(std::abs(root.real()) <= REAL(1.0));   // In [-1, 1]
+    CHECK(std::abs(root.real()) <= static_cast<MML::Real>(1.0));   // In [-1, 1]
     CHECK(verifyRoot(poly, root));
   }
 }
@@ -403,15 +403,15 @@ TEST_CASE("PolynomialRoots::Polishing estimates repeated-root multiplicity", "[R
   Vector<Complex> estimates({Complex(1.999, 0.0), Complex(2.001, 0.0)});
   RootFinding::PolynomialRootConfig config;
   config.tolerance = TOL(1e-12, 1e-5);
-  config.multiplicity_tolerance = REAL(0.01);
+  config.multiplicity_tolerance = static_cast<MML::Real>(0.01);
   auto result = RootFinding::PolishPolynomialRoots(polynomial, estimates, config);
 
   REQUIRE(result.converged);
   REQUIRE(result.roots.size() == 2);
   for (const auto& root : result.roots) {
     REQUIRE(root.estimated_multiplicity == 2);
-    REQUIRE_THAT(root.root.real(), Catch::Matchers::WithinAbs(REAL(2.0), TOL(1e-10, 2e-3)));
-    REQUIRE_THAT(root.root.imag(), Catch::Matchers::WithinAbs(REAL(0.0), TOL(1e-10, 1e-4)));
+    REQUIRE_THAT(root.root.real(), Catch::Matchers::WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 2e-3)));
+    REQUIRE_THAT(root.root.imag(), Catch::Matchers::WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-4)));
   }
 }
 
@@ -444,7 +444,7 @@ TEST_CASE("PolynomialRoots::Detailed validation failures", "[RootFinding][Polyno
 {
   PolynomReal polynomial({-1, 0, 1});
   RootFinding::PolynomialRootConfig invalid;
-  invalid.tolerance = -REAL(1.0);
+  invalid.tolerance = -static_cast<MML::Real>(1.0);
   auto invalidResult = RootFinding::FindPolynomialRootsDetailed(polynomial, invalid);
   REQUIRE_FALSE(invalidResult.converged);
   REQUIRE(invalidResult.status == AlgorithmStatus::InvalidInput);
@@ -466,8 +466,10 @@ TEST_CASE("PolynomialRoots::Detailed validation failures", "[RootFinding][Polyno
     REQUIRE(root.polishing_iterations == 0);
   }
 
-  auto constantResult = RootFinding::FindPolynomialRootsDetailed(PolynomReal::Constant(REAL(5.0)));
-  REQUIRE(constantResult.converged);
+  auto constantResult = RootFinding::FindPolynomialRootsDetailed(PolynomReal::Constant(static_cast<MML::Real>(5.0)));
+  REQUIRE(constantResult.IsSuccess());                                  // usable: no roots to find
+  REQUIRE(constantResult.status == AlgorithmStatus::Completed);         // but nothing was iterated or checked
+  REQUIRE_FALSE(constantResult.converged);
   REQUIRE(constantResult.roots.empty());
 
   auto zeroResult = RootFinding::FindPolynomialRootsDetailed(PolynomReal::Zero());

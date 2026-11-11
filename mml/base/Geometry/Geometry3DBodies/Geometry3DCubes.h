@@ -115,9 +115,9 @@ namespace MML {
 
 		Real SurfaceArea() const override { return 6.0 * _a * _a; }
 
-		Pnt3Cart GetCenter() const override { return _center; }
+		Pnt3Cart getCenter() const override { return _center; }
 
-		Box3D GetBoundingBox() const override {
+		Box3D getBoundingBox() const override {
 			Real half_a = _a / 2.0;
 			Pnt3Cart min(_center.X() - half_a, _center.Y() - half_a, _center.Z() - half_a);
 			Pnt3Cart max(_center.X() + half_a, _center.Y() + half_a, _center.Z() + half_a);
@@ -126,12 +126,12 @@ namespace MML {
 
 		/// /** @brief Bounding sphere radius = (a√3)/2 (half space diagonal) */
 
-		BoundingSphere3D GetBoundingSphere() const override {
+		BoundingSphere3D getBoundingSphere() const override {
 			Real radius = _a * std::sqrt(3.0) / 2.0;
 			return BoundingSphere3D(_center, radius);
 		}
 
-		std::string ToString() const override {
+		std::string to_string() const override {
 			std::ostringstream oss;
 			oss << "Cube3D{Center=(" << _center.X() << ", " << _center.Y() << ", " << _center.Z() << "), Side=" << _a
 				<< ", Volume=" << Volume() << ", SurfaceArea=" << SurfaceArea() << "}";
@@ -144,7 +144,10 @@ namespace MML {
 
 		/// /** @brief Get side length. */
 
-		Real GetSide() const { return _a; }
+		Real getSide() const { return _a; }
+		/// @deprecated Use getSide() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getSide()")]]
+		Real GetSide() const { return getSide(); }
 		/// @}
 	};
 
@@ -269,9 +272,9 @@ namespace MML {
 
 		Real SurfaceArea() const override { return 6.0 * _a * _a; }
 
-		Pnt3Cart GetCenter() const override { return _center; }
+		Pnt3Cart getCenter() const override { return _center; }
 
-		Box3D GetBoundingBox() const override {
+		Box3D getBoundingBox() const override {
 			Real h = _a / 2.0;
 			Pnt3Cart min(_center.X() - h, _center.Y() - h, _center.Z() - h);
 			Pnt3Cart max(_center.X() + h, _center.Y() + h, _center.Z() + h);
@@ -280,12 +283,12 @@ namespace MML {
 
 		/// /** @brief Bounding sphere radius = (a/2)√3 (corner distance) */
 
-		BoundingSphere3D GetBoundingSphere() const override {
+		BoundingSphere3D getBoundingSphere() const override {
 			Real radius = (_a / 2.0) * std::sqrt(3.0);
 			return BoundingSphere3D(_center, radius);
 		}
 
-		std::string ToString() const override {
+		std::string to_string() const override {
 			std::ostringstream oss;
 			oss << "CubeWithTriangles3D: Center=(" << _center.X() << ", " << _center.Y() << ", " << _center.Z() << ")"
 				<< ", Side=" << _a << ", Volume=" << Volume() << ", SurfaceArea=" << SurfaceArea() << ", Triangles=" << _surfaces.size();
@@ -298,7 +301,10 @@ namespace MML {
 
 		/// /** @brief Get side length. */
 
-		Real GetSide() const { return _a; }
+		Real getSide() const { return _a; }
+		/// @deprecated Use getSide() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getSide()")]]
+		Real GetSide() const { return getSide(); }
 		/// @}
 	};
 

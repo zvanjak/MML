@@ -133,7 +133,7 @@ namespace MML::VectorSpaces
 				throw MatrixDimensionError("DualSpace::annihilator - subspace ambient dimension mismatch",
 					subspace.ambientDimension(), N, -1, -1);
 
-			Matrix<Scalar> constraints = subspace.orthonormalBasis().transpose();
+			Matrix<Scalar> constraints = subspace.orthonormalBasis().Transposed();
 			return Subspace<Scalar>::NullSpace(constraints, tolerance);
 		}
 	};

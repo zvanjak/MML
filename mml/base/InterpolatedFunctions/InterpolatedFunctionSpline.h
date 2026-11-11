@@ -60,9 +60,9 @@ namespace MML {
 
 		static bool IsNaturalBoundaryDerivative(Real derivative) {
 			if constexpr (std::is_same_v<Real, float>)
-				return !std::isfinite(derivative) || derivative >= std::numeric_limits<Real>::max() / REAL(2.0);
+				return !std::isfinite(derivative) || derivative >= std::numeric_limits<Real>::max() / static_cast<MML::Real>(2.0);
 			else
-				return !std::isfinite(derivative) || derivative > static_cast<Real>(0.99e99L);
+				return !std::isfinite(derivative) || derivative > static_cast<Real>(0.99e99L);   // tol-ok: Numerical Recipes natural-spline sentinel convention (> 0.99e30 means natural)
 		}
 
 	public:
@@ -388,7 +388,8 @@ namespace MML {
 					Real alpha = _d[k] / delta[k];
 					Real beta = _d[k + 1] / delta[k];
 					Real r2 = alpha * alpha + beta * beta;
-					if (r2 > 9.0)
+					constexpr Real fritschCarlsonRadiusSq = 9.0;   // monotonicity circle of radius 3 (Fritsch-Carlson 1980)
+					if (r2 > fritschCarlsonRadiusSq)
 					{
 						// Rescale to satisfy α² + β² ≤ 9
 						Real tau = 3.0 / std::sqrt(r2);

@@ -90,7 +90,7 @@ namespace MML::VectorSpaces
 		const Matrix<Scalar>& basis() const noexcept { return _orthonormalBasis; }
 		const Matrix<Scalar>& orthonormalBasis() const noexcept { return _orthonormalBasis; }
 
-		bool contains(const Vector<Scalar>& vector, Real tolerance = Defaults::VectorIsEqualTolerance) const
+		bool contains(const Vector<Scalar>& vector, Real tolerance = Precision::VectorIsEqualTolerance) const
 		{
 			return residual(vector).NormL2() <= tolerance;
 		}
@@ -126,11 +126,11 @@ namespace MML::VectorSpaces
 			if (dimension() == 0)
 				return Subspace(_ambientDimension, Matrix<Scalar>::Identity(_ambientDimension));
 
-			Matrix<Scalar> complement = NullSpaceBasis(_orthonormalBasis.transpose(), tolerance);
+			Matrix<Scalar> complement = NullSpaceBasis(_orthonormalBasis.Transposed(), tolerance);
 			return Subspace(_ambientDimension, complement);
 		}
 
-		Subspace sum(const Subspace& other, Real tolerance = 1e-12) const requires MMLReal<Scalar>
+		Subspace sum(const Subspace& other, Real tolerance = Precision::LinearDependenceTolerance) const requires MMLReal<Scalar>
 		{
 			if (_ambientDimension != other._ambientDimension)
 				throw MatrixDimensionError("Subspace::sum - ambient dimensions must match",
@@ -153,12 +153,12 @@ namespace MML::VectorSpaces
 
 		static Subspace RowSpace(const Matrix<Scalar>& matrix, Real tolerance = -1.0) requires MMLReal<Scalar>
 		{
-			return Subspace(matrix.cols(), ColumnSpaceBasis(matrix.transpose(), tolerance));
+			return Subspace(matrix.cols(), ColumnSpaceBasis(matrix.Transposed(), tolerance));
 		}
 
 		static Subspace LeftNullSpace(const Matrix<Scalar>& matrix, Real tolerance = -1.0) requires MMLReal<Scalar>
 		{
-			return Subspace(matrix.rows(), NullSpaceBasis(matrix.transpose(), tolerance));
+			return Subspace(matrix.rows(), NullSpaceBasis(matrix.Transposed(), tolerance));
 		}
 	};
 }

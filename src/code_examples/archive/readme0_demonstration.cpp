@@ -96,7 +96,7 @@ void Readme_demonstration()
         return p[1]*cos(p[0]*p[1]) - p[2]*sin(p[1]*p[2]) + p[0]*exp(p[0]*p[2]); 
     });
     
-    IntegrationResult volResult2 = Integrate3D(divF2, 0.0, 1.0, y_low, y_high, z_low, z_high);
+    IntegrationResult volResult2 = Integrate3DDetailed(divF2, 0.0, 1.0, y_low, y_high, z_low, z_high);
     Real fluxIntegral2 = SurfaceIntegration::SurfaceIntegral(F2, unitCube, 1e-8);
     
     std::cout << std::setprecision(15);
@@ -137,8 +137,8 @@ void Readme_demonstration()
         return VectorFieldOperations::DivCart<3>(F2_counted, p);
     });
     
-    IntegrationResult volResultAnalytical = Integrate3D(divF2_counted, 0.0, 1.0, y_low, y_high, z_low, z_high);
-    IntegrationResult volResultNumerical = Integrate3D(divF2_numerical, 0.0, 1.0, y_low, y_high, z_low, z_high);
+    IntegrationResult volResultAnalytical = Integrate3DDetailed(divF2_counted, 0.0, 1.0, y_low, y_high, z_low, z_high);
+    IntegrationResult volResultNumerical = Integrate3DDetailed(divF2_numerical, 0.0, 1.0, y_low, y_high, z_low, z_high);
     
     std::cout << "Volume integral (numerical div)  = " << volResultNumerical.value << std::endl;
     std::cout << "Volume integral (analytical div) = " << volResultAnalytical.value << std::endl;
@@ -173,10 +173,10 @@ void Readme_demonstration()
         return VectorFieldOperations::DivCart<3>(F2_for_methods, p);
     });
     
-    IntegrationResult resultGauss = Integrate3D(divF2_for_methods, GAUSS10, 0.0, 1.0, y_low, y_high, z_low, z_high);
-    IntegrationResult resultSimpson = Integrate3D(divF2_for_methods, SIMPSON, 0.0, 1.0, y_low, y_high, z_low, z_high);
-    IntegrationResult resultTrap = Integrate3D(divF2_for_methods, TRAP, 0.0, 1.0, y_low, y_high, z_low, z_high);
-    IntegrationResult resultRomberg = Integrate3D(divF2_for_methods, ROMBERG, 0.0, 1.0, y_low, y_high, z_low, z_high);
+    IntegrationResult resultGauss = Integrate3DDetailed(divF2_for_methods, GAUSS10, 0.0, 1.0, y_low, y_high, z_low, z_high);
+    IntegrationResult resultSimpson = Integrate3DDetailed(divF2_for_methods, SIMPSON, 0.0, 1.0, y_low, y_high, z_low, z_high);
+    IntegrationResult resultTrap = Integrate3DDetailed(divF2_for_methods, TRAP, 0.0, 1.0, y_low, y_high, z_low, z_high);
+    IntegrationResult resultRomberg = Integrate3DDetailed(divF2_for_methods, ROMBERG, 0.0, 1.0, y_low, y_high, z_low, z_high);
     
     std::cout << std::setprecision(14);
     std::cout << "  GAUSS10: " << resultGauss.value << "  (error vs surface: " << std::abs(resultGauss.value - fluxIntegral2) << ")" << std::endl;

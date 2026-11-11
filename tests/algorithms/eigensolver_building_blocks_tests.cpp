@@ -48,8 +48,8 @@ constexpr Real TOL = TOL(1e-10, 1e-4);
 TEST_CASE("Hessenberg - 2x2 matrix unchanged", "[eigensolver][building-block][hessenberg]")
 {
     // 2x2 matrices are already Hessenberg
-    Matrix<Real> A{2, 2, {REAL(1.0), REAL(2.0),
-                          REAL(3.0), REAL(4.0)}};
+    Matrix<Real> A{2, 2, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)}};
     
     auto result = MML::ReduceToHessenberg(A);
     
@@ -63,9 +63,9 @@ TEST_CASE("Hessenberg - 2x2 matrix unchanged", "[eigensolver][building-block][he
 
 TEST_CASE("Hessenberg - 3x3 produces upper Hessenberg", "[eigensolver][building-block][hessenberg]")
 {
-    Matrix<Real> A{3, 3, {REAL(1.0), REAL(2.0), REAL(3.0),
-                          REAL(4.0), REAL(5.0), REAL(6.0),
-                          REAL(7.0), REAL(8.0), REAL(9.0)}};
+    Matrix<Real> A{3, 3, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+                          static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0),
+                          static_cast<MML::Real>(7.0), static_cast<MML::Real>(8.0), static_cast<MML::Real>(9.0)}};
     
     auto result = MML::ReduceToHessenberg(A);
     
@@ -77,9 +77,9 @@ TEST_CASE("Hessenberg - 3x3 produces upper Hessenberg", "[eigensolver][building-
 
 TEST_CASE("Hessenberg - 3x3 Q is orthogonal", "[eigensolver][building-block][hessenberg]")
 {
-    Matrix<Real> A{3, 3, {REAL(1.0), REAL(2.0), REAL(3.0),
-                          REAL(4.0), REAL(5.0), REAL(6.0),
-                          REAL(7.0), REAL(8.0), REAL(9.0)}};
+    Matrix<Real> A{3, 3, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+                          static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0),
+                          static_cast<MML::Real>(7.0), static_cast<MML::Real>(8.0), static_cast<MML::Real>(9.0)}};
     
     auto result = MML::ReduceToHessenberg(A);
     
@@ -89,9 +89,9 @@ TEST_CASE("Hessenberg - 3x3 Q is orthogonal", "[eigensolver][building-block][hes
 
 TEST_CASE("Hessenberg - 3x3 similarity preserved (Q^T*A*Q = H)", "[eigensolver][building-block][hessenberg]")
 {
-    Matrix<Real> A{3, 3, {REAL(1.0), REAL(2.0), REAL(3.0),
-                          REAL(4.0), REAL(5.0), REAL(6.0),
-                          REAL(7.0), REAL(8.0), REAL(9.0)}};
+    Matrix<Real> A{3, 3, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+                          static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0),
+                          static_cast<MML::Real>(7.0), static_cast<MML::Real>(8.0), static_cast<MML::Real>(9.0)}};
     
     auto result = MML::ReduceToHessenberg(A);
     
@@ -105,9 +105,9 @@ TEST_CASE("Hessenberg - 3x3 similarity preserved (Q^T*A*Q = H)", "[eigensolver][
 
 TEST_CASE("Hessenberg - 3x3 trace preserved", "[eigensolver][building-block][hessenberg]")
 {
-    Matrix<Real> A{3, 3, {REAL(1.0), REAL(2.0), REAL(3.0),
-                          REAL(4.0), REAL(5.0), REAL(6.0),
-                          REAL(7.0), REAL(8.0), REAL(9.0)}};
+    Matrix<Real> A{3, 3, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+                          static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0),
+                          static_cast<MML::Real>(7.0), static_cast<MML::Real>(8.0), static_cast<MML::Real>(9.0)}};
     
     auto result = MML::ReduceToHessenberg(A);
     
@@ -120,10 +120,10 @@ TEST_CASE("Hessenberg - 3x3 trace preserved", "[eigensolver][building-block][hes
 
 TEST_CASE("Hessenberg - 4x4 all criteria", "[eigensolver][building-block][hessenberg]")
 {
-    Matrix<Real> A{4, 4, {REAL(4.0), REAL(1.0), -REAL(2.0), REAL(2.0),
-                          REAL(1.0), REAL(2.0),  REAL(0.0), REAL(1.0),
-                         -REAL(2.0), REAL(0.0),  REAL(3.0), -REAL(2.0),
-                          REAL(2.0), REAL(1.0), -REAL(2.0), -REAL(1.0)}};
+    Matrix<Real> A{4, 4, {static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), -static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),  static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0),
+                         -static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0),  static_cast<MML::Real>(3.0), -static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), -static_cast<MML::Real>(2.0), -static_cast<MML::Real>(1.0)}};
     
     auto result = MML::ReduceToHessenberg(A);
     
@@ -155,11 +155,11 @@ TEST_CASE("Hessenberg - 4x4 all criteria", "[eigensolver][building-block][hessen
 
 TEST_CASE("Hessenberg - 5x5 all criteria", "[eigensolver][building-block][hessenberg]")
 {
-    Matrix<Real> A{5, 5, {REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0), REAL(5.0),
-                          REAL(6.0), REAL(7.0), REAL(8.0), REAL(9.0), REAL(10.0),
-                          REAL(11.0), REAL(12.0), REAL(13.0), REAL(14.0), REAL(15.0),
-                          REAL(16.0), REAL(17.0), REAL(18.0), REAL(19.0), REAL(20.0),
-                          REAL(21.0), REAL(22.0), REAL(23.0), REAL(24.0), REAL(25.0)}};
+    Matrix<Real> A{5, 5, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0),
+                          static_cast<MML::Real>(6.0), static_cast<MML::Real>(7.0), static_cast<MML::Real>(8.0), static_cast<MML::Real>(9.0), static_cast<MML::Real>(10.0),
+                          static_cast<MML::Real>(11.0), static_cast<MML::Real>(12.0), static_cast<MML::Real>(13.0), static_cast<MML::Real>(14.0), static_cast<MML::Real>(15.0),
+                          static_cast<MML::Real>(16.0), static_cast<MML::Real>(17.0), static_cast<MML::Real>(18.0), static_cast<MML::Real>(19.0), static_cast<MML::Real>(20.0),
+                          static_cast<MML::Real>(21.0), static_cast<MML::Real>(22.0), static_cast<MML::Real>(23.0), static_cast<MML::Real>(24.0), static_cast<MML::Real>(25.0)}};
     
     auto result = MML::ReduceToHessenberg(A);
     
@@ -188,10 +188,10 @@ TEST_CASE("Hessenberg - 5x5 all criteria", "[eigensolver][building-block][hessen
 TEST_CASE("Hessenberg - already Hessenberg matrix", "[eigensolver][building-block][hessenberg]")
 {
     // Upper Hessenberg matrix should be preserved
-    Matrix<Real> H{4, 4, {REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0),
-                          REAL(5.0), REAL(6.0), REAL(7.0), REAL(8.0),
-                          REAL(0.0), REAL(9.0), REAL(10.0), REAL(11.0),
-                          REAL(0.0), REAL(0.0), REAL(12.0), REAL(13.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0),
+                          static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(7.0), static_cast<MML::Real>(8.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(9.0), static_cast<MML::Real>(10.0), static_cast<MML::Real>(11.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(12.0), static_cast<MML::Real>(13.0)}};
     
     auto result = MML::ReduceToHessenberg(H);
     
@@ -206,10 +206,10 @@ TEST_CASE("Hessenberg - already Hessenberg matrix", "[eigensolver][building-bloc
 TEST_CASE("Hessenberg - random-like structured matrix", "[eigensolver][building-block][hessenberg]")
 {
     // Create a matrix with varied elements (like testbed matrices)
-    Matrix<Real> A{4, 4, {REAL(7.9), -REAL(9.3),  REAL(1.7),  REAL(0.5),
-                         -REAL(0.2), -REAL(5.9),  REAL(9.9),  REAL(2.3),
-                          REAL(2.4),  REAL(6.5), -REAL(5.5),  REAL(1.1),
-                          REAL(3.1), -REAL(2.2),  REAL(4.4),  REAL(8.8)}};
+    Matrix<Real> A{4, 4, {static_cast<MML::Real>(7.9), -static_cast<MML::Real>(9.3),  static_cast<MML::Real>(1.7),  static_cast<MML::Real>(0.5),
+                         -static_cast<MML::Real>(0.2), -static_cast<MML::Real>(5.9),  static_cast<MML::Real>(9.9),  static_cast<MML::Real>(2.3),
+                          static_cast<MML::Real>(2.4),  static_cast<MML::Real>(6.5), -static_cast<MML::Real>(5.5),  static_cast<MML::Real>(1.1),
+                          static_cast<MML::Real>(3.1), -static_cast<MML::Real>(2.2),  static_cast<MML::Real>(4.4),  static_cast<MML::Real>(8.8)}};
     
     auto result = MML::ReduceToHessenberg(A);
     
@@ -233,7 +233,7 @@ TEST_CASE("Hessenberg - random-like structured matrix", "[eigensolver][building-
 TEST_CASE("Eigenvalue2x2 - two real eigenvalues", "[eigensolver][building-block][2x2]")
 {
     // [[4, 1], [2, 3]] has eigenvalues 5 and 2
-    auto result = MML::detail::Eigenvalues2x2(REAL(4.0), REAL(1.0), REAL(2.0), REAL(3.0));
+    auto result = MML::detail::Eigenvalues2x2(static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0));
     
     REQUIRE_FALSE(result.isComplex);
     
@@ -242,15 +242,15 @@ TEST_CASE("Eigenvalue2x2 - two real eigenvalues", "[eigensolver][building-block]
     Real e2 = std::min(result.real1, result.real2);
     
     INFO("Eigenvalues: " << result.real1 << ", " << result.real2);
-    REQUIRE(std::abs(e1 - REAL(5.0)) < TOL);
-    REQUIRE(std::abs(e2 - REAL(2.0)) < TOL);
+    REQUIRE(std::abs(e1 - static_cast<MML::Real>(5.0)) < TOL);
+    REQUIRE(std::abs(e2 - static_cast<MML::Real>(2.0)) < TOL);
 }
 
 TEST_CASE("Eigenvalue2x2 - complex conjugate pair", "[eigensolver][building-block][2x2]")
 {
     // Rotation matrix: [[cos(θ), -sin(θ)], [sin(θ), cos(θ)]]
     // Eigenvalues: e^{±iθ}
-    Real theta = REAL(0.5);
+    Real theta = static_cast<MML::Real>(0.5);
     Real c = std::cos(theta);
     Real s = std::sin(theta);
     
@@ -272,36 +272,36 @@ TEST_CASE("Eigenvalue2x2 - complex conjugate pair", "[eigensolver][building-bloc
 TEST_CASE("Eigenvalue2x2 - diagonal matrix", "[eigensolver][building-block][2x2]")
 {
     // Diagonal [[3, 0], [0, 7]]
-    auto result = MML::detail::Eigenvalues2x2(REAL(3.0), REAL(0.0), REAL(0.0), REAL(7.0));
+    auto result = MML::detail::Eigenvalues2x2(static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(7.0));
     
     REQUIRE_FALSE(result.isComplex);
     
     Real e1 = std::max(result.real1, result.real2);
     Real e2 = std::min(result.real1, result.real2);
     
-    REQUIRE(std::abs(e1 - REAL(7.0)) < TOL);
-    REQUIRE(std::abs(e2 - REAL(3.0)) < TOL);
+    REQUIRE(std::abs(e1 - static_cast<MML::Real>(7.0)) < TOL);
+    REQUIRE(std::abs(e2 - static_cast<MML::Real>(3.0)) < TOL);
 }
 
 TEST_CASE("Eigenvalue2x2 - repeated eigenvalue", "[eigensolver][building-block][2x2]")
 {
     // [[5, 1], [0, 5]] - repeated eigenvalue 5
-    auto result = MML::detail::Eigenvalues2x2(REAL(5.0), REAL(1.0), REAL(0.0), REAL(5.0));
+    auto result = MML::detail::Eigenvalues2x2(static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0));
     
     REQUIRE_FALSE(result.isComplex);
-    REQUIRE(std::abs(result.real1 - REAL(5.0)) < TOL);
-    REQUIRE(std::abs(result.real2 - REAL(5.0)) < TOL);
+    REQUIRE(std::abs(result.real1 - static_cast<MML::Real>(5.0)) < TOL);
+    REQUIRE(std::abs(result.real2 - static_cast<MML::Real>(5.0)) < TOL);
 }
 
 TEST_CASE("Eigenvalue2x2 - negative discriminant (complex)", "[eigensolver][building-block][2x2]")
 {
     // [[0, -1], [1, 0]] - pure imaginary eigenvalues ±i
-    auto result = MML::detail::Eigenvalues2x2(REAL(0.0), -REAL(1.0), REAL(1.0), REAL(0.0));
+    auto result = MML::detail::Eigenvalues2x2(static_cast<MML::Real>(0.0), -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0));
     
     REQUIRE(result.isComplex);
     REQUIRE(std::abs(result.real1) < TOL);  // Real part should be 0
     REQUIRE(std::abs(result.real2) < TOL);
-    REQUIRE(std::abs(std::abs(result.imag1) - REAL(1.0)) < TOL);  // |imag| = 1
+    REQUIRE(std::abs(std::abs(result.imag1) - static_cast<MML::Real>(1.0)) < TOL);  // |imag| = 1
 }
 
 // ============================================================================
@@ -312,17 +312,17 @@ TEST_CASE("QRStep - Wilkinson shift for real eigenvalues", "[eigensolver][buildi
 {
     // 2x2 block [[4, 1], [2, 3]] has eigenvalues 5 and 2
     // Shift should be closer to 3 (the d element), so shift = 2
-    Real shift = MML::detail::WilkinsonShift(REAL(4.0), REAL(1.0), REAL(2.0), REAL(3.0));
+    Real shift = MML::detail::WilkinsonShift(static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0));
     
     // Eigenvalues are 5 and 2; d=3, so closer eigenvalue is 2
     INFO("Wilkinson shift = " << shift);
-    REQUIRE(std::abs(shift - REAL(2.0)) < TOL);
+    REQUIRE(std::abs(shift - static_cast<MML::Real>(2.0)) < TOL);
 }
 
 TEST_CASE("QRStep - Wilkinson shift for complex eigenvalues", "[eigensolver][building-block][qrstep]")
 {
     // Rotation matrix has complex eigenvalues, shift should be d
-    Real theta = REAL(0.5);
+    Real theta = static_cast<MML::Real>(0.5);
     Real c = std::cos(theta);
     Real s = std::sin(theta);
     
@@ -336,10 +336,10 @@ TEST_CASE("QRStep - Wilkinson shift for complex eigenvalues", "[eigensolver][bui
 TEST_CASE("QRStep - Single step preserves Hessenberg form", "[eigensolver][building-block][qrstep]")
 {
     // Start with upper Hessenberg matrix
-    Matrix<Real> H{4, 4, {REAL(4.0), REAL(1.0), REAL(2.0), REAL(3.0),
-                          REAL(2.0), REAL(5.0), REAL(1.0), REAL(2.0),
-                          REAL(0.0), REAL(3.0), REAL(6.0), REAL(1.0),
-                          REAL(0.0), REAL(0.0), REAL(2.0), REAL(7.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(7.0)}};
     
     auto result = MML::detail::SingleQRStep(H);
     
@@ -348,10 +348,10 @@ TEST_CASE("QRStep - Single step preserves Hessenberg form", "[eigensolver][build
 
 TEST_CASE("QRStep - Single step Q is orthogonal", "[eigensolver][building-block][qrstep]")
 {
-    Matrix<Real> H{4, 4, {REAL(4.0), REAL(1.0), REAL(2.0), REAL(3.0),
-                          REAL(2.0), REAL(5.0), REAL(1.0), REAL(2.0),
-                          REAL(0.0), REAL(3.0), REAL(6.0), REAL(1.0),
-                          REAL(0.0), REAL(0.0), REAL(2.0), REAL(7.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(7.0)}};
     
     auto result = MML::detail::SingleQRStep(H, true);
     
@@ -360,10 +360,10 @@ TEST_CASE("QRStep - Single step Q is orthogonal", "[eigensolver][building-block]
 
 TEST_CASE("QRStep - Single step preserves similarity", "[eigensolver][building-block][qrstep]")
 {
-    Matrix<Real> H{4, 4, {REAL(4.0), REAL(1.0), REAL(2.0), REAL(3.0),
-                          REAL(2.0), REAL(5.0), REAL(1.0), REAL(2.0),
-                          REAL(0.0), REAL(3.0), REAL(6.0), REAL(1.0),
-                          REAL(0.0), REAL(0.0), REAL(2.0), REAL(7.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(7.0)}};
     
     auto result = MML::detail::SingleQRStep(H, true);
     
@@ -377,10 +377,10 @@ TEST_CASE("QRStep - Single step preserves similarity", "[eigensolver][building-b
 
 TEST_CASE("QRStep - Single step preserves trace", "[eigensolver][building-block][qrstep]")
 {
-    Matrix<Real> H{4, 4, {REAL(4.0), REAL(1.0), REAL(2.0), REAL(3.0),
-                          REAL(2.0), REAL(5.0), REAL(1.0), REAL(2.0),
-                          REAL(0.0), REAL(3.0), REAL(6.0), REAL(1.0),
-                          REAL(0.0), REAL(0.0), REAL(2.0), REAL(7.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(7.0)}};
     
     Real traceBefore = MatrixAlg::Trace(H);
     auto result = MML::detail::SingleQRStep(H);
@@ -393,9 +393,9 @@ TEST_CASE("QRStep - Single step preserves trace", "[eigensolver][building-block]
 TEST_CASE("QRStep - Multiple steps converge for diagonal dominance", "[eigensolver][building-block][qrstep]")
 {
     // Start with diagonally dominant Hessenberg - should converge quickly
-    Matrix<Real> H{3, 3, {REAL(10.0), REAL(1.0), REAL(0.5),
-                           REAL(1.0), REAL(5.0), REAL(0.3),
-                           REAL(0.0), REAL(0.2), REAL(1.0)}};
+    Matrix<Real> H{3, 3, {static_cast<MML::Real>(10.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5),
+                           static_cast<MML::Real>(1.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(0.3),
+                           static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.2), static_cast<MML::Real>(1.0)}};
     
     int iters = MML::detail::MultipleQRSteps(H, 30, TOL(1e-10, 1e-5));
     
@@ -410,8 +410,8 @@ TEST_CASE("QRStep - Convergence reveals eigenvalue", "[eigensolver][building-blo
 {
     // Start with Hessenberg form of matrix with known eigenvalues
     // [[4, 1], [2, 3]] -> eigenvalues 5 and 2
-    Matrix<Real> H{2, 2, {REAL(4.0), REAL(1.0),
-                          REAL(2.0), REAL(3.0)}};
+    Matrix<Real> H{2, 2, {static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)}};
     
     int iters = MML::detail::MultipleQRSteps(H, 30, TOL(1e-10, 1e-5));
     
@@ -428,8 +428,8 @@ TEST_CASE("QRStep - Convergence reveals eigenvalue", "[eigensolver][building-blo
     
     INFO("Diagonal: " << e1 << ", " << e2);
     
-    bool correct = (std::abs(e1 - REAL(5.0)) < 1e-6 && std::abs(e2 - REAL(2.0)) < 1e-6) ||
-                   (std::abs(e1 - REAL(2.0)) < 1e-6 && std::abs(e2 - REAL(5.0)) < 1e-6);
+    bool correct = (std::abs(e1 - static_cast<MML::Real>(5.0)) < 1e-6 && std::abs(e2 - static_cast<MML::Real>(2.0)) < 1e-6) ||
+                   (std::abs(e1 - static_cast<MML::Real>(2.0)) < 1e-6 && std::abs(e2 - static_cast<MML::Real>(5.0)) < 1e-6);
     REQUIRE(correct);
 }
 
@@ -440,10 +440,10 @@ TEST_CASE("QRStep - Convergence reveals eigenvalue", "[eigensolver][building-blo
 TEST_CASE("DoubleShift - Preserves Hessenberg form", "[eigensolver][building-block][doubleshift]")
 {
     // 4x4 Hessenberg matrix
-    Matrix<Real> H{4, 4, {REAL(4.0), REAL(1.0), REAL(2.0), REAL(1.0),
-                          REAL(2.0), REAL(3.0), REAL(1.0), REAL(2.0),
-                          REAL(0.0), REAL(2.0), REAL(5.0), REAL(1.0),
-                          REAL(0.0), REAL(0.0), REAL(1.0), REAL(6.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(6.0)}};
     
     auto result = MML::detail::FrancisDoubleShift(H, 0, 3, true);
     
@@ -452,10 +452,10 @@ TEST_CASE("DoubleShift - Preserves Hessenberg form", "[eigensolver][building-blo
 
 TEST_CASE("DoubleShift - Q is orthogonal", "[eigensolver][building-block][doubleshift]")
 {
-    Matrix<Real> H{4, 4, {REAL(4.0), REAL(1.0), REAL(2.0), REAL(1.0),
-                          REAL(2.0), REAL(3.0), REAL(1.0), REAL(2.0),
-                          REAL(0.0), REAL(2.0), REAL(5.0), REAL(1.0),
-                          REAL(0.0), REAL(0.0), REAL(1.0), REAL(6.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(6.0)}};
     
     auto result = MML::detail::FrancisDoubleShift(H, 0, 3, true);
     
@@ -464,10 +464,10 @@ TEST_CASE("DoubleShift - Q is orthogonal", "[eigensolver][building-block][double
 
 TEST_CASE("DoubleShift - Preserves similarity", "[eigensolver][building-block][doubleshift]")
 {
-    Matrix<Real> H{4, 4, {REAL(4.0), REAL(1.0), REAL(2.0), REAL(1.0),
-                          REAL(2.0), REAL(3.0), REAL(1.0), REAL(2.0),
-                          REAL(0.0), REAL(2.0), REAL(5.0), REAL(1.0),
-                          REAL(0.0), REAL(0.0), REAL(1.0), REAL(6.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(6.0)}};
     
     auto result = MML::detail::FrancisDoubleShift(H, 0, 3, true);
     
@@ -481,10 +481,10 @@ TEST_CASE("DoubleShift - Preserves similarity", "[eigensolver][building-block][d
 
 TEST_CASE("DoubleShift - Preserves trace", "[eigensolver][building-block][doubleshift]")
 {
-    Matrix<Real> H{4, 4, {REAL(4.0), REAL(1.0), REAL(2.0), REAL(1.0),
-                          REAL(2.0), REAL(3.0), REAL(1.0), REAL(2.0),
-                          REAL(0.0), REAL(2.0), REAL(5.0), REAL(1.0),
-                          REAL(0.0), REAL(0.0), REAL(1.0), REAL(6.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(6.0)}};
     
     Real traceBefore = MatrixAlg::Trace(H);
     auto result = MML::detail::FrancisDoubleShift(H, 0, 3, false);
@@ -498,10 +498,10 @@ TEST_CASE("DoubleShift - Converges on complex eigenvalue matrix", "[eigensolver]
 {
     // Matrix with complex eigenvalues: [[0, -1], [1, 0]] has eigenvalues ±i
     // Embedded in 4x4 Hessenberg:
-    Matrix<Real> H{4, 4, {REAL(1.0),  REAL(0.0), -REAL(1.0), REAL(0.5),
-                          REAL(1.0),  REAL(0.0),  REAL(1.0), REAL(0.3),
-                          REAL(0.0),  REAL(1.0),  REAL(2.0), REAL(0.2),
-                          REAL(0.0),  REAL(0.0),  REAL(0.5), REAL(3.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(1.0),  static_cast<MML::Real>(0.0), -static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5),
+                          static_cast<MML::Real>(1.0),  static_cast<MML::Real>(0.0),  static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.3),
+                          static_cast<MML::Real>(0.0),  static_cast<MML::Real>(1.0),  static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.2),
+                          static_cast<MML::Real>(0.0),  static_cast<MML::Real>(0.0),  static_cast<MML::Real>(0.5), static_cast<MML::Real>(3.0)}};
     
     Matrix<Real> Hcopy = H;
     int iters = MML::detail::MultipleDoubleShiftSteps(Hcopy, 0, 3, 50, TOL(1e-10, 1e-5));
@@ -512,7 +512,7 @@ TEST_CASE("DoubleShift - Converges on complex eigenvalue matrix", "[eigensolver]
     REQUIRE(iters <= 50);
     
     // Matrix should still be upper Hessenberg
-    REQUIRE(MatrixAlg::IsUpperHessenberg(Hcopy, {REAL(1e-6), REAL(1e-6)}));
+    REQUIRE(MatrixAlg::IsUpperHessenberg(Hcopy, {static_cast<MML::Real>(1e-6), static_cast<MML::Real>(1e-6)}));
 }
 
 TEST_CASE("DoubleShift - 2x2 complex block extraction", "[eigensolver][building-block][doubleshift]")
@@ -520,18 +520,18 @@ TEST_CASE("DoubleShift - 2x2 complex block extraction", "[eigensolver][building-
     // Create a matrix whose bottom 2x2 has complex eigenvalues
     // [[a, -b], [b, a]] has eigenvalues a ± ib
     // Use a=2, b=3 -> eigenvalues 2±3i
-    Matrix<Real> H{4, 4, {REAL(5.0), REAL(1.0), REAL(0.0), REAL(0.0),
-                          REAL(1.0), REAL(4.0), REAL(1.0), REAL(0.0),
-                          REAL(0.0), REAL(1.0), REAL(2.0), -REAL(3.0),
-                          REAL(0.0), REAL(0.0), REAL(3.0),  REAL(2.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+                          static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), -static_cast<MML::Real>(3.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0),  static_cast<MML::Real>(2.0)}};
     
     // Bottom 2x2 eigenvalues should be 2 ± 3i
     auto eig = MML::detail::Eigenvalues2x2(H(2,2), H(2,3), H(3,2), H(3,3));
     
     INFO("Bottom 2x2 eigenvalues: " << eig.real1 << " ± " << eig.imag1 << "i");
     REQUIRE(eig.isComplex);
-    REQUIRE(std::abs(eig.real1 - REAL(2.0)) < TOL(1e-10, 1e-5));
-    REQUIRE(std::abs(std::abs(eig.imag1) - REAL(3.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(eig.real1 - static_cast<MML::Real>(2.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(std::abs(eig.imag1) - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
 }
 
 // =============================================================================
@@ -541,10 +541,10 @@ TEST_CASE("DoubleShift - 2x2 complex block extraction", "[eigensolver][building-
 TEST_CASE("Deflation - Detect deflation in converged matrix", "[eigensolver][building-block][deflation]")
 {
     // Matrix with zero subdiagonal element (already deflated at position 2)
-    Matrix<Real> H{4, 4, {REAL(5.0), REAL(1.0), REAL(2.0), REAL(1.0),
-                          REAL(2.0), REAL(4.0), REAL(1.0), REAL(2.0),   // Non-zero at (1,0)
-                          REAL(0.0), REAL(0.0), REAL(3.0), REAL(1.0),   // Zero at (2,1) - deflation!
-                          REAL(0.0), REAL(0.0), REAL(1.0), REAL(2.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),   // Non-zero at (1,0)
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(1.0),   // Zero at (2,1) - deflation!
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)}};
     
     auto result = MML::detail::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     
@@ -557,10 +557,10 @@ TEST_CASE("Deflation - Detect deflation in converged matrix", "[eigensolver][bui
 TEST_CASE("Deflation - No deflation in unreduced matrix", "[eigensolver][building-block][deflation]")
 {
     // Matrix with no small subdiagonal elements
-    Matrix<Real> H{4, 4, {REAL(5.0), REAL(1.0), REAL(2.0), REAL(1.0),
-                          REAL(2.0), REAL(4.0), REAL(1.0), REAL(2.0),
-                          REAL(0.0), REAL(2.0), REAL(3.0), REAL(1.0),
-                          REAL(0.0), REAL(0.0), REAL(2.0), REAL(2.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0)}};
     
     auto result = MML::detail::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     
@@ -570,10 +570,10 @@ TEST_CASE("Deflation - No deflation in unreduced matrix", "[eigensolver][buildin
 TEST_CASE("Deflation - Detect 1x1 block at bottom", "[eigensolver][building-block][deflation]")
 {
     // Matrix with zero at H(3,2) - isolates single eigenvalue
-    Matrix<Real> H{4, 4, {REAL(5.0), REAL(1.0), REAL(2.0), REAL(1.0),
-                          REAL(2.0), REAL(4.0), REAL(1.0), REAL(2.0),
-                          REAL(0.0), REAL(2.0), REAL(3.0), REAL(1.0),
-                          REAL(0.0), REAL(0.0), REAL(0.0), REAL(7.0)}};  // Zero at (3,2) - eigenvalue 7
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(7.0)}};  // Zero at (3,2) - eigenvalue 7
     
     auto result = MML::detail::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     
@@ -585,10 +585,10 @@ TEST_CASE("Deflation - Detect 1x1 block at bottom", "[eigensolver][building-bloc
 TEST_CASE("Deflation - Detect 2x2 block", "[eigensolver][building-block][deflation]")
 {
     // Matrix with zero at H(2,1) but non-zero at H(3,2) - isolates 2x2 block
-    Matrix<Real> H{4, 4, {REAL(5.0), REAL(1.0), REAL(2.0), REAL(1.0),
-                          REAL(2.0), REAL(4.0), REAL(1.0), REAL(2.0),
-                          REAL(0.0), REAL(0.0), REAL(3.0), REAL(1.0),   // Zero at (2,1)
-                          REAL(0.0), REAL(0.0), REAL(2.0), REAL(2.0)}}; // Non-zero at (3,2) - 2x2 block below
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(1.0),   // Zero at (2,1)
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0)}}; // Non-zero at (3,2) - 2x2 block below
     
     auto result = MML::detail::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     
@@ -600,10 +600,10 @@ TEST_CASE("Deflation - Detect 2x2 block", "[eigensolver][building-block][deflati
 TEST_CASE("Extraction - Extract eigenvalues from triangular matrix", "[eigensolver][building-block][deflation]")
 {
     // Upper triangular matrix - all 1x1 blocks
-    Matrix<Real> H{4, 4, {REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0),
-                          REAL(0.0), REAL(2.0), REAL(3.0), REAL(4.0),
-                          REAL(0.0), REAL(0.0), REAL(3.0), REAL(4.0),
-                          REAL(0.0), REAL(0.0), REAL(0.0), REAL(4.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(4.0)}};
     
     auto result = MML::detail::ExtractEigenvalues(H, TOL(1e-10, 1e-5));
     
@@ -612,7 +612,7 @@ TEST_CASE("Extraction - Extract eigenvalues from triangular matrix", "[eigensolv
     REQUIRE(result.complexPairs == 0);
     
     // Check eigenvalues (should be 1, 2, 3, 4)
-    std::vector<Real> expected = {REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)};
+    std::vector<Real> expected = {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)};
     for (size_t i = 0; i < 4; i++)
     {
         INFO("Eigenvalue " << i << ": " << result.eigenvalues[i].real);
@@ -625,10 +625,10 @@ TEST_CASE("Extraction - Extract complex pair from 2x2 block", "[eigensolver][bui
 {
     // Quasi-triangular: 1x1 block then 2x2 complex block then 1x1 block
     // 2x2 block [[2, -3], [3, 2]] has eigenvalues 2 ± 3i
-    Matrix<Real> H{4, 4, {REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0),
-                          REAL(0.0), REAL(2.0),-REAL(3.0), REAL(4.0),
-                          REAL(0.0), REAL(3.0), REAL(2.0), REAL(4.0),
-                          REAL(0.0), REAL(0.0), REAL(0.0), REAL(5.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0),-static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0)}};
     
     auto result = MML::detail::ExtractEigenvalues(H, TOL(1e-10, 1e-5));
     
@@ -637,20 +637,20 @@ TEST_CASE("Extraction - Extract complex pair from 2x2 block", "[eigensolver][bui
     REQUIRE(result.complexPairs == 1);   // one complex pair 2±3i
     
     // First eigenvalue: 1 (real)
-    REQUIRE(std::abs(result.eigenvalues[0].real - REAL(1.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(result.eigenvalues[0].real - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
     REQUIRE_FALSE(result.eigenvalues[0].isComplex);
     
     // Second and third: 2 ± 3i (complex pair)
-    REQUIRE(std::abs(result.eigenvalues[1].real - REAL(2.0)) < TOL(1e-10, 1e-5));
-    REQUIRE(std::abs(std::abs(result.eigenvalues[1].imag) - REAL(3.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(result.eigenvalues[1].real - static_cast<MML::Real>(2.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(std::abs(result.eigenvalues[1].imag) - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
     REQUIRE(result.eigenvalues[1].isComplex);
     
-    REQUIRE(std::abs(result.eigenvalues[2].real - REAL(2.0)) < TOL(1e-10, 1e-5));
-    REQUIRE(std::abs(std::abs(result.eigenvalues[2].imag) - REAL(3.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(result.eigenvalues[2].real - static_cast<MML::Real>(2.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(std::abs(result.eigenvalues[2].imag) - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
     REQUIRE(result.eigenvalues[2].isComplex);
     
     // Fourth: 5 (real)
-    REQUIRE(std::abs(result.eigenvalues[3].real - REAL(5.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(result.eigenvalues[3].real - static_cast<MML::Real>(5.0)) < TOL(1e-10, 1e-5));
     REQUIRE_FALSE(result.eigenvalues[3].isComplex);
 }
 
@@ -658,11 +658,11 @@ TEST_CASE("Extraction - Mixed real and complex blocks", "[eigensolver][building-
 {
     // 5x5 quasi-triangular with mix
     // Block structure: 1x1 (real), 2x2 (complex), 2x2 (real pair from 2x2 with real eigenvalues)
-    Matrix<Real> H{5, 5, {REAL(1.0), REAL(2.0), REAL(0.0), REAL(0.0), REAL(0.0),
-                          REAL(0.0), REAL(3.0),-REAL(2.0), REAL(0.0), REAL(0.0),  // 2x2 complex block
-                          REAL(0.0), REAL(2.0), REAL(3.0), REAL(0.0), REAL(0.0),  // eigenvalues 3 ± 2i
-                          REAL(0.0), REAL(0.0), REAL(0.0), REAL(4.0), REAL(0.0),  // 1x1 real
-                          REAL(0.0), REAL(0.0), REAL(0.0), REAL(0.0), REAL(5.0)}};// 1x1 real
+    Matrix<Real> H{5, 5, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0),-static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),  // 2x2 complex block
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),  // eigenvalues 3 ± 2i
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(0.0),  // 1x1 real
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0)}};// 1x1 real
     
     auto result = MML::detail::ExtractEigenvalues(H, TOL(1e-10, 1e-5));
     
@@ -673,17 +673,17 @@ TEST_CASE("Extraction - Mixed real and complex blocks", "[eigensolver][building-
 
 TEST_CASE("ApplyDeflation - Zeros subdiagonal element", "[eigensolver][building-block][deflation]")
 {
-    Matrix<Real> H{4, 4, {REAL(5.0), REAL(1.0), REAL(2.0), REAL(1.0),
-                          TOL(1e-12, 1e-5), REAL(4.0), REAL(1.0), REAL(2.0),  // Very small but non-zero
-                          REAL(0.0), REAL(2.0), REAL(3.0), REAL(1.0),
-                          REAL(0.0), REAL(0.0), REAL(2.0), REAL(2.0)}};
+    Matrix<Real> H{4, 4, {static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0),
+                          TOL(1e-12, 1e-5), static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),  // Very small but non-zero
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0)}};
     
     auto check = MML::detail::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     REQUIRE(check.canDeflate);
     
     MML::detail::ApplyDeflation(H, check.deflationIndex);
     
-    REQUIRE(H(1, 0) == REAL(0.0));  // Should be exactly zero now
+    REQUIRE(H(1, 0) == static_cast<MML::Real>(0.0));  // Should be exactly zero now
 }
 
 // =============================================================================
@@ -693,19 +693,19 @@ TEST_CASE("ApplyDeflation - Zeros subdiagonal element", "[eigensolver][building-
 TEST_CASE("Eigenvectors - Real eigenvalue back-substitution", "[eigensolver][building-block][eigenvector]")
 {
     // Upper triangular matrix with eigenvalues 1, 2, 3
-    Matrix<Real> T{3, 3, {REAL(1.0), REAL(2.0), REAL(3.0),
-                          REAL(0.0), REAL(2.0), REAL(4.0),
-                          REAL(0.0), REAL(0.0), REAL(3.0)}};
+    Matrix<Real> T{3, 3, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0)}};
     
     // Eigenvector for eigenvalue 3 (at T[2,2])
     Vector<Real> v = MML::detail::ComputeRealEigenvector(T, 2);
     
     // Verify: v should be [0, 0, 1] (normalized) or scalar multiple
-    // Since x[2]=1 and back-sub gives x[1] = -4/(2-3) = 4, x[0] = -(2*4+3*1)/(1-3) = REAL(5.5)
-    // After normalization: [REAL(5.5), 4, 1] / ||...||
+    // Since x[2]=1 and back-sub gives x[1] = -4/(2-3) = 4, x[0] = -(2*4+3*1)/(1-3) = static_cast<MML::Real>(5.5)
+    // After normalization: [static_cast<MML::Real>(5.5), 4, 1] / ||...||
     
     // Check eigenvector property: T*v = 3*v
-    Real residual = MML::detail::EigenvectorResidual(T, v, REAL(3.0));
+    Real residual = MML::detail::EigenvectorResidual(T, v, static_cast<MML::Real>(3.0));
     INFO("Residual for eigenvalue 3: " << residual);
     REQUIRE(residual < TOL(1e-10, 1e-5));
 }
@@ -713,9 +713,9 @@ TEST_CASE("Eigenvectors - Real eigenvalue back-substitution", "[eigensolver][bui
 TEST_CASE("Eigenvectors - Multiple real eigenvalues", "[eigensolver][building-block][eigenvector]")
 {
     // Upper triangular with eigenvalues 1, 2, 3
-    Matrix<Real> T{3, 3, {REAL(1.0), REAL(1.0), REAL(1.0),
-                          REAL(0.0), REAL(2.0), REAL(1.0),
-                          REAL(0.0), REAL(0.0), REAL(3.0)}};
+    Matrix<Real> T{3, 3, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0)}};
     Matrix<Real> Q = Matrix<Real>::Identity(3);  // Identity (T is already Schur form)
     
     auto result = MML::detail::ComputeEigenvectorsFromSchur(T, Q, TOL(1e-10, 1e-5));
@@ -744,9 +744,9 @@ TEST_CASE("Eigenvectors - With Q transformation", "[eigensolver][building-block]
     // Then verify eigenvectors of A work correctly
     
     // Simple 3x3 with known eigenvalues
-    Matrix<Real> A{3, 3, {REAL(4.0), REAL(1.0), REAL(1.0),
-                          REAL(1.0), REAL(4.0), REAL(1.0),
-                          REAL(1.0), REAL(1.0), REAL(4.0)}};
+    Matrix<Real> A{3, 3, {static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0)}};
     // This symmetric matrix has eigenvalues 6, 3, 3
     
     // First reduce to Hessenberg (which for symmetric = tridiagonal)
@@ -766,7 +766,7 @@ TEST_CASE("Eigenvectors - With Q transformation", "[eigensolver][building-block]
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 3; j++)
             {
-                newQ(i, j) = REAL(0.0);
+                newQ(i, j) = static_cast<MML::Real>(0.0);
                 for (int k = 0; k < 3; k++)
                     newQ(i, j) += Q(i, k) * step.Q(k, j);
             }
@@ -796,14 +796,14 @@ TEST_CASE("Eigenvectors - With Q transformation", "[eigensolver][building-block]
         Real lambda = eigenvalues.eigenvalues[col].real;
         
         // Compute A*v
-        Vector<Real> Av(3, REAL(0.0));
+        Vector<Real> Av(3, static_cast<MML::Real>(0.0));
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 3; j++)
                 Av[i] += A(i, j) * v[j];
         
         // Compute ||A*v - λ*v|| / ||v||
-        Real residual = REAL(0.0);
-        Real vnorm = REAL(0.0);
+        Real residual = static_cast<MML::Real>(0.0);
+        Real vnorm = static_cast<MML::Real>(0.0);
         for (int i = 0; i < 3; i++)
         {
             Real diff = Av[i] - lambda * v[i];
@@ -821,9 +821,9 @@ TEST_CASE("Eigenvectors - Complex eigenvalue pair", "[eigensolver][building-bloc
 {
     // Quasi-triangular with complex eigenvalue block
     // [[0, -1], [1, 0]] has eigenvalues ±i
-    Matrix<Real> T{3, 3, {REAL(2.0), REAL(1.0), REAL(1.0),
-                          REAL(0.0), REAL(0.0),-REAL(1.0),  // 2x2 block with eigenvalues ±i
-                          REAL(0.0), REAL(1.0), REAL(0.0)}};
+    Matrix<Real> T{3, 3, {static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),-static_cast<MML::Real>(1.0),  // 2x2 block with eigenvalues ±i
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)}};
     Matrix<Real> Q = Matrix<Real>::Identity(3);
     
     auto result = MML::detail::ComputeEigenvectorsFromSchur(T, Q, TOL(1e-10, 1e-5));
@@ -840,16 +840,16 @@ TEST_CASE("Eigenvectors - Complex eigenvalue pair", "[eigensolver][building-bloc
     for (int i = 0; i < 3; i++)
         v[i] = result.vectors(i, 0);
     
-    Real residual = MML::detail::EigenvectorResidual(T, v, REAL(2.0));
+    Real residual = MML::detail::EigenvectorResidual(T, v, static_cast<MML::Real>(2.0));
     INFO("Residual for eigenvalue 2: " << residual);
     REQUIRE(residual < 1e-6);
 }
 
 TEST_CASE("Eigenvectors - Normalized output", "[eigensolver][building-block][eigenvector]")
 {
-    Matrix<Real> T{3, 3, {REAL(1.0), REAL(2.0), REAL(3.0),
-                          REAL(0.0), REAL(4.0), REAL(5.0),
-                          REAL(0.0), REAL(0.0), REAL(6.0)}};
+    Matrix<Real> T{3, 3, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(6.0)}};
     Matrix<Real> Q = Matrix<Real>::Identity(3);
     
     auto result = MML::detail::ComputeEigenvectorsFromSchur(T, Q, TOL(1e-10, 1e-5));
@@ -857,13 +857,13 @@ TEST_CASE("Eigenvectors - Normalized output", "[eigensolver][building-block][eig
     // Verify each column is normalized
     for (int col = 0; col < 3; col++)
     {
-        Real norm = REAL(0.0);
+        Real norm = static_cast<MML::Real>(0.0);
         for (int row = 0; row < 3; row++)
             norm += result.vectors(row, col) * result.vectors(row, col);
         norm = std::sqrt(norm);
         
         INFO("Column " << col << " norm: " << norm);
-        REQUIRE(std::abs(norm - REAL(1.0)) < TOL(1e-10, 1e-5));
+        REQUIRE(std::abs(norm - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
     }
 }
 
@@ -874,9 +874,9 @@ TEST_CASE("Eigenvectors - Normalized output", "[eigensolver][building-block][eig
 TEST_CASE("EigenSolver - complex eigenvalue stream formatting", "[eigensolver][formatting]")
 {
     std::ostringstream output;
-    output << EigenSolver::ComplexEigenvalue(REAL(4.5), REAL(1.25)) << '\n'
-           << EigenSolver::ComplexEigenvalue(REAL(4.5), -REAL(1.25)) << '\n'
-           << EigenSolver::ComplexEigenvalue(-REAL(3.0), REAL(0.0));
+    output << EigenSolver::ComplexEigenvalue(static_cast<MML::Real>(4.5), static_cast<MML::Real>(1.25)) << '\n'
+           << EigenSolver::ComplexEigenvalue(static_cast<MML::Real>(4.5), -static_cast<MML::Real>(1.25)) << '\n'
+           << EigenSolver::ComplexEigenvalue(-static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0));
 
     REQUIRE(output.str() == "4.5 + 1.25i\n4.5 - 1.25i\n-3 + 0i");
 }
@@ -884,8 +884,8 @@ TEST_CASE("EigenSolver - complex eigenvalue stream formatting", "[eigensolver][f
 TEST_CASE("EigenSolver - 2x2 real eigenvalues", "[eigensolver][integration]")
 {
     // [[4, 1], [2, 3]] has eigenvalues 5 and 2
-    Matrix<Real> A{2, 2, {REAL(4.0), REAL(1.0),
-                          REAL(2.0), REAL(3.0)}};
+    Matrix<Real> A{2, 2, {static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)}};
     
     auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 100);
     
@@ -893,7 +893,7 @@ TEST_CASE("EigenSolver - 2x2 real eigenvalues", "[eigensolver][integration]")
     REQUIRE(result.eigenvalues.size() == 2);
     
     // Check eigenvalues (order may vary)
-    std::vector<Real> expected = {REAL(5.0), REAL(2.0)};
+    std::vector<Real> expected = {static_cast<MML::Real>(5.0), static_cast<MML::Real>(2.0)};
     std::vector<Real> computed;
     for (auto& e : result.eigenvalues)
         computed.push_back(e.real);
@@ -908,9 +908,9 @@ TEST_CASE("EigenSolver - 2x2 real eigenvalues", "[eigensolver][integration]")
 TEST_CASE("EigenSolver - 3x3 symmetric matrix", "[eigensolver][integration]")
 {
     // Symmetric matrix with known eigenvalues 6, 3, 3
-    Matrix<Real> A{3, 3, {REAL(4.0), REAL(1.0), REAL(1.0),
-                          REAL(1.0), REAL(4.0), REAL(1.0),
-                          REAL(1.0), REAL(1.0), REAL(4.0)}};
+    Matrix<Real> A{3, 3, {static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0)}};
     
     auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 200);
     
@@ -927,18 +927,18 @@ TEST_CASE("EigenSolver - 3x3 symmetric matrix", "[eigensolver][integration]")
     
     // Expected: 3, 3, 6
     INFO("Eigenvalues: " << computed[0] << ", " << computed[1] << ", " << computed[2]);
-    REQUIRE(std::abs(computed[0] - REAL(3.0)) < 1e-4);
-    REQUIRE(std::abs(computed[1] - REAL(3.0)) < 1e-4);
-    REQUIRE(std::abs(computed[2] - REAL(6.0)) < 1e-4);
+    REQUIRE(std::abs(computed[0] - static_cast<MML::Real>(3.0)) < 1e-4);
+    REQUIRE(std::abs(computed[1] - static_cast<MML::Real>(3.0)) < 1e-4);
+    REQUIRE(std::abs(computed[2] - static_cast<MML::Real>(6.0)) < 1e-4);
 }
 
 TEST_CASE("EigenSolver - 3x3 with complex eigenvalues", "[eigensolver][integration]")
 {
     // Matrix with complex eigenvalues
     // [[0, -1, 0], [1, 0, 0], [0, 0, 2]] has eigenvalues ±i and 2
-    Matrix<Real> A{3, 3, {REAL(0.0), -REAL(1.0), REAL(0.0),
-                          REAL(1.0),  REAL(0.0), REAL(0.0),
-                          REAL(0.0),  REAL(0.0), REAL(2.0)}};
+    Matrix<Real> A{3, 3, {static_cast<MML::Real>(0.0), -static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+                          static_cast<MML::Real>(1.0),  static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+                          static_cast<MML::Real>(0.0),  static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0)}};
     
     auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 200);
     
@@ -974,18 +974,18 @@ TEST_CASE("EigenSolver - 3x3 with complex eigenvalues", "[eigensolver][integrati
     
     REQUIRE(realCount == 1);
     REQUIRE(complexCount == 2);  // Complex pair
-    REQUIRE(std::abs(realEig - REAL(2.0)) < 1e-6);
+    REQUIRE(std::abs(realEig - static_cast<MML::Real>(2.0)) < 1e-6);
     REQUIRE(std::abs(complexReal) < 1e-6);  // Real part is 0
-    REQUIRE(std::abs(complexImag - REAL(1.0)) < 1e-6);  // Imaginary part is 1
+    REQUIRE(std::abs(complexImag - static_cast<MML::Real>(1.0)) < 1e-6);  // Imaginary part is 1
 }
 
 TEST_CASE("EigenSolver - Diagonal matrix", "[eigensolver][integration]")
 {
     // Diagonal matrix - eigenvalues are diagonal elements
-    Matrix<Real> A{4, 4, {REAL(1.0), REAL(0.0), REAL(0.0), REAL(0.0),
-                          REAL(0.0), REAL(2.0), REAL(0.0), REAL(0.0),
-                          REAL(0.0), REAL(0.0), REAL(3.0), REAL(0.0),
-                          REAL(0.0), REAL(0.0), REAL(0.0), REAL(4.0)}};
+    Matrix<Real> A{4, 4, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(4.0)}};
     
     auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 100);
     
@@ -997,19 +997,19 @@ TEST_CASE("EigenSolver - Diagonal matrix", "[eigensolver][integration]")
         computed.push_back(e.real);
     std::sort(computed.begin(), computed.end());
     
-    REQUIRE(std::abs(computed[0] - REAL(1.0)) < TOL(1e-10, 1e-5));
-    REQUIRE(std::abs(computed[1] - REAL(2.0)) < TOL(1e-10, 1e-5));
-    REQUIRE(std::abs(computed[2] - REAL(3.0)) < TOL(1e-10, 1e-5));
-    REQUIRE(std::abs(computed[3] - REAL(4.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(computed[0] - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(computed[1] - static_cast<MML::Real>(2.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(computed[2] - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(computed[3] - static_cast<MML::Real>(4.0)) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("EigenSolver - 4x4 general matrix", "[eigensolver][integration]")
 {
     // Non-symmetric matrix
-    Matrix<Real> A{4, 4, {REAL(4.0), REAL(1.0), REAL(2.0), REAL(1.0),
-                          REAL(2.0), REAL(3.0), REAL(1.0), REAL(2.0),
-                          REAL(1.0), REAL(2.0), REAL(5.0), REAL(1.0),
-                          REAL(1.0), REAL(1.0), REAL(1.0), REAL(6.0)}};
+    Matrix<Real> A{4, 4, {static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+                          static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(6.0)}};
     
     auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 300);
     
@@ -1033,9 +1033,9 @@ TEST_CASE("EigenSolver - 4x4 general matrix", "[eigensolver][integration]")
 TEST_CASE("EigenSolver - Eigenvector verification", "[eigensolver][integration]")
 {
     // Simple matrix for eigenvector verification
-    Matrix<Real> A{3, 3, {REAL(2.0), REAL(1.0), REAL(0.0),
-                          REAL(1.0), REAL(2.0), REAL(1.0),
-                          REAL(0.0), REAL(1.0), REAL(2.0)}};
+    Matrix<Real> A{3, 3, {static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+                          static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0),
+                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)}};
     
     auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 200);
     
@@ -1053,14 +1053,14 @@ TEST_CASE("EigenSolver - Eigenvector verification", "[eigensolver][integration]"
             Real lambda = result.eigenvalues[i].real;
             
             // Compute A*v
-            Vector<Real> Av(3, REAL(0.0));
+            Vector<Real> Av(3, static_cast<MML::Real>(0.0));
             for (int j = 0; j < 3; j++)
                 for (int k = 0; k < 3; k++)
                     Av[j] += A(j, k) * v[k];
             
             // Compute ||A*v - λ*v|| / ||v||
-            Real residual = REAL(0.0);
-            Real vnorm = REAL(0.0);
+            Real residual = static_cast<MML::Real>(0.0);
+            Real vnorm = static_cast<MML::Real>(0.0);
             for (int j = 0; j < 3; j++)
             {
                 Real diff = Av[j] - lambda * v[j];

@@ -14,7 +14,7 @@
 #include <mml/MMLBase.h>
 
 #include <mml/base/DifferentialGeometry/DifferentialForm.h>
-#include <mml/base/DifferentialGeometry/Metric.h>
+#include <mml/base/Matrix/MatrixNM.h>
 
 #include <array>
 #include <cmath>
@@ -22,6 +22,7 @@
 
 namespace MML
 {
+	template<int N, class FrameTag> class Metric;
 	enum class Orientation
 	{
 		Positive = 1,
@@ -34,7 +35,7 @@ namespace MML
 		Real Determinant(const MatrixNM<Real, N, N>& matrix)
 		{
 			MatrixNM<Real, N, N> a(matrix);
-			Real det = REAL(1.0);
+			Real det = static_cast<MML::Real>(1.0);
 
 			for (int col = 0; col < N; col++) {
 				int pivot = col;
@@ -47,8 +48,8 @@ namespace MML
 					}
 				}
 
-				if (maxAbs == REAL(0.0))
-					return REAL(0.0);
+				if (maxAbs == static_cast<MML::Real>(0.0))
+					return static_cast<MML::Real>(0.0);
 
 				if (pivot != col) {
 					for (int j = 0; j < N; j++)

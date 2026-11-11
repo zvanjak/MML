@@ -13,12 +13,14 @@
 #define MML_DAE_SYSTEM_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/MMLExceptions.h>
 
 #include <mml/interfaces/IODESystemDAE.h>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
 #include <mml/base/InterpolatedFunction.h>
+#include <mml/base/TrajectoryStorage.h>
 
 namespace MML
 {
@@ -53,14 +55,25 @@ namespace MML
 		Matrix<Real> _xval;    ///< Differential variables (diffDim x numPoints)
 		Matrix<Real> _yval;    ///< Algebraic variables (algDim x numPoints)
 
-		/// @brief Extend storage capacity using exponential growth (1.5x)
-		void ExtendSavedSteps()
+		/// @brief Grow storage (1.5x geometric growth) until it can hold requiredSize points.
+		/// @note Loops rather than growing once (analysis v4, BASE D2).
+		void EnsureCapacity(std::int64_t requiredSize)
 		{
-			_totalSavedSteps = static_cast<int>(_totalSavedSteps * 1.5) + 1;
-			
-			_tval.Resize(_totalSavedSteps, true);
-			_xval.Resize(_diffDim, _totalSavedSteps, true);
-			_yval.Resize(_algDim, _totalSavedSteps, true);
+			if (requiredSize <= _totalSavedSteps)
+				return;
+			const int capacity = detail::TrajectoryCapacity(_totalSavedSteps, requiredSize, max_size(), true);
+			detail::ResizeTrajectoryStorage(capacity, _tval, {&_xval, &_yval});
+			_totalSavedSteps = capacity;
+		}
+
+		/// @brief Copy of the first `size()` columns of a (rows x capacity) storage matrix
+		Matrix<Real> TrimmedColumns(const Matrix<Real>& storage, int rows) const
+		{
+			Matrix<Real> out(rows, _count);
+			for (int r = 0; r < rows; r++)
+				for (int i = 0; i < _count; i++)
+					out[r][i] = storage[r][i];
+			return out;
 		}
 
 	public:
@@ -72,11 +85,14 @@ namespace MML
 		/// @param maxSteps Initial storage capacity
 		DAESolution(Real t1, Real t2, int diffDim, int algDim, int maxSteps)
 			: _t1(t1), _t2(t2), _diffDim(diffDim), _algDim(algDim),
-			  _numStepsOK(0), _numStepsBad(0), _totalSavedSteps(maxSteps + 1), _count(0)
+			  _numStepsOK(0), _numStepsBad(0), _totalSavedSteps(0), _count(0)
 		{
-			_tval.Resize(_totalSavedSteps);
-			_xval.Resize(diffDim, _totalSavedSteps);
-			_yval.Resize(algDim, _totalSavedSteps);
+			const int capacity = detail::TrajectoryCapacity(0, static_cast<std::int64_t>(maxSteps) + 1,
+				max_size(), false);
+			_xval.resize(diffDim, 0);
+			_yval.resize(algDim, 0);
+			detail::ResizeTrajectoryStorage(capacity, _tval, {&_xval, &_yval});
+			_totalSavedSteps = capacity;
 		}
 
 		/// @brief Construct solution container with default capacity (1000 steps)
@@ -125,17 +141,30 @@ namespace MML
 		int size() const { return _count; }
 		/// @brief Get current storage capacity
 		int capacity() const { return _totalSavedSteps; }
+		int max_size() const { return detail::TrajectoryMaxPoints({_diffDim, _algDim}); }
+
+		/// Reserve a prospective point without changing the saved size or step counters.
+		void reserveForPoint(int index) {
+			if (index < 0) throw IndexError("Negative trajectory point index");
+			EnsureCapacity(static_cast<std::int64_t>(index) + 1);
+		}
 
 		//=========================================================================
 		//                           Data Access
 		//=========================================================================
 
-		/// @brief Get all time points as vector
-		Vector<Real> getTValues() const { return _tval; }
-		/// @brief Get all differential state vectors as matrix (diffDim x numPoints)
-		Matrix<Real> getXValues() const { return _xval; }
-		/// @brief Get all algebraic state vectors as matrix (algDim x numPoints)
-		Matrix<Real> getYValues() const { return _yval; }
+		/// @brief Get all time points as vector (only the `size()` stored points, not the capacity)
+		Vector<Real> getTValues() const
+		{
+			Vector<Real> t(_count);
+			for (int i = 0; i < _count; i++)
+				t[i] = _tval[i];
+			return t;
+		}
+		/// @brief Get all differential state vectors as matrix (diffDim x size())
+		Matrix<Real> getXValues() const { return TrimmedColumns(_xval, _diffDim); }
+		/// @brief Get all algebraic state vectors as matrix (algDim x size())
+		Matrix<Real> getYValues() const { return TrimmedColumns(_yval, _algDim); }
 
 		/// @brief Get t-value at a specific saved point
 		/// @param ind Index of saved point
@@ -180,7 +209,9 @@ namespace MML
 		{
 			if (component < 0 || component >= _diffDim)
 				throw IndexError("Component out of range in DAESolution::getXValues(component)");
-			return _xval.VectorFromRow(component);
+			Vector<Real> values(_count);
+			for (int i = 0; i < _count; ++i) values[i] = _xval[component][i];
+			return values;
 		}
 
 		/// @brief Get all values for a specific algebraic component as vector
@@ -190,7 +221,9 @@ namespace MML
 		{
 			if (component < 0 || component >= _algDim)
 				throw IndexError("Component out of range in DAESolution::getYValues(component)");
-			return _yval.VectorFromRow(component);
+			Vector<Real> values(_count);
+			for (int i = 0; i < _count; ++i) values[i] = _yval[component][i];
+			return values;
 		}
 
 		/// @brief Get differential state vector at final saved point
@@ -237,8 +270,7 @@ namespace MML
 			if (y.size() != _algDim)
 				throw ArgumentError("Algebraic vector size mismatch in DAESolution::fillValues");
 
-			if (ind >= _totalSavedSteps)
-				ExtendSavedSteps();
+			reserveForPoint(ind);
 
 			_tval[ind] = t;
 			for (int i = 0; i < _diffDim; i++)
@@ -255,8 +287,7 @@ namespace MML
 		{
 			if (ind < 0)
 				throw IndexError("Index must be non-negative in DAESolution::setTVal");
-			if (ind >= _totalSavedSteps)
-				ExtendSavedSteps();
+			reserveForPoint(ind);
 			_tval[ind] = t;
 			if (ind + 1 > _count) _count = ind + 1;
 		}
@@ -271,9 +302,9 @@ namespace MML
 				throw IndexError("Index must be non-negative in DAESolution::setXVal");
 			if (component < 0 || component >= _diffDim)
 				throw IndexError("Component index out of range in DAESolution::setXVal");
-			if (ind >= _totalSavedSteps)
-				ExtendSavedSteps();
+			reserveForPoint(ind);
 			_xval[component][ind] = val;
+			if (ind + 1 > _count) _count = ind + 1;
 		}
 
 		/// @brief Set algebraic variable value at specified index
@@ -286,9 +317,9 @@ namespace MML
 				throw IndexError("Index must be non-negative in DAESolution::setYVal");
 			if (component < 0 || component >= _algDim)
 				throw IndexError("Component index out of range in DAESolution::setYVal");
-			if (ind >= _totalSavedSteps)
-				ExtendSavedSteps();
+			reserveForPoint(ind);
 			_yval[component][ind] = val;
+			if (ind + 1 > _count) _count = ind + 1;
 		}
 
 		/// @brief Trim storage to actual number of saved steps
@@ -296,11 +327,10 @@ namespace MML
 		/// @note Call this after integration completes to free unused memory
 		void setFinalSize(int numDoneSteps)
 		{
-			_totalSavedSteps = numDoneSteps + 1;
-			_count = _totalSavedSteps;
-			_tval.Resize(_totalSavedSteps, true);
-			_xval.Resize(_diffDim, _totalSavedSteps, true);
-			_yval.Resize(_algDim, _totalSavedSteps, true);
+			const int capacity = detail::TrajectoryCapacity(_totalSavedSteps,
+				static_cast<std::int64_t>(numDoneSteps) + 1, max_size(), false);
+			detail::ResizeTrajectoryStorage(capacity, _tval, {&_xval, &_yval});
+			_totalSavedSteps = _count = capacity;
 		}
 
 		//=========================================================================
@@ -312,8 +342,8 @@ namespace MML
 		/// @return Linear interpolation function
 		LinearInterpRealFunc getXAsLinInterp(int component) const
 		{
-			Vector<Real> xsave = _tval;
-			Vector<Real> ysave = _xval.VectorFromRow(component);
+			Vector<Real> xsave = getTValues();
+			Vector<Real> ysave = getXValues(component);
 			return LinearInterpRealFunc(xsave, ysave);
 		}
 
@@ -322,8 +352,8 @@ namespace MML
 		/// @return Linear interpolation function
 		LinearInterpRealFunc getYAsLinInterp(int component) const
 		{
-			Vector<Real> xsave = _tval;
-			Vector<Real> ysave = _yval.VectorFromRow(component);
+			Vector<Real> xsave = getTValues();
+			Vector<Real> ysave = getYValues(component);
 			return LinearInterpRealFunc(xsave, ysave);
 		}
 
@@ -332,8 +362,8 @@ namespace MML
 		/// @return Cubic spline interpolation function
 		SplineInterpRealFunc getXAsSplineInterp(int component) const
 		{
-			Vector<Real> xsave = _tval;
-			Vector<Real> ysave = _xval.VectorFromRow(component);
+			Vector<Real> xsave = getTValues();
+			Vector<Real> ysave = getXValues(component);
 			return SplineInterpRealFunc(xsave, ysave);
 		}
 
@@ -342,8 +372,8 @@ namespace MML
 		/// @return Cubic spline interpolation function
 		SplineInterpRealFunc getYAsSplineInterp(int component) const
 		{
-			Vector<Real> xsave = _tval;
-			Vector<Real> ysave = _yval.VectorFromRow(component);
+			Vector<Real> xsave = getTValues();
+			Vector<Real> ysave = getYValues(component);
 			return SplineInterpRealFunc(xsave, ysave);
 		}
 
@@ -353,13 +383,14 @@ namespace MML
 		/// @return Spline-interpolated parametric curve in 2D
 		SplineInterpParametricCurve<2> getXAsParamCurve2D(int ind1, int ind2) const
 		{
-			Matrix<Real> curve_points(_totalSavedSteps, 2);
-			for (int i = 0; i < _totalSavedSteps; i++)
+			Matrix<Real> curve_points(_count, 2);
+			for (int i = 0; i < _count; i++)
 			{
-				curve_points(i, 0) = _xval[ind1][i];
-				curve_points(i, 1) = _xval[ind2][i];
+				int source = _t1 > _t2 ? _count - 1 - i : i;
+				curve_points(i, 0) = _xval[ind1][source];
+				curve_points(i, 1) = _xval[ind2][source];
 			}
-			return SplineInterpParametricCurve<2>(_t1, _t2, curve_points);
+			return SplineInterpParametricCurve<2>(std::min(_t1, _t2), std::max(_t1, _t2), curve_points);
 		}
 
 		/// @brief Create 3D parametric curve from three differential components
@@ -369,14 +400,15 @@ namespace MML
 		/// @return Spline-interpolated parametric curve in 3D
 		SplineInterpParametricCurve<3> getXAsParamCurve3D(int ind1, int ind2, int ind3) const
 		{
-			Matrix<Real> curve_points(_totalSavedSteps, 3);
-			for (int i = 0; i < _totalSavedSteps; i++)
+			Matrix<Real> curve_points(_count, 3);
+			for (int i = 0; i < _count; i++)
 			{
-				curve_points(i, 0) = _xval[ind1][i];
-				curve_points(i, 1) = _xval[ind2][i];
-				curve_points(i, 2) = _xval[ind3][i];
+				int source = _t1 > _t2 ? _count - 1 - i : i;
+				curve_points(i, 0) = _xval[ind1][source];
+				curve_points(i, 1) = _xval[ind2][source];
+				curve_points(i, 2) = _xval[ind3][source];
 			}
-			return SplineInterpParametricCurve<3>(_t1, _t2, curve_points);
+			return SplineInterpParametricCurve<3>(std::min(_t1, _t2), std::max(_t1, _t2), curve_points);
 		}
 	};
 

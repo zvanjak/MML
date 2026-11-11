@@ -126,7 +126,7 @@ namespace MML
 		/// @brief Tests if a point is inside or on the circle
 		/// @param p The point to test
 		/// @param epsilon Tolerance for boundary cases
-		bool Contains(const Point2Cartesian& p, Real epsilon = Constants::GEOMETRY_EPSILON) const
+		bool Contains(const Point2Cartesian& p, Real epsilon = Precision::GeometryEpsilon) const
 		{
 			return DistanceFromCenter(p) <= _radius + epsilon;
 		}
@@ -134,7 +134,7 @@ namespace MML
 		/// @brief Tests if a point is on the circle boundary
 		/// @param p The point to test
 		/// @param epsilon Tolerance for the test
-		bool IsOnBoundary(const Point2Cartesian& p, Real epsilon = Constants::GEOMETRY_EPSILON) const
+		bool IsOnBoundary(const Point2Cartesian& p, Real epsilon = Precision::GeometryEpsilon) const
 		{
 			return std::abs(DistanceFromCenter(p) - _radius) < epsilon;
 		}
@@ -145,7 +145,7 @@ namespace MML
 		Point2Cartesian ClosestPoint(const Point2Cartesian& p) const
 		{
 			Real dist = DistanceFromCenter(p);
-			if (dist < Constants::GEOMETRY_EPSILON)
+			if (dist < Precision::GeometryEpsilon)
 			{
 				// Point at center - return arbitrary point on circle
 				return PointAt(0);
@@ -178,7 +178,7 @@ namespace MML
 		}
 
 		/// @brief Gets the axis-aligned bounding box
-		Polygon2D::BoundingBox GetBoundingBox() const
+		Polygon2D::BoundingBox getBoundingBox() const
 		{
 			Polygon2D::BoundingBox box;
 			box.minX = _center.X() - _radius;
@@ -187,6 +187,9 @@ namespace MML
 			box.maxY = _center.Y() + _radius;
 			return box;
 		}
+		/// @deprecated Use getBoundingBox() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getBoundingBox()")]]
+		Polygon2D::BoundingBox GetBoundingBox() const { return getBoundingBox(); }
 
 		/// @brief Creates a translated copy of the circle
 		/// @param v Translation vector
@@ -351,7 +354,7 @@ namespace MML
 		/// @brief Tests if a point is inside the box
 		/// @param p The point to test
 		/// @param epsilon Tolerance for boundary cases
-		bool Contains(const Point2Cartesian& p, Real epsilon = Constants::GEOMETRY_EPSILON) const
+		bool Contains(const Point2Cartesian& p, Real epsilon = Precision::GeometryEpsilon) const
 		{
 			return p.X() >= _min.X() - epsilon && p.X() <= _max.X() + epsilon &&
 			       p.Y() >= _min.Y() - epsilon && p.Y() <= _max.Y() + epsilon;
@@ -360,7 +363,7 @@ namespace MML
 		/// @brief Tests if another box is fully contained within this box
 		/// @param other The box to test
 		/// @param epsilon Tolerance for boundary cases
-		bool Contains(const Box2D& other, Real epsilon = Constants::GEOMETRY_EPSILON) const
+		bool Contains(const Box2D& other, Real epsilon = Precision::GeometryEpsilon) const
 		{
 			return other._min.X() >= _min.X() - epsilon && other._max.X() <= _max.X() + epsilon &&
 			       other._min.Y() >= _min.Y() - epsilon && other._max.Y() <= _max.Y() + epsilon;
@@ -371,8 +374,8 @@ namespace MML
 		/// @return Distance (0 if inside)
 		Real DistanceToPoint(const Point2Cartesian& p) const
 		{
-			Real dx = std::max({ _min.X() - p.X(), REAL(0.0), p.X() - _max.X() });
-			Real dy = std::max({ _min.Y() - p.Y(), REAL(0.0), p.Y() - _max.Y() });
+			Real dx = std::max({ _min.X() - p.X(), static_cast<MML::Real>(0.0), p.X() - _max.X() });
+			Real dy = std::max({ _min.Y() - p.Y(), static_cast<MML::Real>(0.0), p.Y() - _max.Y() });
 			return std::sqrt(dx * dx + dy * dy);
 		}
 
@@ -437,7 +440,7 @@ namespace MML
 
 		/// @brief Tests if the box is degenerate (zero area)
 		/// @param epsilon Tolerance for the test
-		bool IsDegenerate(Real epsilon = Constants::GEOMETRY_EPSILON) const
+		bool IsDegenerate(Real epsilon = Precision::GeometryEpsilon) const
 		{
 			return Width() < epsilon || Height() < epsilon;
 		}

@@ -15,6 +15,7 @@
 #include <mml/MMLBase.h>
 #include <mml/MMLExceptions.h>
 #include <mml/base/Vector/Vector.h>
+#include <mml/tools/IOResult.h>
 
 #include <algorithm>
 #include <cmath>
@@ -531,23 +532,24 @@ namespace MML {
 		/////////////////////////////////////////////////////////////////////////////////////
 		/// @brief Result type for loading operations
 		/// @details Provides success/error information and loaded dataset.
-		/// Follows the pattern established by SerializeResult and VisualizerResult
+		/// Follows the pattern established by IOResult and IOResult
 		/// for consistent error handling across the tools layer.
-		struct LoadResult {
-			bool success;           ///< true if loading succeeded
+		struct [[nodiscard]] LegacyDatasetResult : IOResult {
 			std::string errorMessage;  ///< Error description (empty on success)
 			Dataset data;           ///< Loaded dataset (empty if failed)
 
 			/// @brief Create success result with loaded dataset
-			static LoadResult Success(const Dataset& dataset) {
-				return {true, "", dataset};
+			static LegacyDatasetResult From(IOResult result, Dataset dataset = {}) {
+				LegacyDatasetResult legacy;
+				static_cast<IOResult&>(legacy) = std::move(result);
+				legacy.errorMessage = legacy.message;
+				legacy.data = std::move(dataset);
+				return legacy;
 			}
-
-			/// @brief Create failure result with error message
-			static LoadResult Failure(const std::string& message) {
-				return {false, message, Dataset{}};
-			}
+			static LegacyDatasetResult Success(const Dataset& dataset) { return From(IOResult::Success(), dataset); }
+			static LegacyDatasetResult Failure(const std::string& message) { return From({false, IOError::READ_FAILED, message}); }
 		};
+		using LoadResult [[deprecated("use IOResult with a Dataset output parameter")]] = LegacyDatasetResult;
 
 	}  // namespace Data
 }  // namespace MML

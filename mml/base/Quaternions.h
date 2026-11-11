@@ -13,6 +13,7 @@
 #define MML_QUATERNIONS_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Vector/VectorTypes3D.h>
 #include <mml/base/Matrix/MatrixNM.h>
@@ -436,13 +437,13 @@ namespace MML
 		}
 
 		/// @brief Check if quaternion is unit (within tolerance)
-		bool isUnit(Real tolerance = PrecisionValues<Real>::DefaultTolerance) const
+		bool IsUnit(Real tolerance = PrecisionValues<Real>::DefaultTolerance) const
 		{
 			return std::abs(NormSquared() - 1.0) < tolerance;
 		}
 
 		/// @brief Check if quaternion is identity
-		bool isIdentity(Real tolerance = PrecisionValues<Real>::DefaultTolerance) const
+		bool IsIdentity(Real tolerance = PrecisionValues<Real>::DefaultTolerance) const
 		{
 			return std::abs(_data[0] - 1.0) < tolerance &&
 						 std::abs(_data[1]) < tolerance &&
@@ -480,9 +481,9 @@ namespace MML
 
 		/// @brief Get rotation axis (for non-identity rotation quaternions)
 		/// @return Unit vector along rotation axis
-		Vec3Cart GetRotationAxis() const
+		Vec3Cart getRotationAxis() const
 		{
-			if (isIdentity())
+			if (IsIdentity())
 				return Vec3Cart(0, 0, 1);
 			
 			Vec3Cart axis(_data[1], _data[2], _data[3]);
@@ -496,7 +497,7 @@ namespace MML
 
 		/// @brief Get rotation angle in radians
 		/// @return Rotation angle θ = 2*acos(w)
-		Real GetRotationAngle() const
+		Real getRotationAngle() const
 		{
 			Real w = _data[0];
 			
@@ -512,8 +513,8 @@ namespace MML
 		/// @param angle Output rotation angle in radians
 		void ToAxisAngle(Vec3Cart& axis, Real& angle) const
 		{
-			angle = GetRotationAngle();
-			axis = GetRotationAxis();
+			angle = getRotationAngle();
+			axis = getRotationAxis();
 		}
 
 		/// @brief Convert to Euler angles (ZYX convention)
@@ -585,7 +586,7 @@ namespace MML
 			Real beta = std::acos(cosBeta);
 
 			Real alpha, gamma;
-			if (std::abs(std::sin(beta)) < 1e-10) {
+			if (IsNearlyZero(std::sin(beta), Precision::EqualityTolerance)) {   // gimbal lock
 				// Gimbal lock: beta ≈ 0 or π, assign all rotation to alpha
 				alpha = std::atan2(2.0 * (x*y + w*z), 1.0 - 2.0 * (y*y + z*z));
 				gamma = 0.0;
@@ -613,7 +614,7 @@ namespace MML
 			Real beta = std::acos(cosBeta);
 
 			Real alpha, gamma;
-			if (std::abs(std::sin(beta)) < 1e-10) {
+			if (IsNearlyZero(std::sin(beta), Precision::EqualityTolerance)) {   // gimbal lock
 				// Gimbal lock: beta ≈ 0 or π, assign all rotation to alpha
 				alpha = std::atan2(2.0 * (x*y + w*z), 1.0 - 2.0 * (y*y + z*z));
 				gamma = 0.0;
@@ -732,8 +733,9 @@ namespace MML
 				dot = -dot;
 			}
 			
-			// If quaternions are very close, use linear interpolation
-			if (dot > 0.9995)
+			// If quaternions are very close, use linear interpolation (Shoemake: sin(theta) too small for a stable slerp)
+			constexpr Real slerpLinearFallbackCosine = static_cast<MML::Real>(0.9995);
+			if (dot > slerpLinearFallbackCosine)
 			{
 				return Lerp(q1, q2_adjusted, t).Normalized();
 			}
@@ -743,7 +745,7 @@ namespace MML
 			Real sinTheta = std::sin(theta);
 
 			// Guard against near-zero sinTheta for numerical stability
-			if (std::abs(sinTheta) < Real{1e-6})
+			if (IsNearlyZero(sinTheta, Precision::LooseTolerance))   // nearly parallel: slerp degenerates to lerp
 			{
 				return Lerp(q1, q2_adjusted, t).Normalized();
 			}
@@ -769,14 +771,30 @@ namespace MML
 			return !(*this == q);
 		}
 
-		/// @brief Check approximate equality within tolerance
-		bool isApprox(const Quaternion& q, Real tolerance = PrecisionValues<Real>::DefaultTolerance) const
+		/// @brief Check approximate equality within tolerance (component-wise |a_i - b_i| < tolerance)
+		bool IsEqualTo(const Quaternion& q, Real tolerance = PrecisionValues<Real>::DefaultTolerance) const
 		{
 			return std::abs(_data[0] - q._data[0]) < tolerance &&
 						 std::abs(_data[1] - q._data[1]) < tolerance &&
 						 std::abs(_data[2] - q._data[2]) < tolerance &&
 						 std::abs(_data[3] - q._data[3]) < tolerance;
 		}
+
+		/// @deprecated Use IsUnit() (CONTRACT_POLICY §11: mathematical predicates are PascalCase).
+		[[deprecated("use IsUnit()")]]
+		bool isUnit(Real tolerance = PrecisionValues<Real>::DefaultTolerance) const { return IsUnit(tolerance); }
+		/// @deprecated Use IsIdentity().
+		[[deprecated("use IsIdentity()")]]
+		bool isIdentity(Real tolerance = PrecisionValues<Real>::DefaultTolerance) const { return IsIdentity(tolerance); }
+		/// @deprecated Use IsEqualTo() (same spelling as every other MML type).
+		[[deprecated("use IsEqualTo()")]]
+		bool isApprox(const Quaternion& q, Real tolerance = PrecisionValues<Real>::DefaultTolerance) const { return IsEqualTo(q, tolerance); }
+		/// @deprecated Use getRotationAxis() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getRotationAxis()")]]
+		Vec3Cart GetRotationAxis() const { return getRotationAxis(); }
+		/// @deprecated Use getRotationAngle().
+		[[deprecated("use getRotationAngle()")]]
+		Real GetRotationAngle() const { return getRotationAngle(); }
 
 		/// @brief Stream output operator
 		friend std::ostream& operator<<(std::ostream& os, const Quaternion& q)

@@ -235,14 +235,14 @@ namespace MML {
 
 				// Divided differences for quadratic interpolation
 				Complex q = (z2 - z1) / (z1 - z0);
-				Complex A = q * f2 - q * (REAL(1.0) + q) * f1 + q * q * f0;
-				Complex B = (REAL(2.0) * q + REAL(1.0)) * f2
-				          - (REAL(1.0) + q) * (REAL(1.0) + q) * f1
+				Complex A = q * f2 - q * (static_cast<MML::Real>(1.0) + q) * f1 + q * q * f0;
+				Complex B = (static_cast<MML::Real>(2.0) * q + static_cast<MML::Real>(1.0)) * f2
+				          - (static_cast<MML::Real>(1.0) + q) * (static_cast<MML::Real>(1.0) + q) * f1
 				          + q * q * f0;
-				Complex C = (REAL(1.0) + q) * f2;
+				Complex C = (static_cast<MML::Real>(1.0) + q) * f2;
 
 				// Discriminant
-				Complex disc = B * B - REAL(4.0) * A * C;
+				Complex disc = B * B - static_cast<MML::Real>(4.0) * A * C;
 				Complex sqrt_disc = std::sqrt(disc);
 
 				// Choose denominator with larger magnitude for numerical stability
@@ -266,7 +266,7 @@ namespace MML {
 				}
 
 				// New estimate
-				Complex z3 = z2 - (z2 - z1) * (REAL(2.0) * C / denom);
+				Complex z3 = z2 - (z2 - z1) * (static_cast<MML::Real>(2.0) * C / denom);
 
 				// Check for non-finite result
 				if (!std::isfinite(z3.real()) || !std::isfinite(z3.imag()))

@@ -62,9 +62,9 @@ void example_step2_matrices()
     }};
 
     // Matrix operations
-    Matrix<Real> At = A.transpose();
+    Matrix<Real> At = A.Transposed();
     Matrix<Real> I = Matrix<Real>::Identity(3);
-    Real trace = A.trace();
+    Real trace = A.Trace();
 
     std::cout << "Matrix A:" << std::endl;
     A.Print(std::cout, 8, 3);
@@ -122,7 +122,7 @@ void example_step4_integrals()
 
     // Integrate from 0 to π
     Real a = 0.0, b = Constants::PI;
-    IntegrationResult result = IntegrateRomberg(f, a, b);
+    IntegrationResult result = IntegrateRombergDetailed(f, a, b);
     Real integral = result.value;
 
     std::cout << "Integral of sin(x) from 0 to pi = " << integral << std::endl;
@@ -185,7 +185,7 @@ void complete_example()
     // 2. Matrices
     std::cout << "\n2. MATRICES:" << std::endl;
     Matrix<Real> A = Matrix<Real>::Identity(3);
-    std::cout << "   I_3 trace = " << A.trace() << std::endl;
+    std::cout << "   I_3 trace = " << A.Trace() << std::endl;
     
     // 3. Linear Systems
     std::cout << "\n3. LINEAR SYSTEM:" << std::endl;
@@ -202,7 +202,7 @@ void complete_example()
     std::cout << "   (x^2)' at x=3: " << df << " (expected: 6)" << std::endl;
     
     RealFunction g{ [](Real x) { return x; } };
-    IntegrationResult int_result = IntegrateRomberg(g, 0, 2);
+    IntegrationResult int_result = IntegrateRombergDetailed(g, 0, 2);
     std::cout << "   Integral of x dx from 0 to 2 = " << int_result.value << " (expected: 2)" << std::endl;
     
     // 5. Root Finding

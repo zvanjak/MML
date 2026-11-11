@@ -21,31 +21,31 @@ namespace MML::Tests::Base::BoundingVolumesTests
 			TEST_PRECISION_INFO();
 		SECTION("From center and radius") {
 			Pnt3Cart center(1, 2, 3);
-			BoundingSphere3D sphere(center, REAL(5.0));
+			BoundingSphere3D sphere(center, static_cast<MML::Real>(5.0));
 			
-			REQUIRE_THAT(sphere.Center().X() , RealApprox(REAL(1.0)));
-			REQUIRE_THAT(sphere.Center().Y() , RealApprox(REAL(2.0)));
-			REQUIRE_THAT(sphere.Center().Z() , RealApprox(REAL(3.0)));
-			REQUIRE_THAT(sphere.Radius() , RealApprox(REAL(5.0)));
+			REQUIRE_THAT(sphere.Center().X() , RealApprox(static_cast<MML::Real>(1.0)));
+			REQUIRE_THAT(sphere.Center().Y() , RealApprox(static_cast<MML::Real>(2.0)));
+			REQUIRE_THAT(sphere.Center().Z() , RealApprox(static_cast<MML::Real>(3.0)));
+			REQUIRE_THAT(sphere.Radius() , RealApprox(static_cast<MML::Real>(5.0)));
 		}
 
 		SECTION("Validation - radius must be non-negative") {
-			REQUIRE_THROWS_AS(BoundingSphere3D(Pnt3Cart(0, 0, 0), -REAL(1.0)), std::invalid_argument);
+			REQUIRE_THROWS_AS(BoundingSphere3D(Pnt3Cart(0, 0, 0), -static_cast<MML::Real>(1.0)), std::invalid_argument);
 		}
 	}
 
 	TEST_CASE("BoundingSphere3D::Volume", "[BoundingSphere3D]") {
 			TEST_PRECISION_INFO();
-		BoundingSphere3D sphere(Pnt3Cart(0, 0, 0), REAL(5.0));
+		BoundingSphere3D sphere(Pnt3Cart(0, 0, 0), static_cast<MML::Real>(5.0));
 		
 		// Volume = (4/3) * π * r³ = (4/3) * π * 125
-		Real expected = (REAL(4.0) / REAL(3.0)) * Constants::PI * REAL(125.0);
+		Real expected = (static_cast<MML::Real>(4.0) / static_cast<MML::Real>(3.0)) * Constants::PI * static_cast<MML::Real>(125.0);
 		REQUIRE_THAT(sphere.Volume() , RealApprox(expected));
 	}
 
 	TEST_CASE("BoundingSphere3D::Contains", "[BoundingSphere3D]") {
 			TEST_PRECISION_INFO();
-		BoundingSphere3D sphere(Pnt3Cart(0, 0, 0), REAL(5.0));
+		BoundingSphere3D sphere(Pnt3Cart(0, 0, 0), static_cast<MML::Real>(5.0));
 
 		SECTION("Point inside") {
 			REQUIRE(sphere.Contains(Pnt3Cart(0, 0, 0)));  // Center
@@ -61,15 +61,15 @@ namespace MML::Tests::Base::BoundingVolumesTests
 
 	TEST_CASE("BoundingSphere3D::Intersects", "[BoundingSphere3D]") {
 			TEST_PRECISION_INFO();
-		BoundingSphere3D sphere1(Pnt3Cart(0, 0, 0), REAL(5.0));
+		BoundingSphere3D sphere1(Pnt3Cart(0, 0, 0), static_cast<MML::Real>(5.0));
 
 		SECTION("Overlapping spheres") {
-			BoundingSphere3D sphere2(Pnt3Cart(7, 0, 0), REAL(5.0));
+			BoundingSphere3D sphere2(Pnt3Cart(7, 0, 0), static_cast<MML::Real>(5.0));
 			REQUIRE(sphere1.Intersects(sphere2));  // Distance = 7, sum of radii = 10
 		}
 
 		SECTION("Separated spheres") {
-			BoundingSphere3D sphere2(Pnt3Cart(15, 0, 0), REAL(5.0));
+			BoundingSphere3D sphere2(Pnt3Cart(15, 0, 0), static_cast<MML::Real>(5.0));
 			REQUIRE_FALSE(sphere1.Intersects(sphere2));  // Distance = 15, sum = 10
 		}
 	}
@@ -82,9 +82,9 @@ namespace MML::Tests::Base::BoundingVolumesTests
 		TEST_PRECISION_INFO();
 		SECTION("Default constructor") {
 			Box3D box;
-			REQUIRE_THAT(box.Min().X(), RealApprox(REAL(0.0)));
-			REQUIRE_THAT(box.Max().X(), RealApprox(REAL(1.0)));
-			REQUIRE_THAT(box.Volume(), RealApprox(REAL(1.0)));
+			REQUIRE_THAT(box.Min().X(), RealApprox(static_cast<MML::Real>(0.0)));
+			REQUIRE_THAT(box.Max().X(), RealApprox(static_cast<MML::Real>(1.0)));
+			REQUIRE_THAT(box.Volume(), RealApprox(static_cast<MML::Real>(1.0)));
 		}
 
 		SECTION("From min/max points") {
@@ -92,18 +92,18 @@ namespace MML::Tests::Base::BoundingVolumesTests
 			Pnt3Cart max(4, 6, 9);
 			Box3D box(min, max);
 
-			REQUIRE_THAT(box.Min().X(), RealApprox(REAL(1.0)));
-			REQUIRE_THAT(box.Min().Y(), RealApprox(REAL(2.0)));
-			REQUIRE_THAT(box.Min().Z(), RealApprox(REAL(3.0)));
-			REQUIRE_THAT(box.Max().X(), RealApprox(REAL(4.0)));
-			REQUIRE_THAT(box.Max().Y(), RealApprox(REAL(6.0)));
-			REQUIRE_THAT(box.Max().Z(), RealApprox(REAL(9.0)));
+			REQUIRE_THAT(box.Min().X(), RealApprox(static_cast<MML::Real>(1.0)));
+			REQUIRE_THAT(box.Min().Y(), RealApprox(static_cast<MML::Real>(2.0)));
+			REQUIRE_THAT(box.Min().Z(), RealApprox(static_cast<MML::Real>(3.0)));
+			REQUIRE_THAT(box.Max().X(), RealApprox(static_cast<MML::Real>(4.0)));
+			REQUIRE_THAT(box.Max().Y(), RealApprox(static_cast<MML::Real>(6.0)));
+			REQUIRE_THAT(box.Max().Z(), RealApprox(static_cast<MML::Real>(9.0)));
 		}
 
 		SECTION("From coordinates - auto-normalizes") {
 			Box3D box(5, 6, 7, 1, 2, 3);  // max < min, should swap
-			REQUIRE_THAT(box.MinX(), RealApprox(REAL(1.0)));
-			REQUIRE_THAT(box.MaxX(), RealApprox(REAL(5.0)));
+			REQUIRE_THAT(box.MinX(), RealApprox(static_cast<MML::Real>(1.0)));
+			REQUIRE_THAT(box.MaxX(), RealApprox(static_cast<MML::Real>(5.0)));
 		}
 	}
 
@@ -111,11 +111,11 @@ namespace MML::Tests::Base::BoundingVolumesTests
 		TEST_PRECISION_INFO();
 		SECTION("FromCenterAndSize") {
 			Box3D box = Box3D::FromCenterAndSize(Pnt3Cart(5, 5, 5), 4, 6, 8);
-			REQUIRE_THAT(box.MinX(), RealApprox(REAL(3.0)));  // 5 - 2
-			REQUIRE_THAT(box.MaxX(), RealApprox(REAL(7.0)));  // 5 + 2
-			REQUIRE_THAT(box.Width(), RealApprox(REAL(4.0)));
-			REQUIRE_THAT(box.Height(), RealApprox(REAL(6.0)));
-			REQUIRE_THAT(box.Depth(), RealApprox(REAL(8.0)));
+			REQUIRE_THAT(box.MinX(), RealApprox(static_cast<MML::Real>(3.0)));  // 5 - 2
+			REQUIRE_THAT(box.MaxX(), RealApprox(static_cast<MML::Real>(7.0)));  // 5 + 2
+			REQUIRE_THAT(box.Width(), RealApprox(static_cast<MML::Real>(4.0)));
+			REQUIRE_THAT(box.Height(), RealApprox(static_cast<MML::Real>(6.0)));
+			REQUIRE_THAT(box.Depth(), RealApprox(static_cast<MML::Real>(8.0)));
 		}
 
 		SECTION("FromPoints") {
@@ -123,25 +123,25 @@ namespace MML::Tests::Base::BoundingVolumesTests
 				Pnt3Cart(1, 5, 3), Pnt3Cart(4, 2, 7), Pnt3Cart(0, 8, 1)
 			};
 			Box3D box = Box3D::FromPoints(points);
-			REQUIRE_THAT(box.MinX(), RealApprox(REAL(0.0)));
-			REQUIRE_THAT(box.MinY(), RealApprox(REAL(2.0)));
-			REQUIRE_THAT(box.MinZ(), RealApprox(REAL(1.0)));
-			REQUIRE_THAT(box.MaxX(), RealApprox(REAL(4.0)));
-			REQUIRE_THAT(box.MaxY(), RealApprox(REAL(8.0)));
-			REQUIRE_THAT(box.MaxZ(), RealApprox(REAL(7.0)));
+			REQUIRE_THAT(box.MinX(), RealApprox(static_cast<MML::Real>(0.0)));
+			REQUIRE_THAT(box.MinY(), RealApprox(static_cast<MML::Real>(2.0)));
+			REQUIRE_THAT(box.MinZ(), RealApprox(static_cast<MML::Real>(1.0)));
+			REQUIRE_THAT(box.MaxX(), RealApprox(static_cast<MML::Real>(4.0)));
+			REQUIRE_THAT(box.MaxY(), RealApprox(static_cast<MML::Real>(8.0)));
+			REQUIRE_THAT(box.MaxZ(), RealApprox(static_cast<MML::Real>(7.0)));
 		}
 
 		SECTION("UnitCube") {
 			Box3D box = Box3D::UnitCube();
-			REQUIRE_THAT(box.Volume(), RealApprox(REAL(1.0)));
+			REQUIRE_THAT(box.Volume(), RealApprox(static_cast<MML::Real>(1.0)));
 		}
 
 		SECTION("CenteredUnitCube") {
 			Box3D box = Box3D::CenteredUnitCube();
-			REQUIRE_THAT(box.Center().X(), RealApprox(REAL(0.0)));
-			REQUIRE_THAT(box.Center().Y(), RealApprox(REAL(0.0)));
-			REQUIRE_THAT(box.Center().Z(), RealApprox(REAL(0.0)));
-			REQUIRE_THAT(box.Volume(), RealApprox(REAL(1.0)));
+			REQUIRE_THAT(box.Center().X(), RealApprox(static_cast<MML::Real>(0.0)));
+			REQUIRE_THAT(box.Center().Y(), RealApprox(static_cast<MML::Real>(0.0)));
+			REQUIRE_THAT(box.Center().Z(), RealApprox(static_cast<MML::Real>(0.0)));
+			REQUIRE_THAT(box.Volume(), RealApprox(static_cast<MML::Real>(1.0)));
 		}
 	}
 
@@ -149,49 +149,49 @@ namespace MML::Tests::Base::BoundingVolumesTests
 		TEST_PRECISION_INFO();
 		Box3D box(1, 2, 3, 4, 7, 13);
 
-		REQUIRE_THAT(box.Width(), RealApprox(REAL(3.0)));   // 4 - 1
-		REQUIRE_THAT(box.Height(), RealApprox(REAL(5.0)));  // 7 - 2
-		REQUIRE_THAT(box.Depth(), RealApprox(REAL(10.0)));  // 13 - 3
+		REQUIRE_THAT(box.Width(), RealApprox(static_cast<MML::Real>(3.0)));   // 4 - 1
+		REQUIRE_THAT(box.Height(), RealApprox(static_cast<MML::Real>(5.0)));  // 7 - 2
+		REQUIRE_THAT(box.Depth(), RealApprox(static_cast<MML::Real>(10.0)));  // 13 - 3
 
 		Vec3Cart size = box.Size();
-		REQUIRE_THAT(size.X(), RealApprox(REAL(3.0)));
-		REQUIRE_THAT(size.Y(), RealApprox(REAL(5.0)));
-		REQUIRE_THAT(size.Z(), RealApprox(REAL(10.0)));
+		REQUIRE_THAT(size.X(), RealApprox(static_cast<MML::Real>(3.0)));
+		REQUIRE_THAT(size.Y(), RealApprox(static_cast<MML::Real>(5.0)));
+		REQUIRE_THAT(size.Z(), RealApprox(static_cast<MML::Real>(10.0)));
 
 		Vec3Cart half = box.HalfExtents();
-		REQUIRE_THAT(half.X(), RealApprox(REAL(1.5)));
-		REQUIRE_THAT(half.Y(), RealApprox(REAL(2.5)));
-		REQUIRE_THAT(half.Z(), RealApprox(REAL(5.0)));
+		REQUIRE_THAT(half.X(), RealApprox(static_cast<MML::Real>(1.5)));
+		REQUIRE_THAT(half.Y(), RealApprox(static_cast<MML::Real>(2.5)));
+		REQUIRE_THAT(half.Z(), RealApprox(static_cast<MML::Real>(5.0)));
 
 		// Diagonal = sqrt(9 + 25 + 100) = sqrt(134)
-		REQUIRE_THAT(box.Diagonal(), RealApprox(std::sqrt(REAL(134.0))));
+		REQUIRE_THAT(box.Diagonal(), RealApprox(std::sqrt(static_cast<MML::Real>(134.0))));
 	}
 
 	TEST_CASE("Box3D::GeometricProperties", "[Box3D]") {
 		TEST_PRECISION_INFO();
 		Box3D box(0, 0, 0, 2, 3, 5);  // 2 × 3 × 5 box
 
-		REQUIRE_THAT(box.Volume(), RealApprox(REAL(30.0)));  // 2 * 3 * 5 = 30
+		REQUIRE_THAT(box.Volume(), RealApprox(static_cast<MML::Real>(30.0)));  // 2 * 3 * 5 = 30
 		// Surface = 2*(2*3 + 3*5 + 5*2) = 2*(6 + 15 + 10) = 62
-		REQUIRE_THAT(box.SurfaceArea(), RealApprox(REAL(62.0)));
+		REQUIRE_THAT(box.SurfaceArea(), RealApprox(static_cast<MML::Real>(62.0)));
 
 		Pnt3Cart center = box.Center();
-		REQUIRE_THAT(center.X(), RealApprox(REAL(1.0)));
-		REQUIRE_THAT(center.Y(), RealApprox(REAL(1.5)));
-		REQUIRE_THAT(center.Z(), RealApprox(REAL(2.5)));
+		REQUIRE_THAT(center.X(), RealApprox(static_cast<MML::Real>(1.0)));
+		REQUIRE_THAT(center.Y(), RealApprox(static_cast<MML::Real>(1.5)));
+		REQUIRE_THAT(center.Z(), RealApprox(static_cast<MML::Real>(2.5)));
 	}
 
 	TEST_CASE("Box3D::Corners", "[Box3D]") {
 		TEST_PRECISION_INFO();
 		Box3D box(0, 0, 0, 1, 2, 3);
 
-		REQUIRE_THAT(box.Corner000().X(), RealApprox(REAL(0.0)));
-		REQUIRE_THAT(box.Corner000().Y(), RealApprox(REAL(0.0)));
-		REQUIRE_THAT(box.Corner000().Z(), RealApprox(REAL(0.0)));
+		REQUIRE_THAT(box.Corner000().X(), RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(box.Corner000().Y(), RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(box.Corner000().Z(), RealApprox(static_cast<MML::Real>(0.0)));
 
-		REQUIRE_THAT(box.Corner111().X(), RealApprox(REAL(1.0)));
-		REQUIRE_THAT(box.Corner111().Y(), RealApprox(REAL(2.0)));
-		REQUIRE_THAT(box.Corner111().Z(), RealApprox(REAL(3.0)));
+		REQUIRE_THAT(box.Corner111().X(), RealApprox(static_cast<MML::Real>(1.0)));
+		REQUIRE_THAT(box.Corner111().Y(), RealApprox(static_cast<MML::Real>(2.0)));
+		REQUIRE_THAT(box.Corner111().Z(), RealApprox(static_cast<MML::Real>(3.0)));
 
 		std::vector<Pnt3Cart> corners = box.Corners();
 		REQUIRE(corners.size() == 8);
@@ -227,18 +227,18 @@ namespace MML::Tests::Base::BoundingVolumesTests
 		Box3D box(0, 0, 0, 10, 10, 10);
 
 		SECTION("Point inside - distance is 0") {
-			REQUIRE_THAT(box.DistanceToPoint(Pnt3Cart(5, 5, 5)), RealApprox(REAL(0.0)));
+			REQUIRE_THAT(box.DistanceToPoint(Pnt3Cart(5, 5, 5)), RealApprox(static_cast<MML::Real>(0.0)));
 		}
 
 		SECTION("Point outside on axis") {
-			REQUIRE_THAT(box.DistanceToPoint(Pnt3Cart(15, 5, 5)), RealApprox(REAL(5.0)));
+			REQUIRE_THAT(box.DistanceToPoint(Pnt3Cart(15, 5, 5)), RealApprox(static_cast<MML::Real>(5.0)));
 		}
 
 		SECTION("Closest point") {
 			Pnt3Cart closest = box.ClosestPoint(Pnt3Cart(15, 5, 5));
-			REQUIRE_THAT(closest.X(), RealApprox(REAL(10.0)));
-			REQUIRE_THAT(closest.Y(), RealApprox(REAL(5.0)));
-			REQUIRE_THAT(closest.Z(), RealApprox(REAL(5.0)));
+			REQUIRE_THAT(closest.X(), RealApprox(static_cast<MML::Real>(10.0)));
+			REQUIRE_THAT(closest.Y(), RealApprox(static_cast<MML::Real>(5.0)));
+			REQUIRE_THAT(closest.Z(), RealApprox(static_cast<MML::Real>(5.0)));
 		}
 	}
 
@@ -270,23 +270,23 @@ namespace MML::Tests::Base::BoundingVolumesTests
 
 		SECTION("Intersection") {
 			Box3D inter = box1.Intersection(box2);
-			REQUIRE_THAT(inter.MinX(), RealApprox(REAL(5.0)));
-			REQUIRE_THAT(inter.MinY(), RealApprox(REAL(5.0)));
-			REQUIRE_THAT(inter.MinZ(), RealApprox(REAL(5.0)));
-			REQUIRE_THAT(inter.MaxX(), RealApprox(REAL(10.0)));
-			REQUIRE_THAT(inter.MaxY(), RealApprox(REAL(10.0)));
-			REQUIRE_THAT(inter.MaxZ(), RealApprox(REAL(10.0)));
-			REQUIRE_THAT(inter.Volume(), RealApprox(REAL(125.0)));  // 5×5×5
+			REQUIRE_THAT(inter.MinX(), RealApprox(static_cast<MML::Real>(5.0)));
+			REQUIRE_THAT(inter.MinY(), RealApprox(static_cast<MML::Real>(5.0)));
+			REQUIRE_THAT(inter.MinZ(), RealApprox(static_cast<MML::Real>(5.0)));
+			REQUIRE_THAT(inter.MaxX(), RealApprox(static_cast<MML::Real>(10.0)));
+			REQUIRE_THAT(inter.MaxY(), RealApprox(static_cast<MML::Real>(10.0)));
+			REQUIRE_THAT(inter.MaxZ(), RealApprox(static_cast<MML::Real>(10.0)));
+			REQUIRE_THAT(inter.Volume(), RealApprox(static_cast<MML::Real>(125.0)));  // 5×5×5
 		}
 
 		SECTION("Union") {
 			Box3D uni = box1.Union(box2);
-			REQUIRE_THAT(uni.MinX(), RealApprox(REAL(0.0)));
-			REQUIRE_THAT(uni.MinY(), RealApprox(REAL(0.0)));
-			REQUIRE_THAT(uni.MinZ(), RealApprox(REAL(0.0)));
-			REQUIRE_THAT(uni.MaxX(), RealApprox(REAL(15.0)));
-			REQUIRE_THAT(uni.MaxY(), RealApprox(REAL(15.0)));
-			REQUIRE_THAT(uni.MaxZ(), RealApprox(REAL(15.0)));
+			REQUIRE_THAT(uni.MinX(), RealApprox(static_cast<MML::Real>(0.0)));
+			REQUIRE_THAT(uni.MinY(), RealApprox(static_cast<MML::Real>(0.0)));
+			REQUIRE_THAT(uni.MinZ(), RealApprox(static_cast<MML::Real>(0.0)));
+			REQUIRE_THAT(uni.MaxX(), RealApprox(static_cast<MML::Real>(15.0)));
+			REQUIRE_THAT(uni.MaxY(), RealApprox(static_cast<MML::Real>(15.0)));
+			REQUIRE_THAT(uni.MaxZ(), RealApprox(static_cast<MML::Real>(15.0)));
 		}
 	}
 
@@ -296,23 +296,23 @@ namespace MML::Tests::Base::BoundingVolumesTests
 
 		SECTION("Translated") {
 			Box3D moved = box.Translated(Vec3Cart(5, 5, 5));
-			REQUIRE_THAT(moved.MinX(), RealApprox(REAL(5.0)));
-			REQUIRE_THAT(moved.MaxX(), RealApprox(REAL(7.0)));
+			REQUIRE_THAT(moved.MinX(), RealApprox(static_cast<MML::Real>(5.0)));
+			REQUIRE_THAT(moved.MaxX(), RealApprox(static_cast<MML::Real>(7.0)));
 		}
 
 		SECTION("Scaled") {
 			Box3D scaled = box.Scaled(2.0);
-			REQUIRE_THAT(scaled.Width(), RealApprox(REAL(4.0)));
-			REQUIRE_THAT(scaled.Volume(), RealApprox(REAL(64.0)));  // 4×4×4
+			REQUIRE_THAT(scaled.Width(), RealApprox(static_cast<MML::Real>(4.0)));
+			REQUIRE_THAT(scaled.Volume(), RealApprox(static_cast<MML::Real>(64.0)));  // 4×4×4
 			// Center should remain the same
 			REQUIRE_THAT(scaled.Center().X(), RealApprox(box.Center().X()));
 		}
 
 		SECTION("Expanded") {
 			Box3D expanded = box.Expanded(1.0);
-			REQUIRE_THAT(expanded.MinX(), RealApprox(REAL(-1.0)));
-			REQUIRE_THAT(expanded.MaxX(), RealApprox(REAL(3.0)));
-			REQUIRE_THAT(expanded.Width(), RealApprox(REAL(4.0)));
+			REQUIRE_THAT(expanded.MinX(), RealApprox(static_cast<MML::Real>(-1.0)));
+			REQUIRE_THAT(expanded.MaxX(), RealApprox(static_cast<MML::Real>(3.0)));
+			REQUIRE_THAT(expanded.Width(), RealApprox(static_cast<MML::Real>(4.0)));
 		}
 	}
 

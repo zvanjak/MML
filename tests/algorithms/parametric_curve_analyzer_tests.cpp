@@ -32,13 +32,13 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		// r'(t) = {-sin(t), cos(t), 1}
 		const auto& helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
 		
-		Real t = Constants::PI / REAL(4.0);
+		Real t = Constants::PI / static_cast<MML::Real>(4.0);
 		auto tangent = helix._curve.getTangent(t);
 		auto expected = helix._curveDerived(t);
 
-		REQUIRE_THAT(tangent[0], WithinAbs(expected[0], REAL(1e-6)));
-		REQUIRE_THAT(tangent[1], WithinAbs(expected[1], REAL(1e-6)));
-		REQUIRE_THAT(tangent[2], WithinAbs(expected[2], REAL(1e-6)));
+		REQUIRE_THAT(tangent[0], WithinAbs(expected[0], static_cast<MML::Real>(1e-6)));
+		REQUIRE_THAT(tangent[1], WithinAbs(expected[1], static_cast<MML::Real>(1e-6)));
+		REQUIRE_THAT(tangent[2], WithinAbs(expected[2], static_cast<MML::Real>(1e-6)));
 	}
 
 	TEST_CASE("ICurveCartesian3D::getTangentUnit_Circle3D", "[tangent]")
@@ -48,17 +48,17 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		// Unit tangent should have norm = 1
 		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 		
-		Real t = Constants::PI / REAL(3.0);
+		Real t = Constants::PI / static_cast<MML::Real>(3.0);
 		auto unitTangent = circle._curve.getTangentUnit(t);
 
 		// Check unit norm
 		Real norm = unitTangent.NormL2();
-		REQUIRE_THAT(norm, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 
 		// Check direction (should be perpendicular to radius)
 		auto position = circle._curve(t);
 		Real dot = Utils::ScalarProduct<3>(unitTangent, position);
-		REQUIRE_THAT(dot, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(dot, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	// TEST_CASE("ICurveCartesian3D::getTangent_TwistedCubic", "[tangent]")
@@ -67,13 +67,13 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	// 	// r'(t) = {1, 2t, 3t²}
 	// 	const auto& cubic = TestBeds::ParametricCurvesTestBed::getTestCurve("TwistedCubic");
 		
-	// 	Real t = REAL(1.5);
+	// 	Real t = static_cast<MML::Real>(1.5);
 	// 	auto tangent = cubic._curve.getTangent(t);
 	// 	auto expected = cubic._curveDerived(t);
 
-	// 	REQUIRE_THAT(tangent[0], WithinAbs(expected[0], REAL(1e-6)));
-	// 	REQUIRE_THAT(tangent[1], WithinAbs(expected[1], REAL(1e-6)));
-	// 	REQUIRE_THAT(tangent[2], WithinAbs(expected[2], REAL(1e-6)));
+	// 	REQUIRE_THAT(tangent[0], WithinAbs(expected[0], static_cast<MML::Real>(1e-6)));
+	// 	REQUIRE_THAT(tangent[1], WithinAbs(expected[1], static_cast<MML::Real>(1e-6)));
+	// 	REQUIRE_THAT(tangent[2], WithinAbs(expected[2], static_cast<MML::Real>(1e-6)));
 	// }
 
 	/*********************************************************************/
@@ -85,7 +85,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		// Test second derivative calculation
 		const auto& helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
 		
-		Real t = Constants::PI / REAL(6.0);
+		Real t = Constants::PI / static_cast<MML::Real>(6.0);
 		auto normal = helix._curve.getNormal(t);
 		auto expected = helix._curveDerSecond(t);
 
@@ -101,17 +101,17 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		// For helix, should be unit vector
 		const auto& helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
 		
-		Real t = Constants::PI / REAL(3.0);
+		Real t = Constants::PI / static_cast<MML::Real>(3.0);
 		auto binormal = helix._curve.getBinormal(t);
 		
 		// Binormal should be unit vector
 		Real norm = binormal.NormL2();
-		REQUIRE_THAT(norm, WithinAbs(REAL(1.0), REAL(1e-6)));
+		REQUIRE_THAT(norm, WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-6)));
 
 		// Binormal should be perpendicular to tangent
 		auto tangent = helix._curve.getTangent(t);
 		Real dot = Utils::ScalarProduct<3>(binormal, tangent);
-		REQUIRE_THAT(dot, WithinAbs(REAL(0.0), REAL(1e-6)));
+		REQUIRE_THAT(dot, WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-6)));
 	}
 
 	TEST_CASE("ParametricCurveAnalyzer::getPrincipalNormal_Circle", "[normal]")
@@ -120,17 +120,17 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		// For a circle, principal normal points toward center
 		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 		
-		Real t = Constants::PI / REAL(2.0);
+		Real t = Constants::PI / static_cast<MML::Real>(2.0);
 		auto principalNormal = circle._curve.getNormal(t);
 		
 		// Should be unit vector
 		Real norm = principalNormal.NormL2();
-		REQUIRE_THAT(norm, WithinAbs(REAL(1.0), REAL(1e-6)));
+		REQUIRE_THAT(norm, WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-6)));
 
 		// Should point toward center (opposite to position)
 		auto position = circle._curve(t);
 		Real dot = Utils::ScalarProduct<3>(principalNormal, position);
-		REQUIRE_THAT(dot, WithinAbs(-REAL(1.0), TOL(1e-5, 1e-3))); // Should be -1 (opposite direction)
+		REQUIRE_THAT(dot, WithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-5, 1e-3))); // Should be -1 (opposite direction)
 	}
 
 	/*********************************************************************/
@@ -139,11 +139,11 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	TEST_CASE("ParametricCurveAnalyzer::getCurvature_Helix", "[curvature]")
 	{
 			TEST_PRECISION_INFO();
-		// Helix has constant curvature κ = REAL(0.5)
+		// Helix has constant curvature κ = static_cast<MML::Real>(0.5)
 		const auto& helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
 		
 		// Test at multiple points
-		std::vector<Real> test_points = {REAL(0.0), Constants::PI/4, Constants::PI/2, Constants::PI, 3*Constants::PI/2};
+		std::vector<Real> test_points = {static_cast<MML::Real>(0.0), Constants::PI/4, Constants::PI/2, Constants::PI, 3*Constants::PI/2};
 		
 		for (Real t : test_points) {
 			Real curvature = helix._curve.getCurvature(t);
@@ -160,11 +160,11 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	{
 			TEST_PRECISION_INFO();
 		const auto& cubic = TestBeds::ParametricCurvesTestBed::getTestCurve("TwistedCubic");
-		std::vector<Real> test_points = {-REAL(1.5), -REAL(1.0), REAL(0.5), REAL(1.0), REAL(1.5)};
+		std::vector<Real> test_points = {-static_cast<MML::Real>(1.5), -static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.5)};
 		for (Real t : test_points) {
 			Real curvature = cubic._curve.getCurvature(t);
 			Real expected = cubic._curvatureFunc(t);
-			REQUIRE_THAT(curvature, WithinRel(expected, REAL(0.3)));
+			REQUIRE_THAT(curvature, WithinRel(expected, static_cast<MML::Real>(0.3)));
 		}
 	}
 	*/
@@ -176,11 +176,11 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		// Has different curvature than standard helix
 		const auto& helix2 = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix2");
 		
-		Real t = Constants::PI / REAL(4.0);
+		Real t = Constants::PI / static_cast<MML::Real>(4.0);
 		Real curvature = helix2._curve.getCurvature(t);
 		Real expected = helix2._curvatureFunc(t);
 		
-		REQUIRE_THAT(curvature, WithinAbs(expected, REAL(1e-6)));
+		REQUIRE_THAT(curvature, WithinAbs(expected, static_cast<MML::Real>(1e-6)));
 	}
 
 	// SKIPPED: Viviani curvature test - test bed formula appears incorrect
@@ -195,7 +195,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		for (Real t : test_points) {
 			Real curvature = viviani._curve.getCurvature(t);
 			Real expected = viviani._curvatureFunc(t);
-			REQUIRE_THAT(curvature, WithinRel(expected, REAL(0.35)));
+			REQUIRE_THAT(curvature, WithinRel(expected, static_cast<MML::Real>(0.35)));
 		}
 	}
 	*/
@@ -209,18 +209,18 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		// For a circle, curvature vector points toward center
 		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 		
-		Real t = Constants::PI / REAL(4.0);
+		Real t = Constants::PI / static_cast<MML::Real>(4.0);
 		auto curvatureVec = circle._curve.getCurvatureVector(t);
 		
 		// Magnitude should equal curvature (1 for unit circle)
 		Real magnitude = curvatureVec.NormL2();
-		REQUIRE_THAT(magnitude, WithinAbs(REAL(1.0), REAL(1e-5)));
+		REQUIRE_THAT(magnitude, WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5)));
 
 		// Direction should point toward center (opposite to position)
 		auto position = circle._curve(t);
 		auto normalized = curvatureVec / magnitude;
 		Real dot = Utils::ScalarProduct<3>(normalized, position);
-		REQUIRE_THAT(dot, WithinAbs(-REAL(1.0), REAL(1e-5)));
+		REQUIRE_THAT(dot, WithinAbs(-static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5)));
 	}
 
 	/*********************************************************************/
@@ -232,20 +232,20 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		// Test that Tangent, Principal Normal, and Binormal form orthonormal frame
 		const auto& helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
 		
-		Real t = Constants::PI / REAL(3.0);
+		Real t = Constants::PI / static_cast<MML::Real>(3.0);
 		auto T = helix._curve.getTangentUnit(t);
 		auto N = helix._curve.getNormal(t);
 		auto B = helix._curve.getBinormal(t);
 
 		// Each vector should be unit length
-		REQUIRE_THAT(T.NormL2(), WithinAbs(REAL(1.0), REAL(1e-6)));
-		REQUIRE_THAT(N.NormL2(), WithinAbs(REAL(1.0), REAL(1e-6)));
-		REQUIRE_THAT(B.NormL2(), WithinAbs(REAL(1.0), REAL(1e-6)));
+		REQUIRE_THAT(T.NormL2(), WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-6)));
+		REQUIRE_THAT(N.NormL2(), WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-6)));
+		REQUIRE_THAT(B.NormL2(), WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-6)));
 
 		// Vectors should be mutually perpendicular
-		REQUIRE_THAT(Utils::ScalarProduct<3>(T, N), WithinAbs(REAL(0.0), REAL(1e-6)));
-		REQUIRE_THAT(Utils::ScalarProduct<3>(T, B), WithinAbs(REAL(0.0), REAL(1e-6)));
-		REQUIRE_THAT(Utils::ScalarProduct<3>(N, B), WithinAbs(REAL(0.0), REAL(1e-6)));
+		REQUIRE_THAT(Utils::ScalarProduct<3>(T, N), WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-6)));
+		REQUIRE_THAT(Utils::ScalarProduct<3>(T, B), WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-6)));
+		REQUIRE_THAT(Utils::ScalarProduct<3>(N, B), WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-6)));
 
 		// Note: ParametricCurveAnalyzer uses B = r'' × r' (reverse of standard T × N)
 		// This is an implementation choice - both form valid orthonormal frames
@@ -258,20 +258,20 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	// 	// Test Frenet frame for twisted cubic
 	// 	const auto& cubic = TestBeds::ParametricCurvesTestBed::getTestCurve("TwistedCubic");
 		
-	// 	Real t = REAL(1.0);
+	// 	Real t = static_cast<MML::Real>(1.0);
 	// 	auto T = cubic._curve.getTangentUnit(t);
 	// 	auto N = cubic._curve.getNormalUnit(t);
 	// 	auto B = cubic._curve.getBinormal(t);
 
 	// 	// Each vector should be unit length
-	// 	REQUIRE_THAT(T.NormL2(), WithinAbs(REAL(1.0), REAL(1e-6)));
-	// 	REQUIRE_THAT(N.NormL2(), WithinAbs(REAL(1.0), REAL(1e-6)));
-	// 	REQUIRE_THAT(B.NormL2(), WithinAbs(REAL(1.0), REAL(1e-6)));
+	// 	REQUIRE_THAT(T.NormL2(), WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-6)));
+	// 	REQUIRE_THAT(N.NormL2(), WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-6)));
+	// 	REQUIRE_THAT(B.NormL2(), WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-6)));
 
 	// 	// Vectors should be mutually perpendicular
-	// 	REQUIRE_THAT(Utils::ScalarProduct<3>(T, N), WithinAbs(REAL(0.0), REAL(1e-5)));
-	// 	REQUIRE_THAT(Utils::ScalarProduct<3>(T, B), WithinAbs(REAL(0.0), REAL(1e-5)));
-	// 	REQUIRE_THAT(Utils::ScalarProduct<3>(N, B), WithinAbs(REAL(0.0), REAL(1e-5)));
+	// 	REQUIRE_THAT(Utils::ScalarProduct<3>(T, N), WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-5)));
+	// 	REQUIRE_THAT(Utils::ScalarProduct<3>(T, B), WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-5)));
+	// 	REQUIRE_THAT(Utils::ScalarProduct<3>(N, B), WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-5)));
 	// }
 
 	/*********************************************************************/
@@ -284,7 +284,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 		
 		// Standard parametrization has constant speed |r'(t)| = 1, so it IS arc-length parametrized
-		bool isArcLen = circle._curve.isArcLengthParametrized(REAL(0.0), Constants::PI);
+		bool isArcLen = circle._curve.isArcLengthParametrized(static_cast<MML::Real>(0.0), Constants::PI);
 		REQUIRE(isArcLen == true);
 	}
 
@@ -293,7 +293,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	// 	// Twisted cubic is NOT arc-length parametrized (speed varies)
 	// 	const auto& cubic = TestBeds::ParametricCurvesTestBed::getTestCurve("TwistedCubic");
 		
-	// 	bool isArcLen = cubic._curve.isArcLengthParametrized(-REAL(1.0), REAL(1.0));
+	// 	bool isArcLen = cubic._curve.isArcLengthParametrized(-static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0));
 	// 	REQUIRE(isArcLen == false);
 	// }
 
@@ -306,14 +306,14 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	// 	// Numerical differentiation struggles with the complicated geometry
 	// 	const auto& knot = TestBeds::ParametricCurvesTestBed::getTestCurve("TorusKnot_3_2");
 		
-	// 	std::vector<Real> test_points = {REAL(0.0), Constants::PI/4, Constants::PI/2, 3*Constants::PI/4};
+	// 	std::vector<Real> test_points = {static_cast<MML::Real>(0.0), Constants::PI/4, Constants::PI/2, 3*Constants::PI/4};
 		
 	// 	for (Real t : test_points) {
 	// 		Real curvature = knot._curve.getCurvature(t);
 	// 		Real expected = knot._curvatureFunc(t);
 			
 	// 		// Very relaxed tolerance - numerical derivatives ~30-40% error for this complex curve
-	// 		REQUIRE_THAT(curvature, WithinRel(expected, REAL(0.4)));  // 40% tolerance
+	// 		REQUIRE_THAT(curvature, WithinRel(expected, static_cast<MML::Real>(0.4)));  // 40% tolerance
 	// 	}
 	// }
 }

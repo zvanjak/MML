@@ -23,6 +23,7 @@
 #include <mml/base/ComplexFunction.h>
 #include <mml/core/Derivation/DerivationComplex.h>
 #include <mml/base/AlgorithmTypes.h>
+#include <mml/core/Integration/IntegrationBase.h>
 
 #include <cmath>
 #include <functional>
@@ -35,16 +36,9 @@ namespace MML
 		/********                                   Result Types                                                     ********/
 		/********************************************************************************************************************/
 
-		/// Result of a complex contour integration
-		struct ContourIntegrationResult {
-			Complex value = Complex(0.0, 0.0);   ///< Computed integral value
-			Real error_estimate = 0.0;            ///< Estimated absolute error (on |value|)
-			int function_evaluations = 0;         ///< Number of integrand evaluations
-			bool converged = true;                ///< True if error < tolerance
-
-			/// Implicit conversion to Complex for convenience
-			operator Complex() const { return value; }
-		};
+		/// Result of a complex contour integration: the common integration result over Complex
+		/// (value, error_estimate on |value|, converged, status, function_evaluations, ...).
+		using ContourIntegrationResult = BasicIntegrationResult<Complex>;
 
 		/********************************************************************************************************************/
 		/********                                   Contour Classes                                                  ********/
@@ -85,7 +79,7 @@ namespace MML
 
 			/// @brief γ(t) = (1-t)·z1 + t·z2
 			Complex operator()(Real t) const override {
-				return (REAL(1.0) - t) * _z1 + t * _z2;
+				return (static_cast<MML::Real>(1.0) - t) * _z1 + t * _z2;
 			}
 
 			/// @brief γ'(t) = z2 - z1 (constant)
@@ -135,7 +129,7 @@ namespace MML
 				Complex fa, Complex fm, Complex fb,
 				Complex whole,
 				Real tol, int depth, int max_depth,
-				int& evals, bool& converged)
+				int& evals, bool& converged, Real& errorSum)
 			{
 				Real m = (a + b) / 2.0;
 				Real m1 = (a + m) / 2.0;
@@ -148,8 +142,8 @@ namespace MML
 				Real h6 = (b - a) / 6.0;
 				Real h12 = h6 / 2.0;
 
-				Complex left = h12 * (fa + REAL(4.0) * f_m1 + fm);
-				Complex right = h12 * (fm + REAL(4.0) * f_m2 + fb);
+				Complex left = h12 * (fa + static_cast<MML::Real>(4.0) * f_m1 + fm);
+				Complex right = h12 * (fm + static_cast<MML::Real>(4.0) * f_m2 + fb);
 				Complex refined = left + right;
 
 				Real error = std::abs(refined - whole) / 15.0;  // Richardson error estimate
@@ -157,18 +151,20 @@ namespace MML
 				if (depth >= max_depth)
 				{
 					converged = false;
+					errorSum += error; // unrefined leaf: its local estimate is part of the total
 					return refined;
 				}
 
 				if (error < tol)
 				{
+					errorSum += error;
 					// Richardson extrapolation: add the correction term
-					return refined + (refined - whole) / REAL(15.0);
+					return refined + (refined - whole) / static_cast<MML::Real>(15.0);
 				}
 
 				// Recurse on both halves with halved tolerance
-				return AdaptiveSimpsonStep(g, a, m, fa, f_m1, fm, left, tol / 2, depth + 1, max_depth, evals, converged)
-				     + AdaptiveSimpsonStep(g, m, b, fm, f_m2, fb, right, tol / 2, depth + 1, max_depth, evals, converged);
+				return AdaptiveSimpsonStep(g, a, m, fa, f_m1, fm, left, tol / 2, depth + 1, max_depth, evals, converged, errorSum)
+				     + AdaptiveSimpsonStep(g, m, b, fm, f_m2, fb, right, tol / 2, depth + 1, max_depth, evals, converged, errorSum);
 			}
 
 			/// @brief Top-level adaptive Simpson for complex-valued functions of a real variable
@@ -185,15 +181,23 @@ namespace MML
 				Complex fb = g(b);
 				int evals = 3;
 				bool converged = true;
+				Real errorSum = 0.0;
 
 				Real h6 = (b - a) / 6.0;
-				Complex whole = h6 * (fa + REAL(4.0) * fm + fb);
+				Complex whole = h6 * (fa + static_cast<MML::Real>(4.0) * fm + fb);
 
-				result.value = AdaptiveSimpsonStep(g, a, b, fa, fm, fb, whole, tol, 0, max_depth, evals, converged);
+				result.value = AdaptiveSimpsonStep(g, a, b, fa, fm, fb, whole, tol, 0, max_depth, evals, converged, errorSum);
 				result.function_evaluations = evals;
 				result.converged = converged;
-				// Rough error estimate: if converged, error < tol
-				result.error_estimate = converged ? tol : std::abs(result.value) * 1e-6;
+				result.error_estimated = true;
+				result.iterations = max_depth;
+				result.algorithm_name = "AdaptiveSimpsonComplex";
+				result.status = converged ? AlgorithmStatus::Success : AlgorithmStatus::MaxIterationsExceeded;
+				if (!converged)
+					result.error_message = "AdaptiveSimpsonComplex: tolerance not met within max_depth";
+				// Sum of the Richardson estimates of all accepted (and max-depth) leaves: an actual estimate,
+				// not the former placeholder (tol if converged, |value|*1e-6 otherwise)
+				result.error_estimate = errorSum;
 				return result;
 			}
 		}
@@ -279,13 +283,13 @@ namespace MML
 		{
 			// Integrand: 1/(z - z0)
 			ComplexFunctionFromStdFunc g([z0](Complex z) -> Complex {
-				return REAL(1.0) / (z - z0);
+				return static_cast<MML::Real>(1.0) / (z - z0);
 			});
 
 			auto result = ContourIntegral(g, contour, tol);
 
 			// n = (1/2πi) · ∮ dz/(z-z0)
-			Complex winding = result.value / (REAL(2.0) * Constants::PI * Complex(0.0, 1.0));
+			Complex winding = result.value / (static_cast<MML::Real>(2.0) * Constants::PI * Complex(0.0, 1.0));
 			return static_cast<int>(std::round(winding.real()));
 		}
 
@@ -317,7 +321,7 @@ namespace MML
 			});
 
 			auto result = ContourIntegral(integrand_func, contour, tol);
-			return result.value / (REAL(2.0) * Constants::PI * Complex(0.0, 1.0));
+			return result.value / (static_cast<MML::Real>(2.0) * Constants::PI * Complex(0.0, 1.0));
 		}
 
 		/// @brief Compute the n-th derivative f^(n)(z0) using the generalized Cauchy integral formula
@@ -351,7 +355,7 @@ namespace MML
 			for (int k = 2; k <= n; ++k)
 				factorial *= k;
 
-			return factorial * result.value / (REAL(2.0) * Constants::PI * Complex(0.0, 1.0));
+			return factorial * result.value / (static_cast<MML::Real>(2.0) * Constants::PI * Complex(0.0, 1.0));
 		}
 
 		/********************************************************************************************************************/
@@ -375,7 +379,7 @@ namespace MML
 		{
 			CircleContour contour(z0, radius);
 			auto result = ContourIntegral(f, contour, tol);
-			return result.value / (REAL(2.0) * Constants::PI * Complex(0.0, 1.0));
+			return result.value / (static_cast<MML::Real>(2.0) * Constants::PI * Complex(0.0, 1.0));
 		}
 
 		/// @brief Compute residue of a simple pole: Res(f, z0) = lim_{z→z0} (z-z0)·f(z)
@@ -433,7 +437,7 @@ namespace MML
 			});
 
 			auto result = ContourIntegral(logarithmic_derivative, contour, tol);
-			Complex count = result.value / (REAL(2.0) * Constants::PI * Complex(0.0, 1.0));
+			Complex count = result.value / (static_cast<MML::Real>(2.0) * Constants::PI * Complex(0.0, 1.0));
 			return static_cast<int>(std::round(count.real()));
 		}
 

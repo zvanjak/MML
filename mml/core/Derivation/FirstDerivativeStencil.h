@@ -23,8 +23,8 @@ namespace MML::Derivation::Detail
 	{
 		static constexpr std::array value_offsets{1, 0};
 		static constexpr std::array error_offsets{1, 0, -1};
-		static constexpr std::array<Real, 2> value_coefficients{REAL(1.0), REAL(-1.0)};
-		static constexpr std::array<Real, 3> truncation_error_coefficients{REAL(0.5), REAL(-1.0), REAL(0.5)};
+		static constexpr std::array<Real, 2> value_coefficients{static_cast<MML::Real>(1.0), static_cast<MML::Real>(-1.0)};
+		static constexpr std::array<Real, 3> truncation_error_coefficients{static_cast<MML::Real>(0.5), static_cast<MML::Real>(-1.0), static_cast<MML::Real>(0.5)};
 		static constexpr int max_reach = 1;
 	};
 
@@ -33,8 +33,8 @@ namespace MML::Derivation::Detail
 	{
 		static constexpr std::array value_offsets{1, -1};
 		static constexpr std::array error_offsets{1, -1, 2, -2};
-		static constexpr std::array<Real, 2> value_coefficients{REAL(0.5), REAL(-0.5)};
-		static constexpr std::array<Real, 4> truncation_error_coefficients{REAL(-1.0 / 6.0), REAL(1.0 / 6.0), REAL(1.0 / 12.0), REAL(-1.0 / 12.0)};
+		static constexpr std::array<Real, 2> value_coefficients{static_cast<MML::Real>(0.5), static_cast<MML::Real>(-0.5)};
+		static constexpr std::array<Real, 4> truncation_error_coefficients{static_cast<MML::Real>(-1.0 / 6.0), static_cast<MML::Real>(1.0 / 6.0), static_cast<MML::Real>(1.0 / 12.0), static_cast<MML::Real>(-1.0 / 12.0)};
 		static constexpr int max_reach = 2;
 	};
 
@@ -43,8 +43,8 @@ namespace MML::Derivation::Detail
 	{
 		static constexpr std::array value_offsets{1, -1, 2, -2};
 		static constexpr std::array error_offsets{1, -1, 2, -2, 3, -3};
-		static constexpr std::array<Real, 4> value_coefficients{REAL(2.0 / 3.0), REAL(-2.0 / 3.0), REAL(-1.0 / 12.0), REAL(1.0 / 12.0)};
-		static constexpr std::array<Real, 6> truncation_error_coefficients{REAL(1.0 / 12.0), REAL(-1.0 / 12.0), REAL(-1.0 / 15.0), REAL(1.0 / 15.0), REAL(1.0 / 60.0), REAL(-1.0 / 60.0)};
+		static constexpr std::array<Real, 4> value_coefficients{static_cast<MML::Real>(2.0 / 3.0), static_cast<MML::Real>(-2.0 / 3.0), static_cast<MML::Real>(-1.0 / 12.0), static_cast<MML::Real>(1.0 / 12.0)};
+		static constexpr std::array<Real, 6> truncation_error_coefficients{static_cast<MML::Real>(1.0 / 12.0), static_cast<MML::Real>(-1.0 / 12.0), static_cast<MML::Real>(-1.0 / 15.0), static_cast<MML::Real>(1.0 / 15.0), static_cast<MML::Real>(1.0 / 60.0), static_cast<MML::Real>(-1.0 / 60.0)};
 		static constexpr int max_reach = 3;
 	};
 
@@ -53,8 +53,8 @@ namespace MML::Derivation::Detail
 	{
 		static constexpr std::array value_offsets{1, -1, -2, 2, 3, -3};
 		static constexpr std::array error_offsets{1, -1, -2, 2, 3, -3, 4, -4};
-		static constexpr std::array<Real, 6> value_coefficients{REAL(3.0 / 4.0), REAL(-3.0 / 4.0), REAL(3.0 / 20.0), REAL(-3.0 / 20.0), REAL(1.0 / 60.0), REAL(-1.0 / 60.0)};
-		static constexpr std::array<Real, 8> truncation_error_coefficients{REAL(-1.0 / 20.0), REAL(1.0 / 20.0), REAL(-1.0 / 20.0), REAL(1.0 / 20.0), REAL(-3.0 / 140.0), REAL(3.0 / 140.0), REAL(1.0 / 280.0), REAL(-1.0 / 280.0)};
+		static constexpr std::array<Real, 6> value_coefficients{static_cast<MML::Real>(3.0 / 4.0), static_cast<MML::Real>(-3.0 / 4.0), static_cast<MML::Real>(3.0 / 20.0), static_cast<MML::Real>(-3.0 / 20.0), static_cast<MML::Real>(1.0 / 60.0), static_cast<MML::Real>(-1.0 / 60.0)};
+		static constexpr std::array<Real, 8> truncation_error_coefficients{static_cast<MML::Real>(-1.0 / 20.0), static_cast<MML::Real>(1.0 / 20.0), static_cast<MML::Real>(-1.0 / 20.0), static_cast<MML::Real>(1.0 / 20.0), static_cast<MML::Real>(-3.0 / 140.0), static_cast<MML::Real>(3.0 / 140.0), static_cast<MML::Real>(1.0 / 280.0), static_cast<MML::Real>(-1.0 / 280.0)};
 		static constexpr int max_reach = 4;
 	};
 
@@ -63,8 +63,8 @@ namespace MML::Derivation::Detail
 	{
 		static constexpr std::array value_offsets{1, -1, -2, 2, 3, -3, -4, 4};
 		static constexpr std::array error_offsets{1, -1, -2, 2, 3, -3, -4, 4, 5, -5};
-		static constexpr std::array<Real, 8> value_coefficients{REAL(4.0 / 5.0), REAL(-4.0 / 5.0), REAL(1.0 / 5.0), REAL(-1.0 / 5.0), REAL(4.0 / 105.0), REAL(-4.0 / 105.0), REAL(1.0 / 280.0), REAL(-1.0 / 280.0)};
-		static constexpr std::array<Real, 10> truncation_error_coefficients{REAL(1.0 / 30.0), REAL(-1.0 / 30.0), REAL(4.0 / 105.0), REAL(-4.0 / 105.0), REAL(3.0 / 140.0), REAL(-3.0 / 140.0), REAL(2.0 / 315.0), REAL(-2.0 / 315.0), REAL(1.0 / 1260.0), REAL(-1.0 / 1260.0)};
+		static constexpr std::array<Real, 8> value_coefficients{static_cast<MML::Real>(4.0 / 5.0), static_cast<MML::Real>(-4.0 / 5.0), static_cast<MML::Real>(1.0 / 5.0), static_cast<MML::Real>(-1.0 / 5.0), static_cast<MML::Real>(4.0 / 105.0), static_cast<MML::Real>(-4.0 / 105.0), static_cast<MML::Real>(1.0 / 280.0), static_cast<MML::Real>(-1.0 / 280.0)};
+		static constexpr std::array<Real, 10> truncation_error_coefficients{static_cast<MML::Real>(1.0 / 30.0), static_cast<MML::Real>(-1.0 / 30.0), static_cast<MML::Real>(4.0 / 105.0), static_cast<MML::Real>(-4.0 / 105.0), static_cast<MML::Real>(3.0 / 140.0), static_cast<MML::Real>(-3.0 / 140.0), static_cast<MML::Real>(2.0 / 315.0), static_cast<MML::Real>(-2.0 / 315.0), static_cast<MML::Real>(1.0 / 1260.0), static_cast<MML::Real>(-1.0 / 1260.0)};
 		static constexpr int max_reach = 5;
 	};
 
@@ -97,7 +97,7 @@ namespace MML::Derivation::Detail
 	struct FirstDerivativeStencilResult
 	{
 		Value value;
-		Real error = REAL(0.0);
+		Real error = static_cast<MML::Real>(0.0);
 		int function_evaluations = 0;
 	};
 
@@ -129,7 +129,7 @@ namespace MML::Derivation::Detail
 				at(offset);
 
 		Value value;
-		Real error = REAL(0.0);
+		Real error = static_cast<MML::Real>(0.0);
 		if constexpr (Order == FirstDerivativeOrder::One)
 		{
 			const Value& yh = at(1);
@@ -138,7 +138,7 @@ namespace MML::Derivation::Detail
 			if (estimate_error)
 			{
 				const Value& ym = at(-1);
-				error = norm(yh - REAL(2.0) * y0 + ym) / (REAL(2.0) * h) + (norm(yh) + norm(y0)) * Constants::Eps / h;
+				error = norm(yh - static_cast<MML::Real>(2.0) * y0 + ym) / (static_cast<MML::Real>(2.0) * h) + (norm(yh) + norm(y0)) * Constants::Eps / h;
 			}
 		}
 		else if constexpr (Order == FirstDerivativeOrder::Two)
@@ -146,10 +146,10 @@ namespace MML::Derivation::Detail
 			const Value& yh = at(1);
 			const Value& ymh = at(-1);
 			Value diff = yh - ymh;
-			value = diff / (REAL(2.0) * h);
+			value = diff / (static_cast<MML::Real>(2.0) * h);
 			if (estimate_error)
-				error = norm((at(2) - at(-2)) / REAL(2.0) - diff) / (REAL(6.0) * h)
-				      + Constants::Eps * (norm(yh) + norm(ymh)) / (REAL(2.0) * h);
+				error = norm((at(2) - at(-2)) / static_cast<MML::Real>(2.0) - diff) / (static_cast<MML::Real>(6.0) * h)
+				      + Constants::Eps * (norm(yh) + norm(ymh)) / (static_cast<MML::Real>(2.0) * h);
 		}
 		else if constexpr (Order == FirstDerivativeOrder::Four)
 		{
@@ -159,11 +159,11 @@ namespace MML::Derivation::Detail
 			const Value& ym2h = at(-2);
 			Value y2 = ym2h - y2h;
 			Value y1 = yh - ymh;
-			value = (y2 + REAL(8.0) * y1) / (REAL(12.0) * h);
+			value = (y2 + static_cast<MML::Real>(8.0) * y1) / (static_cast<MML::Real>(12.0) * h);
 			if (estimate_error)
-				error = norm((at(3) - at(-3)) / REAL(2.0) + REAL(2.0) * (ym2h - y2h)
-				             + REAL(5.0) * (yh - ymh) / REAL(2.0)) / (REAL(30.0) * h)
-			      + Constants::Eps * (norm(y2h) + norm(ym2h) + REAL(8.0) * (norm(ymh) + norm(yh))) / (REAL(12.0) * h);
+				error = norm((at(3) - at(-3)) / static_cast<MML::Real>(2.0) + static_cast<MML::Real>(2.0) * (ym2h - y2h)
+				             + static_cast<MML::Real>(5.0) * (yh - ymh) / static_cast<MML::Real>(2.0)) / (static_cast<MML::Real>(30.0) * h)
+			      + Constants::Eps * (norm(y2h) + norm(ym2h) + static_cast<MML::Real>(8.0) * (norm(ymh) + norm(yh))) / (static_cast<MML::Real>(12.0) * h);
 		}
 		else if constexpr (Order == FirstDerivativeOrder::Six)
 		{
@@ -172,10 +172,10 @@ namespace MML::Derivation::Detail
 			Value y1 = yh - ymh;
 			Value y2 = at(-2) - at(2);
 			Value y3 = at(3) - at(-3);
-			value = (y3 + REAL(9.0) * y2 + REAL(45.0) * y1) / (REAL(60.0) * h);
+			value = (y3 + static_cast<MML::Real>(9.0) * y2 + static_cast<MML::Real>(45.0) * y1) / (static_cast<MML::Real>(60.0) * h);
 			if (estimate_error)
-				error = norm((at(4) - at(-4) - REAL(6.0) * y3 - REAL(14.0) * y1 - REAL(14.0) * y2) / REAL(2.0)) / (REAL(140.0) * h)
-			      + REAL(5.0) * (norm(yh) + norm(ymh)) * Constants::Eps / h;
+				error = norm((at(4) - at(-4) - static_cast<MML::Real>(6.0) * y3 - static_cast<MML::Real>(14.0) * y1 - static_cast<MML::Real>(14.0) * y2) / static_cast<MML::Real>(2.0)) / (static_cast<MML::Real>(140.0) * h)
+			      + static_cast<MML::Real>(5.0) * (norm(yh) + norm(ymh)) * Constants::Eps / h;
 		}
 		else
 		{
@@ -185,13 +185,13 @@ namespace MML::Derivation::Detail
 			Value y2 = at(-2) - at(2);
 			Value y3 = at(3) - at(-3);
 			Value y4 = at(-4) - at(4);
-			Value tmp1 = REAL(3.0) * y4 / REAL(8.0) + REAL(4.0) * y3;
-			Value tmp2 = REAL(21.0) * y2 + REAL(84.0) * y1;
-			value = (tmp1 + tmp2) / (REAL(105.0) * h);
+			Value tmp1 = static_cast<MML::Real>(3.0) * y4 / static_cast<MML::Real>(8.0) + static_cast<MML::Real>(4.0) * y3;
+			Value tmp2 = static_cast<MML::Real>(21.0) * y2 + static_cast<MML::Real>(84.0) * y1;
+			value = (tmp1 + tmp2) / (static_cast<MML::Real>(105.0) * h);
 			if (estimate_error)
-				error = norm((at(5) - at(-5)) / REAL(2.0) + REAL(4.0) * y4 + REAL(27.0) * y3 / REAL(2.0)
-				             + REAL(24.0) * y2 + REAL(21.0) * y1) / (REAL(630.0) * h)
-			      + REAL(7.0) * (norm(yh) + norm(ymh)) * Constants::Eps / h;
+				error = norm((at(5) - at(-5)) / static_cast<MML::Real>(2.0) + static_cast<MML::Real>(4.0) * y4 + static_cast<MML::Real>(27.0) * y3 / static_cast<MML::Real>(2.0)
+				             + static_cast<MML::Real>(24.0) * y2 + static_cast<MML::Real>(21.0) * y1) / (static_cast<MML::Real>(630.0) * h)
+			      + static_cast<MML::Real>(7.0) * (norm(yh) + norm(ymh)) * Constants::Eps / h;
 		}
 		if constexpr (!std::is_same_v<std::remove_cvref_t<ErrorEstimate>, std::nullptr_t>)
 			if (estimate_error)

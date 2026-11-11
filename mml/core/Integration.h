@@ -38,5 +38,7 @@
 #include "Integration/GaussKronrod.h"
 #include "Integration/Integration2DAdaptive.h"
 #include "Integration/Integration3DAdaptive.h"
+#include "Integration/IntegrationParallel.h"
+#include "Integration/MonteCarloParallel.h"
 
 #endif

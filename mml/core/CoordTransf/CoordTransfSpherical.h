@@ -84,7 +84,7 @@ namespace MML
 		/// @brief Convert Cartesian to spherical polar angle (inclination from z-axis)
 		static Real theta(const VectorN<Real, 3>& q) {
 			Real r = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]);
-			if (r < std::numeric_limits<Real>::epsilon() * 100) return Real(0);
+			if (r < Precision::RoundoffZeroThreshold) return Real(0);
 			return acos(std::clamp(q[2] / r, Real(-1), Real(1)));
 		}
 		/// @brief Convert Cartesian to spherical azimuthal angle
@@ -125,29 +125,37 @@ namespace MML
 			jac(1, 2) = radius * sinTheta * cosPhi;
 			jac(2, 0) = cosTheta;
 			jac(2, 1) = -radius * sinTheta;
-			jac(2, 2) = REAL(0.0);
+			jac(2, 2) = static_cast<MML::Real>(0.0);
 
 			return jac;
 		}
 
+		using CoordTransfWithInverse<Vector3Spherical, Vector3Cartesian, 3>::inverseJacobian;
+
 		MatrixNM<Real, 3, 3> inverseJacobian(const VectorN<Real, 3>& pos) const override
 		{
-			const Real radiusSquared = pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2];
-			const Real radius = sqrt(radiusSquared);
-			const Real cylindricalRadiusSquared = pos[0] * pos[0] + pos[1] * pos[1];
-			const Real cylindricalRadius = sqrt(cylindricalRadiusSquared);
+			Singularity::RequireFiniteCoordinates<3>(pos, "Spherical inverse Jacobian");
+			const Real radius = std::hypot(pos[0], pos[1], pos[2]);
+			const Real cylindricalRadius = std::hypot(pos[0], pos[1]);
+			if (!std::isfinite(radius))
+				throw DomainError("Spherical inverse Jacobian: radius exceeds the representable range");
+			if (Singularity::IsNearZero(radius) || Singularity::IsNearZero(cylindricalRadius / radius))
+				throw SingularMatrixError("Spherical inverse Jacobian: origin or polar axis");
+			const Real nx = pos[0] / radius, ny = pos[1] / radius, nz = pos[2] / radius;
+			const Real u = pos[0] / cylindricalRadius, v = pos[1] / cylindricalRadius;
 			MatrixNM<Real, 3, 3> jac;
 
-			jac(0, 0) = pos[0] / radius;
-			jac(0, 1) = pos[1] / radius;
-			jac(0, 2) = pos[2] / radius;
-			jac(1, 0) = pos[0] * pos[2] / (radiusSquared * cylindricalRadius);
-			jac(1, 1) = pos[1] * pos[2] / (radiusSquared * cylindricalRadius);
-			jac(1, 2) = -cylindricalRadius / radiusSquared;
-			jac(2, 0) = -pos[1] / cylindricalRadiusSquared;
-			jac(2, 1) = pos[0] / cylindricalRadiusSquared;
-			jac(2, 2) = REAL(0.0);
+			jac(0, 0) = nx;
+			jac(0, 1) = ny;
+			jac(0, 2) = nz;
+			jac(1, 0) = nz * u / radius;
+			jac(1, 1) = nz * v / radius;
+			jac(1, 2) = -(cylindricalRadius / radius) / radius;
+			jac(2, 0) = -v / cylindricalRadius;
+			jac(2, 1) = u / cylindricalRadius;
+			jac(2, 2) = static_cast<MML::Real>(0.0);
 
+			Singularity::RequireFiniteMatrix(jac, "Spherical inverse Jacobian result");
 			return jac;
 		}
 
@@ -163,9 +171,9 @@ namespace MML
 			{
 			case 0: return Vector3Cartesian{ static_cast<Real>(sin(theta) * cos(phi)),     static_cast<Real>(sin(theta) * sin(phi)),      static_cast<Real>(cos(theta)) };
 			case 1: return Vector3Cartesian{ static_cast<Real>(r * cos(theta) * cos(phi)), static_cast<Real>(r * cos(theta) * sin(phi)), static_cast<Real>(-r * sin(theta)) };
-			case 2: return Vector3Cartesian{ static_cast<Real>(-r * sin(theta) * sin(phi)), static_cast<Real>(r * sin(theta) * cos(phi)),									  REAL(0.0) };
+			case 2: return Vector3Cartesian{ static_cast<Real>(-r * sin(theta) * sin(phi)), static_cast<Real>(r * sin(theta) * cos(phi)),									  static_cast<MML::Real>(0.0) };
 			default:
-			return Vector3Cartesian{ REAL(0.0), REAL(0.0), REAL(0.0) };
+			return Vector3Cartesian{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
 			}
 		}
 
@@ -181,9 +189,9 @@ namespace MML
 			{
 			case 0: return Vector3Cartesian{ static_cast<Real>(sin(theta) * cos(phi)), static_cast<Real>(sin(theta) * sin(phi)), static_cast<Real>(cos(theta)) };
 			case 1: return Vector3Cartesian{ static_cast<Real>(cos(theta) * cos(phi)), static_cast<Real>(cos(theta) * sin(phi)), static_cast<Real>(-sin(theta)) };
-			case 2: return Vector3Cartesian{ static_cast<Real>(-sin(phi)), static_cast<Real>(cos(phi)), REAL(0.0) };
+			case 2: return Vector3Cartesian{ static_cast<Real>(-sin(phi)), static_cast<Real>(cos(phi)), static_cast<MML::Real>(0.0) };
 			default:
-			return Vector3Cartesian{ REAL(0.0), REAL(0.0), REAL(0.0) };
+			return Vector3Cartesian{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
 			}
 		}
 
@@ -199,9 +207,9 @@ namespace MML
 			{
 			case 0: return Vector3Spherical{ static_cast<Real>(sin(theta) * cos(phi)), static_cast<Real>(r * cos(theta) * cos(phi)), static_cast<Real>(-r * sin(theta) * sin(phi)) };
 			case 1: return Vector3Spherical{ static_cast<Real>(sin(theta) * sin(phi)), static_cast<Real>(r * cos(theta) * sin(phi)),  static_cast<Real>(r * sin(theta) * cos(phi)) };
-			case 2: return Vector3Spherical{ static_cast<Real>(cos(theta)),static_cast<Real>(-r * sin(theta)),                        REAL(0.0) };
+			case 2: return Vector3Spherical{ static_cast<Real>(cos(theta)),static_cast<Real>(-r * sin(theta)),                        static_cast<MML::Real>(0.0) };
 			default: 
-			return Vector3Spherical{ REAL(0.0), REAL(0.0), REAL(0.0) };
+			return Vector3Spherical{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
 			}
 		}
 		/// @brief Get unit contravariant basis vector at position
@@ -216,9 +224,9 @@ namespace MML
 			{
 			case 0: return Vector3Spherical{ static_cast<Real>(sin(theta) * cos(phi)),  static_cast<Real>(cos(theta) * cos(phi)), static_cast<Real>(-sin(phi)) };
 			case 1: return Vector3Spherical{ static_cast<Real>(sin(theta) * sin(phi)),  static_cast<Real>(cos(theta) * sin(phi)),  static_cast<Real>(cos(phi)) };
-			case 2: return Vector3Spherical{ static_cast<Real>(cos(theta))           , static_cast<Real>(-sin(theta))           ,  REAL(0.0) };
+			case 2: return Vector3Spherical{ static_cast<Real>(cos(theta))           , static_cast<Real>(-sin(theta))           ,  static_cast<MML::Real>(0.0) };
 			default: 
-			return Vector3Spherical{ REAL(0.0), REAL(0.0), REAL(0.0) };
+			return Vector3Spherical{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
 			}
 		}
 	};
@@ -237,7 +245,7 @@ namespace MML
 		/// @brief Convert Cartesian to spherical polar angle
 		static Real theta(const VectorN<Real, 3>& q) {
 			Real r = sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2]);
-			if (r < std::numeric_limits<Real>::epsilon() * 100) return Real(0);
+			if (r < Precision::RoundoffZeroThreshold) return Real(0);
 			return acos(std::clamp(q[2] / r, Real(-1), Real(1)));
 		}
 		/// @brief Convert Cartesian to spherical azimuthal angle
@@ -270,45 +278,17 @@ namespace MML
 
 		MatrixNM<Real, 3, 3> jacobian(const VectorN<Real, 3>& pos) const override
 		{
-			const Real radiusSquared = pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2];
-			const Real radius = sqrt(radiusSquared);
-			const Real cylindricalRadiusSquared = pos[0] * pos[0] + pos[1] * pos[1];
-			const Real cylindricalRadius = sqrt(cylindricalRadiusSquared);
-			MatrixNM<Real, 3, 3> jac;
-
-			jac(0, 0) = pos[0] / radius;
-			jac(0, 1) = pos[1] / radius;
-			jac(0, 2) = pos[2] / radius;
-			jac(1, 0) = pos[0] * pos[2] / (radiusSquared * cylindricalRadius);
-			jac(1, 1) = pos[1] * pos[2] / (radiusSquared * cylindricalRadius);
-			jac(1, 2) = -cylindricalRadius / radiusSquared;
-			jac(2, 0) = -pos[1] / cylindricalRadiusSquared;
-			jac(2, 1) = pos[0] / cylindricalRadiusSquared;
-			jac(2, 2) = REAL(0.0);
-
-			return jac;
+			return CoordTransfSphericalToCartesian{}.inverseJacobian(pos);
 		}
+
+		using CoordTransfWithInverse<Vector3Cartesian, Vector3Spherical, 3>::inverseJacobian;
 
 		MatrixNM<Real, 3, 3> inverseJacobian(const VectorN<Real, 3>& pos) const override
 		{
-			const Real radius = pos[0];
-			const Real sinTheta = sin(pos[1]);
-			const Real cosTheta = cos(pos[1]);
-			const Real sinPhi = sin(pos[2]);
-			const Real cosPhi = cos(pos[2]);
-			MatrixNM<Real, 3, 3> jac;
-
-			jac(0, 0) = sinTheta * cosPhi;
-			jac(0, 1) = radius * cosTheta * cosPhi;
-			jac(0, 2) = -radius * sinTheta * sinPhi;
-			jac(1, 0) = sinTheta * sinPhi;
-			jac(1, 1) = radius * cosTheta * sinPhi;
-			jac(1, 2) = radius * sinTheta * cosPhi;
-			jac(2, 0) = cosTheta;
-			jac(2, 1) = -radius * sinTheta;
-			jac(2, 2) = REAL(0.0);
-
-			return jac;
+			Singularity::RequireFiniteCoordinates<3>(pos, "Spherical inverse Jacobian");
+			if (Singularity::IsNearZero(pos[0]) || Singularity::IsNearZero(std::sin(pos[1])))
+				throw SingularMatrixError("Spherical inverse Jacobian: origin or pole");
+			return CoordTransfSphericalToCartesian{}.jacobian(pos);
 		}
 	};
 

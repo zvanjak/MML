@@ -18,7 +18,7 @@ namespace MML::Tests::Algorithms::ComplexEigenanalysisTests
 	Real EigenResidual(const Matrix<Complex>& matrix, const Vector<Complex>& vector, Complex eigenvalue)
 	{
 		return (matrix * vector - eigenvalue * vector).NormL2() /
-			std::max(REAL(1.0), MatrixAlg::FrobeniusNorm(matrix) * vector.NormL2());
+			std::max(static_cast<MML::Real>(1.0), MatrixAlg::FrobeniusNorm(matrix) * vector.NormL2());
 	}
 
 	void RequireResiduals(const Matrix<Complex>& matrix,
@@ -58,7 +58,7 @@ namespace MML::Tests::Algorithms::ComplexEigenanalysisTests
 	TEST_CASE("Canonical real eigensystem expands rotation eigenpairs into complex columns",
 				  "[ComplexEigen][RealInput][Rotation][MML2]")
 	{
-		const Real angle = REAL(0.7);
+		const Real angle = static_cast<MML::Real>(0.7);
 		const Matrix<Real> rotation{2, 2, {
 			std::cos(angle), -std::sin(angle),
 			std::sin(angle), std::cos(angle)
@@ -67,9 +67,9 @@ namespace MML::Tests::Algorithms::ComplexEigenanalysisTests
 
 		REQUIRE(result.converged);
 		REQUIRE(result.eigenvalues.size() == 2);
-		REQUIRE(std::abs(std::abs(result.eigenvalues[0]) - REAL(1.0)) < TOL(1e-9, 1e-4));
-		REQUIRE(std::abs(std::abs(result.eigenvalues[1]) - REAL(1.0)) < TOL(1e-9, 1e-4));
-		REQUIRE(result.eigenvalues[0].imag() * result.eigenvalues[1].imag() < REAL(0.0));
+		REQUIRE(std::abs(std::abs(result.eigenvalues[0]) - static_cast<MML::Real>(1.0)) < TOL(1e-9, 1e-4));
+		REQUIRE(std::abs(std::abs(result.eigenvalues[1]) - static_cast<MML::Real>(1.0)) < TOL(1e-9, 1e-4));
+		REQUIRE(result.eigenvalues[0].imag() * result.eigenvalues[1].imag() < static_cast<MML::Real>(0.0));
 		for (int index = 0; index < 2; ++index) {
 			const Vector<Complex> vector = result.eigenvectors.VectorFromColumn(index);
 			Vector<Complex> product(2);
@@ -78,7 +78,7 @@ namespace MML::Tests::Algorithms::ComplexEigenanalysisTests
 					product[row] += rotation(row, col) * vector[col];
 			REQUIRE((product - result.eigenvalues[index] * vector).NormL2() < TOL(1e-8, 1e-4));
 		}
-		REQUIRE(std::abs(MatrixAlg::SpectralRadius(rotation) - REAL(1.0)) < TOL(1e-9, 1e-4));
+		REQUIRE(std::abs(MatrixAlg::SpectralRadius(rotation) - static_cast<MML::Real>(1.0)) < TOL(1e-9, 1e-4));
 	}
 
 	TEST_CASE("General complex eigensystem solves a nonnormal similarity transform",
@@ -170,20 +170,20 @@ namespace MML::Tests::Algorithms::ComplexEigenanalysisTests
 
 		REQUIRE(result.converged);
 		REQUIRE(result.algorithmName == "HermitianJacobi");
-		REQUIRE(result.eigenvalues[0].imag() == REAL(0.0));
-		REQUIRE(result.eigenvalues[1].imag() == REAL(0.0));
+		REQUIRE(result.eigenvalues[0].imag() == static_cast<MML::Real>(0.0));
+		REQUIRE(result.eigenvalues[1].imag() == static_cast<MML::Real>(0.0));
 		REQUIRE(MatrixAlg::IsUnitary(result.eigenvectors));
 		RequireResiduals(matrix, result, TOL(1e-9, 1e-4));
 		REQUIRE(MatrixAlg::HermitianEigenvalues(matrix).IsEqualTo(
-			Vector<Real>{REAL(1.2087121525220803), REAL(5.79128784747792)}, TOL(1e-9, 1e-4)));
+			Vector<Real>{static_cast<MML::Real>(1.2087121525220803), static_cast<MML::Real>(5.79128784747792)}, TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("General complex eigensystem reports invalid shape and nonconvergence",
 				  "[ComplexEigen][Failure][MML2]")
 	{
 		REQUIRE_THROWS_AS(MatrixAlg::Eigensystem(Matrix<Complex>{2, 3}), MatrixDimensionError);
-		REQUIRE_THROWS_AS(MatrixAlg::Eigensystem(Matrix<Complex>::Identity(2), REAL(-1.0)), DomainError);
-		REQUIRE_THROWS_AS(MatrixAlg::Eigensystem(Matrix<Complex>::Identity(2), REAL(1e-8), -1), DomainError);
+		REQUIRE_THROWS_AS(MatrixAlg::Eigensystem(Matrix<Complex>::Identity(2), static_cast<MML::Real>(-1.0)), DomainError);
+		REQUIRE_THROWS_AS(MatrixAlg::Eigensystem(Matrix<Complex>::Identity(2), static_cast<MML::Real>(1e-8), -1), DomainError);
 
 		const Matrix<Complex> matrix{3, 3, {
 			Complex{1.0, 1.0}, Complex{2.0, -1.0}, Complex{3.0, 0.5},

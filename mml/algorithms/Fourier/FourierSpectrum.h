@@ -36,6 +36,7 @@ namespace MML::Fourier
 		return result;
 	}
 
+	/// Raw squared coefficient magnitude; no window, sample-rate or one-sided power normalization.
 	inline Vector<Real> MagnitudeSquared(const Vector<Complex>& spectrum) {
 		FourierValidation::ValidateNonEmpty(spectrum.size(), "MagnitudeSquared");
 
@@ -44,10 +45,6 @@ namespace MML::Fourier
 			result[i] = std::norm(spectrum[i]);
 
 		return result;
-	}
-
-	inline Vector<Real> Power(const Vector<Complex>& spectrum) {
-		return MagnitudeSquared(spectrum);
 	}
 
 	inline Vector<Real> Phase(const Vector<Complex>& spectrum) {

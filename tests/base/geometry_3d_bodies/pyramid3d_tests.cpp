@@ -97,7 +97,7 @@ TEST_CASE("Pyramid3D::GetCenter", "[geometry][pyramid][center]")
     SECTION("Pyramid at origin")
     {
         Pyramid3D pyramid(6.0, 12.0);
-        Pnt3Cart center = pyramid.GetCenter();
+        Pnt3Cart center = pyramid.getCenter();
         // Centroid at h/4 = 3 from base
         REQUIRE_THAT(center.X() , RealApprox(0.0));
         REQUIRE_THAT(center.Y() , RealApprox(0.0));
@@ -108,7 +108,7 @@ TEST_CASE("Pyramid3D::GetCenter", "[geometry][pyramid][center]")
     {
         Vec3Cart base(10.0, 20.0, 30.0);
         Pyramid3D pyramid(8.0, 20.0, base);
-        Pnt3Cart center = pyramid.GetCenter();
+        Pnt3Cart center = pyramid.getCenter();
         // Centroid at base_z + h/4 = 30 + 5 = 35
         REQUIRE_THAT(center.X() , RealApprox(10.0));
         REQUIRE_THAT(center.Y() , RealApprox(20.0));
@@ -118,7 +118,7 @@ TEST_CASE("Pyramid3D::GetCenter", "[geometry][pyramid][center]")
     SECTION("Centroid is at 1/4 height")
     {
         Pyramid3D pyramid(10.0, 8.0);
-        Pnt3Cart center = pyramid.GetCenter();
+        Pnt3Cart center = pyramid.getCenter();
         REQUIRE_THAT(center.Z() , RealApprox(2.0));  // 8/4 = 2
     }
 }
@@ -128,7 +128,7 @@ TEST_CASE("Pyramid3D::GetBoundingBox", "[geometry][pyramid][bounding]")
     SECTION("Pyramid at origin")
     {
         Pyramid3D pyramid(10.0, 8.0);
-        Box3D bbox = pyramid.GetBoundingBox();
+        Box3D bbox = pyramid.getBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-5.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(-5.0));
@@ -143,7 +143,7 @@ TEST_CASE("Pyramid3D::GetBoundingBox", "[geometry][pyramid][bounding]")
     {
         Vec3Cart base(10.0, 20.0, 30.0);
         Pyramid3D pyramid(6.0, 12.0, base);
-        Box3D bbox = pyramid.GetBoundingBox();
+        Box3D bbox = pyramid.getBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(7.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(17.0));
@@ -157,7 +157,7 @@ TEST_CASE("Pyramid3D::GetBoundingBox", "[geometry][pyramid][bounding]")
     SECTION("Bounding box dimensions")
     {
         Pyramid3D pyramid(8.0, 10.0);
-        Box3D bbox = pyramid.GetBoundingBox();
+        Box3D bbox = pyramid.getBoundingBox();
         Real width = bbox.Max().X() - bbox.Min().X();
         Real depth = bbox.Max().Y() - bbox.Min().Y();
         Real height = bbox.Max().Z() - bbox.Min().Z();
@@ -173,7 +173,7 @@ TEST_CASE("Pyramid3D::GetBoundingSphere", "[geometry][pyramid][bounding]")
     SECTION("Bounding sphere centered at centroid")
     {
         Pyramid3D pyramid(6.0, 8.0);
-        BoundingSphere3D bsphere = pyramid.GetBoundingSphere();
+        BoundingSphere3D bsphere = pyramid.getBoundingSphere();
         
         // Centroid at (0, 0, 2) [h/4 from base]
         REQUIRE_THAT(bsphere.Center().X() , RealApprox(0.0));
@@ -190,7 +190,7 @@ TEST_CASE("Pyramid3D::GetBoundingSphere", "[geometry][pyramid][bounding]")
     SECTION("Bounding sphere contains all vertices")
     {
         Pyramid3D pyramid(10.0, 12.0);
-        BoundingSphere3D bsphere = pyramid.GetBoundingSphere();
+        BoundingSphere3D bsphere = pyramid.getBoundingSphere();
         
         // Check base corners
         REQUIRE(bsphere.Contains(Pnt3Cart(5.0, 5.0, 0.0)));
@@ -204,7 +204,7 @@ TEST_CASE("Pyramid3D::GetBoundingSphere", "[geometry][pyramid][bounding]")
     {
         Vec3Cart base(10.0, 20.0, 30.0);
         Pyramid3D pyramid(8.0, 16.0, base);
-        BoundingSphere3D bsphere = pyramid.GetBoundingSphere();
+        BoundingSphere3D bsphere = pyramid.getBoundingSphere();
         
         // Centroid at (10, 20, 34)
         REQUIRE_THAT(bsphere.Center().X() , RealApprox(10.0));
@@ -218,7 +218,7 @@ TEST_CASE("Pyramid3D::ToString", "[geometry][pyramid][string]")
     SECTION("Pyramid at origin")
     {
         Pyramid3D pyramid(6.0, 8.0);
-        std::string str = pyramid.ToString();
+        std::string str = pyramid.to_string();
         
         REQUIRE(str.find("Pyramid3D") != std::string::npos);
         REQUIRE(str.find("Center") != std::string::npos);
@@ -232,7 +232,7 @@ TEST_CASE("Pyramid3D::ToString", "[geometry][pyramid][string]")
     {
         Vec3Cart base(10.0, 20.0, 30.0);
         Pyramid3D pyramid(4.0, 6.0, base);
-        std::string str = pyramid.ToString();
+        std::string str = pyramid.to_string();
         
         REQUIRE(str.find("4") != std::string::npos);  // Base size
         REQUIRE(str.find("6") != std::string::npos);  // Height
@@ -244,15 +244,15 @@ TEST_CASE("Pyramid3D::Getters", "[geometry][pyramid][getters]")
     SECTION("GetBaseSize and GetHeight")
     {
         Pyramid3D pyramid(7.5, 15.0);
-        REQUIRE_THAT(pyramid.GetBaseSize() , RealApprox(7.5));
-        REQUIRE_THAT(pyramid.GetHeight() , RealApprox(15.0));
+        REQUIRE_THAT(pyramid.getBaseSize() , RealApprox(7.5));
+        REQUIRE_THAT(pyramid.getHeight() , RealApprox(15.0));
     }
 
     SECTION("GetBaseCenter")
     {
         Vec3Cart base(10.0, 20.0, 30.0);
         Pyramid3D pyramid(5.0, 10.0, base);
-        Vec3Cart baseCenter = pyramid.GetBaseCenter();
+        Vec3Cart baseCenter = pyramid.getBaseCenter();
         
         REQUIRE_THAT(baseCenter.X() , RealApprox(10.0));
         REQUIRE_THAT(baseCenter.Y() , RealApprox(20.0));

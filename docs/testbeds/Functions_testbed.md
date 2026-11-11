@@ -508,7 +508,7 @@ TEST_CASE("Integration Accuracy - Simpson", "[integration]") {
         Real b = f._intervalTest->getUpperBound();
         
         // Use MML's Simpson integration
-        auto result = IntegrateSimpson(f._func, a, b);
+        auto result = IntegrateSimpsonDetailed(f._func, a, b);
         
         // Compute exact integral from antiderivative
         Real exactIntegral = f._funcIntegrated(b) - f._funcIntegrated(a);
@@ -527,7 +527,7 @@ TEST_CASE("Integration Accuracy - Romberg", "[integration]") {
         Real b = f._intervalTest->getUpperBound();
         
         // Romberg integration (higher accuracy)
-        auto result = IntegrateRomberg(f._func, a, b);
+        auto result = IntegrateRombergDetailed(f._func, a, b);
         Real exactIntegral = f._funcIntegrated(b) - f._funcIntegrated(a);
         
         Real relError = std::abs((result.value - exactIntegral) / exactIntegral);
@@ -543,7 +543,7 @@ TEST_CASE("Gauss-Legendre Quadrature", "[integration]") {
         Real b = f._intervalTest->getUpperBound();
         
         // 10-point Gauss-Legendre quadrature
-        auto result = IntegrateGauss10(f._func, a, b);
+        auto result = IntegrateGauss10Detailed(f._func, a, b);
         Real exactIntegral = f._funcIntegrated(b) - f._funcIntegrated(a);
         
         Real relError = std::abs((result.value - exactIntegral) / exactIntegral);

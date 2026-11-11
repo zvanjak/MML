@@ -217,7 +217,7 @@ ExternalClassWrapper f5(externalObj);  // Now usable with all MML algorithms!
 // All these functions can now be derived, integrated, analyzed...
 std::cout << "f2(1) = " << f2(1.0) << std::endl;           // 1.26147
 std::cout << "f2'(1) = " << Derivation::NDer4(f2, 1.0) << std::endl;  // derivative
-std::cout << "∫f2 = " << IntegrateSimpson(f2, 0, 1).value << std::endl;  // integral
+std::cout << "∫f2 = " << IntegrateSimpson(f2, 0, 1) << std::endl;  // integral
 ```
 
 ---
@@ -288,9 +288,9 @@ std::cout << "NDer8 error: " << std::abs(der8 - analytical) << std::endl;  // ~1
 RealFunction f{[](Real x) { return std::sin(x); }};
 Real a = 0.0, b = Constants::PI;
 
-auto trap = IntegrateTrap(f, a, b, 1e-8);
-auto simp = IntegrateSimpson(f, a, b, 1e-8);
-auto romb = IntegrateRomberg(f, a, b, 1e-10);
+auto trap = IntegrateTrapDetailed(f, a, b, 1e-8);
+auto simp = IntegrateSimpsonDetailed(f, a, b, 1e-8);
+auto romb = IntegrateRombergDetailed(f, a, b, 1e-10);
 
 std::cout << "Trapezoid: " << trap.value << " (error: " << trap.error_estimate << ")\n";
 std::cout << "Simpson:   " << simp.value << " (error: " << simp.error_estimate << ")\n";
@@ -336,7 +336,7 @@ config.x_tolerance = 1e-14;
 config.f_tolerance = 1e-14;
 config.max_iterations = 100;
 
-auto result = RootFinding::FindRootBrent(f, 2.0, 3.0, config);
+auto result = RootFinding::FindRootBrentDetailed(f, 2.0, 3.0, config);
 std::cout << "Iterations: " << result.iterations_used << std::endl;
 std::cout << "f(root) =   " << result.function_value << std::endl;
 
@@ -459,8 +459,10 @@ Real curvature = helix.getCurvature(t);
 std::cout << "Curvature κ:    " << curvature << std::endl;
 
 // Predefined curves
-Curves::LemniscateCurve lemniscate;       // Figure-eight curve
-Curves::ToroidalSpiralCurve torus(5, 2);  // Spiral on torus
+#include <test_data/parametric_curves_defs.h>
+
+MML::TestBeds::ShowcaseCurves::LemniscateCurve lemniscate;       // Figure-eight curve
+MML::TestBeds::ShowcaseCurves::ToroidalSpiralCurve torus(5, 2);  // Spiral on torus
 Curves::Circle3DXZCurve circle(3.0);      // Circle in XZ plane
 ```
 
@@ -498,18 +500,14 @@ std::cout << "Arc length: " << arc_length << " (analytical 2π = " << 2*Constant
 
 ```cpp
 // Analyze function behavior over an interval
+#include <mml/tools/analyzers/FunctionAnalysisReports.h>
+
 RealFunction f{[](Real x) { return x*x*x - 3*x + 1; }};
 
-RealFunctionAnalyzer analyzer(f, "x³ - 3x + 1");
-analyzer.PrintIntervalAnalysis(-3.0, 3.0, 100, 1e-6);
-/*  Output:
-    f(x) = x³ - 3x + 1 - Analysis in interval [-3.00, 3.00]:
-      Defined    : yes
-      Continuous : yes
-      Monotonic  : no
-      Min        : -0.999...
-      Max        : 2.999...
-*/
+RealFunctionAnalyzer analyzer(f);
+const auto sampled = analyzer.AnalyzeInterval(-3.0, 3.0, 100, 1e-6);
+AnalysisReports::PrintIntervalAnalysis(std::cout, sampled, "x^3 - 3x + 1");
+// Reports sampled extrema and probe outcomes, not certified interval-wide properties.
 
 // Find roots using root bracket search + bisection
 Vector<Real> xb1, xb2;
@@ -526,8 +524,8 @@ RealFunctionFromStdFunc step([](Real x) -> Real {
     else if (x > 0) return 1.0;
     else return 0.5;
 });
-RealFunctionAnalyzer step_analyzer(step, "step(x)");
-step_analyzer.PrintIntervalAnalysis(-2.0, 2.0, 100, 1e-6);  // Detects discontinuity at x = 0
+RealFunctionAnalyzer step_analyzer(step);
+AnalysisReports::PrintIntervalAnalysis(std::cout, step_analyzer.AnalyzeInterval(-2.0, 2.0, 100, 1e-6));  // Detects discontinuity at x = 0
 ```
 
 ---
@@ -583,7 +581,7 @@ std::vector<Vector<Real>> guesses = {
 };
 auto fixedPoints = FixedPointFinder::FindMultiple(lorenz, guesses);
 for (const auto& fp : fixedPoints)
-    std::cout << "  Fixed point type: " << ToString(fp.type)
+    std::cout << "  Fixed point type: " << to_string(fp.type)
               << ", stable: " << (fp.isStable ? "yes" : "NO") << std::endl;
 
 // LYAPUNOV EXPONENTS — quantify chaos via sensitivity to initial conditions

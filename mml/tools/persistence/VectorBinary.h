@@ -27,12 +27,11 @@ namespace Persistence
 	namespace Detail
 	{
 		template<class Type, class SizeFunction, class ValueFunction>
-		SerializeResult SaveVectorBinary(std::ostream& out, SizeFunction size, ValueFunction value)
-		{
+		IOResult SaveVectorBinary(std::ostream& out, SizeFunction size, ValueFunction value) {
 			const uint64_t count = static_cast<uint64_t>(size());
 			const uint64_t scalarBytes = BinaryScalarByteSize<Type>();
 			if (count > (std::numeric_limits<uint64_t>::max() - 8) / scalarBytes)
-				return SerializeFailure(SerializeError::ALLOCATION_LIMIT_EXCEEDED, "Vector binary payload size overflows uint64");
+				return SerializeFailure(IOError::ALLOCATION_LIMIT_EXCEEDED, "Vector binary payload size overflows uint64");
 
 			BinaryEnvelopeHeader header;
 			header.object_kind = BinaryObjectKind::Vector;
@@ -41,7 +40,7 @@ namespace Persistence
 			header.scalar_byte_size = static_cast<uint32_t>(scalarBytes);
 			header.payload_byte_count = 8 + count * scalarBytes;
 
-			SerializeResult result = WriteBinaryEnvelopeHeader(out, header);
+			IOResult result = WriteBinaryEnvelopeHeader(out, header);
 			if (!result.success) return result;
 			WriteUInt64LE(out, count);
 			for (uint64_t index = 0; index < count; ++index)
@@ -49,35 +48,34 @@ namespace Persistence
 				result = WriteBinaryScalarLE(out, value(index));
 				if (!result.success) return result;
 			}
-			return out.fail() ? SerializeFailure(SerializeError::WRITE_FAILED, "Failed to write Vector binary payload") : SerializeSuccess();
+			return out.fail() ? SerializeFailure(IOError::WRITE_FAILED, "Failed to write Vector binary payload") : SerializeSuccess();
 		}
 
 		template<class Type, class ResizeFunction, class AssignFunction>
-		SerializeResult LoadVectorBinary(std::istream& in, ResizeFunction resize, AssignFunction assign, const LoadOptions& options)
-		{
+		IOResult LoadVectorBinary(std::istream& in, ResizeFunction resize, AssignFunction assign, const LoadOptions& options) {
 			BinaryEnvelopeReadResult envelope = ReadBinaryEnvelopeHeader(in, options);
 			if (!envelope.result.success) return envelope.result;
 			if (envelope.header.object_kind != BinaryObjectKind::Vector)
-				return SerializeFailure(SerializeError::TYPE_MISMATCH, "Binary payload is not a Vector");
-			SerializeResult result = ValidateBinaryScalarType<Type>(envelope.header.scalar_type, envelope.header.scalar_byte_size);
+				return SerializeFailure(IOError::TYPE_MISMATCH, "Binary payload is not a Vector");
+			IOResult result = ValidateBinaryScalarType<Type>(envelope.header.scalar_type, envelope.header.scalar_byte_size);
 			if (!result.success) return result;
 			if (envelope.header.payload_byte_count < 8)
-				return SerializeFailure(SerializeError::SCHEMA_MISMATCH, "Vector binary payload is too small for shape header");
+				return SerializeFailure(IOError::SCHEMA_MISMATCH, "Vector binary payload is too small for shape header");
 
 			char countBytes[8]{};
 			in.read(countBytes, 8);
 			if (in.gcount() != 8)
-				return SerializeFailure(SerializeError::TRUNCATED_INPUT, "Truncated Vector binary shape header");
+				return SerializeFailure(IOError::TRUNCATED_INPUT, "Truncated Vector binary shape header");
 			const uint64_t count = ReadUInt64LE(countBytes);
 			if (count > static_cast<uint64_t>(std::numeric_limits<int>::max()))
-				return SerializeFailure(SerializeError::ALLOCATION_LIMIT_EXCEEDED, "Vector binary count exceeds supported dimension range");
+				return SerializeFailure(IOError::ALLOCATION_LIMIT_EXCEEDED, "Vector binary count exceeds supported dimension range");
 			const uint64_t scalarBytes = BinaryScalarByteSize<Type>();
 			if (count > std::numeric_limits<uint64_t>::max() / scalarBytes)
-				return SerializeFailure(SerializeError::ALLOCATION_LIMIT_EXCEEDED, "Vector binary byte count overflows uint64");
+				return SerializeFailure(IOError::ALLOCATION_LIMIT_EXCEEDED, "Vector binary byte count overflows uint64");
 			if (envelope.header.payload_byte_count != 8 + count * scalarBytes)
-				return SerializeFailure(SerializeError::SCHEMA_MISMATCH, "Vector binary payload size does not match element count");
+				return SerializeFailure(IOError::SCHEMA_MISMATCH, "Vector binary payload size does not match element count");
 			if (count * scalarBytes > options.max_allocation_bytes)
-				return SerializeFailure(SerializeError::ALLOCATION_LIMIT_EXCEEDED, "Vector binary data exceeds configured allocation limit");
+				return SerializeFailure(IOError::ALLOCATION_LIMIT_EXCEEDED, "Vector binary data exceeds configured allocation limit");
 
 			resize(static_cast<int>(count));
 			for (uint64_t index = 0; index < count; ++index)
@@ -92,25 +90,22 @@ namespace Persistence
 	}
 
 	template<class Type>
-	SerializeResult SaveBinary(std::ostream& out, const Vector<Type>& vec, const SaveOptions& = {})
-	{
+	IOResult SaveBinary(std::ostream& out, const Vector<Type>& vec, const SaveOptions& = {}) {
 		static_assert(Detail::BinaryScalarTypeFor<Type>() != BinaryScalarType::Unknown,
 		              "Vector binary persistence supports float, double, long double, complex<float>, and complex<double>");
 		return Detail::SaveVectorBinary<Type>(out, [&] { return vec.size(); }, [&](uint64_t index) { return vec[static_cast<int>(index)]; });
 	}
 
 	template<class Type>
-	SerializeResult LoadBinary(std::istream& in, Vector<Type>& vec, const LoadOptions& options = {})
-	{
+	IOResult LoadBinary(std::istream& in, Vector<Type>& vec, const LoadOptions& options = {}) {
 		static_assert(Detail::BinaryScalarTypeFor<Type>() != BinaryScalarType::Unknown,
 		              "Vector binary persistence supports float, double, long double, complex<float>, and complex<double>");
-		return Detail::LoadVectorBinary<Type>(in, [&](int count) { vec.Resize(count); },
+		return Detail::LoadVectorBinary<Type>(in, [&](int count) { vec.resize(count); },
 		                                      [&](int index, Type value) { vec[index] = value; }, options);
 	}
 
 	template<class Type>
-	SerializeResult SaveBinary(std::ostream& out, const std::vector<std::complex<Type>>& vec, const SaveOptions& = {})
-	{
+	IOResult SaveBinary(std::ostream& out, const std::vector<std::complex<Type>>& vec, const SaveOptions& = {}) {
 		static_assert(std::is_same_v<Type, float> || std::is_same_v<Type, double>,
 		              "Complex Vector binary persistence currently supports float and double components");
 		using ComplexType = std::complex<Type>;
@@ -118,8 +113,7 @@ namespace Persistence
 	}
 
 	template<class Type>
-	SerializeResult LoadBinary(std::istream& in, std::vector<std::complex<Type>>& vec, const LoadOptions& options = {})
-	{
+	IOResult LoadBinary(std::istream& in, std::vector<std::complex<Type>>& vec, const LoadOptions& options = {}) {
 		static_assert(std::is_same_v<Type, float> || std::is_same_v<Type, double>,
 		              "Complex Vector binary persistence currently supports float and double components");
 		using ComplexType = std::complex<Type>;
@@ -128,105 +122,95 @@ namespace Persistence
 	}
 
 	template<class VectorType>
-	SerializeResult SaveVectorBinaryFile(const VectorType& vec, const std::string& filename, const SaveOptions& options = {})
-	{
+	IOResult SaveVectorBinaryFile(const VectorType& vec, const std::string& filename, const SaveOptions& options = {}) {
 		std::ofstream file(filename, std::ios::binary);
 		if (!file.is_open())
-			return SerializeFailure(SerializeError::FILE_NOT_OPENED, "Could not create binary file " + filename);
-		return SaveBinary(file, vec, options);
+			return SerializeFailure(IOError::FILE_NOT_OPENED, "Could not create binary file " + filename).WithFile(filename);
+		return FinishOutputFile(file, filename, SaveBinary(file, vec, options));
 	}
 
 	template<class VectorType>
-	SerializeResult LoadVectorBinaryFile(const std::string& filename, VectorType& vec, const LoadOptions& options = {})
-	{
+	IOResult LoadVectorBinaryFile(const std::string& filename, VectorType& vec, const LoadOptions& options = {}) {
 		std::ifstream file(filename, std::ios::binary);
 		if (!file.is_open())
-			return SerializeFailure(SerializeError::FILE_NOT_OPENED, "Could not open binary file " + filename);
-		return LoadBinary(file, vec, options);
+			return SerializeFailure(IOError::FILE_NOT_OPENED, "Could not open binary file " + filename).WithFile(filename);
+		return InputResult(file, LoadBinary(file, vec, options), filename);
 	}
 
 	template<class Type>
-	SerializeResult SaveBinary(const Vector<Type>& vec, const std::string& filename, const SaveOptions& options = {})
-	{
-		return SaveVectorBinaryFile(vec, filename, options);
+	IOResult SaveBinary(const Vector<Type>& vec, const std::string& filename, const SaveOptions& options = {}) {
+		return (SaveVectorBinaryFile(vec, filename, options)).WithFile(filename);
 	}
 
 	template<class Type>
-	SerializeResult LoadBinary(const std::string& filename, Vector<Type>& vec, const LoadOptions& options = {})
-	{
-		return LoadVectorBinaryFile(filename, vec, options);
+	IOResult LoadBinary(const std::string& filename, Vector<Type>& vec, const LoadOptions& options = {}) {
+		return (LoadVectorBinaryFile(filename, vec, options)).WithFile(filename);
 	}
 
 	template<class Type>
-	SerializeResult SaveBinary(const std::vector<std::complex<Type>>& vec, const std::string& filename, const SaveOptions& options = {})
-	{
-		return SaveVectorBinaryFile(vec, filename, options);
+	IOResult SaveBinary(const std::vector<std::complex<Type>>& vec, const std::string& filename, const SaveOptions& options = {}) {
+		return (SaveVectorBinaryFile(vec, filename, options)).WithFile(filename);
 	}
 
 	template<class Type>
-	SerializeResult LoadBinary(const std::string& filename, std::vector<std::complex<Type>>& vec, const LoadOptions& options = {})
-	{
-		return LoadVectorBinaryFile(filename, vec, options);
+	IOResult LoadBinary(const std::string& filename, std::vector<std::complex<Type>>& vec, const LoadOptions& options = {}) {
+		return (LoadVectorBinaryFile(filename, vec, options)).WithFile(filename);
 	}
 
 	template<class Type>
-	SerializeResult SaveComplexVector(const std::vector<std::complex<Type>>& vec, const std::string& filename)
-	{
-		return SaveBinary(vec, filename);
+	IOResult SaveComplexVector(const std::vector<std::complex<Type>>& vec, const std::string& filename) {
+		return (SaveBinary(vec, filename)).WithFile(filename);
 	}
 
 	template<class Type>
-	SerializeResult LoadComplexVector(const std::string& filename, std::vector<std::complex<Type>>& vec)
-	{
-		return LoadBinary(filename, vec);
+	IOResult LoadComplexVector(const std::string& filename, std::vector<std::complex<Type>>& vec) {
+		return (LoadBinary(filename, vec)).WithFile(filename);
 	}
 
 	template<class Type>
-	SerializeResult SaveRealAsComplex(const std::vector<Type>& vec, const std::string& filename)
-	{
+	IOResult SaveRealAsComplex(const std::vector<Type>& vec, const std::string& filename) {
 		using ComponentType = std::conditional_t<std::is_same_v<Type, long double>, double, Type>;
 		std::vector<std::complex<ComponentType>> complexVec;
 		complexVec.reserve(vec.size());
 		for (const Type& value : vec)
 			complexVec.emplace_back(static_cast<ComponentType>(value), ComponentType(0));
-		return SaveBinary(complexVec, filename);
+		return (SaveBinary(complexVec, filename)).WithFile(filename);
 	}
 
 	template<class Type>
-	SerializeResult SaveVectorAsComplex(const Vector<Type>& vec, const std::string& filename)
-	{
+	IOResult SaveVectorAsComplex(const Vector<Type>& vec, const std::string& filename) {
 		using ComponentType = std::conditional_t<std::is_same_v<Type, long double>, double, Type>;
 		std::vector<std::complex<ComponentType>> complexVec;
 		complexVec.reserve(static_cast<std::size_t>(vec.size()));
 		for (int index = 0; index < vec.size(); ++index)
 			complexVec.emplace_back(static_cast<ComponentType>(vec[index]), ComponentType(0));
-		return SaveBinary(complexVec, filename);
+		return (SaveBinary(complexVec, filename)).WithFile(filename);
 	}
 
 	template<class Type>
-	SerializeResult LoadComplexAsReal(const std::string& filename, std::vector<Type>& vec)
-	{
+	IOResult LoadComplexAsReal(const std::string& filename, std::vector<Type>& vec) {
 		using ComponentType = std::conditional_t<std::is_same_v<Type, long double>, double, Type>;
 		std::vector<std::complex<ComponentType>> complexVec;
-		SerializeResult result = LoadBinary(filename, complexVec);
-		if (!result.success) return result;
+		IOResult result = LoadBinary(filename, complexVec);
+		if (!result.success)
+			return (result).WithFile(filename);
 		vec.resize(complexVec.size());
 		for (std::size_t index = 0; index < complexVec.size(); ++index)
 			vec[index] = static_cast<Type>(complexVec[index].real());
-		return SerializeSuccess();
+		return (SerializeSuccess()).WithFile(filename);
 	}
 
 	template<class Type>
-	SerializeResult LoadComplexAsVector(const std::string& filename, Vector<Type>& vec)
-	{
+	IOResult LoadComplexAsVector(const std::string& filename, Vector<Type>& vec) {
 		using ComponentType = std::conditional_t<std::is_same_v<Type, long double>, double, Type>;
 		std::vector<std::complex<ComponentType>> complexVec;
-		SerializeResult result = LoadBinary(filename, complexVec);
-		if (!result.success) return result;
-		vec.Resize(static_cast<int>(complexVec.size()));
+		IOResult result = LoadBinary(filename, complexVec);
+		if (!result.success)
+			return (result).WithFile(filename);
+		vec.resize(static_cast<int>(complexVec.size()));
 		for (int index = 0; index < vec.size(); ++index)
 			vec[index] = static_cast<Type>(complexVec[static_cast<std::size_t>(index)].real());
-		return SerializeSuccess();
+		return (SerializeSuccess()).WithFile(filename);
 	}
 
 } // namespace Persistence

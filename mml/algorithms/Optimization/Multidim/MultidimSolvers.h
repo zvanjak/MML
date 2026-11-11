@@ -22,7 +22,8 @@ namespace MML::Optimization {
      * @brief Minimize using Powell's method (no derivatives needed)
      */
 	template<int N>
-	MultidimMinimizationResult PowellMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real ftol = PrecisionValues<Real>::OptimizationTolerance) {
+	MultidimOptimizationResult PowellMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
+																						Real ftol = PrecisionValues<Real>::OptimizationTolerance) {
 		Powell optimizer(ftol);
 		return optimizer.Minimize(func, start);
 	}
@@ -31,9 +32,9 @@ namespace MML::Optimization {
      * @brief Minimize using conjugate gradient (requires derivatives)
      */
 	template<int N>
-	MultidimMinimizationResult ConjugateGradientMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
-														 Real ftol = PrecisionValues<Real>::OptimizationTolerance,
-														 ConjugateGradient::Method method = ConjugateGradient::Method::PolakRibiere) {
+	MultidimOptimizationResult ConjugateGradientMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
+																											 Real ftol = PrecisionValues<Real>::OptimizationTolerance,
+																											 ConjugateGradient::Method method = ConjugateGradient::Method::PolakRibiere) {
 		ConjugateGradient optimizer(ftol, PrecisionValues<Real>::OptimizationGradientTolerance, 200, method);
 		return optimizer.Minimize(func, start);
 	}
@@ -42,8 +43,8 @@ namespace MML::Optimization {
      * @brief Minimize using BFGS quasi-Newton method (requires derivatives)
      */
 	template<int N>
-	MultidimMinimizationResult BFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
-											Real ftol = PrecisionValues<Real>::OptimizationTolerance) {
+	MultidimOptimizationResult BFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
+																					Real ftol = PrecisionValues<Real>::OptimizationTolerance) {
 		BFGS optimizer(ftol);
 		return optimizer.Minimize(func, start);
 	}
@@ -63,8 +64,8 @@ namespace MML::Optimization {
      * @return Optimization result
      */
 	template<int N>
-	MultidimMinimizationResult LBFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
-											 Real ftol = PrecisionValues<Real>::OptimizationTolerance, int memorySize = 10) {
+	MultidimOptimizationResult LBFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
+																					 Real ftol = PrecisionValues<Real>::OptimizationTolerance, int memorySize = 10) {
 		LBFGS optimizer(ftol, PrecisionValues<Real>::OptimizationGradientTolerance, 1000, memorySize);
 		return optimizer.Minimize(func, start);
 	}
@@ -77,12 +78,12 @@ namespace MML::Optimization {
      * @brief Minimize using Powell's method with config
      */
 	template<int N>
-	MultidimMinimizationResult PowellMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
-											  const MultidimOptimizationConfig& config) {
+	MultidimOptimizationResult PowellMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
+																						const MultidimOptimizationConfig& config) {
 		AlgorithmTimer timer;
 		Powell optimizer(config.tolerance, config.max_iterations);
-		MultidimMinimizationResult result = optimizer.Minimize(func, start);
-		
+		MultidimOptimizationResult result = optimizer.Minimize(func, start);
+
 		result.algorithm_name = "Powell";
 		result.elapsed_time_ms = timer.elapsed_ms();
 		if (!result.converged) {
@@ -96,13 +97,13 @@ namespace MML::Optimization {
      * @brief Minimize using conjugate gradient with config
      */
 	template<int N>
-	MultidimMinimizationResult ConjugateGradientMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
-														 const MultidimOptimizationConfig& config,
-														 ConjugateGradient::Method method = ConjugateGradient::Method::PolakRibiere) {
+	MultidimOptimizationResult ConjugateGradientMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
+																											 const MultidimOptimizationConfig& config,
+																											 ConjugateGradient::Method method = ConjugateGradient::Method::PolakRibiere) {
 		AlgorithmTimer timer;
 		ConjugateGradient optimizer(config.tolerance, PrecisionValues<Real>::OptimizationGradientTolerance, config.max_iterations, method);
-		MultidimMinimizationResult result = optimizer.Minimize(func, start);
-		
+		MultidimOptimizationResult result = optimizer.Minimize(func, start);
+
 		result.algorithm_name = "ConjugateGradient";
 		result.elapsed_time_ms = timer.elapsed_ms();
 		if (!result.converged) {
@@ -116,12 +117,12 @@ namespace MML::Optimization {
      * @brief Minimize using BFGS with config
      */
 	template<int N>
-	MultidimMinimizationResult BFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
-											const MultidimOptimizationConfig& config) {
+	MultidimOptimizationResult BFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
+																					const MultidimOptimizationConfig& config) {
 		AlgorithmTimer timer;
 		BFGS optimizer(config.tolerance, PrecisionValues<Real>::OptimizationGradientTolerance, config.max_iterations);
-		MultidimMinimizationResult result = optimizer.Minimize(func, start);
-		
+		MultidimOptimizationResult result = optimizer.Minimize(func, start);
+
 		result.algorithm_name = "BFGS";
 		result.elapsed_time_ms = timer.elapsed_ms();
 		if (!result.converged) {
@@ -138,12 +139,12 @@ namespace MML::Optimization {
      * Memory usage: O(m×N) where m = config.lbfgs_memory_size (default 10).
      */
 	template<int N>
-	MultidimMinimizationResult LBFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
-											 const MultidimOptimizationConfig& config) {
+	MultidimOptimizationResult LBFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
+																					 const MultidimOptimizationConfig& config) {
 		AlgorithmTimer timer;
 		LBFGS optimizer(config.tolerance, PrecisionValues<Real>::OptimizationGradientTolerance, config.max_iterations, config.lbfgs_memory_size);
-		MultidimMinimizationResult result = optimizer.Minimize(func, start);
-		
+		MultidimOptimizationResult result = optimizer.Minimize(func, start);
+
 		result.algorithm_name = "L-BFGS";
 		result.elapsed_time_ms = timer.elapsed_ms();
 		if (!result.converged) {

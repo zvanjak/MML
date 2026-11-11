@@ -21,6 +21,7 @@
 #define MML_GEOMETRY_3D_SPHERE_PYRAMID_H
 
 #include <cmath>
+#include <algorithm>
 #include <sstream>
 
 #include <mml/MMLBase.h>
@@ -39,7 +40,7 @@ namespace MML {
 	/// - Surface Area = 4πR²
 
 	class Sphere3D : public BodyWithTriangleSurfaces {
-		Real _R;		   ///< Radius
+		Real _radius;		   ///< Radius
 		Pnt3Cart _center;  ///< Center point
 		int _numLatitude;  ///< Latitude divisions (θ: 0 to π)
 		int _numLongitude; ///< Longitude divisions (φ: 0 to 2π)
@@ -53,7 +54,7 @@ namespace MML {
 		/// @param numLongitude Longitude divisions (default 20)
 
 		Sphere3D(Real R, int numLatitude = 16, int numLongitude = 20)
-			: _R(R)
+			: _radius(R)
 			, _center(0, 0, 0)
 			, _numLatitude(numLatitude)
 			, _numLongitude(numLongitude) {
@@ -67,7 +68,7 @@ namespace MML {
 		/// @param numLongitude Longitude divisions (default 20)
 
 		Sphere3D(Real R, const Pnt3Cart& center, int numLatitude = 16, int numLongitude = 20)
-			: _R(R)
+			: _radius(R)
 			, _center(center)
 			, _numLatitude(numLatitude)
 			, _numLongitude(numLongitude) {
@@ -119,9 +120,9 @@ namespace MML {
 		/// @param phi Longitude angle [0, 2π]
 
 		Pnt3Cart spherePoint(Real theta, Real phi) const {
-			Real x = _R * std::sin(theta) * std::cos(phi);
-			Real y = _R * std::sin(theta) * std::sin(phi);
-			Real z = _R * std::cos(theta);
+			Real x = _radius * std::sin(theta) * std::cos(phi);
+			Real y = _radius * std::sin(theta) * std::sin(phi);
+			Real z = _radius * std::cos(theta);
 			return Pnt3Cart(_center.X() + x, _center.Y() + y, _center.Z() + z);
 		}
 		/// @}
@@ -134,7 +135,7 @@ namespace MML {
 			Real dy = pnt.Y() - _center.Y();
 			Real dz = pnt.Z() - _center.Z();
 			Real distSq = dx * dx + dy * dy + dz * dz;
-			return distSq <= _R * _R;
+			return distSq <= _radius * _radius;
 		}
 		/// @}
 
@@ -143,27 +144,27 @@ namespace MML {
 
 		/// /** @brief Volume = (4/3)πR³ */
 
-		Real Volume() const override { return (4.0 / 3.0) * Constants::PI * _R * _R * _R; }
+		Real Volume() const override { return (4.0 / 3.0) * Constants::PI * _radius * _radius * _radius; }
 
 		/// /** @brief Surface area = 4πR² */
 
-		Real SurfaceArea() const override { return 4.0 * Constants::PI * _R * _R; }
+		Real SurfaceArea() const override { return 4.0 * Constants::PI * _radius * _radius; }
 
-		Pnt3Cart GetCenter() const override { return _center; }
+		Pnt3Cart getCenter() const override { return _center; }
 
-		Box3D GetBoundingBox() const override {
-			Pnt3Cart min(_center.X() - _R, _center.Y() - _R, _center.Z() - _R);
-			Pnt3Cart max(_center.X() + _R, _center.Y() + _R, _center.Z() + _R);
+		Box3D getBoundingBox() const override {
+			Pnt3Cart min(_center.X() - _radius, _center.Y() - _radius, _center.Z() - _radius);
+			Pnt3Cart max(_center.X() + _radius, _center.Y() + _radius, _center.Z() + _radius);
 			return Box3D(min, max);
 		}
 
 		/// /** @brief Bounding sphere = the sphere itself. */
 
-		BoundingSphere3D GetBoundingSphere() const override { return BoundingSphere3D(_center, _R); }
+		BoundingSphere3D getBoundingSphere() const override { return BoundingSphere3D(_center, _radius); }
 
-		std::string ToString() const override {
+		std::string to_string() const override {
 			std::ostringstream oss;
-			oss << "Sphere3D{Center=(" << _center.X() << ", " << _center.Y() << ", " << _center.Z() << "), Radius=" << _R
+			oss << "Sphere3D{Center=(" << _center.X() << ", " << _center.Y() << ", " << _center.Z() << "), Radius=" << _radius
 				<< ", Volume=" << Volume() << ", SurfaceArea=" << SurfaceArea() << "}";
 			return oss.str();
 		}
@@ -172,9 +173,18 @@ namespace MML {
 		/// @name Accessors
 		/// @{
 
-		Real GetRadius() const { return _R; }
-		int GetNumLatitude() const { return _numLatitude; }
-		int GetNumLongitude() const { return _numLongitude; }
+		Real getRadius() const { return _radius; }
+		/// @deprecated Use getRadius() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getRadius()")]]
+		Real GetRadius() const { return getRadius(); }
+		int getNumLatitude() const { return _numLatitude; }
+		/// @deprecated Use getNumLatitude() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getNumLatitude()")]]
+		int GetNumLatitude() const { return getNumLatitude(); }
+		int getNumLongitude() const { return _numLongitude; }
+		/// @deprecated Use getNumLongitude() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getNumLongitude()")]]
+		int GetNumLongitude() const { return getNumLongitude(); }
 		/// @}
 	};
 
@@ -262,17 +272,17 @@ namespace MML {
 
 		/// /** @brief Centroid at 1/4 height from base. */
 
-		Pnt3Cart GetCenter() const override { return Pnt3Cart(_center.X(), _center.Y(), _center.Z() + _h / 4.0); }
+		Pnt3Cart getCenter() const override { return Pnt3Cart(_center.X(), _center.Y(), _center.Z() + _h / 4.0); }
 
-		Box3D GetBoundingBox() const override {
+		Box3D getBoundingBox() const override {
 			Real half_a = _a / 2.0;
 			Pnt3Cart min(_center.X() - half_a, _center.Y() - half_a, _center.Z());
 			Pnt3Cart max(_center.X() + half_a, _center.Y() + half_a, _center.Z() + _h);
 			return Box3D(min, max);
 		}
 
-		BoundingSphere3D GetBoundingSphere() const override {
-			Pnt3Cart geomCenter = GetCenter();
+		BoundingSphere3D getBoundingSphere() const override {
+			Pnt3Cart geomCenter = getCenter();
 			Real half_a = _a / 2.0;
 
 			// Distance from centroid to base corner
@@ -285,9 +295,9 @@ namespace MML {
 			return BoundingSphere3D(geomCenter, radius);
 		}
 
-		std::string ToString() const override {
+		std::string to_string() const override {
 			std::ostringstream oss;
-			Pnt3Cart geomCenter = GetCenter();
+			Pnt3Cart geomCenter = getCenter();
 			oss << "Pyramid3D{Center=(" << geomCenter.X() << ", " << geomCenter.Y() << ", " << geomCenter.Z() << "), BaseSize=" << _a
 				<< ", Height=" << _h << ", Volume=" << Volume() << ", SurfaceArea=" << SurfaceArea() << "}";
 			return oss.str();
@@ -297,9 +307,18 @@ namespace MML {
 		/// @name Accessors
 		/// @{
 
-		Real GetBaseSize() const { return _a; }
-		Real GetHeight() const { return _h; }
-		Vec3Cart GetBaseCenter() const { return _center; }
+		Real getBaseSize() const { return _a; }
+		/// @deprecated Use getBaseSize() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getBaseSize()")]]
+		Real GetBaseSize() const { return getBaseSize(); }
+		Real getHeight() const { return _h; }
+		/// @deprecated Use getHeight() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getHeight()")]]
+		Real GetHeight() const { return getHeight(); }
+		Vec3Cart getBaseCenter() const { return _center; }
+		/// @deprecated Use getBaseCenter() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getBaseCenter()")]]
+		Vec3Cart GetBaseCenter() const { return getBaseCenter(); }
 		/// @}
 	};
 
@@ -321,12 +340,12 @@ namespace MML {
 		PyramidEquilateral3D(Real a, const Vec3Cart& center)
 			: Pyramid3D(a, a / sqrt(3), center) {}
 
-		std::string ToString() const override {
+		std::string to_string() const override {
 			std::ostringstream oss;
-			Vec3Cart baseCenter = GetBaseCenter();
+			Vec3Cart baseCenter = getBaseCenter();
 			oss << "PyramidEquilateral3D (Equilateral triangular base): Center=(" << baseCenter.X() << ", " << baseCenter.Y() << ", "
 				<< baseCenter.Z() << ")"
-				<< ", BaseSize=" << GetBaseSize() << ", Height=" << GetHeight() << ", Volume=" << Volume()
+				<< ", BaseSize=" << getBaseSize() << ", Height=" << getHeight() << ", Volume=" << Volume()
 				<< ", SurfaceArea=" << SurfaceArea();
 			return oss.str();
 		}

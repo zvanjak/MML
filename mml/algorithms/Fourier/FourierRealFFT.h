@@ -20,17 +20,22 @@
 namespace MML::Fourier 
 {
 	///////////////////////////////////////////////////////////////////////////////////////////
-	// RealFFT - Optimized FFT for real-valued data using conjugate symmetry
+	// RealFFT - FFT for real-valued data exploiting conjugate symmetry
 	//
 	// PERFORMANCE:
 	//   - ~2x faster than complex FFT for real data
-	//   - Uses packed storage format (n real -> n/2+1 complex)
+	//   - Stores only the non-redundant half spectrum (n real -> n/2+1 complex)
+	//
+	// IMPLEMENTATION NOTE:
+	//   The half spectrum is produced via a separate half-size complex FFT and an unpacking
+	//   pass - NOT Numerical Recipes' in-place packed realft() layout (DC and Nyquist sharing one
+	//   complex slot). spectrum[0] and spectrum[n/2] are ordinary complex entries here.
 	//
 	// THEORY:
 	//   Real signals have conjugate-symmetric spectra: X[k] = X*[N-k]
 	//   Only need to compute/store half the spectrum + DC and Nyquist terms
 	//
-	// REFERENCE: Numerical Recipes fourier.h realft()
+	// REFERENCE: Numerical Recipes fourier.h realft() (algorithmic idea; storage layout differs)
 	///////////////////////////////////////////////////////////////////////////////////////////
 
 	class RealFFT {

@@ -282,7 +282,7 @@ TEST_CASE("LyapunovAnalyzer - Simple stable system", "[DynamicalSystem][Lyapunov
         
         void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
         {
-            J.Resize(2, 2);
+            J.resize(2, 2);
             J(0,0) = -1; J(0,1) = 0;
             J(1,0) = 0;  J(1,1) = -2;
         }
@@ -301,24 +301,29 @@ TEST_CASE("LyapunovAnalyzer - Simple stable system", "[DynamicalSystem][Lyapunov
     REQUIRE(result.maxExponent < 0);
 }
 
-TEST_CASE("LyapunovAnalyzer - Lorenz chaotic regime", "[DynamicalSystem][Lyapunov][Slow]")
-{
-    LorenzSystem lorenz;  // Default: σ=10, ρ=28, β=8/3
-    Vector<Real> x0 = lorenz.getDefaultInitialCondition();
-    
-    // Short integration for test speed (longer = more accurate)
-    auto result = LyapunovAnalyzer::Compute(lorenz, x0, TOL(100.0, 150.0), 1.0, 0.01);
-    
-    // Lorenz should have one positive exponent (≈0.9)
-    REQUIRE(result.isChaotic == true);
-    REQUIRE(result.maxExponent > 0);
-    
-    // Sum of exponents should be negative (dissipative)
-    REQUIRE(result.sum < 0);
-    
-    // Kaplan-Yorke dimension for Lorenz ≈ 2.06
-    REQUIRE(result.kaplanYorkeDimension > 2.0);
-    REQUIRE(result.kaplanYorkeDimension < 2.5);
+TEST_CASE("LyapunovAnalyzer - Lorenz chaotic regime", "[DynamicalSystem][Lyapunov][Slow][wewi.2.9]") {
+	LorenzSystem lorenz; // Default: σ=10, ρ=28, β=8/3
+	Vector<Real> x0 = lorenz.getDefaultInitialCondition();
+
+	// Short integration for test speed (longer = more accurate)
+	auto result = LyapunovAnalyzer::Compute(lorenz, x0, TOL(100.0, 150.0), 1.0, 0.01);
+
+	// Lorenz should have one positive exponent (≈0.9)
+	REQUIRE(result.isChaotic == true);
+	REQUIRE(result.maxExponent > 0);
+
+	// Liouville's identity: the sum equals the time-averaged divergence, which is constant here.
+	REQUIRE(IsWithinAbs(result.sum, lorenz.getDivergence(), Precision::CoarseTolerance));
+	Real measuredSum = 0;
+	for (int i = 0; i < result.exponents.size(); ++i) {
+		REQUIRE(std::isfinite(result.exponents[i]));
+		measuredSum += result.exponents[i];
+	}
+	REQUIRE(IsWithinAbs(result.sum, measuredSum, Precision::EqualityTolerance));
+
+	// Kaplan-Yorke dimension for Lorenz ≈ 2.06
+	REQUIRE(result.kaplanYorkeDimension > 2.0);
+	REQUIRE(result.kaplanYorkeDimension < 2.5);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -363,7 +368,7 @@ TEST_CASE("PhaseSpaceAnalyzer - adaptive trajectory remains accurate with coarse
 
     REQUIRE(trajectory.size() == 9);
     for (int index = 0; index < static_cast<int>(trajectory.size()); ++index) {
-        const Real time = REAL(0.25) * index;
+        const Real time = static_cast<MML::Real>(0.25) * index;
         REQUIRE(trajectory[index][0] == Approx(std::exp(time)).epsilon(TOL(1e-8, 5e-6)));
     }
 }
@@ -412,6 +417,61 @@ TEST_CASE("PhaseSpaceAnalyzer - Poincare crossings use adaptive dense output", "
     }
 }
 
+TEST_CASE("PhaseSpaceAnalyzer - Poincare search is bounded when the trajectory never crosses the section",
+					"[DynamicalSystem][PhaseSpace][sgho][wewi.2.9]") {
+	// Damped oscillator: every trajectory spirals into the origin, so a section at x = 5 is never
+	// crossed. Before the fix ComputePoincareSection looped forever here (MinimalMathLibrary-sgho).
+	class DampedOscillator : public DynamicalSystemBase<2, 0> {
+	public:
+		void derivs(Real, const Vector<Real>& state, Vector<Real>& derivative) const override {
+			derivative[0] = state[1];
+			derivative[1] = -state[0] - static_cast<MML::Real>(0.5) * state[1];
+		}
+	};
+
+	DampedOscillator system;
+	const Vector<Real> x0({1.0, 0.0});
+	const PoincareSection<Real> unreachable(0, 5.0, 0);
+
+	SECTION("plain API throws ConvergenceError after maxSearchTime") {
+		REQUIRE_THROWS_AS(PhaseSpaceAnalyzer::ComputePoincareSection(system, x0, unreachable, 3, 0.1,
+																																 /*maxSearchTime*/ 20.0, /*transientTime*/ 1.0),
+											ConvergenceError);
+	}
+
+	SECTION("Detailed API returns the partial set with MaxIterationsExceeded") {
+		auto result = ComputePoincareSectionDetailed(system, x0, unreachable, 3, 0.1, DynSysConfig{},
+																								 /*maxSearchTime*/ 20.0, /*transientTime*/ 1.0);
+		REQUIRE_FALSE(result.IsSuccess());
+		REQUIRE(result.status == AlgorithmStatus::MaxIterationsExceeded);
+		REQUIRE(result.intersections.empty());
+		REQUIRE(result.searched_time == Approx(20.0).margin(TOL(1e-6, 1e-3)));
+		REQUIRE_FALSE(result.error_message.empty());
+	}
+
+	SECTION("reachable section within budget still succeeds and reports the time used") {
+		// Undamped crossings of x = 0 happen every pi; ask for 2 within 20 time units.
+		class HarmonicOscillator : public DynamicalSystemBase<2, 0> {
+		public:
+			void derivs(Real, const Vector<Real>& state, Vector<Real>& derivative) const override {
+				derivative[0] = state[1];
+				derivative[1] = -state[0];
+			}
+		};
+		HarmonicOscillator harmonic;
+		auto result = ComputePoincareSectionDetailed(harmonic, x0, PoincareSection<Real>(0, 0.0, 1), 2, 0.1, DynSysConfig{}, 20.0, 0.0);
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.intersections.size() == 2);
+		REQUIRE(result.searched_time <= static_cast<MML::Real>(20.0));
+	}
+
+	SECTION("argument validation") {
+		REQUIRE_THROWS_AS(PhaseSpaceAnalyzer::ComputePoincareSection(system, x0, unreachable, 3, 0.1, 0.0), ArgumentError);
+		REQUIRE_THROWS_AS(PhaseSpaceAnalyzer::ComputePoincareSection(system, x0, unreachable, 3, 0.1, 10.0, -1.0), ArgumentError);
+		REQUIRE_THROWS_AS(PhaseSpaceAnalyzer::ComputePoincareSection(system, x0, PoincareSection<Real>(2, 0.0, 0), 3, 0.1), ArgumentError);
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 //                              BIFURCATION ANALYZER TESTS
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -440,6 +500,71 @@ TEST_CASE("BifurcationAnalyzer - Lorenz rho sweep", "[DynamicalSystem][Bifurcati
     // At ρ=28, should see chaotic attractor with multiple maxima
     int chaotic_index = 3;  // ρ ≈ 27.5
     REQUIRE(diagram.attractorValues[chaotic_index].size() > 1);  // Multiple maxima = chaos
+}
+
+TEST_CASE("BifurcationAnalyzer - Sweep validates input, handles a single step and restores the parameter on failure",
+					"[DynamicalSystem][Bifurcation][wewi.1.15][wewi.2.9]") {
+	LorenzSystem lorenz;
+	const Real originalRho = lorenz.getParam(1);
+	Vector<Real> x0({1.0, 1.0, 1.0});
+
+	SECTION("numberOfSteps == 1 evaluates once at parameterMinimum (was 0/0 -> NaN parameter)") {
+		auto diagram = BifurcationAnalyzer::Sweep(lorenz, 1, 25.0, 30.0, 1, x0, 2, 1.0, 2.0, 0.01);
+		REQUIRE(diagram.parameterValues.size() == 1);
+		REQUIRE(diagram.parameterValues[0] == 25.0);
+		REQUIRE(std::isfinite(diagram.parameterValues[0]));
+		REQUIRE(diagram.numTransientSteps == 100);
+		REQUIRE(diagram.numRecordedPoints == 200);
+		REQUIRE(lorenz.getParam(1) == originalRho);
+	}
+
+	SECTION("numberOfSteps == 2 visits both endpoints without changing the caller's parameter") {
+		auto diagram = BifurcationAnalyzer::Sweep(lorenz, 1, 25.0, 30.0, 2, x0, 2, 1.0, 2.0, 0.01);
+		REQUIRE(diagram.parameterValues.size() == 2);
+		REQUIRE(diagram.attractorValues.size() == 2);
+		REQUIRE(diagram.parameterValues[0] == 25);
+		REQUIRE(diagram.parameterValues[1] == 30);
+		REQUIRE(diagram.parameterName == "rho");
+		REQUIRE(lorenz.getParam(1) == originalRho);
+		for (const auto& values : diagram.attractorValues)
+			for (const auto value : values)
+				REQUIRE(std::isfinite(value));
+	}
+
+	SECTION("argument validation") {
+		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, 25.0, 30.0, 0, x0, 2, 1.0, 2.0, 0.01), ArgumentError);
+		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 7, 25.0, 30.0, 3, x0, 2, 1.0, 2.0, 0.01), ArgumentError);
+		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, 25.0, 25.0, 3, x0, 2, 1.0, 2.0, 0.01), ArgumentError);
+		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, 25.0, 30.0, 3, x0, 5, 1.0, 2.0, 0.01), ArgumentError);
+		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, 25.0, 30.0, 3, Vector<Real>({1.0, 1.0}), 2, 1.0, 2.0, 0.01),
+											VectorDimensionError);
+		REQUIRE(lorenz.getParam(1) == originalRho);
+	}
+
+	SECTION("parameter is restored when the integration throws mid-sweep (RAII)") {
+		// negative transient time makes IntegrateTo throw after the parameter has been set
+		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, 25.0, 30.0, 3, x0, 2, -1.0, 2.0, 0.01), ArgumentError);
+		REQUIRE(lorenz.getParam(1) == originalRho);
+	}
+}
+
+TEST_CASE("FixedPoint / LyapunovResult / BifurcationDiagram aggregates are value-initialised", "[DynamicalSystem][wewi.1.15]")
+{
+    FixedPoint<Real> fp;
+    REQUIRE_FALSE(fp.isStable);
+    REQUIRE(fp.type == FixedPointType::Unknown);
+    REQUIRE(fp.iterations == 0);
+    REQUIRE(fp.convergenceResidual == 0.0);
+
+    LyapunovResult<Real> ly;
+    REQUIRE_FALSE(ly.isChaotic);
+    REQUIRE(ly.numOrthonormalizations == 0);
+
+    BifurcationDiagram<Real> bd;
+    REQUIRE(bd.numTransientSteps == 0);
+    REQUIRE(bd.numRecordedPoints == 0);
+
+    static_assert(std::is_same_v<decltype(DynamicalSystemAnalyzer<>(std::declval<IDynamicalSystem&>())), DynamicalSystemAnalyzer<Real>>);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -485,13 +610,13 @@ TEST_CASE("Numerical Jacobian vs Analytical", "[DynamicalSystem][Jacobian]")
 
 TEST_CASE("FixedPointType ToString", "[DynamicalSystem][Utilities]")
 {
-    REQUIRE(ToString(FixedPointType::StableNode) == "Stable Node");
-    REQUIRE(ToString(FixedPointType::UnstableNode) == "Unstable Node");
-    REQUIRE(ToString(FixedPointType::Saddle) == "Saddle");
-    REQUIRE(ToString(FixedPointType::StableFocus) == "Stable Focus");
-    REQUIRE(ToString(FixedPointType::UnstableFocus) == "Unstable Focus");
-    REQUIRE(ToString(FixedPointType::Center) == "Center");
-    REQUIRE(ToString(FixedPointType::Unknown) == "Unknown");
+    REQUIRE(to_string(FixedPointType::StableNode) == "Stable Node");
+    REQUIRE(to_string(FixedPointType::UnstableNode) == "Unstable Node");
+    REQUIRE(to_string(FixedPointType::Saddle) == "Saddle");
+    REQUIRE(to_string(FixedPointType::StableFocus) == "Stable Focus");
+    REQUIRE(to_string(FixedPointType::UnstableFocus) == "Unstable Focus");
+    REQUIRE(to_string(FixedPointType::Center) == "Center");
+    REQUIRE(to_string(FixedPointType::Unknown) == "Unknown");
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -666,8 +791,8 @@ TEST_CASE("HenonMap - Basic iteration", "[DynamicalSystem][DiscreteMap][HenonMap
 {
     HenonMap hmap(1.4, 0.3);
     
-REQUIRE(hmap.getA() == Approx(REAL(1.4)));
-	REQUIRE(hmap.getB() == Approx(REAL(0.3)));
+REQUIRE(hmap.getA() == Approx(static_cast<MML::Real>(1.4)));
+	REQUIRE(hmap.getB() == Approx(static_cast<MML::Real>(0.3)));
     
     Vector<Real> x({0.0, 0.0});
     auto x1 = hmap.iterate(x);
@@ -898,4 +1023,3 @@ TEST_CASE("IntegrateTrajectoryDetailed - simple trajectory", "[DynamicalSystem][
 }
 
 } // namespace MML::Tests::Systems::DynSysDetailedTests
-

@@ -23,17 +23,17 @@ namespace MML::DifferentialGeometry
 	{
 		VectorN<Real, N> tangent;
 		VectorN<Real, N> normal;
-		Real speed = REAL(0.0);
-		Real curvature = REAL(0.0);
+		Real speed = static_cast<MML::Real>(0.0);
+		Real curvature = static_cast<MML::Real>(0.0);
 	};
 
 	template<int N>
-	FrenetFrame<N> ComputeFrenetFrame(const IParametricCurve<N>& curve, Real t, Real derivativeStep = REAL(0.0))
+	FrenetFrame<N> ComputeFrenetFrame(const IParametricCurve<N>& curve, Real t, Real derivativeStep = static_cast<MML::Real>(0.0))
 	{
-		VectorN<Real, N> first = derivativeStep > REAL(0.0)
+		VectorN<Real, N> first = derivativeStep > static_cast<MML::Real>(0.0)
 			? Derivation::NDer4(curve, t, derivativeStep)
 			: Derivation::NDer4(curve, t);
-		VectorN<Real, N> second = derivativeStep > REAL(0.0)
+		VectorN<Real, N> second = derivativeStep > static_cast<MML::Real>(0.0)
 			? Derivation::NSecDer4(curve, t, derivativeStep)
 			: Derivation::NSecDer4(curve, t);
 
@@ -59,9 +59,9 @@ namespace MML::DifferentialGeometry
 		VectorN<Real, 3> surfaceNormal;
 		VectorN<Real, 3> tangentNormal;
 		VectorN<Real, 3> curvatureVector;
-		Real curvature = REAL(0.0);
-		Real geodesicCurvature = REAL(0.0);
-		Real normalCurvature = REAL(0.0);
+		Real curvature = static_cast<MML::Real>(0.0);
+		Real geodesicCurvature = static_cast<MML::Real>(0.0);
+		Real normalCurvature = static_cast<MML::Real>(0.0);
 	};
 
 	namespace Detail
@@ -100,15 +100,15 @@ namespace MML::DifferentialGeometry
 	inline DarbouxFrame ComputeDarbouxFrame(const Surfaces::ISurfaceCartesian& surface,
 		const IParametricCurve<2>& parameterCurve,
 		Real t,
-		Real derivativeStep = REAL(0.0))
+		Real derivativeStep = static_cast<MML::Real>(0.0))
 	{
 		Detail::SurfaceParameterCurve3D ambientCurve(surface, parameterCurve);
 		VectorN<Real, 2> params = parameterCurve(t);
 
-		VectorN<Real, 3> first = derivativeStep > REAL(0.0)
+		VectorN<Real, 3> first = derivativeStep > static_cast<MML::Real>(0.0)
 			? Derivation::NDer4(ambientCurve, t, derivativeStep)
 			: Derivation::NDer4(ambientCurve, t);
-		VectorN<Real, 3> second = derivativeStep > REAL(0.0)
+		VectorN<Real, 3> second = derivativeStep > static_cast<MML::Real>(0.0)
 			? Derivation::NSecDer4(ambientCurve, t, derivativeStep)
 			: Derivation::NSecDer4(ambientCurve, t);
 

@@ -129,7 +129,7 @@ namespace MML
 	 * The step size reduction is h → h/9 (not h/4) because midpoint
 	 * refinement triples subdivisions (error goes as h², so h²→h²/9).
 	 */
-	static IntegrationResult IntegrateOpen(const IRealFunction& func, Real a, Real b,
+	static IntegrationResult IntegrateOpenCore(const IRealFunction& func, Real a, Real b,
 	                                       const Real eps = Defaults::RombergIntegrationEPS)
 	{
 		const int JMAX = Defaults::RombergIntegrationMaxSteps;
@@ -195,6 +195,20 @@ namespace MML
 		return IntegrationResult(ss, std::abs(dss), JMAX, false);
 	}
 
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	static auto IntegrateOpenDetailed(const IRealFunction& func, Real a, Real b, const Real eps)
+	{
+		auto r = IntegrateOpenCore(func, a, b, eps);
+		r.algorithm_name = "IntegrateOpen";
+		return r;
+	}
+
+	static Real IntegrateOpen(const IRealFunction& func, Real a, Real b,
+	                                       const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrateOpenCore(func, a, b, eps).ValueOrThrow("IntegrateOpen");
+	}
+
 	/*************************************************************************/
 	/*****                  SEMI-INFINITE INTEGRALS                      *****/
 	/*************************************************************************/
@@ -224,17 +238,31 @@ namespace MML
 	 * @example
 	 *   // ∫[0,∞) e^(-x) dx = 1
 	 *   RealFunction f{ [](Real x) { return std::exp(-x); } };
-	 *   auto result = IntegrateUpperInf(f, 0.0);
+	 *   auto result = IntegrateUpperInfCore(f, 0.0);
 	 *
 	 *   // ∫[1,∞) 1/x² dx = 1
 	 *   RealFunction g{ [](Real x) { return 1.0/(x*x); } };
-	 *   auto result = IntegrateUpperInf(g, 1.0);
+	 *   auto result = IntegrateUpperInfCore(g, 1.0);
 	 */
-	static IntegrationResult IntegrateUpperInf(const IRealFunction& func, Real a,
+	static IntegrationResult IntegrateUpperInfCore(const IRealFunction& func, Real a,
 	                                           const Real eps = Defaults::RombergIntegrationEPS)
 	{
 		UpperInfTransform transformed(func, a);
-		return IntegrateOpen(transformed, 0.0, 1.0, eps);
+		return IntegrateOpenCore(transformed, 0.0, 1.0, eps);
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	static auto IntegrateUpperInfDetailed(const IRealFunction& func, Real a, const Real eps)
+	{
+		auto r = IntegrateUpperInfCore(func, a, eps);
+		r.algorithm_name = "IntegrateUpperInf";
+		return r;
+	}
+
+	static Real IntegrateUpperInf(const IRealFunction& func, Real a,
+	                                           const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrateUpperInfCore(func, a, eps).ValueOrThrow("IntegrateUpperInf");
 	}
 
 	/**
@@ -257,13 +285,27 @@ namespace MML
 	 * @example
 	 *   // ∫(-∞,0] e^x dx = 1
 	 *   RealFunction f{ [](Real x) { return std::exp(x); } };
-	 *   auto result = IntegrateLowerInf(f, 0.0);
+	 *   auto result = IntegrateLowerInfCore(f, 0.0);
 	 */
-	static IntegrationResult IntegrateLowerInf(const IRealFunction& func, Real b,
+	static IntegrationResult IntegrateLowerInfCore(const IRealFunction& func, Real b,
 	                                           const Real eps = Defaults::RombergIntegrationEPS)
 	{
 		LowerInfTransform transformed(func, b);
-		return IntegrateOpen(transformed, 0.0, 1.0, eps);
+		return IntegrateOpenCore(transformed, 0.0, 1.0, eps);
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	static auto IntegrateLowerInfDetailed(const IRealFunction& func, Real b, const Real eps)
+	{
+		auto r = IntegrateLowerInfCore(func, b, eps);
+		r.algorithm_name = "IntegrateLowerInf";
+		return r;
+	}
+
+	static Real IntegrateLowerInf(const IRealFunction& func, Real b,
+	                                           const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrateLowerInfCore(func, b, eps).ValueOrThrow("IntegrateLowerInf");
 	}
 
 	/**
@@ -292,19 +334,19 @@ namespace MML
 	 * @example
 	 *   // ∫(-∞,∞) e^(-x²) dx = √π
 	 *   RealFunction gaussian{ [](Real x) { return std::exp(-x*x); } };
-	 *   auto result = IntegrateInf(gaussian);
+	 *   auto result = IntegrateInfCore(gaussian);
 	 *   // result.value ≈ 1.7724538509...
 	 *
 	 *   // ∫(-∞,∞) 1/(1+x²) dx = π
 	 *   RealFunction lorentz{ [](Real x) { return 1.0/(1.0 + x*x); } };
-	 *   auto result = IntegrateInf(lorentz);
+	 *   auto result = IntegrateInfCore(lorentz);
 	 */
-	static IntegrationResult IntegrateInf(const IRealFunction& func,
+	static IntegrationResult IntegrateInfCore(const IRealFunction& func,
 	                                      const Real eps = Defaults::RombergIntegrationEPS)
 	{
 		// Split at x = 0
-		auto left  = IntegrateLowerInf(func, 0.0, eps);
-		auto right = IntegrateUpperInf(func, 0.0, eps);
+		auto left  = IntegrateLowerInfCore(func, 0.0, eps);
+		auto right = IntegrateUpperInfCore(func, 0.0, eps);
 		
 		return IntegrationResult(
 			left.value + right.value,
@@ -312,6 +354,20 @@ namespace MML
 			left.iterations + right.iterations,
 			left.converged && right.converged
 		);
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	static auto IntegrateInfDetailed(const IRealFunction& func, const Real eps)
+	{
+		auto r = IntegrateInfCore(func, eps);
+		r.algorithm_name = "IntegrateInf";
+		return r;
+	}
+
+	static Real IntegrateInf(const IRealFunction& func,
+	                                      const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrateInfCore(func, eps).ValueOrThrow("IntegrateInf");
 	}
 
 	/**
@@ -329,13 +385,13 @@ namespace MML
 	 * @example
 	 *   // Function peaked near x = 5
 	 *   RealFunction peaked{ [](Real x) { return std::exp(-(x-5)*(x-5)); } };
-	 *   auto result = IntegrateInfSplit(peaked, 5.0);  // Split near the peak
+	 *   auto result = IntegrateInfSplitCore(peaked, 5.0);  // Split near the peak
 	 */
-	static IntegrationResult IntegrateInfSplit(const IRealFunction& func, Real splitPoint,
+	static IntegrationResult IntegrateInfSplitCore(const IRealFunction& func, Real splitPoint,
 	                                           const Real eps = Defaults::RombergIntegrationEPS)
 	{
-		auto left  = IntegrateLowerInf(func, splitPoint, eps);
-		auto right = IntegrateUpperInf(func, splitPoint, eps);
+		auto left  = IntegrateLowerInfCore(func, splitPoint, eps);
+		auto right = IntegrateUpperInfCore(func, splitPoint, eps);
 		
 		return IntegrationResult(
 			left.value + right.value,
@@ -343,6 +399,20 @@ namespace MML
 			left.iterations + right.iterations,
 			left.converged && right.converged
 		);
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	static auto IntegrateInfSplitDetailed(const IRealFunction& func, Real splitPoint, const Real eps)
+	{
+		auto r = IntegrateInfSplitCore(func, splitPoint, eps);
+		r.algorithm_name = "IntegrateInfSplit";
+		return r;
+	}
+
+	static Real IntegrateInfSplit(const IRealFunction& func, Real splitPoint,
+	                                           const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrateInfSplitCore(func, splitPoint, eps).ValueOrThrow("IntegrateInfSplit");
 	}
 
 	/*************************************************************************/
@@ -443,16 +513,30 @@ namespace MML
 	 * @example
 	 *   // ∫[0,1] 1/√x dx = 2
 	 *   RealFunction f{ [](Real x) { return 1.0/std::sqrt(x); } };
-	 *   auto result = IntegrateLowerSingular(f, 0.0, 1.0);
+	 *   auto result = IntegrateLowerSingularCore(f, 0.0, 1.0);
 	 *   // result.value ≈ 2.0
 	 */
-	static IntegrationResult IntegrateLowerSingular(const IRealFunction& func, Real a, Real b,
+	static IntegrationResult IntegrateLowerSingularCore(const IRealFunction& func, Real a, Real b,
 	                                                const Real eps = Defaults::RombergIntegrationEPS)
 	{
 		LowerSingularTransform transformed(func, a);
 		Real upper = std::sqrt(b - a);
 		// Use open integration (midpoint) to avoid endpoint issues
-		return IntegrateOpen(transformed, 0.0, upper, eps);
+		return IntegrateOpenCore(transformed, 0.0, upper, eps);
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	static auto IntegrateLowerSingularDetailed(const IRealFunction& func, Real a, Real b, const Real eps)
+	{
+		auto r = IntegrateLowerSingularCore(func, a, b, eps);
+		r.algorithm_name = "IntegrateLowerSingular";
+		return r;
+	}
+
+	static Real IntegrateLowerSingular(const IRealFunction& func, Real a, Real b,
+	                                                const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrateLowerSingularCore(func, a, b, eps).ValueOrThrow("IntegrateLowerSingular");
 	}
 
 	/**
@@ -474,15 +558,29 @@ namespace MML
 	 * @example
 	 *   // ∫[0,1] 1/√(1-x) dx = 2
 	 *   RealFunction f{ [](Real x) { return 1.0/std::sqrt(1.0 - x); } };
-	 *   auto result = IntegrateUpperSingular(f, 0.0, 1.0);
+	 *   auto result = IntegrateUpperSingularCore(f, 0.0, 1.0);
 	 *   // result.value ≈ 2.0
 	 */
-	static IntegrationResult IntegrateUpperSingular(const IRealFunction& func, Real a, Real b,
+	static IntegrationResult IntegrateUpperSingularCore(const IRealFunction& func, Real a, Real b,
 	                                                const Real eps = Defaults::RombergIntegrationEPS)
 	{
 		UpperSingularTransform transformed(func, b);
 		Real upper = std::sqrt(b - a);
-		return IntegrateOpen(transformed, 0.0, upper, eps);
+		return IntegrateOpenCore(transformed, 0.0, upper, eps);
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	static auto IntegrateUpperSingularDetailed(const IRealFunction& func, Real a, Real b, const Real eps)
+	{
+		auto r = IntegrateUpperSingularCore(func, a, b, eps);
+		r.algorithm_name = "IntegrateUpperSingular";
+		return r;
+	}
+
+	static Real IntegrateUpperSingular(const IRealFunction& func, Real a, Real b,
+	                                                const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrateUpperSingularCore(func, a, b, eps).ValueOrThrow("IntegrateUpperSingular");
 	}
 
 	/**
@@ -505,15 +603,15 @@ namespace MML
 	 * @example
 	 *   // ∫[0,1] 1/√(x(1-x)) dx = π  (Beta function B(1/2, 1/2))
 	 *   RealFunction f{ [](Real x) { return 1.0/std::sqrt(x*(1.0-x)); } };
-	 *   auto result = IntegrateBothSingular(f, 0.0, 1.0);
+	 *   auto result = IntegrateBothSingularCore(f, 0.0, 1.0);
 	 *   // result.value ≈ π
 	 */
-	static IntegrationResult IntegrateBothSingular(const IRealFunction& func, Real a, Real b,
+	static IntegrationResult IntegrateBothSingularCore(const IRealFunction& func, Real a, Real b,
 	                                               const Real eps = Defaults::RombergIntegrationEPS)
 	{
 		Real mid = 0.5 * (a + b);
-		auto left = IntegrateLowerSingular(func, a, mid, eps);
-		auto right = IntegrateUpperSingular(func, mid, b, eps);
+		auto left = IntegrateLowerSingularCore(func, a, mid, eps);
+		auto right = IntegrateUpperSingularCore(func, mid, b, eps);
 		
 		return IntegrationResult(
 			left.value + right.value,
@@ -521,6 +619,20 @@ namespace MML
 			left.iterations + right.iterations,
 			left.converged && right.converged
 		);
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	static auto IntegrateBothSingularDetailed(const IRealFunction& func, Real a, Real b, const Real eps)
+	{
+		auto r = IntegrateBothSingularCore(func, a, b, eps);
+		r.algorithm_name = "IntegrateBothSingular";
+		return r;
+	}
+
+	static Real IntegrateBothSingular(const IRealFunction& func, Real a, Real b,
+	                                               const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrateBothSingularCore(func, a, b, eps).ValueOrThrow("IntegrateBothSingular");
 	}
 
 	/**
@@ -545,17 +657,17 @@ namespace MML
 	 * @example
 	 *   // ∫[-1,1] 1/√|x| dx = 4  (singularity at x=0)
 	 *   RealFunction f{ [](Real x) { return 1.0/std::sqrt(std::abs(x)); } };
-	 *   auto result = IntegrateInteriorSingular(f, -1.0, 1.0, 0.0);
+	 *   auto result = IntegrateInteriorSingularCore(f, -1.0, 1.0, 0.0);
 	 *   // result.value ≈ 4.0
 	 */
-	static IntegrationResult IntegrateInteriorSingular(const IRealFunction& func, Real a, Real b, Real c,
+	static IntegrationResult IntegrateInteriorSingularCore(const IRealFunction& func, Real a, Real b, Real c,
 	                                                   const Real eps = Defaults::RombergIntegrationEPS)
 	{
 		if (c <= a || c >= b)
 			throw ArgumentError("IntegrateInteriorSingular: singular point c must be in (a, b)");
 		
-		auto left = IntegrateUpperSingular(func, a, c, eps);
-		auto right = IntegrateLowerSingular(func, c, b, eps);
+		auto left = IntegrateUpperSingularCore(func, a, c, eps);
+		auto right = IntegrateLowerSingularCore(func, c, b, eps);
 		
 		return IntegrationResult(
 			left.value + right.value,
@@ -563,6 +675,20 @@ namespace MML
 			left.iterations + right.iterations,
 			left.converged && right.converged
 		);
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	static auto IntegrateInteriorSingularDetailed(const IRealFunction& func, Real a, Real b, Real c, const Real eps)
+	{
+		auto r = IntegrateInteriorSingularCore(func, a, b, c, eps);
+		r.algorithm_name = "IntegrateInteriorSingular";
+		return r;
+	}
+
+	static Real IntegrateInteriorSingular(const IRealFunction& func, Real a, Real b, Real c,
+	                                                   const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrateInteriorSingularCore(func, a, b, c, eps).ValueOrThrow("IntegrateInteriorSingular");
 	}
 
 	/*************************************************************************/
@@ -586,7 +712,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateOpen", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateOpen(func, a, b, eps);
+				auto r = IntegrateOpenCore(func, a, b, eps);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateOpen");
 			});
 	}
@@ -600,7 +726,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateUpperInf", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateUpperInf(func, a, eps);
+				auto r = IntegrateUpperInfCore(func, a, eps);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateUpperInf");
 			});
 	}
@@ -614,7 +740,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateLowerInf", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateLowerInf(func, b, eps);
+				auto r = IntegrateLowerInfCore(func, b, eps);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateLowerInf");
 			});
 	}
@@ -628,7 +754,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateInf", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateInf(func, eps);
+				auto r = IntegrateInfCore(func, eps);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateInf");
 			});
 	}
@@ -642,7 +768,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateInfSplit", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateInfSplit(func, splitPoint, eps);
+				auto r = IntegrateInfSplitCore(func, splitPoint, eps);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateInfSplit");
 			});
 	}
@@ -656,7 +782,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateLowerSingular", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateLowerSingular(func, a, b, eps);
+				auto r = IntegrateLowerSingularCore(func, a, b, eps);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateLowerSingular");
 			});
 	}
@@ -670,7 +796,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateUpperSingular", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateUpperSingular(func, a, b, eps);
+				auto r = IntegrateUpperSingularCore(func, a, b, eps);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateUpperSingular");
 			});
 	}
@@ -684,7 +810,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateBothSingular", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateBothSingular(func, a, b, eps);
+				auto r = IntegrateBothSingularCore(func, a, b, eps);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateBothSingular");
 			});
 	}
@@ -700,7 +826,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateInteriorSingular", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateInteriorSingular(func, a, b, c, eps);
+				auto r = IntegrateInteriorSingularCore(func, a, b, c, eps);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateInteriorSingular");
 			});
 	}

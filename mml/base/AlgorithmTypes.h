@@ -16,6 +16,8 @@
 
 #include <string>
 #include <chrono>
+#include <cmath>
+#include <limits>
 
 namespace MML {
 
@@ -49,12 +51,21 @@ namespace MML {
 		/// User-requested tolerance is unachievable
 		ToleranceUnachievable = 6,
 		
+		/// Algorithm ran to completion but has NO convergence criterion to check
+		/// (fixed quadrature rules, direct solvers, closed-form evaluations, geometric
+		/// fallbacks). The value is usable; `converged` stays false and estimate fields
+		/// that were not computed are NoEstimate. See docs/RESULT_POLICY.md.
+		Completed = 7,
+
+		/// A storage or allocation limit prevented further progress.
+		ResourceLimitExceeded = 8,
+		
 		/// Algorithm-specific failure (see error_message for details)
 		AlgorithmSpecificFailure = 100
 	};
 
 	/// Convert AlgorithmStatus to human-readable string.
-	inline std::string ToString(AlgorithmStatus status) {
+	inline std::string to_string(AlgorithmStatus status) {
 		switch (status) {
 			case AlgorithmStatus::Success:                return "Success";
 			case AlgorithmStatus::MaxIterationsExceeded:  return "MaxIterationsExceeded";
@@ -63,9 +74,34 @@ namespace MML {
 			case AlgorithmStatus::InvalidInput:           return "InvalidInput";
 			case AlgorithmStatus::Stalled:                return "Stalled";
 			case AlgorithmStatus::ToleranceUnachievable:  return "ToleranceUnachievable";
+			case AlgorithmStatus::Completed:              return "Completed";
+			case AlgorithmStatus::ResourceLimitExceeded:  return "ResourceLimitExceeded";
 			case AlgorithmStatus::AlgorithmSpecificFailure: return "AlgorithmSpecificFailure";
 			default:                                      return "Unknown";
 		}
+	}
+	/// @deprecated Use to_string() (CONTRACT_POLICY section 11: STL spelling).
+	[[deprecated("use to_string()")]]
+	inline std::string ToString(AlgorithmStatus status) { return to_string(status); }
+
+	/// True when the result carries a usable value: a checked criterion was met (Success)
+	/// or the method has no criterion and ran to completion (Completed).
+	[[nodiscard]] constexpr bool IsUsable(AlgorithmStatus status) noexcept {
+		return status == AlgorithmStatus::Success || status == AlgorithmStatus::Completed;
+	}
+
+	/******************************************************************************/
+	/*****                    Estimate Sentinel                               *****/
+	/******************************************************************************/
+
+	/// Sentinel for numeric estimate fields (error estimates, achieved tolerances,
+	/// residuals) that the algorithm did NOT compute. A literal 0.0 would claim an
+	/// exact result; NaN cannot be mistaken for one. Test with HasEstimate().
+	inline constexpr Real NoEstimate = std::numeric_limits<Real>::quiet_NaN();
+
+	/// True if an estimate field holds a computed value (i.e. is not NoEstimate).
+	[[nodiscard]] inline bool HasEstimate(Real estimate) noexcept {
+		return !std::isnan(estimate);
 	}
 
 	/******************************************************************************/
@@ -94,7 +130,7 @@ namespace MML {
 		/// - Root finding: |f(x)| < tolerance
 		/// - Eigen solvers: max residual < tolerance
 		/// - Optimization: |gradient| < tolerance or |x_{n+1} - x_n| < tolerance
-		Real tolerance = 1e-10;
+		Real tolerance = Precision::EqualityTolerance;
 		
 		/// Maximum number of iterations before giving up
 		/// Set to 0 to use algorithm-specific default
@@ -137,7 +173,8 @@ namespace MML {
 	///     Real max_residual = 0.0;  // Algorithm-specific
 	/// };
 	struct IterativeResultBase {
-		/// True if algorithm converged within tolerance and iteration limits
+		/// True only if a convergence criterion was checked and met (status == Success).
+		/// False for Completed results (no criterion exists) and for every failure.
 		bool converged = false;
 		
 		/// Number of iterations actually performed
@@ -145,7 +182,8 @@ namespace MML {
 		
 		/// Actual achieved tolerance (may be better than requested)
 		/// Interpretation depends on algorithm (residual, error estimate, etc.)
-		Real achieved_tolerance = 0.0;
+		/// NoEstimate until the algorithm computes it (RESULT_POLICY §3; see HasEstimate()).
+		Real achieved_tolerance = NoEstimate;
 		
 		/// Structured status code for programmatic handling
 		AlgorithmStatus status = AlgorithmStatus::Success;
@@ -166,6 +204,12 @@ namespace MML {
 		/// Number of function evaluations performed
 		/// Useful for comparing algorithm efficiency
 		int function_evaluations = 0;
+
+		/// True when the payload is usable: status is Success or Completed (RESULT_POLICY §2).
+		[[nodiscard]] bool IsSuccess() const noexcept { return IsUsable(status); }
+
+		/// Allow `if (result)` style checks; same meaning as IsSuccess().
+		explicit operator bool() const noexcept { return IsSuccess(); }
 	};
 
 	/******************************************************************************/
@@ -223,9 +267,9 @@ namespace MML {
 		/// Number of function evaluations performed
 		int function_evaluations = 0;
 
-		/// Convenience success check for detailed APIs
+		/// True when the payload is usable: status is Success or Completed (RESULT_POLICY §2).
 		[[nodiscard]] bool IsSuccess() const noexcept {
-			return status == AlgorithmStatus::Success;
+			return IsUsable(status);
 		}
 
 		/// Allow `if (result)` style checks in user code
@@ -325,6 +369,21 @@ namespace MML {
 		result.iterations_used = iterations;
 		result.achieved_tolerance = tolerance;
 		result.status = AlgorithmStatus::Success;
+		result.algorithm_name = algorithm_name;
+		result.error_message = "";
+		return result;
+	}
+
+	/// Create a Completed result: the algorithm has no convergence criterion (fixed rule,
+	/// direct method) and ran to the end. converged stays false and achieved_tolerance is
+	/// NoEstimate unless the caller supplies a genuinely computed bound afterwards.
+	template<typename ResultType>
+	ResultType MakeCompletedResult(const std::string& algorithm_name, int iterations = 0) {
+		ResultType result;
+		result.converged = false;
+		result.iterations_used = iterations;
+		result.achieved_tolerance = NoEstimate;
+		result.status = AlgorithmStatus::Completed;
 		result.algorithm_name = algorithm_name;
 		result.error_message = "";
 		return result;

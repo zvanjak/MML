@@ -72,9 +72,9 @@ T(1, 2) = 2.5;
 Real val = T.at(0, 0);
 
 // Query properties
-int num_contra = T.NumContravar();  // Number of contravariant indices
-int num_covar = T.NumCovar();       // Number of covariant indices
-bool is_contra_first = T.IsContravar(0);
+int num_contra = T.numContravar();  // Number of contravariant indices
+int num_covar = T.numCovar();       // Number of covariant indices
+bool is_contra_first = T.isContravar(0);
 ```
 
 ### Properties
@@ -82,11 +82,11 @@ bool is_contra_first = T.IsContravar(0);
 Tensor2<3> T(1, 1);
 
 // Get underlying matrix representation
-MatrixNM<Real, 3, 3> mat = T.GetMatrix();
+MatrixNM<Real, 3, 3> mat = T.getMatrix();
 
 // Check index variance
-bool first_is_contravariant = T.IsContravar(0);
-bool second_is_covariant = T.IsCovar(1);
+bool first_is_contravariant = T.isContravar(0);
+bool second_is_covariant = T.isCovar(1);
 ```
 
 ---
@@ -151,7 +151,7 @@ mixed(0,0) = 1.0;
 mixed(1,1) = 2.0;
 mixed(2,2) = 3.0;
 
-Real trace = mixed.Contract();  // 1 + 2 + 3 = 6
+Real trace = mixed.contract();  // 1 + 2 + 3 = 6
 
 // Contract one index from each of two rank-2 tensors.
 // The contracted pair must have opposite variance.
@@ -298,7 +298,7 @@ auto sum = A + B;  // {3, 0, 0, 4}
 auto scaled = A * 2.0;  // {4, 0, 0, 6}
 
 // Contract
-Real trace_A = A.Contract();  // 2 + 3 = 5
+Real trace_A = A.contract();  // 2 + 3 = 5
 ```
 
 ---

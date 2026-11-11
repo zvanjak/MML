@@ -14,6 +14,7 @@
 #define MML_GAUSSIAN_QUADRATURE_H
 
 #include <vector>
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
@@ -543,12 +544,18 @@ namespace MML
 	 * @param n Number of quadrature points (default 20)
 	 * @return IntegrationResult with value (error_estimate = 0 for non-adaptive)
 	 */
-	static IntegrationResult IntegrateGaussLegendre(const IRealFunction& func, 
+	static IntegrationResult IntegrateGaussLegendreCore(const IRealFunction& func, 
 	                                                 Real a, Real b, int n = 20)
 	{
 		auto rule = GaussLegendreRule(n, a, b);
 		Real value = IntegrateWithRule(func, rule);
-		return IntegrationResult(value, 0.0, 1, true);
+		return IntegrationResult::FixedRule(value);
+	}
+
+	static Real IntegrateGaussLegendre(const IRealFunction& func, 
+	                                                 Real a, Real b, int n = 20)
+	{
+		return IntegrateGaussLegendreCore(func, a, b, n).ValueOrThrow("IntegrateGaussLegendre");
 	}
 
 	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
@@ -560,10 +567,7 @@ namespace MML
 			"GaussLegendre", config, [&](IntegrationDetailedResult& r) {
 				auto rule = GaussLegendreRule(n, a, b);
 				r.value = IntegrateWithRule(func, rule);
-				r.error_estimate = 0.0;
-				r.iterations = 1;
-				r.converged = true;
-				r.function_evaluations = n;
+				r.MarkFixedRule(n);
 			});
 	}
 
@@ -578,12 +582,18 @@ namespace MML
 	 * @param alpha Exponent parameter (default 0)
 	 * @return IntegrationResult
 	 */
-	static IntegrationResult IntegrateGaussLaguerre(const IRealFunction& func, 
+	static IntegrationResult IntegrateGaussLaguerreCore(const IRealFunction& func, 
 	                                                 int n = 20, Real alpha = 0.0)
 	{
 		auto rule = GaussLaguerreRule(n, alpha);
 		Real value = IntegrateWithRule(func, rule);
-		return IntegrationResult(value, 0.0, 1, true);
+		return IntegrationResult::FixedRule(value);
+	}
+
+	static Real IntegrateGaussLaguerre(const IRealFunction& func, 
+	                                                 int n = 20, Real alpha = 0.0)
+	{
+		return IntegrateGaussLaguerreCore(func, n, alpha).ValueOrThrow("IntegrateGaussLaguerre");
 	}
 
 	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
@@ -595,10 +605,7 @@ namespace MML
 			"GaussLaguerre", config, [&](IntegrationDetailedResult& r) {
 				auto rule = GaussLaguerreRule(n, alpha);
 				r.value = IntegrateWithRule(func, rule);
-				r.error_estimate = 0.0;
-				r.iterations = 1;
-				r.converged = true;
-				r.function_evaluations = n;
+				r.MarkFixedRule(n);
 			});
 	}
 
@@ -612,11 +619,16 @@ namespace MML
 	 * @param n Number of quadrature points (default 20)
 	 * @return IntegrationResult
 	 */
-	static IntegrationResult IntegrateGaussHermite(const IRealFunction& func, int n = 20)
+	static IntegrationResult IntegrateGaussHermiteCore(const IRealFunction& func, int n = 20)
 	{
 		auto rule = GaussHermiteRule(n);
 		Real value = IntegrateWithRule(func, rule);
-		return IntegrationResult(value, 0.0, 1, true);
+		return IntegrationResult::FixedRule(value);
+	}
+
+	static Real IntegrateGaussHermite(const IRealFunction& func, int n = 20)
+	{
+		return IntegrateGaussHermiteCore(func, n).ValueOrThrow("IntegrateGaussHermite");
 	}
 
 	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
@@ -628,10 +640,7 @@ namespace MML
 			"GaussHermite", config, [&](IntegrationDetailedResult& r) {
 				auto rule = GaussHermiteRule(n);
 				r.value = IntegrateWithRule(func, rule);
-				r.error_estimate = 0.0;
-				r.iterations = 1;
-				r.converged = true;
-				r.function_evaluations = n;
+				r.MarkFixedRule(n);
 			});
 	}
 
@@ -652,12 +661,18 @@ namespace MML
 	 * @param n Number of quadrature points (default 20)
 	 * @return IntegrationResult
 	 */
-	static IntegrationResult IntegrateGaussJacobi(const IRealFunction& func, 
+	static IntegrationResult IntegrateGaussJacobiCore(const IRealFunction& func, 
 	                                               Real alpha, Real beta, int n = 20)
 	{
 		auto rule = GaussJacobiRule(n, alpha, beta);
 		Real value = IntegrateWithRule(func, rule);
-		return IntegrationResult(value, 0.0, 1, true);
+		return IntegrationResult::FixedRule(value);
+	}
+
+	static Real IntegrateGaussJacobi(const IRealFunction& func, 
+	                                               Real alpha, Real beta, int n = 20)
+	{
+		return IntegrateGaussJacobiCore(func, alpha, beta, n).ValueOrThrow("IntegrateGaussJacobi");
 	}
 
 	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
@@ -669,10 +684,7 @@ namespace MML
 			"GaussJacobi", config, [&](IntegrationDetailedResult& r) {
 				auto rule = GaussJacobiRule(n, alpha, beta);
 				r.value = IntegrateWithRule(func, rule);
-				r.error_estimate = 0.0;
-				r.iterations = 1;
-				r.converged = true;
-				r.function_evaluations = n;
+				r.MarkFixedRule(n);
 			});
 	}
 
@@ -688,11 +700,16 @@ namespace MML
 	 * @param n Number of quadrature points (default 20)
 	 * @return IntegrationResult
 	 */
-	static IntegrationResult IntegrateGaussChebyshev1(const IRealFunction& func, int n = 20)
+	static IntegrationResult IntegrateGaussChebyshev1Core(const IRealFunction& func, int n = 20)
 	{
 		auto rule = GaussChebyshev1Rule(n);
 		Real value = IntegrateWithRule(func, rule);
-		return IntegrationResult(value, 0.0, 1, true);
+		return IntegrationResult::FixedRule(value);
+	}
+
+	static Real IntegrateGaussChebyshev1(const IRealFunction& func, int n = 20)
+	{
+		return IntegrateGaussChebyshev1Core(func, n).ValueOrThrow("IntegrateGaussChebyshev1");
 	}
 
 	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
@@ -704,10 +721,7 @@ namespace MML
 			"GaussChebyshev1", config, [&](IntegrationDetailedResult& r) {
 				auto rule = GaussChebyshev1Rule(n);
 				r.value = IntegrateWithRule(func, rule);
-				r.error_estimate = 0.0;
-				r.iterations = 1;
-				r.converged = true;
-				r.function_evaluations = n;
+				r.MarkFixedRule(n);
 			});
 	}
 
@@ -723,11 +737,16 @@ namespace MML
 	 * @param n Number of quadrature points (default 20)
 	 * @return IntegrationResult
 	 */
-	static IntegrationResult IntegrateGaussChebyshev2(const IRealFunction& func, int n = 20)
+	static IntegrationResult IntegrateGaussChebyshev2Core(const IRealFunction& func, int n = 20)
 	{
 		auto rule = GaussChebyshev2Rule(n);
 		Real value = IntegrateWithRule(func, rule);
-		return IntegrationResult(value, 0.0, 1, true);
+		return IntegrationResult::FixedRule(value);
+	}
+
+	static Real IntegrateGaussChebyshev2(const IRealFunction& func, int n = 20)
+	{
+		return IntegrateGaussChebyshev2Core(func, n).ValueOrThrow("IntegrateGaussChebyshev2");
 	}
 
 	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
@@ -739,10 +758,7 @@ namespace MML
 			"GaussChebyshev2", config, [&](IntegrationDetailedResult& r) {
 				auto rule = GaussChebyshev2Rule(n);
 				r.value = IntegrateWithRule(func, rule);
-				r.error_estimate = 0.0;
-				r.iterations = 1;
-				r.converged = true;
-				r.function_evaluations = n;
+				r.MarkFixedRule(n);
 			});
 	}
 

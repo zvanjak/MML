@@ -59,6 +59,17 @@ namespace MML {
 		}
 
 		/// @brief Load dataset with auto-detected format
+		inline IOResult LoadData(const std::string& filename, Dataset& output, bool hasHeader = true) {
+			switch (DetectFormat(filename)) {
+			case DataFormat::JSON:
+				return LoadJSONSafe(filename, output);
+			case DataFormat::TSV:
+				return LoadTSVSafe(filename, output, hasHeader);
+			default:
+				return LoadCSVSafe(filename, output, hasHeader);
+			}
+		}
+
 		/// @param filename Path to file
 		/// @param hasHeader If true, first row is column names (for CSV/TSV)
 		/// @return Loaded dataset

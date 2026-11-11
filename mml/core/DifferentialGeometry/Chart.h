@@ -12,9 +12,10 @@
 #define MML_CORE_DIFFERENTIAL_GEOMETRY_CHART_H
 
 #include <mml/MMLBase.h>
+#include <array>
 
 #include <mml/base/DifferentialGeometry/DifferentialForm.h>
-#include <mml/base/DifferentialGeometry/Metric.h>
+#include <mml/core/DifferentialGeometry/Metric.h>
 #include <mml/base/DifferentialGeometry/Point.h>
 #include <mml/core/Derivation.h>
 
@@ -48,7 +49,7 @@ namespace MML::DifferentialGeometry
 			MatrixNM<Real, AmbientN, DomainN> jac = jacobian(atPoint);
 			TangentVector<AmbientN, AmbientFrame> result;
 			for (int i = 0; i < AmbientN; i++) {
-				result[i] = REAL(0.0);
+				result[i] = static_cast<MML::Real>(0.0);
 				for (int a = 0; a < DomainN; a++)
 					result[i] += jac(i, a) * vector[a];
 			}
@@ -62,7 +63,7 @@ namespace MML::DifferentialGeometry
 			MatrixNM<Real, AmbientN, DomainN> jac = jacobian(atPoint);
 			Covector<DomainN, DomainFrame> result;
 			for (int a = 0; a < DomainN; a++) {
-				result[a] = REAL(0.0);
+				result[a] = static_cast<MML::Real>(0.0);
 				for (int i = 0; i < AmbientN; i++)
 					result[a] += covector[i] * jac(i, a);
 			}
@@ -87,7 +88,7 @@ namespace MML::DifferentialGeometry
 
 			for (int sourceFlat = 0; sourceFlat < result.ComponentCount; sourceFlat++) {
 				auto sourceIndices = Detail::ChartUnflattenIndex<DomainN, K>(sourceFlat);
-				Real component = REAL(0.0);
+				Real component = static_cast<MML::Real>(0.0);
 
 				for (int targetFlat = 0; targetFlat < form.ComponentCount; targetFlat++) {
 					auto targetIndices = Detail::ChartUnflattenIndex<AmbientN, K>(targetFlat);
@@ -110,7 +111,7 @@ namespace MML::DifferentialGeometry
 
 			for (int a = 0; a < DomainN; a++) {
 				for (int b = 0; b < DomainN; b++) {
-					Real value = REAL(0.0);
+					Real value = static_cast<MML::Real>(0.0);
 					for (int i = 0; i < AmbientN; i++)
 						value += jac(i, a) * jac(i, b);
 					components(a, b) = value;
@@ -130,7 +131,7 @@ namespace MML::DifferentialGeometry
 		Real _jacobianStep;
 
 	public:
-		FunctionChart(const IVectorFunctionNM<DomainN, AmbientN>& embedding, Real jacobianStep = REAL(0.0))
+		FunctionChart(const IVectorFunctionNM<DomainN, AmbientN>& embedding, Real jacobianStep = static_cast<MML::Real>(0.0))
 			: _embedding(embedding), _jacobianStep(jacobianStep)
 		{
 		}
@@ -142,7 +143,7 @@ namespace MML::DifferentialGeometry
 
 		MatrixNM<Real, AmbientN, DomainN> jacobian(const Point<Real, DomainN, DomainFrame>& point) const override
 		{
-			return Derivation::calcJacobian<DomainN, AmbientN>(_embedding, point.coordinates(), _jacobianStep);
+			return Derivation::CalcJacobian<DomainN, AmbientN>(_embedding, point.coordinates(), _jacobianStep);
 		}
 	};
 

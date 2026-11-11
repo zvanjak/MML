@@ -8,6 +8,7 @@
 #define MML_STATISTICS_DISCRETE_DISTRIBUTIONS_H
 
 #include <mml/algorithms/Statistics.h>
+#include <mml/MMLExceptions.h>
 #include <mml/base/SpecialFunctions.h>
 #include <mml/base/Random.h>
 
@@ -217,7 +218,7 @@ namespace MML
 			{
 				if (p >= 1.0) return 0;
 				Real u = std::uniform_real_distribution<Real>(0.0, 1.0)(gen);
-				if (u < REAL(1e-300)) u = REAL(1e-300);
+				if (u < std::numeric_limits<Real>::min()) u = std::numeric_limits<Real>::min();   // underflow guard before log(u)
 				return static_cast<int>(std::floor(std::log(u) / std::log(1.0 - p)));
 			}
 			/// @brief Draw a random variate using MML's thread-local engine.
@@ -278,7 +279,7 @@ namespace MML
 				int total = 0;
 				for (int i = 0; i < r; ++i) {
 					Real u = U(gen);
-					if (u < REAL(1e-300)) u = REAL(1e-300);
+					if (u < std::numeric_limits<Real>::min()) u = std::numeric_limits<Real>::min();   // underflow guard before log(u)
 					total += static_cast<int>(std::floor(std::log(u) / std::log(1.0 - p)));
 				}
 				return total;

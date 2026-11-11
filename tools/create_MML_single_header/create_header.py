@@ -36,7 +36,8 @@ listFiles = [
     "mml/MMLBase.h",
     "mml/MMLNumericValidation.h",
     "mml/MMLSingularityHandling.h",
-    "mml/MMLVisualizators.h",
+    # [AGGREGATE] "mml/MMLVisualizators.h",  # Configuration compatibility include
+    "mml/tools/visualizers/VisualizerConfig.h",
 
     # =========================================================================
     # INTERFACES - Abstract base classes (part 1 - no dependencies)
@@ -50,19 +51,10 @@ listFiles = [
     "mml/base/Intervals.h",
 
     # Algebra metadata and foundational contracts
-    "mml/base/Algebra/AlgebraTraits.h",
-    "mml/base/Algebra/Permutation.h",
-    "mml/base/Algebra/FiniteGroup.h",
-    "mml/base/Algebra/CyclicGroup.h",
-    "mml/base/Algebra/DihedralGroup.h",
-    "mml/base/Algebra/GroupAction.h",
-    "mml/base/Algebra/ModInt.h",
-    "mml/base/Algebra/ModularStructures.h",
-    "mml/base/Algebra/Polynomial.h",
-    "mml/base/Algebra/FiniteField.h",
 
     # Matrix print formatting (standalone, no MML deps)
     "mml/base/Matrix/MatrixPrintFormat.h",
+    "mml/base/PrintFormatting.h",
 
     # Standard math functions
     "mml/base/StandardFunctions.h",
@@ -95,7 +87,6 @@ listFiles = [
     "mml/base/Matrix/MatrixNM.h",
 
     # Algebra representations depend on fixed-size matrices and vectors
-    "mml/base/Algebra/Representation.h",
     "mml/base/Matrix/MatrixSym.h",
     "mml/base/Matrix/MatrixTriDiag.h",
     "mml/base/Matrix/MatrixBandDiag.h",
@@ -109,7 +100,6 @@ listFiles = [
     # Typed rank-1 tensor and typed geometry primitives
     "mml/base/Tensor/Rank1Tensor.h",
     "mml/base/DifferentialGeometry/Point.h",
-    "mml/base/DifferentialGeometry/Metric.h",
     "mml/base/DifferentialGeometry/DifferentialForm.h",
     "mml/base/DifferentialGeometry/Hodge.h",
 
@@ -129,6 +119,9 @@ listFiles = [
 
     # Shared algorithm config/result contracts used by base-level detailed APIs
     "mml/base/AlgorithmTypes.h",
+    "mml/base/ThreadPool.h",
+    "mml/base/ParallelExecution.h",
+    "mml/base/TrajectoryStorage.h",
 
     # Interfaces dependent on base objects
     "mml/interfaces/IFunction.h",
@@ -230,17 +223,14 @@ listFiles = [
     # CORE - Core algorithms and operations
     # =========================================================================
     # Algebra law checks and operations over base algebraic structures
-    "mml/base/Algebra/Algorithms/AlgebraLawChecks.h",
-    "mml/base/Algebra/Algorithms/FiniteGroupAlgorithms.h",
-    "mml/base/Algebra/Algorithms/GroupActionAlgorithms.h",
-    "mml/base/Algebra/Algorithms/ModularArithmeticAlgorithms.h",
-    "mml/base/Algebra/Algorithms/FieldMatrixAlgorithms.h",
-    "mml/base/Algebra/Algorithms/PolynomialAlgorithms.h",
-    "mml/base/Algebra/Algorithms/RepresentationAlgorithms.h",
+    "mml/algorithms/MatrixAlg/FieldMatrixAlgorithms.h",
 
     # Linear algebra solvers - Individual components (in LinAlgEqSolvers/ subfolder)
     # [AGGREGATE] "mml/core/LinAlgEqSolvers.h",  # Only includes LinAlgEqSolvers/* headers below
     "mml/core/LinAlgEqSolvers/LinAlgDirect.h",
+    "mml/algorithms/MatrixAlg/MatrixInversion.h",
+    "mml/algorithms/MatrixSingularity.h",
+    "mml/core/DifferentialGeometry/Metric.h",
     "mml/core/LinAlgEqSolvers/LinAlgQR.h",
     "mml/core/LinAlgEqSolvers/LinAlgSVD.h",
     "mml/core/LinAlgEqSolvers/LinAlgComplexSVD.h",
@@ -284,6 +274,7 @@ listFiles = [
     "mml/core/Derivation/ForwardAD.h",
     "mml/core/Derivation/ReverseAD.h",
     "mml/core/Derivation/ADJacobians.h",
+    "mml/core/Derivation/DerivativeProviders.h",
 
     # Integration - Individual components (in Integration/ subfolder)
     # [AGGREGATE] "mml/core/Integration.h",  # Only includes Integration/* headers below
@@ -302,6 +293,8 @@ listFiles = [
     "mml/core/Integration/PathIntegration.h",
     "mml/core/Integration/SurfaceIntegration.h",
     "mml/core/Integration/MonteCarloIntegration.h",
+    "mml/core/Integration/IntegrationParallel.h",
+    "mml/core/Integration/MonteCarloParallel.h",
 
     # Function helpers and fields
     "mml/core/FunctionHelpers.h",
@@ -322,8 +315,10 @@ listFiles = [
     "mml/core/DifferentialGeometry/CoordinateMap.h",
 
     # Field operations, curves, surfaces
+    # Standard primitives and geometry operations only; showcase catalogs live in test_data/.
     "mml/core/Curves.h",
     "mml/core/Surfaces.h",
+    "mml/core/Derivation/ADAdapters.h",
     "mml/core/Fields/TensorFieldAdapters.h",
 
     # Function spaces and bases
@@ -332,25 +327,6 @@ listFiles = [
     "mml/core/OrthogonalBasis/ChebyshevBasis.h",
     "mml/core/OrthogonalBasis/HermiteBasis.h",
     "mml/core/OrthogonalBasis/LaguerreBasis.h",
-
-    # Function spaces - Individual components (in FunctionSpaces/ subfolder)
-    "mml/core/FunctionSpaces/FunctionSpacesBase.h",
-    "mml/core/FunctionSpaces/FunctionSpace1D.h",
-    "mml/core/FunctionSpaces/TrialSpace1D.h",
-    "mml/core/FunctionSpaces/FunctionExpansion1D.h",
-    "mml/core/FunctionSpaces/FunctionSpaceResult.h",
-    "mml/core/FunctionSpaces/OrthogonalBasisTrialSpace1D.h",
-    "mml/core/FunctionSpaces/Projection.h",
-    "mml/core/FunctionSpaces/Interpolation.h",
-    "mml/core/FunctionSpaces/ChebyshevCollocationSpace1D.h",
-    "mml/core/FunctionSpaces/LinearDifferentialOperator1D.h",
-    "mml/core/FunctionSpaces/BoundaryCondition1D.h",
-    "mml/core/FunctionSpaces/OperatorAssembly.h",
-    "mml/core/FunctionSpaces/DenseBVPSolver1D.h",
-    "mml/core/FunctionSpaces/BVPDiagnostics1D.h",
-    "mml/core/FunctionSpaces/LinearOperator.h",
-    "mml/core/FunctionSpaces/MatrixFreeOperators1D.h",
-    # [AGGREGATE] "mml/core/FunctionSpaces.h",  # Includes FunctionSpaces/* headers above
 
     # Complex analysis (contour integration, residues, argument principle)
     "mml/core/ComplexAnalysis.h",
@@ -402,6 +378,7 @@ listFiles = [
     "mml/algorithms/ODESolvers/ODESteppers.h",
     "mml/algorithms/ODESolvers/ODESolverFixedStep.h",
     "mml/algorithms/ODESolvers/ODESolverAdaptive.h",
+    "mml/algorithms/ImplicitNewtonMatrix.h",
     "mml/algorithms/ODESolvers/ODESolverStiff.h",
     "mml/algorithms/ODESolvers/ODESolverEventDetection.h",
     "mml/algorithms/ODESolvers/BVPShootingMethod.h",
@@ -414,7 +391,8 @@ listFiles = [
     "mml/algorithms/DAESolvers/DAEAdaptive.h",
     "mml/algorithms/DAESolvers/DAEBDF2.h",
     "mml/algorithms/DAESolvers/DAEBDF4.h",
-    "mml/algorithms/DAESolvers/DAERODAS.h",
+    "mml/algorithms/DAESolvers/DAELinearlyImplicit.h",
+    "mml/algorithms/DAESolvers/DAERODAS4.h",
     "mml/algorithms/DAESolvers/DAERadauIIA.h",
     "mml/algorithms/DAESolvers/DAEEventDetection.h",
 
@@ -487,6 +465,9 @@ listFiles = [
     "mml/tools/CsvUtils.h",
     "mml/tools/ConsolePrinter.h",
 	"mml/tools/IOResult.h",
+	"mml/tools/TextIOFormat.h",
+    "mml/tools/analyzers/FunctionAnalysisReports.h",
+    "mml/tools/analyzers/MatrixAnalysisReports.h",
 
 	# Persistence - Durable object save/load components
 	# [AGGREGATE] "mml/tools/Persistence.h",  # Only includes persistence/* headers below
@@ -496,6 +477,7 @@ listFiles = [
     "mml/tools/persistence/VectorBinary.h",
     "mml/tools/persistence/MatrixBinary.h",
 	"mml/tools/persistence/VectorJSON.h",
+    "mml/tools/persistence/VectorIO.h",
 	"mml/tools/persistence/MatrixJSON.h",
 	"mml/tools/persistence/FunctionJSON.h",
 	"mml/tools/persistence/MatrixIO.h",
@@ -510,8 +492,10 @@ listFiles = [
     "mml/tools/serializer/SerializerODE.h",
     "mml/tools/serializer/SerializerSimulation.h",
 
-    "mml/tools/Visualizer.h",
-    "mml/tools/ThreadPool.h",
+    # [AGGREGATE] "mml/tools/Visualizer.h",  # Public umbrella for the facade
+    "mml/tools/visualizers/VisualizerFiles.h",
+    "mml/tools/visualizers/VisualizerProcess.h",
+    "mml/tools/visualizers/VisualizerFacade.h",
     "mml/tools/Timer.h",
 
     # DataLoader - Individual components (in data_loader/ subfolder)

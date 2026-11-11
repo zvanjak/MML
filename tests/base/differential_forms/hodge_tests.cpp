@@ -1,4 +1,5 @@
 #include <catch2/catch_all.hpp>
+#include <mml/core/DifferentialGeometry/Metric.h>
 
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
@@ -29,11 +30,11 @@ namespace MML::Tests::Base::HodgeTests
 		auto starDy = HodgeStar(dy, metric);
 		auto negativeStarDx = HodgeStar(dx, metric, Orientation::Negative);
 
-		REQUIRE(starDx.Component(0) == REAL(0.0));
-		REQUIRE(starDx.Component(1) == REAL(1.0));
-		REQUIRE(starDy.Component(0) == -REAL(1.0));
-		REQUIRE(starDy.Component(1) == REAL(0.0));
-		REQUIRE(negativeStarDx.Component(1) == -REAL(1.0));
+		REQUIRE(starDx.Component(0) == static_cast<MML::Real>(0.0));
+		REQUIRE(starDx.Component(1) == static_cast<MML::Real>(1.0));
+		REQUIRE(starDy.Component(0) == -static_cast<MML::Real>(1.0));
+		REQUIRE(starDy.Component(1) == static_cast<MML::Real>(0.0));
+		REQUIRE(negativeStarDx.Component(1) == -static_cast<MML::Real>(1.0));
 	}
 
 	TEST_CASE("HodgeStar - Double star identities in Euclidean dimensions", "[Hodge][DifferentialForms]")
@@ -41,40 +42,40 @@ namespace MML::Tests::Base::HodgeTests
 		Metric<2, Cartesian2> metric2 = Metric<2, Cartesian2>::Euclidean();
 		auto dx2 = BasisOneForm<0, 2, Cartesian2>();
 		auto doubleDx2 = HodgeStar(HodgeStar(dx2, metric2), metric2);
-		REQUIRE(doubleDx2.Component(0) == -REAL(1.0));
-		REQUIRE(doubleDx2.Component(1) == REAL(0.0));
+		REQUIRE(doubleDx2.Component(0) == -static_cast<MML::Real>(1.0));
+		REQUIRE(doubleDx2.Component(1) == static_cast<MML::Real>(0.0));
 
 		Metric<3, Cartesian3> metric3 = Metric<3, Cartesian3>::Euclidean();
 		auto dx3 = BasisOneForm<0, 3, Cartesian3>();
 		auto doubleDx3 = HodgeStar(HodgeStar(dx3, metric3), metric3);
-		REQUIRE(doubleDx3.Component(0) == REAL(1.0));
-		REQUIRE(doubleDx3.Component(1) == REAL(0.0));
-		REQUIRE(doubleDx3.Component(2) == REAL(0.0));
+		REQUIRE(doubleDx3.Component(0) == static_cast<MML::Real>(1.0));
+		REQUIRE(doubleDx3.Component(1) == static_cast<MML::Real>(0.0));
+		REQUIRE(doubleDx3.Component(2) == static_cast<MML::Real>(0.0));
 	}
 
 	TEST_CASE("HodgeStar - Diagonal metric changes one-form scale", "[Hodge][DifferentialForms]")
 	{
-		Metric<2, Cartesian2> metric = Metric<2, Cartesian2>::Diagonal({ REAL(4.0), REAL(9.0) });
+		Metric<2, Cartesian2> metric = Metric<2, Cartesian2>::Diagonal({ static_cast<MML::Real>(4.0), static_cast<MML::Real>(9.0) });
 		auto dx = BasisOneForm<0, 2, Cartesian2>();
 
 		auto starDx = HodgeStar(dx, metric);
 
-		REQUIRE(starDx.Component(0) == REAL(0.0));
-		REQUIRE(starDx.Component(1) == Catch::Approx(REAL(1.5)));
+		REQUIRE(starDx.Component(0) == static_cast<MML::Real>(0.0));
+		REQUIRE(starDx.Component(1) == Catch::Approx(static_cast<MML::Real>(1.5)));
 	}
 
 	TEST_CASE("Cross - Derived typed 3D cross product matches Cartesian formula", "[Hodge][CrossProduct][DifferentialForms]")
 	{
 		Metric<3, Cartesian3> metric = Metric<3, Cartesian3>::Euclidean();
-		TangentVector<3, Cartesian3> a{ REAL(1.0), REAL(2.0), REAL(3.0) };
-		TangentVector<3, Cartesian3> b{ REAL(4.0), -REAL(5.0), REAL(6.0) };
+		TangentVector<3, Cartesian3> a{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) };
+		TangentVector<3, Cartesian3> b{ static_cast<MML::Real>(4.0), -static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0) };
 
 		TangentVector<3, Cartesian3> c = Cross(a, b, metric);
 		TangentVector<3, Cartesian3> flipped = Cross(a, b, metric, Orientation::Negative);
 
-		REQUIRE(c[0] == REAL(27.0));
-		REQUIRE(c[1] == REAL(6.0));
-		REQUIRE(c[2] == -REAL(13.0));
+		REQUIRE(c[0] == static_cast<MML::Real>(27.0));
+		REQUIRE(c[1] == static_cast<MML::Real>(6.0));
+		REQUIRE(c[2] == -static_cast<MML::Real>(13.0));
 		REQUIRE(flipped[0] == -c[0]);
 		REQUIRE(flipped[1] == -c[1]);
 		REQUIRE(flipped[2] == -c[2]);

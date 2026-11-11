@@ -82,7 +82,7 @@ TEST_CASE("Sphere3D::GetCenter", "[geometry][sphere][center]")
     SECTION("Sphere centered at origin")
     {
         Sphere3D sphere(5.0);
-        Pnt3Cart center = sphere.GetCenter();
+        Pnt3Cart center = sphere.getCenter();
         REQUIRE_THAT(center.X() , RealApprox(0.0));
         REQUIRE_THAT(center.Y() , RealApprox(0.0));
         REQUIRE_THAT(center.Z() , RealApprox(0.0));
@@ -92,7 +92,7 @@ TEST_CASE("Sphere3D::GetCenter", "[geometry][sphere][center]")
     {
         Pnt3Cart expected(10.0, 20.0, 30.0);
         Sphere3D sphere(5.0, expected);
-        Pnt3Cart center = sphere.GetCenter();
+        Pnt3Cart center = sphere.getCenter();
         REQUIRE_THAT(center.X() , RealApprox(10.0));
         REQUIRE_THAT(center.Y() , RealApprox(20.0));
         REQUIRE_THAT(center.Z() , RealApprox(30.0));
@@ -104,7 +104,7 @@ TEST_CASE("Sphere3D::GetBoundingBox", "[geometry][sphere][bounding]")
     SECTION("Unit sphere centered at origin")
     {
         Sphere3D sphere(1.0);
-        Box3D bbox = sphere.GetBoundingBox();
+        Box3D bbox = sphere.getBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-1.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(-1.0));
@@ -118,7 +118,7 @@ TEST_CASE("Sphere3D::GetBoundingBox", "[geometry][sphere][bounding]")
     SECTION("Sphere with radius 5 centered at origin")
     {
         Sphere3D sphere(5.0);
-        Box3D bbox = sphere.GetBoundingBox();
+        Box3D bbox = sphere.getBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-5.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(-5.0));
@@ -133,7 +133,7 @@ TEST_CASE("Sphere3D::GetBoundingBox", "[geometry][sphere][bounding]")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         Sphere3D sphere(3.0, center);
-        Box3D bbox = sphere.GetBoundingBox();
+        Box3D bbox = sphere.getBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(7.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(17.0));
@@ -147,7 +147,7 @@ TEST_CASE("Sphere3D::GetBoundingBox", "[geometry][sphere][bounding]")
     SECTION("Bounding box dimensions match diameter")
     {
         Sphere3D sphere(7.5);
-        Box3D bbox = sphere.GetBoundingBox();
+        Box3D bbox = sphere.getBoundingBox();
         Real width = bbox.Max().X() - bbox.Min().X();
         Real height = bbox.Max().Y() - bbox.Min().Y();
         Real depth = bbox.Max().Z() - bbox.Min().Z();
@@ -163,7 +163,7 @@ TEST_CASE("Sphere3D::GetBoundingSphere", "[geometry][sphere][bounding]")
     SECTION("Bounding sphere equals sphere itself - origin")
     {
         Sphere3D sphere(5.0);
-        BoundingSphere3D bsphere = sphere.GetBoundingSphere();
+        BoundingSphere3D bsphere = sphere.getBoundingSphere();
         
         REQUIRE_THAT(bsphere.Center().X() , RealApprox(0.0));
         REQUIRE_THAT(bsphere.Center().Y() , RealApprox(0.0));
@@ -175,7 +175,7 @@ TEST_CASE("Sphere3D::GetBoundingSphere", "[geometry][sphere][bounding]")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         Sphere3D sphere(3.0, center);
-        BoundingSphere3D bsphere = sphere.GetBoundingSphere();
+        BoundingSphere3D bsphere = sphere.getBoundingSphere();
         
         REQUIRE_THAT(bsphere.Center().X() , RealApprox(10.0));
         REQUIRE_THAT(bsphere.Center().Y() , RealApprox(20.0));
@@ -186,7 +186,7 @@ TEST_CASE("Sphere3D::GetBoundingSphere", "[geometry][sphere][bounding]")
     SECTION("Bounding sphere volume matches sphere volume")
     {
         Sphere3D sphere(7.0);
-        BoundingSphere3D bsphere = sphere.GetBoundingSphere();
+        BoundingSphere3D bsphere = sphere.getBoundingSphere();
         
         REQUIRE_THAT(bsphere.Volume() , RealApprox(sphere.Volume()).epsilon(TOL(1e-10, 1e-5)));
     }
@@ -197,7 +197,7 @@ TEST_CASE("Sphere3D::ToString", "[geometry][sphere][string]")
     SECTION("Sphere at origin")
     {
         Sphere3D sphere(5.0);
-        std::string str = sphere.ToString();
+        std::string str = sphere.to_string();
         
         // Verify string contains key components
         REQUIRE(str.find("Sphere3D") != std::string::npos);
@@ -211,7 +211,7 @@ TEST_CASE("Sphere3D::ToString", "[geometry][sphere][string]")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         Sphere3D sphere(3.0, center);
-        std::string str = sphere.ToString();
+        std::string str = sphere.to_string();
         
         // Verify string contains coordinates and radius
         REQUIRE(str.find("10") != std::string::npos);
@@ -226,21 +226,21 @@ TEST_CASE("Sphere3D::Getters", "[geometry][sphere][getters]")
     SECTION("GetRadius returns correct value")
     {
         Sphere3D sphere(7.5);
-        REQUIRE_THAT(sphere.GetRadius() , RealApprox(7.5));
+        REQUIRE_THAT(sphere.getRadius() , RealApprox(7.5));
     }
 
     SECTION("GetNumLatitude and GetNumLongitude return tessellation parameters")
     {
         Sphere3D sphere(5.0, 32, 48);
-        REQUIRE(sphere.GetNumLatitude() == 32);
-        REQUIRE(sphere.GetNumLongitude() == 48);
+        REQUIRE(sphere.getNumLatitude() == 32);
+        REQUIRE(sphere.getNumLongitude() == 48);
     }
 
     SECTION("Default tessellation parameters")
     {
         Sphere3D sphere(5.0);
-        REQUIRE(sphere.GetNumLatitude() == 16);
-        REQUIRE(sphere.GetNumLongitude() == 20);
+        REQUIRE(sphere.getNumLatitude() == 16);
+        REQUIRE(sphere.getNumLongitude() == 20);
     }
 }
 

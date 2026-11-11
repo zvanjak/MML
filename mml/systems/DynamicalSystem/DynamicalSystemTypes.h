@@ -41,7 +41,7 @@ namespace MML::Systems
 	};
 
 	/// @brief Convert FixedPointType to string
-	inline std::string ToString(FixedPointType type) {
+	inline std::string to_string(FixedPointType type) {
 		switch (type) {
 		case FixedPointType::StableNode:
 			return "Stable Node";
@@ -65,6 +65,9 @@ namespace MML::Systems
 			return "Unknown";
 		}
 	}
+	/// @deprecated Use to_string() (CONTRACT_POLICY section 11: STL spelling).
+	[[deprecated("use to_string()")]]
+	inline std::string ToString(FixedPointType type) { return to_string(type); }
 
 	//=============================================================================
 	// RESULT STRUCTURES
@@ -76,22 +79,22 @@ namespace MML::Systems
 		Vector<Type> location;											 ///< Position in state space
 		std::vector<std::complex<Type>> eigenvalues; ///< Jacobian eigenvalues
 		Matrix<Type> jacobian;											 ///< Jacobian at fixed point
-		FixedPointType type;												 ///< Stability classification
-		bool isStable;															 ///< Overall stability
-		Type convergenceResidual;										 ///< ||f(x*)|| at convergence
-		int iterations;															 ///< Newton iterations used
+		FixedPointType type = FixedPointType::Unknown;												 ///< Stability classification
+		bool isStable = false;															 ///< Overall stability (false until classified)
+		Type convergenceResidual = Type(0);										 ///< ||f(x*)|| at convergence
+		int iterations = 0;															 ///< Newton iterations used
 	};
 
 	/// @brief Result of Lyapunov exponent computation
 	template<typename Type = Real>
 	struct LyapunovResult {
 		Vector<Type> exponents;			///< Lyapunov exponents (λ₁ ≥ λ₂ ≥ ... ≥ λₙ)
-		Type maxExponent;						///< Largest exponent (λ₁)
-		Type sum;										///< Sum of all exponents
-		Type kaplanYorkeDimension;	///< Kaplan-Yorke dimension
-		bool isChaotic;							///< True if λ₁ > 0
-		int numOrthonormalizations; ///< Number of QR steps performed
-		Type totalTime;							///< Total integration time
+		Type maxExponent = Type(0);						///< Largest exponent (λ₁)
+		Type sum = Type(0);										///< Sum of all exponents
+		Type kaplanYorkeDimension = Type(0);	///< Kaplan-Yorke dimension
+		bool isChaotic = false;							///< True if λ₁ > 0
+		int numOrthonormalizations = 0; ///< Number of QR steps performed
+		Type totalTime = Type(0);							///< Total integration time
 	};
 
 	/// @brief Result of bifurcation sweep
@@ -100,8 +103,8 @@ namespace MML::Systems
 		std::string parameterName;											///< Name of swept parameter
 		std::vector<Type> parameterValues;							///< Parameter values
 		std::vector<std::vector<Type>> attractorValues; ///< Attractor points at each param
-		int numTransientSteps;													///< Transient removal steps
-		int numRecordedPoints;													///< Points recorded per parameter
+		int numTransientSteps = 0;													///< Transient removal steps
+		int numRecordedPoints = 0;													///< Points recorded per parameter
 	};
 
 	/// @brief Poincaré section definition

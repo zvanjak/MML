@@ -23,6 +23,7 @@
 #define MML_GEOMETRY_3D_BODY_BASE_H
 
 #include <cmath>
+#include <algorithm>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -59,17 +60,17 @@ namespace MML {
 		}
 
 		inline Real DerivativeX(Real (*function)(Real, Real), Real x, Real y) {
-			const Real step = 1.0e-5 * (1.0 + std::abs(x));
+			const Real step = Precision::CbrtEps * (1.0 + std::abs(x));   // 2nd-order central difference
 			return (function(x + step, y) - function(x - step, y)) / (2.0 * step);
 		}
 
 		inline Real DerivativeY(Real (*function)(Real, Real), Real x, Real y) {
-			const Real step = 1.0e-5 * (1.0 + std::abs(y));
+			const Real step = Precision::CbrtEps * (1.0 + std::abs(y));
 			return (function(x, y + step) - function(x, y - step)) / (2.0 * step);
 		}
 
 		inline Real Derivative(Real (*function)(Real), Real x) {
-			const Real step = 1.0e-5 * (1.0 + std::abs(x));
+			const Real step = Precision::CbrtEps * (1.0 + std::abs(x));
 			return (function(x + step) - function(x - step)) / (2.0 * step);
 		}
 
@@ -137,7 +138,7 @@ namespace MML {
 				momentZ += tetrahedronVolume * centroid.Z();
 			}
 
-			if (std::abs(signedVolume) <= Constants::GEOMETRY_EPSILON)
+			if (std::abs(signedVolume) <= Precision::GeometryEpsilon)
 				throw GeometryError("Cannot calculate the center of a zero-volume surface mesh");
 			return Pnt3Cart(momentX / signedVolume, momentY / signedVolume, momentZ / signedVolume);
 		}
@@ -159,10 +160,10 @@ namespace MML {
 			const Vec3Cart edge2(triangle.Pnt1(), triangle.Pnt3());
 			const Vec3Cart normal = VectorProduct(edge1, edge2);
 			const Real normalLength = normal.NormL2();
-			if (normalLength <= Constants::GEOMETRY_EPSILON)
+			if (normalLength <= Precision::GeometryEpsilon)
 				return false;
 			const Real distance = std::abs(ScalarProduct(Vec3Cart(triangle.Pnt1(), point), normal)) / normalLength;
-			return distance <= Constants::GEOMETRY_EPSILON && triangle.IsPointInside(point);
+			return distance <= Precision::GeometryEpsilon && triangle.IsPointInside(point);
 		}
 
 		inline bool IsInside(const Pnt3Cart& point, const std::vector<Triangle3D>& triangles) {
@@ -196,13 +197,13 @@ namespace MML {
 		/// @{
 		virtual Real Volume() const = 0;		///< Total enclosed volume
 		virtual Real SurfaceArea() const = 0;	///< Total surface area
-		virtual Pnt3Cart GetCenter() const = 0; ///< Geometric centroid
+		virtual Pnt3Cart getCenter() const = 0; ///< Geometric centroid
 		/// @}
 
 		/// @name Bounding Volumes
 		/// @{
-		virtual Box3D GetBoundingBox() const = 0;				///< Axis-aligned bounding box
-		virtual BoundingSphere3D GetBoundingSphere() const = 0; ///< Bounding sphere
+		virtual Box3D getBoundingBox() const = 0;				///< Axis-aligned bounding box
+		virtual BoundingSphere3D getBoundingSphere() const = 0; ///< Bounding sphere
 		/// @}
 
 		/// @name Spatial Queries
@@ -215,7 +216,21 @@ namespace MML {
 		virtual bool IsInside(const Pnt3Cart& pnt) const = 0;
 		/// @}
 
-		virtual std::string ToString() const = 0;
+		virtual std::string to_string() const = 0;
+		/// @deprecated Use to_string() (CONTRACT_POLICY section 11: STL spelling). Non-virtual forwarder.
+		[[deprecated("use to_string()")]]
+		std::string ToString() const { return to_string(); }
+
+		/// @deprecated Use getCenter() (CONTRACT_POLICY §11: accessors are getX()). Non-virtual forwarder;
+		/// implementers override the lowerCamel name.
+		[[deprecated("use getCenter()")]]
+		Pnt3Cart GetCenter() const { return getCenter(); }
+		/// @deprecated Use getBoundingBox().
+		[[deprecated("use getBoundingBox()")]]
+		Box3D GetBoundingBox() const { return getBoundingBox(); }
+		/// @deprecated Use getBoundingSphere().
+		[[deprecated("use getBoundingSphere()")]]
+		BoundingSphere3D GetBoundingSphere() const { return getBoundingSphere(); }
 
 		virtual ~IBody() = default;
 	};
@@ -316,9 +331,9 @@ namespace MML {
 				+ xWallArea(_x1) + xWallArea(_x2);
 		}
 
-		virtual Pnt3Cart GetCenter() const override {
+		virtual Pnt3Cart getCenter() const override {
 			const Real volume = Volume();
-			if (std::abs(volume) <= Constants::GEOMETRY_EPSILON)
+			if (std::abs(volume) <= Precision::GeometryEpsilon)
 				throw GeometryError("Cannot calculate the center of a zero-volume bounded solid");
 
 			const auto integrate = [&](const auto& integrand) {
@@ -334,7 +349,7 @@ namespace MML {
 			return Pnt3Cart(momentX / volume, momentY / volume, momentZ / volume);
 		}
 
-		virtual Box3D GetBoundingBox() const override {
+		virtual Box3D getBoundingBox() const override {
 			Real minY = _y1(_x1);
 			Real maxY = _y2(_x1);
 			Real minZ = _z1(_x1, minY);
@@ -354,9 +369,9 @@ namespace MML {
 			return Box3D(Pnt3Cart(_x1, minY, minZ), Pnt3Cart(_x2, maxY, maxZ));
 		}
 
-		virtual BoundingSphere3D GetBoundingSphere() const override {
-			Pnt3Cart center = GetCenter();
-			Box3D box = GetBoundingBox();
+		virtual BoundingSphere3D getBoundingSphere() const override {
+			Pnt3Cart center = getCenter();
+			Box3D box = getBoundingBox();
 
 			Real radius = 0.0;
 			for (Real x : {box.Min().X(), box.Max().X()})
@@ -366,7 +381,7 @@ namespace MML {
 			return BoundingSphere3D(center, radius);
 		}
 
-		virtual std::string ToString() const override {
+		virtual std::string to_string() const override {
 			std::ostringstream oss;
 			oss << "ISolidBodyWithBoundary[x∈[" << _x1 << "," << _x2 << "]]";
 			return oss.str();
@@ -419,25 +434,31 @@ namespace MML {
 	public:
 		/// /** @brief Get the number of triangular faces. */
 
-		int GetSurfaceCount() const { return _surfaces.size(); }
+		int getSurfaceCount() const { return _surfaces.size(); }
+		/// @deprecated Use getSurfaceCount() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getSurfaceCount()")]]
+		int GetSurfaceCount() const { return getSurfaceCount(); }
 
 		/// @brief Access a triangle face by index.
-		/// @param index Face index (0 to GetSurfaceCount()-1)
+		/// @param index Face index (0 to getSurfaceCount()-1)
 		/// @throws IndexError if index invalid
 
-		const Triangle3D& GetSurface(int index) const {
-			if (index < 0 || index >= GetSurfaceCount())
-				throw IndexError("BodyWithTriangleSurfaces::GetSurface - index out of range");
+		const Triangle3D& getSurface(int index) const {
+			if (index < 0 || index >= getSurfaceCount())
+				throw IndexError("BodyWithTriangleSurfaces::getSurface - index out of range");
 			return _surfaces[index];
 		}
+		/// @deprecated Use getSurface() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getSurface()")]]
+		const Triangle3D& GetSurface(int index) const { return getSurface(index); }
 
 		Real Volume() const override { return Geometry3DBodyDetail::Volume(_surfaces); }
 		Real SurfaceArea() const override { return Geometry3DBodyDetail::SurfaceArea(_surfaces); }
-		Pnt3Cart GetCenter() const override { return Geometry3DBodyDetail::Center(_surfaces); }
-		Box3D GetBoundingBox() const override { return Geometry3DBodyDetail::BoundingBox(_surfaces); }
-		BoundingSphere3D GetBoundingSphere() const override { return Geometry3DBodyDetail::BoundingSphere(_surfaces); }
+		Pnt3Cart getCenter() const override { return Geometry3DBodyDetail::Center(_surfaces); }
+		Box3D getBoundingBox() const override { return Geometry3DBodyDetail::BoundingBox(_surfaces); }
+		BoundingSphere3D getBoundingSphere() const override { return Geometry3DBodyDetail::BoundingSphere(_surfaces); }
 		bool IsInside(const Pnt3Cart& pnt) const override { return Geometry3DBodyDetail::IsInside(pnt, _surfaces); }
-		std::string ToString() const override {
+		std::string to_string() const override {
 			std::ostringstream oss;
 			oss << "BodyWithTriangleSurfaces{Triangles=" << _surfaces.size() << ", Volume=" << Volume()
 				<< ", SurfaceArea=" << SurfaceArea() << "}";
@@ -459,24 +480,30 @@ namespace MML {
 		std::vector<RectSurface3D> _surfaces; ///< Rectangular faces
 
 	public:
-		int GetSurfaceCount() const { return static_cast<int>(_surfaces.size()); }
-		const RectSurface3D& GetSurface(int index) const {
-			if (index < 0 || index >= GetSurfaceCount())
-				throw IndexError("BodyWithRectSurfaces::GetSurface - index out of range");
+		int getSurfaceCount() const { return static_cast<int>(_surfaces.size()); }
+		/// @deprecated Use getSurfaceCount() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getSurfaceCount()")]]
+		int GetSurfaceCount() const { return getSurfaceCount(); }
+		const RectSurface3D& getSurface(int index) const {
+			if (index < 0 || index >= getSurfaceCount())
+				throw IndexError("BodyWithRectSurfaces::getSurface - index out of range");
 			return _surfaces[index];
 		}
+		/// @deprecated Use getSurface() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getSurface()")]]
+		const RectSurface3D& GetSurface(int index) const { return getSurface(index); }
 
 		Real Volume() const override { return Geometry3DBodyDetail::Volume(Geometry3DBodyDetail::Triangulate(_surfaces)); }
 		Real SurfaceArea() const override { return Geometry3DBodyDetail::SurfaceArea(Geometry3DBodyDetail::Triangulate(_surfaces)); }
-		Pnt3Cart GetCenter() const override { return Geometry3DBodyDetail::Center(Geometry3DBodyDetail::Triangulate(_surfaces)); }
-		Box3D GetBoundingBox() const override { return Geometry3DBodyDetail::BoundingBox(Geometry3DBodyDetail::Triangulate(_surfaces)); }
-		BoundingSphere3D GetBoundingSphere() const override {
+		Pnt3Cart getCenter() const override { return Geometry3DBodyDetail::Center(Geometry3DBodyDetail::Triangulate(_surfaces)); }
+		Box3D getBoundingBox() const override { return Geometry3DBodyDetail::BoundingBox(Geometry3DBodyDetail::Triangulate(_surfaces)); }
+		BoundingSphere3D getBoundingSphere() const override {
 			return Geometry3DBodyDetail::BoundingSphere(Geometry3DBodyDetail::Triangulate(_surfaces));
 		}
 		bool IsInside(const Pnt3Cart& pnt) const override {
 			return Geometry3DBodyDetail::IsInside(pnt, Geometry3DBodyDetail::Triangulate(_surfaces));
 		}
-		std::string ToString() const override {
+		std::string to_string() const override {
 			std::ostringstream oss;
 			oss << "BodyWithRectSurfaces{Quads=" << _surfaces.size() << ", Volume=" << Volume()
 				<< ", SurfaceArea=" << SurfaceArea() << "}";
@@ -499,9 +526,18 @@ namespace MML {
 			: _solids(solids) {}
 
 		void AddSolid(IBody* solid) { _solids.push_back(solid); }
-		size_t GetSolidCount() const { return _solids.size(); }
-		IBody* GetSolid(size_t index) { return _solids[index]; }
-		const IBody* GetSolid(size_t index) const { return _solids[index]; }
+		size_t getSolidCount() const { return _solids.size(); }
+		/// @deprecated Use getSolidCount() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getSolidCount()")]]
+		size_t GetSolidCount() const { return getSolidCount(); }
+		IBody* getSolid(size_t index) { return _solids[index]; }
+		/// @deprecated Use getSolid() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getSolid()")]]
+		IBody* GetSolid(size_t index)  { return getSolid(index); }
+		const IBody* getSolid(size_t index) const { return _solids[index]; }
+		/// @deprecated Use getSolid() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getSolid()")]]
+		const IBody* GetSolid(size_t index) const { return getSolid(index); }
 
 		/// /** @brief Test if point is inside any component solid. */
 

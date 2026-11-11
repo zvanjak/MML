@@ -10,8 +10,22 @@
 
 #include <iostream>
 #include <iomanip>
+#include <stdexcept>
 
 using namespace MML;
+
+void Docs_Demo_ProtectedDiracParameter()
+{
+	class CustomDelta : public DiracFunction {
+	public:
+		using DiracFunction::DiracFunction;
+		Real operator()(Real) const override { return static_cast<Real>(_sharpness); }
+	};
+	const CustomDelta custom(7);
+	if (custom(0) != 7)
+		throw std::runtime_error("Protected Dirac parameter regression");
+	std::cout << "Derived Dirac approximation accesses _sharpness: " << custom(0) << '\n';
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 /// Dirac Delta Function Approximations Demo

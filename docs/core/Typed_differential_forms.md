@@ -108,7 +108,7 @@ Use `DifferentialForm` directly when a generic algorithm needs arbitrary degree 
 
 ```cpp
 Form2<3, Cartesian3> omega;
-omega.SetAlternatingComponent(REAL(4.0), 0, 1);
+omega.SetAlternatingComponent(MML::Real(4.0), 0, 1);
 
 bool ok = omega.IsAlternating();        // true
 Real xy = omega.Component(0, 1);        //  4

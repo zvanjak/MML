@@ -95,7 +95,7 @@ namespace MML::Demos::Algorithms
             std::function<Real(Real)>([](Real x) { return std::exp(x); }),
             -1.0, 1.0, config);
 
-        std::cout << "Status: " << ToString(result.status) << "\n";
+        std::cout << "Status: " << to_string(result.status) << "\n";
         std::cout << "Terms used: " << result.terms_used << "\n";
         std::cout << "Coefficient tail: " << result.coefficient_tail_error << "\n";
         std::cout << "Sampled max/RMS error: " << result.max_error_estimate

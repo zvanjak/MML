@@ -34,7 +34,7 @@ namespace MML
 			}
 			else if constexpr (N == 4)
 			{
-				Real det = REAL(0.0);
+				Real det = static_cast<MML::Real>(0.0);
 				for (int col = 0; col < 4; col++)
 				{
 					MatrixNM<Real, 3, 3> minor;
@@ -48,7 +48,7 @@ namespace MML
 							minor(i - 1, minorCol++) = matrix(i, j);
 						}
 					}
-					Real cofactorSign = (col % 2 == 0) ? REAL(1.0) : -REAL(1.0);
+					Real cofactorSign = (col % 2 == 0) ? static_cast<MML::Real>(1.0) : -static_cast<MML::Real>(1.0);
 					det += cofactorSign * matrix(0, col) * DeterminantForLeviCivitaTensor<3>(minor);
 				}
 				return det;

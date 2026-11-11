@@ -7,6 +7,7 @@
 #include "base/InterpolatedFunction.h"
 
 #include "algorithms/Analyzers/FunctionsAnalyzer.h"
+#include <mml/tools/analyzers/FunctionAnalysisReports.h>
 #endif
 
 #include "../test_beds/real_functions_test_bed.h"
@@ -21,24 +22,24 @@ void Readme_function_analyzer()
 	std::cout << "***********************************************************************" << std::endl;
 
 	auto fTan = TestBeds::RealFunctionsTestBed::getFunc("Tan");
-	RealFunctionAnalyzer anTan(fTan._func, "tan(x)");
-	anTan.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
+	RealFunctionAnalyzer anTan(fTan._func);
+	AnalysisReports::PrintIntervalAnalysis(std::cout, anTan.AnalyzeInterval(-5.0, 5.0, 50, 1e-4));
 
 	auto fExp = TestBeds::RealFunctionsTestBed::getFunc("Exp");
-	RealFunctionAnalyzer anExp(fExp._func, "exp(x)");
-	anExp.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
+	RealFunctionAnalyzer anExp(fExp._func);
+	AnalysisReports::PrintIntervalAnalysis(std::cout, anExp.AnalyzeInterval(-5.0, 5.0, 50, 1e-4));
 
 	RealFunctionFromStdFunc stepFunc([](Real x) { 
 			if( x < 0) return Real(0.0);
 			else if( x > 0) return Real(1.0);
 			else return Real(0.5);
 		});
-	RealFunctionAnalyzer anStep(stepFunc, "step(x)");
-	anStep.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
+	RealFunctionAnalyzer anStep(stepFunc);
+	AnalysisReports::PrintIntervalAnalysis(std::cout, anStep.AnalyzeInterval(-5.0, 5.0, 50, 1e-4));
 
 	RealFunction test1([](Real x) { return 1 / (x - 1); });
-	RealFunctionAnalyzer an(test1, "1 / (x - 1)");
-	an.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
+	RealFunctionAnalyzer an(test1);
+	AnalysisReports::PrintIntervalAnalysis(std::cout, an.AnalyzeInterval(-5.0, 5.0, 50, 1e-4));
 
 /* OUTPUT
 f(x) = tan(x) - Function analysis in interval [-5.00000000, 5.00000000] with 50 points:

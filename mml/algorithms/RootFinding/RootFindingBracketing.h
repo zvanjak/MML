@@ -13,6 +13,7 @@
 #define MML_ROOTFINDING_BRACKETING_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/MMLNumericValidation.h>
 
 #include <mml/interfaces/IFunction.h>
@@ -28,9 +29,9 @@ namespace MML {
 		/*****           Forward Declarations                            *****/
 		/*********************************************************************/
 		// Config-based overloads declared here so simple versions can call them
-		static RootFindingResult FindRootBisection(const IRealFunction& func, Real x1, Real x2, 
+		static RootFindingResult FindRootBisectionDetailed(const IRealFunction& func, Real x1, Real x2, 
 												   const RootFindingConfig& config);
-		static RootFindingResult FindRootFalsePosition(const IRealFunction& func, Real x1, Real x2,
+		static RootFindingResult FindRootFalsePositionDetailed(const IRealFunction& func, Real x1, Real x2,
 													   const RootFindingConfig& config);
 
 		/*********************************************************************/
@@ -155,8 +156,8 @@ namespace MML {
 			RootIsolationConfig config;
 			config.num_intervals = numPoints;
 			auto candidates = FindRootIntervals(func, x1, x2, config);
-			xb1.Resize(static_cast<int>(candidates.size()));
-			xb2.Resize(static_cast<int>(candidates.size()));
+			xb1.resize(static_cast<int>(candidates.size()));
+			xb2.resize(static_cast<int>(candidates.size()));
 			const Real step = (x2 - x1) / numPoints;
 			for (int i = 0; i < static_cast<int>(candidates.size()); ++i) {
 				if (candidates[i].type == RootCandidateType::ExactSample) {
@@ -236,13 +237,13 @@ namespace MML {
 		/// - Guaranteed: root in [x1-xacc, x2+xacc]
 		///
 		/// Based on Numerical Recipes §9.1
-		/// @see FindRootBisection(const IRealFunction&, Real, Real, const RootFindingConfig&)
+		/// @see FindRootBisectionDetailed(const IRealFunction&, Real, Real, const RootFindingConfig&)
 		static Real FindRootBisection(const IRealFunction& func, Real x1, Real x2, Real xacc) {
 			RootFindingConfig config;
 			config.tolerance = xacc;
 			config.max_iterations = 0;  // Use default from Defaults namespace
 			
-			auto result = FindRootBisection(func, x1, x2, config);
+			auto result = FindRootBisectionDetailed(func, x1, x2, config);
 			if (!result.converged)
 				throw RootFindingError(result.error_message);
 			return result.root;
@@ -271,11 +272,11 @@ namespace MML {
 		/// RootFindingConfig config;
 		/// config.tolerance = 1e-12;
 		/// config.max_iterations = 100;
-		/// auto result = FindRootBisection(f, 0, 1, config);
+		/// auto result = FindRootBisectionDetailed(f, 0, 1, config);
 		/// if (result.converged) {
 		///     std::cout << "Root: " << result.root << " (iterations: " << result.iterations_used << ")\n";
 		/// }
-		static RootFindingResult FindRootBisection(const IRealFunction& func, Real x1, Real x2, 
+		static RootFindingResult FindRootBisectionDetailed(const IRealFunction& func, Real x1, Real x2, 
 												   const RootFindingConfig& config) {
 			RootFindingResult result;
 			RootFindingResultFinalizer finalizer(result, "Bisection");
@@ -362,11 +363,11 @@ namespace MML {
 
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static RootFindingResult FindRootBisection(Function&& func, Real x1, Real x2,
+		static RootFindingResult FindRootBisectionDetailed(Function&& func, Real x1, Real x2,
 											   const RootFindingConfig& config)
 		{
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
-			return FindRootBisection(adapter, x1, x2, config);
+			return FindRootBisectionDetailed(adapter, x1, x2, config);
 		}
 
 		/*********************************************************************/
@@ -426,13 +427,13 @@ namespace MML {
 		/// - Root guaranteed in original bracket
 		///
 		/// Based on Numerical Recipes §9.2
-		/// @see FindRootFalsePosition(const IRealFunction&, Real, Real, const RootFindingConfig&)
+		/// @see FindRootFalsePositionDetailed(const IRealFunction&, Real, Real, const RootFindingConfig&)
 		static Real FindRootFalsePosition(const IRealFunction& func, Real x1, Real x2, Real xacc) {
 			RootFindingConfig config;
 			config.tolerance = xacc;
 			config.max_iterations = 0;
 			
-			auto result = FindRootFalsePosition(func, x1, x2, config);
+			auto result = FindRootFalsePositionDetailed(func, x1, x2, config);
 			if (!result.converged)
 				throw RootFindingError(result.error_message);
 			return result.root;
@@ -447,7 +448,7 @@ namespace MML {
 		}
 
 		/// Find root using false position method with configurable parameters.
-		static RootFindingResult FindRootFalsePosition(const IRealFunction& func, Real x1, Real x2,
+		static RootFindingResult FindRootFalsePositionDetailed(const IRealFunction& func, Real x1, Real x2,
 													   const RootFindingConfig& config) {
 			RootFindingResult result;
 			RootFindingResultFinalizer finalizer(result, "FalsePosition");
@@ -532,12 +533,52 @@ namespace MML {
 
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static RootFindingResult FindRootFalsePosition(Function&& func, Real x1, Real x2,
+		static RootFindingResult FindRootFalsePositionDetailed(Function&& func, Real x1, Real x2,
 												   const RootFindingConfig& config)
 		{
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
-			return FindRootFalsePosition(adapter, x1, x2, config);
+			return FindRootFalsePositionDetailed(adapter, x1, x2, config);
 		}
+
+		/*********************************************************************/
+		/*****   Deprecated spellings + plain-argument Detailed forms      *****/
+		/*********************************************************************/
+
+		/// @deprecated Use FindRootBisectionDetailed() - the result-returning spelling (CONTRACT_POLICY section 11).
+		[[deprecated("use FindRootBisectionDetailed()")]]
+		static RootFindingResult FindRootBisection(const IRealFunction& func, Real x1, Real x2, const RootFindingConfig& config)
+		{ return FindRootBisectionDetailed(func, x1, x2, config); }
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		[[deprecated("use FindRootBisectionDetailed()")]]
+		static RootFindingResult FindRootBisection(Function&& func, Real x1, Real x2, const RootFindingConfig& config)
+		{ MML::Detail::RealFunctionCallableAdapter<Function> adapter(func); return FindRootBisectionDetailed(adapter, x1, x2, config); }
+
+		/// Result-returning form with the plain argument list: tolerance xacc, default iteration budget.
+		static RootFindingResult FindRootBisectionDetailed(const IRealFunction& func, Real x1, Real x2, Real xacc)
+		{ RootFindingConfig config; config.tolerance = xacc; config.max_iterations = 0; return FindRootBisectionDetailed(func, x1, x2, config); }
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static RootFindingResult FindRootBisectionDetailed(Function&& func, Real x1, Real x2, Real xacc)
+		{ MML::Detail::RealFunctionCallableAdapter<Function> adapter(func); return FindRootBisectionDetailed(adapter, x1, x2, xacc); }
+
+		/// @deprecated Use FindRootFalsePositionDetailed() - the result-returning spelling (CONTRACT_POLICY section 11).
+		[[deprecated("use FindRootFalsePositionDetailed()")]]
+		static RootFindingResult FindRootFalsePosition(const IRealFunction& func, Real x1, Real x2, const RootFindingConfig& config)
+		{ return FindRootFalsePositionDetailed(func, x1, x2, config); }
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		[[deprecated("use FindRootFalsePositionDetailed()")]]
+		static RootFindingResult FindRootFalsePosition(Function&& func, Real x1, Real x2, const RootFindingConfig& config)
+		{ MML::Detail::RealFunctionCallableAdapter<Function> adapter(func); return FindRootFalsePositionDetailed(adapter, x1, x2, config); }
+
+		/// Result-returning form with the plain argument list: tolerance xacc, default iteration budget.
+		static RootFindingResult FindRootFalsePositionDetailed(const IRealFunction& func, Real x1, Real x2, Real xacc)
+		{ RootFindingConfig config; config.tolerance = xacc; config.max_iterations = 0; return FindRootFalsePositionDetailed(func, x1, x2, config); }
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static RootFindingResult FindRootFalsePositionDetailed(Function&& func, Real x1, Real x2, Real xacc)
+		{ MML::Detail::RealFunctionCallableAdapter<Function> adapter(func); return FindRootFalsePositionDetailed(adapter, x1, x2, xacc); }
 
 	} // namespace RootFinding
 } // namespace MML

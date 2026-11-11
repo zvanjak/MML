@@ -14,7 +14,9 @@
 #define MML_MONTE_CARLO_INTEGRATION_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/base/AlgorithmTypes.h>
+#include <mml/core/Integration/IntegrationBase.h>
 #include <mml/base/Random.h>
 #include <mml/base/QuasiRandom.h>
 #include <mml/interfaces/IFunction.h>
@@ -22,6 +24,8 @@
 
 #include <numeric>
 #include <cmath>
+#include <cstddef>
+#include <limits>
 
 namespace MML 
 {
@@ -31,6 +35,7 @@ namespace MML
 		inline Real ValidateMonteCarloBounds(const VectorN<Real, N>& lower, const VectorN<Real, N>& upper, const char* algorithmName)
 		{
 			Real volume = 1.0;
+			bool zeroWidth = false;
 			for (int d = 0; d < N; ++d) {
 				if (!std::isfinite(lower[d]) || !std::isfinite(upper[d])) {
 					throw ArgumentError(std::string(algorithmName) + ": bounds must be finite");
@@ -38,7 +43,16 @@ namespace MML
 				if (upper[d] < lower[d]) {
 					throw ArgumentError(std::string(algorithmName) + ": upper bounds must be greater than or equal to lower bounds");
 				}
-				volume *= (upper[d] - lower[d]);
+				const Real width = upper[d] - lower[d];
+				if (!std::isfinite(width))
+					throw NumericalMethodError(std::string(algorithmName) + ": domain width is not representable");
+				zeroWidth = zeroWidth || width == 0;
+			}
+			if (zeroWidth) return 0;
+			for (int d = 0; d < N; ++d) {
+				volume *= upper[d] - lower[d];
+				if (!std::isfinite(volume) || volume == 0)
+					throw NumericalMethodError(std::string(algorithmName) + ": domain volume is not representable");
 			}
 			return volume;
 		}
@@ -47,19 +61,59 @@ namespace MML
 		{
 			return std::max(Real(0.0), variance);
 		}
+
+		/// Welford's online mean/variance (Knuth TAOCP vol. 2, 4.2.2). Numerically stable where
+		/// E[f^2] - E[f]^2 suffers catastrophic cancellation for large |mean| relative to spread
+		/// (analysis v4, CORE C7: the clamp to zero was hiding exactly that failure mode).
+		struct WelfordAccumulator
+		{
+			std::size_t count = 0;
+			Real mean = 0.0;
+			Real m2 = 0.0;   ///< Sum of squared deviations from the running mean
+
+			void add(Real x)
+			{
+				if (!std::isfinite(x))
+					throw NumericalMethodError("Monte Carlo: non-finite integrand value");
+				++count;
+				const Real delta = x - mean;
+				mean += delta / static_cast<Real>(count);
+				m2 += delta * (x - mean);
+				if (!std::isfinite(mean) || !std::isfinite(m2))
+					throw NumericalMethodError("Monte Carlo: sample statistics overflow");
+			}
+
+			/// Chan-Golub-LeVeque parallel variance merge; includes between-block variation.
+			void merge(const WelfordAccumulator& other) {
+				if (other.count == 0) return;
+				if (count == 0) { *this = other; return; }
+				const size_t total = count + other.count;
+				const Real delta = other.mean - mean;
+				m2 += other.m2 + delta * delta * (Real(count) * (Real(other.count) / Real(total)));
+				mean += delta * (Real(other.count) / Real(total));
+				count = total;
+				if (!std::isfinite(mean) || !std::isfinite(m2))
+					throw NumericalMethodError("Monte Carlo: merged sample statistics overflow");
+			}
+
+			/// Unbiased sample variance (n - 1); 0 for fewer than two samples
+			Real sampleVariance() const { return count > 1 ? m2 / static_cast<Real>(count - 1) : Real(0.0); }
+			/// Standard error of the mean, sqrt(s^2 / n)
+			Real standardError() const { return count > 0 ? std::sqrt(sampleVariance() / static_cast<Real>(count)) : Real(0.0); }
+		};
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	/// @brief Result of a Monte Carlo integration
 	/// @note For production code, check error_estimate, variance, and converged!
 	//////////////////////////////////////////////////////////////////////////
-	struct MonteCarloResult : public EvaluationResultBase
+	struct MonteCarloResult : public IntegrationResult
 	{
-		Real value = 0.0;				 ///< Estimated integral value
-		Real error_estimate = 0.0; ///< Statistical error estimate (standard error)
+		// value, error_estimate (standard error), converged, status, function_evaluations: IntegrationResult
 		Real variance = 0.0;			 ///< Sample variance
 		size_t samples_used = 0; ///< Number of samples actually used
-		bool converged = false;		 ///< Whether error is below requested tolerance
+
+		MonteCarloResult() { error_estimated = true; iterations = 1; }
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -67,9 +121,10 @@ namespace MML
 	//////////////////////////////////////////////////////////////////////////
 	struct MonteCarloConfig {
 		size_t num_samples = 100000; ///< Number of random samples
-		Real target_error = 1e-3;		 ///< Target relative error (for adaptive)
+		Real target_error = Precision::MonteCarloTargetRelativeError;		 ///< Target relative error (for adaptive)
 		unsigned int seed = 0;			 ///< Random seed (0 = use random_device)
 		bool use_antithetic = false; ///< Use antithetic variates for variance reduction
+		Real absolute_error = 0; ///< Absolute standard-error target; zero requests relative-only testing.
 
 		MonteCarloConfig& samples(size_t n) {
 			num_samples = n;
@@ -88,6 +143,37 @@ namespace MML
 			return *this;
 		}
 	};
+
+	namespace Detail {
+		inline void ValidateMonteCarloConfig(const MonteCarloConfig& config) {
+			if (config.num_samples > static_cast<size_t>(std::numeric_limits<int>::max()))
+				throw ArgumentError("Monte Carlo sample count exceeds diagnostic counter range");
+			if (config.num_samples < (config.use_antithetic ? size_t(4) : size_t(2)) ||
+				(config.use_antithetic && config.num_samples % 2 != 0))
+				throw ArgumentError("Monte Carlo requires two independent samples, or an even budget of at least four antithetic evaluations");
+			if (!std::isfinite(config.target_error) || config.target_error <= 0 ||
+				!std::isfinite(config.absolute_error) || config.absolute_error < 0)
+				throw ArgumentError("Monte Carlo requires a positive finite relative target and nonnegative finite absolute target");
+		}
+
+		inline MonteCarloResult FinishMonteCarlo(const WelfordAccumulator& stats, Real volume,
+			size_t evaluations, const MonteCarloConfig& config) {
+			MonteCarloResult result;
+			result.value = volume * stats.mean;
+			result.error_estimate = volume * stats.standardError();
+			result.variance = stats.sampleVariance();
+			result.samples_used = evaluations;
+			result.function_evaluations = static_cast<int>(evaluations);
+			if (!std::isfinite(result.value) || !std::isfinite(result.error_estimate))
+				throw NumericalMethodError("Monte Carlo: integral or standard error overflow");
+			result.converged = result.error_estimate <= std::max(config.absolute_error,
+				config.target_error * std::abs(result.value));
+			result.status = result.converged ? AlgorithmStatus::Success : AlgorithmStatus::MaxIterationsExceeded;
+			if (!result.converged)
+				result.error_message = "Monte Carlo sample budget exhausted before the standard-error target was met";
+			return result;
+		}
+	}
 
 	//////////////////////////////////////////////////////////////////////////
 	/// @brief Plain Monte Carlo integrator for N-dimensional integrals
@@ -121,23 +207,17 @@ namespace MML
 															 const MonteCarloConfig& config = MonteCarloConfig()) {
 			AlgorithmTimer timer;
 
-			if (config.num_samples == 0) {
-				throw ArgumentError("MonteCarloIntegrator: num_samples must be positive");
-			}
-			if (config.use_antithetic && config.num_samples < 2) {
-				throw ArgumentError("MonteCarloIntegrator: antithetic sampling requires at least two samples");
-			}
-			if (!std::isfinite(config.target_error) || config.target_error <= 0.0) {
-				throw ArgumentError("MonteCarloIntegrator: target_error must be finite and positive");
-			}
+			Detail::ValidateMonteCarloConfig(config);
 
 			// Compute volume of integration domain
 			Real volume = Detail::ValidateMonteCarloBounds(lower, upper, "MonteCarloIntegrator");
 
 			if (volume == 0.0) {
 				MonteCarloResult r;
-				r.converged = true;
-				r.status = AlgorithmStatus::Success;
+				// Measure-zero domain: the integral is exactly 0 by construction, nothing was sampled or checked
+				r.converged = false;
+				r.error_estimate = 0.0;   // exact, not a placeholder
+				r.status = AlgorithmStatus::Completed;
 				r.algorithm_name = "MonteCarloIntegrator";
 				r.elapsed_time_ms = timer.elapsed_ms();
 				return r;
@@ -148,16 +228,14 @@ namespace MML
 				Random::SetSeed(config.seed);
 			}
 
-			// Accumulate sum and sum of squares for variance estimation
-			Real sum = 0.0;
-			Real sum_sq = 0.0;
+			// Welford running mean / variance (stable; see Detail::WelfordAccumulator)
+			Detail::WelfordAccumulator stats;
 			size_t n = config.num_samples;
 
 			VectorN<Real, N> point;
 
 			if (config.use_antithetic) {
 				// Antithetic variates: use both x and (1-x) to reduce variance
-				n = (n / 2) * 2; // Ensure even number
 				for (size_t i = 0; i < n; i += 2) {
 					// Generate random point
 					for (int d = 0; d < N; ++d) {
@@ -173,11 +251,8 @@ namespace MML
 					Real f2 = func(point);
 
 					// Average the pair
-					Real f_avg = 0.5 * (f1 + f2);
-					sum += f_avg;
-					sum_sq += f_avg * f_avg;
+					stats.add(0.5 * (f1 + f2));
 				}
-				n /= 2; // We have n/2 averaged samples
 			} else {
 				// Standard Monte Carlo
 				for (size_t i = 0; i < n; ++i) {
@@ -187,36 +262,11 @@ namespace MML
 						point[d] = lower[d] + u * (upper[d] - lower[d]);
 					}
 
-					Real f_val = func(point);
-					sum += f_val;
-					sum_sq += f_val * f_val;
+					stats.add(func(point));
 				}
 			}
 
-			// Compute statistics
-			Real mean = sum / n;
-			Real mean_sq = sum_sq / n;
-			Real variance = Detail::ClampMonteCarloVariance(mean_sq - mean * mean);
-
-			// Standard error of the mean
-			Real std_error = std::sqrt(variance / n);
-
-			// Integral estimate = volume * mean
-			Real integral = volume * mean;
-			Real error = volume * std_error;
-
-			// Check convergence against target
-			bool converged =
-				(std::abs(integral) < PrecisionValues<Real>::DivisionSafetyThreshold) || (error / std::abs(integral) < config.target_error);
-
-			MonteCarloResult result;
-			result.value = integral;
-			result.error_estimate = error;
-			result.variance = variance;
-			result.samples_used = config.use_antithetic ? n * 2 : n;
-			result.converged = converged;
-			result.function_evaluations = static_cast<int>(result.samples_used);
-			result.status = AlgorithmStatus::Success;
+			auto result = Detail::FinishMonteCarlo(stats, volume, config.num_samples, config);
 			result.algorithm_name = "MonteCarloIntegrator";
 			result.elapsed_time_ms = timer.elapsed_ms();
 			return result;
@@ -246,14 +296,16 @@ namespace MML
 			Real volume = Detail::ValidateMonteCarloBounds(lower, upper, "QuasiMonteCarloIntegrator");
 			if (volume == 0.0) {
 				MonteCarloResult r;
-				r.converged = true;
-				r.status = AlgorithmStatus::Success;
+				// Measure-zero domain: the integral is exactly 0 by construction, nothing was sampled or checked
+				r.converged = false;
+				r.error_estimate = 0.0;   // exact, not a placeholder
+				r.status = AlgorithmStatus::Completed;
 				r.algorithm_name = "QuasiMonteCarloIntegrator";
 				r.elapsed_time_ms = timer.elapsed_ms();
 				return r;
 			}
 
-			Real sum = 0.0, sum_sq = 0.0;
+			Detail::WelfordAccumulator stats;
 			VectorN<Real, N> u, point;
 
 			auto accumulate = [&](auto& seq) {
@@ -261,9 +313,7 @@ namespace MML
 					seq.Next(&u[0]);
 					for (int d = 0; d < N; ++d)
 						point[d] = lower[d] + u[d] * (upper[d] - lower[d]);
-					Real f = func(point);
-					sum += f;
-					sum_sq += f * f;
+					stats.add(func(point));
 				}
 			};
 
@@ -275,10 +325,9 @@ namespace MML
 				accumulate(seq);
 			}
 
-			Real mean = sum / numSamples;
-			Real mean_sq = sum_sq / numSamples;
-			Real variance = Detail::ClampMonteCarloVariance(mean_sq - mean * mean);
-			Real std_error = std::sqrt(variance / numSamples);
+			Real mean = stats.mean;
+			Real variance = stats.sampleVariance();
+			Real std_error = stats.standardError();
 
 			MonteCarloResult result;
 			result.value = volume * mean;
@@ -286,8 +335,9 @@ namespace MML
 			result.variance = variance;
 			result.samples_used = numSamples;
 			result.function_evaluations = static_cast<int>(numSamples);
-			result.converged = true;
-			result.status = AlgorithmStatus::Success;
+			// Fixed sample count: no tolerance was checked (RESULT_POLICY: Completed with a statistical estimate)
+			result.converged = false;
+			result.status = AlgorithmStatus::Completed;
 			result.algorithm_name = "QuasiMonteCarloIntegrator";
 			result.elapsed_time_ms = timer.elapsed_ms();
 			return result;
@@ -366,8 +416,10 @@ namespace MML
 
 			if (volume == 0.0) {
 				MonteCarloResult r;
-				r.converged = true;
-				r.status = AlgorithmStatus::Success;
+				// Measure-zero domain: the integral is exactly 0 by construction, nothing was sampled or checked
+				r.converged = false;
+				r.error_estimate = 0.0;   // exact, not a placeholder
+				r.status = AlgorithmStatus::Completed;
 				r.algorithm_name = "StratifiedMonteCarloIntegrator";
 				r.elapsed_time_ms = timer.elapsed_ms();
 				return r;
@@ -385,8 +437,7 @@ namespace MML
 				total_strata *= strata_per_dim;
 			}
 
-			Real sum = 0.0;
-			Real sum_sq = 0.0;
+			Detail::WelfordAccumulator strata; // one sample per stratum: its mean
 			size_t total_samples = 0;
 
 			// Iterate over all strata using N-digit base-strata_per_dim counter
@@ -413,8 +464,7 @@ namespace MML
 				}
 
 				Real stratum_mean = stratum_sum / samples_per_stratum;
-				sum += stratum_mean;
-				sum_sq += stratum_mean * stratum_mean;
+				strata.add(stratum_mean);
 				total_samples += samples_per_stratum;
 
 				// Increment stratum index (N-digit counter)
@@ -426,10 +476,10 @@ namespace MML
 				}
 			}
 
-			// Compute result
-			Real mean = sum / total_strata;
-			Real mean_sq = sum_sq / total_strata;
-			Real variance = Detail::ClampMonteCarloVariance(mean_sq - mean * mean) / total_strata;
+			// Compute result: the estimator is the mean of the stratum means; its variance is the
+			// sample variance of the stratum means divided by the number of strata
+			Real mean = strata.mean;
+			Real variance = strata.sampleVariance() / total_strata;
 			Real std_error = std::sqrt(variance);
 
 			Real integral = volume * mean;
@@ -515,9 +565,10 @@ namespace MML
 			result.error_estimate = error;
 			result.variance = variance;
 			result.samples_used = num_samples;
-			result.converged = true;
+			// Fixed sample count: no tolerance was checked (RESULT_POLICY: Completed with a statistical estimate)
+			result.converged = false;
 			result.function_evaluations = static_cast<int>(num_samples);
-			result.status = AlgorithmStatus::Success;
+			result.status = AlgorithmStatus::Completed;
 			result.algorithm_name = "HitOrMissIntegrator";
 			result.elapsed_time_ms = timer.elapsed_ms();
 			return result;

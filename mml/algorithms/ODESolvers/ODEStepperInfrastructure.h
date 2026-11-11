@@ -28,7 +28,7 @@ namespace MML {
 		Real beta = Real(0.04);        ///< Integral exponent for the previous accepted error.
 		Real minFactor = Real(0.2);    ///< Maximum shrinkage allowed in one proposal.
 		Real maxFactor = Real(10.0);   ///< Maximum growth allowed in one proposal.
-		Real errorFloor = Real(1e-4);  ///< Prevents zero error from producing an infinite factor.
+		Real errorFloor = Precision::StepControllerErrorFloor;  ///< Prevents zero error from producing an infinite factor.
 	};
 
 	/// Stateful PI controller shared by adaptive ODE steppers.
@@ -197,7 +197,7 @@ namespace MML {
 			_xStart = xStart;
 			_xEnd = xEnd;
 			for (int power = 0; power < 4; ++power) {
-				_coefficients[power].Resize(xStart.size());
+				_coefficients[power].resize(xStart.size());
 				for (int component = 0; component < xStart.size(); ++component) {
 					Real coefficient = 0;
 					for (int stage = 0; stage < 7; ++stage)
@@ -261,10 +261,10 @@ namespace MML {
 			const int dimension = system.getDim();
 			for (auto& stage : stages) {
 				if (stage.size() != dimension)
-					stage.Resize(dimension);
+					stage.resize(dimension);
 			}
 			if (workspace.size() != dimension)
-				workspace.Resize(dimension);
+				workspace.resize(dimension);
 
 			// Stages 13 through 15 are used only by the continuous extension.
 			for (int stage = DP8::stages + 1; stage < DP8::extended_stages; ++stage) {
@@ -282,7 +282,7 @@ namespace MML {
 			_xStart = xStart;
 			_xEnd = xEnd;
 			for (auto& coefficient : _coefficients)
-				coefficient.Resize(dimension);
+				coefficient.resize(dimension);
 
 			for (int component = 0; component < dimension; ++component) {
 				const Real delta = xEnd[component] - xStart[component];
@@ -342,10 +342,10 @@ namespace MML {
 				stages.resize(Tableau::stages);
 			for (auto& stage : stages) {
 				if (stage.size() != dimension)
-					stage.Resize(dimension);
+					stage.resize(dimension);
 			}
 			if (workspace.size() != dimension)
-				workspace.Resize(dimension);
+				workspace.resize(dimension);
 
 			stages[0] = initialDerivative;
 			// Explicit tableaux are strictly lower triangular: stage i uses only k[0..i-1].
@@ -364,7 +364,7 @@ namespace MML {
 		static void combineSolution(const Vector<Real>& x, Real h, const std::vector<Vector<Real>>& stages,
 								Vector<Real>& result) {
 			if (result.size() != x.size())
-				result.Resize(x.size());
+				result.resize(x.size());
 			for (int component = 0; component < x.size(); ++component) {
 				Real increment = 0;
 				for (int stage = 0; stage < Tableau::stages; ++stage)
@@ -376,7 +376,7 @@ namespace MML {
 		static void combineError(Real h, const std::vector<Vector<Real>>& stages, Vector<Real>& error) {
 			const int dimension = stages[0].size();
 			if (error.size() != dimension)
-				error.Resize(dimension);
+				error.resize(dimension);
 			for (int component = 0; component < dimension; ++component) {
 				Real estimate = 0;
 				// errorWeight is the difference between the high- and low-order weights.

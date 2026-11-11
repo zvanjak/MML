@@ -24,7 +24,7 @@ namespace MML::Tests::Base::Matrix3DTests
 		REQUIRE(m.dim2() == 0);
 		REQUIRE(m.dim3() == 0);
 		REQUIRE(m.size() == 0);
-		REQUIRE(m.isEmpty());
+		REQUIRE(m.empty());
 	}
 
 	TEST_CASE("Matrix3D::DimensionConstruction", "[Matrix3D]") {
@@ -34,7 +34,7 @@ namespace MML::Tests::Base::Matrix3DTests
 		REQUIRE(m.dim2() == 4);
 		REQUIRE(m.dim3() == 5);
 		REQUIRE(m.size() == 60);
-		REQUIRE_FALSE(m.isEmpty());
+		REQUIRE_FALSE(m.empty());
 	}
 
 	TEST_CASE("Matrix3D::InitValueConstruction", "[Matrix3D]") {
@@ -104,7 +104,7 @@ namespace MML::Tests::Base::Matrix3DTests
 		
 		REQUIRE(moved.dim1() == 3);
 		REQUIRE(moved(1, 1, 1) == 42.0);
-		REQUIRE(original.isEmpty());  // Original should be empty after move
+		REQUIRE(original.empty());  // Original should be empty after move
 	}
 
 	TEST_CASE("Matrix3D::MoveAssignment", "[Matrix3D]") {
@@ -115,7 +115,7 @@ namespace MML::Tests::Base::Matrix3DTests
 		
 		REQUIRE(target.dim1() == 2);
 		REQUIRE(target(0, 0, 0) == 1.0);
-		REQUIRE(original.isEmpty());
+		REQUIRE(original.empty());
 	}
 
 	// ============================================================================
@@ -153,15 +153,15 @@ namespace MML::Tests::Base::Matrix3DTests
 	TEST_CASE("Matrix3D::AtAccess", "[Matrix3D]") {
 		Matrix3D<int> m(2, 3, 4, 5);
 		
-		REQUIRE(m.At(0, 0, 0) == 5);
-		m.At(1, 2, 3) = 99;
-		REQUIRE(m.At(1, 2, 3) == 99);
+		REQUIRE(m.at(0, 0, 0) == 5);
+		m.at(1, 2, 3) = 99;
+		REQUIRE(m.at(1, 2, 3) == 99);
 		
 		// At should throw on out-of-bounds
-		REQUIRE_THROWS_AS(m.At(-1, 0, 0), std::out_of_range);
-		REQUIRE_THROWS_AS(m.At(0, 3, 0), std::out_of_range);
-		REQUIRE_THROWS_AS(m.At(0, 0, 4), std::out_of_range);
-		REQUIRE_THROWS_AS(m.At(2, 0, 0), std::out_of_range);
+		REQUIRE_THROWS_AS(m.at(-1, 0, 0), std::out_of_range);
+		REQUIRE_THROWS_AS(m.at(0, 3, 0), std::out_of_range);
+		REQUIRE_THROWS_AS(m.at(0, 0, 4), std::out_of_range);
+		REQUIRE_THROWS_AS(m.at(2, 0, 0), std::out_of_range);
 	}
 
 	TEST_CASE("Matrix3D::DataAccess", "[Matrix3D]") {
@@ -207,7 +207,7 @@ namespace MML::Tests::Base::Matrix3DTests
 	TEST_CASE("Matrix3D::Resize", "[Matrix3D]") {
 		Matrix3D<double> m(2, 2, 2, 1.0);
 		
-		m.Resize(3, 4, 5);
+		m.resize(3, 4, 5);
 		
 		REQUIRE(m.dim1() == 3);
 		REQUIRE(m.dim2() == 4);
@@ -215,7 +215,7 @@ namespace MML::Tests::Base::Matrix3DTests
 		REQUIRE(m.size() == 60);
 		
 		// Resize with init value
-		m.Resize(2, 2, 2, 99.0);
+		m.resize(2, 2, 2, 99.0);
 		REQUIRE(m(0, 0, 0) == 99.0);
 		REQUIRE(m(1, 1, 1) == 99.0);
 	}
@@ -225,7 +225,7 @@ namespace MML::Tests::Base::Matrix3DTests
 		double* originalData = m.data();
 		
 		// Resizing to same dimensions should be a no-op
-		m.Resize(3, 3, 3);
+		m.resize(3, 3, 3);
 		
 		REQUIRE(m.data() == originalData);
 		REQUIRE(m(0, 0, 0) == 5.0);
@@ -327,7 +327,7 @@ namespace MML::Tests::Base::Matrix3DTests
 	TEST_CASE("Matrix3D::ToString", "[Matrix3D]") {
 		Matrix3D<double> m(3, 4, 5);
 		
-		std::string str = m.ToString();
+		std::string str = m.to_string();
 		REQUIRE(str.find("3") != std::string::npos);
 		REQUIRE(str.find("4") != std::string::npos);
 		REQUIRE(str.find("5") != std::string::npos);
@@ -350,12 +350,12 @@ namespace MML::Tests::Base::Matrix3DTests
 		Matrix3Dd md(2, 2, 2, 1.5);
 		Matrix3Df mf(2, 2, 2, 1.5f);
 		Matrix3Di mi(2, 2, 2, 42);
-		Matrix3D<Real> mr(2, 2, 2, REAL(2.5));
+		Matrix3D<Real> mr(2, 2, 2, static_cast<MML::Real>(2.5));
 		
 		REQUIRE(md(0, 0, 0) == 1.5);
 		REQUIRE(mf(0, 0, 0) == 1.5f);
 		REQUIRE(mi(0, 0, 0) == 42);
-		REQUIRE_THAT(mr(0, 0, 0), RealApprox(REAL(2.5)));
+		REQUIRE_THAT(mr(0, 0, 0), RealApprox(static_cast<MML::Real>(2.5)));
 	}
 
 	// ============================================================================

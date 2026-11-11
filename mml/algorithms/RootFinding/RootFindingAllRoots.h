@@ -149,7 +149,7 @@ namespace MML::RootFinding {
 			RootFindingResult refinement;
 			try {
 				if (candidate.type == RootCandidateType::SignChange) {
-					refinement = FindRootBrent(counted, candidate.interval.lower,
+					refinement = FindRootBrentDetailed(counted, candidate.interval.lower,
 						candidate.interval.upper, config.refinement);
 				} else if (candidate.type == RootCandidateType::ExactSample) {
 					refinement = Detail::RefineExactCandidate(counted, candidate, config.refinement);

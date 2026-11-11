@@ -12,7 +12,9 @@
 #if !defined MML_MATRIX_TRIDIAG_H
 #define MML_MATRIX_TRIDIAG_H
 
+#include <mml/base/PrintFormatting.h>
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/MMLExceptions.h>
 #include <mml/base/Matrix/MatrixPrintFormat.h>
 #include <mml/base/Matrix/Matrix.h>
@@ -40,19 +42,27 @@ namespace MML
 	public:
 		TridiagonalMatrix(int dim, const Vector<Type>& a, const Vector<Type>& diag, const Vector<Type>& c) : _belowDiag(a), _diag(diag), _aboveDiag(c), _dim(dim)
 		{
-			if( dim < 3)
-				throw MatrixDimensionError("TridiagonalMatrix constructor: dimension must be >= 3");
+			if( dim < 1)
+				throw MatrixDimensionError("TridiagonalMatrix constructor: dimension must be >= 1");
 
 			if (a.size() != dim || diag.size() != dim || c.size() != dim)
 				throw MatrixDimensionError("TridiagonalMatrix constructor: vector dimensions must match matrix dimension");
 		}
 
-		TridiagonalMatrix(int dim, std::initializer_list<Type> values) : _dim(dim), _belowDiag(dim), _diag(dim), _aboveDiag(dim)
+		TridiagonalMatrix(int dim, std::initializer_list<Type> values) : _dim(dim), _belowDiag(std::max(dim, 0)), _diag(std::max(dim, 0)), _aboveDiag(std::max(dim, 0))
 		{
-			if (values.size() != dim * 3 - 2)
+			if (dim < 1)
+				throw MatrixDimensionError("TridiagonalMatrix constructor: dimension must be >= 1");
+			if (static_cast<int>(values.size()) != dim * 3 - 2)
 				throw MatrixDimensionError("TridiagonalMatrix constructor: initializer list size must be 3*dim-2");
 
 			auto val = values.begin();
+			if (dim == 1) {
+				_belowDiag[0] = 0.0;
+				_diag[0] = *val;
+				_aboveDiag[0] = 0.0;
+				return;
+			}
 			_belowDiag[0] = 0.0;
 			_diag[0] = *val++;
 			_aboveDiag[0] = *val++;
@@ -71,27 +81,31 @@ namespace MML
 		int cols() const noexcept { return _dim; }
 
 		Type  operator()(int i, int j) const {
+			if (i < 0 || i >= _dim || j < 0 || j >= _dim)
+				throw MatrixAccessBoundsError("TridiagonalMatrix::operator() const", i, j, _dim, _dim);
 			if (i == j)
 				return _diag[i];
 			else if (i == j - 1)
 				return _aboveDiag[i];
-			else if (i == j + 1 && j < _dim - 1)
+			else if (i == j + 1)
 				return _belowDiag[i];
 			else
 				return 0.0;
 		}
 		Type& operator()(int i, int j) {
+			if (i < 0 || i >= _dim || j < 0 || j >= _dim)
+				throw MatrixAccessBoundsError("TridiagonalMatrix::operator()", i, j, _dim, _dim);
 			if (i == j)
 				return _diag[i];
 			else if (i == j - 1)
 				return _aboveDiag[i];
-			else if (i == j + 1 && j < _dim - 1)
+			else if (i == j + 1)
 				return _belowDiag[i];
 			else
-				throw MatrixAccessBoundsError("TridiagonalMatrix::operator()", i, j, _dim, _dim);
+				throw MatrixAccessBoundsError("TridiagonalMatrix::operator() - element outside the three diagonals is not writable", i, j, _dim, _dim);
 		}
 
-		bool IsEqualTo(const TridiagonalMatrix& b, Type eps = Defaults::MatrixIsEqualTolerance) const
+		bool IsEqualTo(const TridiagonalMatrix& b, Real eps = Precision::MatrixIsEqualTolerance) const
 		{
 			if (_dim != b._dim)
 				return false;
@@ -181,7 +195,8 @@ namespace MML
 			return ret;
 		}
 
-		TridiagonalMatrix GetTranspose() const
+		/// @brief Returns the transpose (copy). Swaps and shifts the above/below diagonals.
+		[[nodiscard]] TridiagonalMatrix Transposed() const
 		{
 			// For a tridiagonal matrix, transpose swaps and shifts the above and below diagonals
 			// belowDiag_new[i] = aboveDiag_old[i-1] (with belowDiag_new[0] = 0)
@@ -200,28 +215,31 @@ namespace MML
 			return TridiagonalMatrix(_dim, newBelowDiag, _diag, newAboveDiag);
 		}
 
-		/// @brief Computes the generally dense inverse of this tridiagonal matrix.
-		/// @return Full matrix whose columns solve A*x_j = e_j.
-		/// @throws SingularMatrixError If the Thomas factorization encounters a zero pivot.
-		Matrix<Type> GetInverse() const
+		/// @deprecated Use Transposed() (CONTRACT_POLICY §11: noun/participle returns a copy).
+		[[deprecated("use Transposed()")]]
+		TridiagonalMatrix GetTranspose() const { return Transposed(); }
+
+		/// @brief Converts to full matrix representation (dense n×n copy).
+		Matrix<Type> ToFullMatrix() const
 		{
-			Matrix<Type> inverse(_dim, _dim);
-			Vector<Type> basis(_dim);
-
-			for (int column = 0; column < _dim; ++column) {
-				basis[column] = Type{1};
-				const Vector<Type> solution = Solve(basis);
-				for (int row = 0; row < _dim; ++row)
-					inverse(row, column) = solution[row];
-				basis[column] = Type{0};
-			}
-
-			return inverse;
+			Matrix<Type> full(_dim, _dim);
+			for (int i = 0; i < _dim; i++)
+				for (int j = 0; j < _dim; j++)
+					full(i, j) = (*this)(i, j);
+			return full;
 		}
+
 
 		void Solve(const Vector<Type>& rhs, Vector<Type>& sol) const
 		{
 			int j, n = _belowDiag.size();
+			if (rhs.size() != n)
+				throw VectorDimensionError("TridiagonalMatrix::Solve - rhs size must equal matrix dimension", rhs.size(), n);
+			if (sol.size() != n)
+				throw VectorDimensionError("TridiagonalMatrix::Solve - solution vector size must equal matrix dimension", sol.size(), n);
+			if (n == 0)
+				return;
+
 			Type bet;  // Must be Type to work with complex matrices
 			Vector<Type> gam(n);
 
@@ -262,54 +280,7 @@ namespace MML
 		// New formatted print with MatrixPrintFormat
 		void Print(std::ostream& stream, const MatrixPrintFormat& fmt = MatrixPrintFormat::Default()) const
 		{
-			// Show header if requested
-			if (fmt.showHeader) {
-				stream << "Rows: " << _dim << " Cols: " << _dim << " (Tridiagonal)" << std::endl;
-			}
-
-			// Set formatting flags
-			std::ios_base::fmtflags oldFlags = stream.flags();
-			if (fmt.scientific)
-				stream << std::scientific;
-			else if (fmt.fixed)
-				stream << std::fixed;
-
-			// Compact mode - print on one line for small matrices
-			if (fmt.compactMode && _dim <= 3) {
-				if (fmt.showBrackets)
-					stream << "[";
-				for (int i = 0; i < _dim; i++) {
-					if (i > 0) stream << "; ";
-					for (int j = 0; j < _dim; j++) {
-						if (j > 0) stream << fmt.delimiter;
-						stream << std::setw(fmt.width) << std::setprecision(fmt.precision) << (*this)(i, j);
-					}
-				}
-				if (fmt.showBrackets)
-					stream << "]";
-				stream << std::endl;
-			}
-			else {
-				// Normal multi-line mode
-				for (int i = 0; i < _dim; i++)
-				{
-					if (fmt.showBrackets)
-						stream << "[ ";
-					for (int j = 0; j < _dim; j++)
-					{
-						stream << std::setw(fmt.width) << std::setprecision(fmt.precision) << (*this)(i, j);
-						if (j < _dim - 1)
-							stream << fmt.delimiter;
-					}
-					if (fmt.showBrackets)
-						stream << " ]";
-					if (i < _dim - 1)
-						stream << std::endl;
-				}
-			}
-
-			// Restore original flags
-			stream.flags(oldFlags);
+			PrintFormatting::Matrix(stream, rows(), cols(), [&](int i, int j) { return (*this)(i, j); }, fmt, " (Tridiagonal)");
 		}
 
 		/// @brief Print with explicit width and precision.

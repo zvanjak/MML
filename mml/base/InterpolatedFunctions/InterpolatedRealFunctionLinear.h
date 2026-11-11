@@ -37,9 +37,9 @@ namespace MML {
 			Real t = (x - x0) / h;
 			Real t2 = t * t;
 			Real t3 = t2 * t;
-			return (REAL(2.0) * t3 - REAL(3.0) * t2 + REAL(1.0)) * y0
-				+ (t3 - REAL(2.0) * t2 + t) * h * derivative0
-				+ (-REAL(2.0) * t3 + REAL(3.0) * t2) * y1
+			return (static_cast<MML::Real>(2.0) * t3 - static_cast<MML::Real>(3.0) * t2 + static_cast<MML::Real>(1.0)) * y0
+				+ (t3 - static_cast<MML::Real>(2.0) * t2 + t) * h * derivative0
+				+ (-static_cast<MML::Real>(2.0) * t3 + static_cast<MML::Real>(3.0) * t2) * y1
 				+ (t3 - t2) * h * derivative1;
 		}
 
@@ -50,10 +50,10 @@ namespace MML {
 				throw RealFuncInterpRuntimeError("Cubic Hermite derivative: zero interval width");
 			Real t = (x - x0) / h;
 			Real t2 = t * t;
-			return (REAL(6.0) * t2 - REAL(6.0) * t) * y0 / h
-				+ (REAL(3.0) * t2 - REAL(4.0) * t + REAL(1.0)) * derivative0
-				+ (-REAL(6.0) * t2 + REAL(6.0) * t) * y1 / h
-				+ (REAL(3.0) * t2 - REAL(2.0) * t) * derivative1;
+			return (static_cast<MML::Real>(6.0) * t2 - static_cast<MML::Real>(6.0) * t) * y0 / h
+				+ (static_cast<MML::Real>(3.0) * t2 - static_cast<MML::Real>(4.0) * t + static_cast<MML::Real>(1.0)) * derivative0
+				+ (-static_cast<MML::Real>(6.0) * t2 + static_cast<MML::Real>(6.0) * t) * y1 / h
+				+ (static_cast<MML::Real>(3.0) * t2 - static_cast<MML::Real>(2.0) * t) * derivative1;
 		}
 
 		inline Real IntegrateCubicHermiteSegment(Real from, Real to, Real x0, Real x1,
@@ -66,10 +66,10 @@ namespace MML {
 				Real t2 = t * t;
 				Real t3 = t2 * t;
 				Real t4 = t3 * t;
-				Real h00 = REAL(0.5) * t4 - t3 + t;
-				Real h10 = REAL(0.25) * t4 - REAL(2.0 / 3.0) * t3 + REAL(0.5) * t2;
-				Real h01 = -REAL(0.5) * t4 + t3;
-				Real h11 = REAL(0.25) * t4 - REAL(1.0 / 3.0) * t3;
+				Real h00 = static_cast<MML::Real>(0.5) * t4 - t3 + t;
+				Real h10 = static_cast<MML::Real>(0.25) * t4 - static_cast<MML::Real>(2.0 / 3.0) * t3 + static_cast<MML::Real>(0.5) * t2;
+				Real h01 = -static_cast<MML::Real>(0.5) * t4 + t3;
+				Real h11 = static_cast<MML::Real>(0.25) * t4 - static_cast<MML::Real>(1.0 / 3.0) * t3;
 				return h * (y0 * h00 + h * derivative0 * h10 + y1 * h01 + h * derivative1 * h11);
 			};
 			return primitive(to) - primitive(from);
@@ -107,11 +107,17 @@ namespace MML {
 			// throw if not enough points
 			if (_numPoints < 2 || _usedPoints < 2 || _usedPoints > _numPoints)
 				throw RealFuncInterpInitError("RealFunctionInterpolated size error");
-			// Check for duplicate x-values (causes division by zero in interpolation)
-			for (int i = 0; i < _numPoints; i++)
-				for (int j = i + 1; j < _numPoints; j++)
-					if (_x[i] == _x[j])
-						throw RealFuncInterpInitError("RealFunctionInterpolated: duplicate x-value at indices " + std::to_string(i) + " and " + std::to_string(j));
+			if (y.size() != _numPoints)
+				throw RealFuncInterpInitError("RealFunctionInterpolated: x and y must have the same size");
+			// x must be strictly monotonic (ascending or descending): the locate/hunt table search
+			// and every derived interpolant assume it, and duplicates divide by zero.
+			const bool ascending = _x[1] > _x[0];
+			for (int i = 1; i < _numPoints; i++) {
+				if (_x[i] == _x[i - 1])
+					throw RealFuncInterpInitError("RealFunctionInterpolated: duplicate x-value at indices " + std::to_string(i - 1) + " and " + std::to_string(i));
+				if ((_x[i] > _x[i - 1]) != ascending)
+					throw RealFuncInterpInitError("RealFunctionInterpolated: x-values must be strictly monotonic (violation at index " + std::to_string(i) + ")");
+			}
 		}
 
 		virtual ~RealFunctionInterpolated() {}

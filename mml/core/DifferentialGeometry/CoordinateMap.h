@@ -80,7 +80,7 @@ namespace MML
 
 		MatrixNM<Real, N, N> jacobian(const Point<Real, N, FrameTag>&) const override
 		{
-			return MatrixNM<Real, N, N>(REAL(1.0));
+			return MatrixNM<Real, N, N>(static_cast<MML::Real>(1.0));
 		}
 	};
 

@@ -37,8 +37,8 @@
 /// VectorN<double, 3> v = {1, 0, 0};
 /// VectorN<double, 3> v_rot = R * v;
 /// // Matrix operations
-/// auto R_inv = R.GetInverse();
-/// auto R_T = R.transpose();
+/// Inversion is provided by MatrixAlg::Inverse in algorithms/MatrixAlg/MatrixInversion.h.
+/// auto R_T = R.Transposed();
 /// double tr = R.Trace();
 /// @endcode
 /// **Type Aliases (Convenience):**
@@ -65,6 +65,7 @@
 #if !defined MML_MATRIXNM_H
 #define MML_MATRIXNM_H
 
+#include <mml/base/PrintFormatting.h>
 #include <mml/MMLBase.h>
 #include <mml/base/Matrix/MatrixPrintFormat.h>
 #include <mml/base/Vector/VectorN.h>
@@ -228,7 +229,7 @@ namespace MML {
 		/// @brief Converts this matrix to identity (in-place).
 		/// @throws MatrixDimensionError If matrix is not square.
 
-		void MakeUnitMatrix(void) {
+		void SetIdentity() {
 			if (rows() == cols()) {
 				for (int i = 0; i < rows(); i++)
 					for (int j = 0; j < cols(); j++)
@@ -237,7 +238,25 @@ namespace MML {
 						else
 							_vals[i][j] = 0;
 			} else
-				throw MatrixDimensionError("MatrixNM::MakeUnitMatrix - must be square matrix", N, M, -1, -1);
+				throw MatrixDimensionError("MatrixNM::SetIdentity - must be square matrix", N, M, -1, -1);
+		}
+
+		/// @deprecated Use SetIdentity() (CONTRACT_POLICY §11 reset vocabulary).
+		[[deprecated("use SetIdentity()")]]
+		void MakeUnitMatrix() { SetIdentity(); }
+
+		/// @brief Sets all elements to zero (in-place).
+		void SetZero() noexcept {
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < M; j++)
+					_vals[i][j] = Type{0};
+		}
+
+		/// @brief Sets all elements to the same value (in-place).
+		void Fill(const Type& value) {
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < M; j++)
+					_vals[i][j] = value;
 		}
 
 		/// @brief Extracts lower triangular part.
@@ -575,7 +594,7 @@ namespace MML {
 		/// @param eps Maximum allowed element difference.
 		/// @return True if |A[i][j] - B[i][j]| ≤ eps for all i, j.
 
-		bool IsEqualTo(const MatrixNM& b, Real eps = Defaults::MatrixIsEqualTolerance) const {
+		bool IsEqualTo(const MatrixNM& b, Real eps = Precision::MatrixIsEqualTolerance) const {
 			for (int i = 0; i < rows(); i++)
 				for (int j = 0; j < cols(); j++)
 					if (std::abs(_vals[i][j] - b._vals[i][j]) > eps)
@@ -585,7 +604,7 @@ namespace MML {
 		}
 
 		/// @brief Static helper for tolerance-based comparison.
-		static bool AreEqual(const MatrixNM& a, const MatrixNM& b, Real eps = Defaults::MatrixIsEqualTolerance) { return a.IsEqualTo(b, eps); }
+		static bool AreEqual(const MatrixNM& a, const MatrixNM& b, Real eps = Precision::MatrixIsEqualTolerance) { return a.IsEqualTo(b, eps); }
 		/// /** @} */
 
 
@@ -608,102 +627,6 @@ namespace MML {
 			return sum;
 		}
 
-		/// @brief Inverts this matrix in-place using Gauss-Jordan elimination.
-		/// @throws MatrixDimensionError If matrix is not square.
-		/// @throws SingularMatrixError If matrix is singular.
-		/// @note Modifies this matrix to contain its inverse.
-
-		void Invert() {
-			if (rows() != cols())
-				throw MatrixDimensionError("MatrixNM::Invert - must be square matrix", N, M, -1, -1);
-
-			MatrixNM& a = *this;
-			MatrixNM<Type, N, 1> b; // dummy rhs
-
-			b(0, 0) = 1.0;
-
-			int i, icol, irow, j, k, l, ll;
-			Type big, dum, pivinv;
-
-			int n = rows();
-			int m = b.cols();
-			std::vector<int> indxc(n), indxr(n), ipiv(n);
-			for (j = 0; j < n; j++)
-				ipiv[j] = 0;
-
-			// Compute infinity norm for norm-scaled singularity threshold
-			Real norm_a = 0.0;
-			for (int ii = 0; ii < n; ii++)
-				for (int jj = 0; jj < n; jj++) {
-					Real abs_val = std::abs(a._vals[ii][jj]);
-					if (abs_val > norm_a) norm_a = abs_val;
-				}
-			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * n;
-
-			for (i = 0; i < n; i++) {
-				big = 0.0;
-				for (j = 0; j < n; j++)
-					if (ipiv[j] != 1)
-						for (k = 0; k < n; k++) {
-							if (ipiv[k] == 0) {
-								if (std::abs(a._vals[j][k]) >= big) {
-									big = std::abs(a._vals[j][k]);
-									irow = j;
-									icol = k;
-								}
-							}
-						}
-				++(ipiv[icol]);
-				if (irow != icol) {
-					for (l = 0; l < n; l++)
-						std::swap(a._vals[irow][l], a._vals[icol][l]);
-					for (l = 0; l < m; l++)
-						std::swap(b._vals[irow][l], b._vals[icol][l]);
-				}
-				indxr[i] = irow;
-				indxc[i] = icol;
-
-				if (std::abs(a._vals[icol][icol]) < singularity_threshold)
-					throw SingularMatrixError("MatrixNM::Invert, gaussj: Singular Matrix", std::abs(a._vals[icol][icol]));
-
-				pivinv = 1.0 / a._vals[icol][icol];
-				a._vals[icol][icol] = 1.0;
-				for (l = 0; l < n; l++)
-					a._vals[icol][l] *= pivinv;
-				for (l = 0; l < m; l++)
-					b._vals[icol][l] *= pivinv;
-				for (ll = 0; ll < n; ll++)
-					if (ll != icol) {
-						dum = a._vals[ll][icol];
-						a._vals[ll][icol] = 0.0;
-						for (l = 0; l < n; l++)
-							a._vals[ll][l] -= a._vals[icol][l] * dum;
-						for (l = 0; l < m; l++)
-							b._vals[ll][l] -= b._vals[icol][l] * dum;
-					}
-			}
-			for (l = n - 1; l >= 0; l--) {
-				if (indxr[l] != indxc[l])
-					for (k = 0; k < n; k++)
-						std::swap(a._vals[k][indxr[l]], a._vals[k][indxc[l]]);
-			}
-		}
-
-		/// @brief Returns the inverse without modifying this matrix.
-		/// @return A⁻¹ such that A * A⁻¹ = I.
-		/// @throws MatrixDimensionError If matrix is not square.
-		/// @throws SingularMatrixError If matrix is singular.
-
-		MatrixNM GetInverse() const {
-			if (rows() != cols())
-				throw MatrixDimensionError("MatrixNM::GetInverse - must be square matrix", N, M, -1, -1);
-
-			MatrixNM a(*this); // making a copy, where inverse will be stored at the end
-
-			a.Invert();
-
-			return a;
-		}
 
 		/// @brief Transposes this matrix in-place.
 		/// @throws MatrixDimensionError If matrix is not square (cannot transpose in-place).
@@ -720,13 +643,17 @@ namespace MML {
 		/// @brief Returns the transpose without modifying this matrix (preferred API).
 		/// @return M×N matrix Aᵀ where Aᵀ[j][i] = A[i][j].
 		/// @note Returns different type for non-square matrices.
-		[[nodiscard]] MatrixNM<Type, M, N> transpose() const {
+		[[nodiscard]] MatrixNM<Type, M, N> Transposed() const {
 			MatrixNM<Type, M, N> ret;
 			for (size_t i = 0; i < cols(); i++)
 				for (size_t j = 0; j < rows(); j++)
 					ret._vals[i][j] = _vals[j][i];
 			return ret;
 		}
+
+		/// @deprecated Use Transposed() (CONTRACT_POLICY §11: Transpose() mutates, Transposed() returns a copy).
+		[[deprecated("use Transposed()")]]
+		[[nodiscard]] MatrixNM<Type, M, N> transpose() const { return Transposed(); }
 
 		/// /** @} */
 
@@ -754,55 +681,7 @@ namespace MML {
 		/// @see MatrixPrintFormat For format options.
 
 		void Print(std::ostream& stream, const MatrixPrintFormat& fmt = MatrixPrintFormat::Default()) const {
-			// Show header if requested
-			if (fmt.showHeader) {
-				stream << "Rows: " << rows() << " Cols: " << cols() << std::endl;
-			}
-
-			// Set formatting flags
-			std::ios_base::fmtflags oldFlags = stream.flags();
-			if (fmt.scientific)
-				stream << std::scientific;
-			else if (fmt.fixed)
-				stream << std::fixed;
-
-			// Compact mode - print on one line for small matrices
-			if (fmt.compactMode && rows() <= 3 && cols() <= 3) {
-				if (fmt.showBrackets)
-					stream << "[";
-				for (int i = 0; i < rows(); i++) {
-					if (i > 0)
-						stream << "; ";
-					for (int j = 0; j < cols(); j++) {
-						if (j > 0)
-							stream << fmt.delimiter;
-						Type value = (fmt.zeroThreshold > 0.0 && Abs(_vals[i][j]) <= fmt.zeroThreshold) ? Type{0} : _vals[i][j];
-						stream << std::setw(fmt.width) << std::setprecision(fmt.precision) << value;
-					}
-				}
-				if (fmt.showBrackets)
-					stream << "]";
-				stream << std::endl;
-			} else {
-				// Normal multi-line mode
-				for (int i = 0; i < rows(); i++) {
-					if (fmt.showBrackets)
-						stream << "[ ";
-					for (int j = 0; j < cols(); j++) {
-						Type value = (fmt.zeroThreshold > 0.0 && Abs(_vals[i][j]) <= fmt.zeroThreshold) ? Type{0} : _vals[i][j];
-						stream << std::setw(fmt.width) << std::setprecision(fmt.precision) << value;
-						if (j < cols() - 1)
-							stream << fmt.delimiter;
-					}
-					if (fmt.showBrackets)
-						stream << " ]";
-					if (i < rows() - 1)
-						stream << std::endl;
-				}
-			}
-
-			// Restore original flags
-			stream.flags(oldFlags);
+			PrintFormatting::Matrix(stream, rows(), cols(), [&](int i, int j) { return (*this)(i, j); }, fmt, "");
 		}
 
 		/// @brief Print with explicit width and precision.

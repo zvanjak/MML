@@ -27,7 +27,7 @@ typedef std::complex<Real> Complex;   // MMLBase.h — complex follows Real
   `MML_long_double.h`.
 - Library-wide default tolerances **scale with the precision** (`MMLPrecision.h`,
   `Defaults` / `PrecisionValues<Real>`) — algorithms stay meaningful in every build.
-- Write precision-portable constants as `Real(0.5)` (or the `REAL(0.5)` macro in test code),
+- Write precision-portable constants as `MML::Real(0.5)` (or `Real(0.5)` in an MML/local-import scope),
   never bare `double` literals in generic code.
 
 ## 2. Concepts: what "a number" means (`MMLScalar` & friends)
@@ -104,13 +104,13 @@ Every iterative algorithm follows one calling pattern (reference implementation:
 
 ```cpp
 // Simple overload - plain answer, throws on invalid input
-Real simpleRoot = RootFinding::FindRootBrent(f1, 0.0, 2.0, 1e-10);
+Real simpleRoot = RootFinding::FindRootBrentDetailed(f1, 0.0, 2.0, 1e-10);
 
 // Full control - a Config struct
 RootFinding::RootFindingConfig config;
 config.tolerance      = 1e-14;
 config.max_iterations = 200;
-auto result = RootFinding::FindRootBrent(f1, 0.0, 2.0, config);
+auto result = RootFinding::FindRootBrentDetailed(f1, 0.0, 2.0, config);
 
 // Rich diagnostics — a Result struct
 if (result.converged) {
@@ -134,9 +134,14 @@ The rules you can rely on:
   (`root`, `eigenvalues`, `minimizer`, ...).
 - **Failure to converge is data, not an exception** — check `converged`. Exceptions are
   reserved for *invalid input* (see §5).
-- Some results convert implicitly to their one obvious value (`operator Real()` on
-  `RootFindingResult`) — convenient, but it discards diagnostics; prefer named fields in
-  anything beyond a throwaway script.
+- **A result claims only what it checked.** `converged == true` / `status == Success` mean a
+  convergence criterion was evaluated and met. Methods that have no criterion (fixed Gauss
+  rules, direct solvers) report `status == Completed` with `converged == false`; estimate
+  fields they did not compute are `NoEstimate` (NaN — test with `HasEstimate()`). `if (result)`
+  / `result.IsSuccess()` is true for both `Success` and `Completed`.
+- Results never convert *implicitly* to their value — write `result.value` (or
+  `static_cast<Real>(result)`) so that discarding the diagnostics is visible at the call site.
+  The full rule set is [RESULT_POLICY.md](RESULT_POLICY.md).
 
 ## 5. Contracts you can rely on
 
@@ -146,8 +151,8 @@ version with enforcement details is [CONTRACT_POLICY.md](CONTRACT_POLICY.md)):
 | Situation | Guarantee |
 |---|---|
 | `a == b` | never throws; exact element-wise; different dimensions ⇒ `false` |
-| tolerance comparison | named method: `IsEqualTo(b, eps)` |
-| zero queries | `isZero()` is exact; `isNearZero(eps)` is tolerance-based — the name states the semantics |
+| tolerance comparison | named method: `IsEqualTo(b, eps)`; scalars: `IsNearlyEqual(a, b)`, `IsNearlyZero(x)`; every `eps` default is a named `Precision::` constant, never a literal — [TOLERANCE_POLICY.md](TOLERANCE_POLICY.md) |
+| zero queries | `IsZero()` is exact; `IsNearZero(eps)` is tolerance-based — the name states the semantics |
 | `v[i]`, `m(i,j)` | **unchecked** fast path (asserts in Debug) |
 | `v.at(i)` | **checked** — throws `VectorAccessBoundsError` / `MatrixAccessBoundsError` |
 | solvers/transforms | validate inputs at entry, throw MML exceptions on bad input |
@@ -158,8 +163,8 @@ version with enforcement details is [CONTRACT_POLICY.md](CONTRACT_POLICY.md)):
 
 ```cpp
 Vector<Real> v({ 1e-14, -1e-14, 0.0 });
-bool exact = v.isZero();          // false — exact query
-bool near  = v.isNearZero();      // true  — tolerance query (Defaults-scaled)
+bool exact = v.IsZero();          // false — exact query
+bool near  = v.IsNearZero();      // true  — tolerance query (Defaults-scaled)
 
 try {
     Real x = v.at(17);            // checked access

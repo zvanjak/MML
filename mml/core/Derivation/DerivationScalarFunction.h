@@ -13,6 +13,7 @@
 #define MML_DERIVATION_SCALAR_FUNCTION_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 
 #include "DerivationBase.h"
 #include "FirstDerivativeStencil.h"

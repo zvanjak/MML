@@ -48,7 +48,7 @@ namespace MML::Systems
 				: _params(P, 0.0)
 				, _stateNames(N)
 				, _paramNames(P)
-				, _paramRanges(P, std::make_pair(REAL(-1e10), REAL(1e10))) {
+				, _paramRanges(P, std::make_pair(-Precision::UnboundedIntervalSamplingLimit, Precision::UnboundedIntervalSamplingLimit)) {
 			for (int i = 0; i < N; ++i)
 				_stateNames[i] = "x" + std::to_string(i);
 			for (int i = 0; i < P; ++i)
@@ -58,8 +58,16 @@ namespace MML::Systems
 		int getDim() const override { return N; }
 		int getNumParam() const override { return P; }
 
-		Real getParam(int i) const override { return _params[i]; }
-		void setParam(int i, Real val) override { _params[i] = val; }
+		Real getParam(int i) const override {
+			if (i < 0 || i >= P)
+				throw IndexError("DynamicalSystemBase::getParam - parameter index out of range");
+			return _params[i];
+		}
+		void setParam(int i, Real val) override {
+			if (i < 0 || i >= P)
+				throw IndexError("DynamicalSystemBase::setParam - parameter index out of range");
+			_params[i] = val;
+		}
 
 		Vector<Real> getParams() const override {
 			Vector<Real> p(P);
@@ -69,6 +77,8 @@ namespace MML::Systems
 		}
 
 		void setParams(const Vector<Real>& p) override {
+			if (p.size() != P)
+				throw VectorDimensionError("DynamicalSystemBase::setParams - parameter vector size must equal the number of parameters", p.size(), P);
 			for (int i = 0; i < P; ++i)
 				_params[i] = p[i];
 		}

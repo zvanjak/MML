@@ -36,8 +36,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 	void CreateInterpolatedValues(RealFunction f, Real x1, Real x2, int numPnt, Vector<Real>& outX, Vector<Real>& outY)
 	{
-		outX.Resize(numPnt);
-		outY.Resize(numPnt);
+		outX.resize(numPnt);
+		outY.resize(numPnt);
 
 		for (int i = 0; i < numPnt; i++) {
 			outX[i] = x1 + i * (x2 - x1) / (numPnt - 1);
@@ -283,25 +283,25 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 	//////////////////////////////////////////////////////////////////////////////
 
 	TEST_CASE("HermiteInterp_recovers_cubic_with_exact_derivatives", "[interpolation][hermite]") {
-		Vector<Real> x{REAL(-2.0), REAL(-1.0), REAL(0.0), REAL(1.0), REAL(2.0)};
+		Vector<Real> x{static_cast<MML::Real>(-2.0), static_cast<MML::Real>(-1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
 		Vector<Real> y(x.size()), derivatives(x.size());
 		for (int i = 0; i < x.size(); ++i) {
-			y[i] = x[i] * x[i] * x[i] - REAL(2.0) * x[i] * x[i] + x[i] - REAL(1.0);
-			derivatives[i] = REAL(3.0) * x[i] * x[i] - REAL(4.0) * x[i] + REAL(1.0);
+			y[i] = x[i] * x[i] * x[i] - static_cast<MML::Real>(2.0) * x[i] * x[i] + x[i] - static_cast<MML::Real>(1.0);
+			derivatives[i] = static_cast<MML::Real>(3.0) * x[i] * x[i] - static_cast<MML::Real>(4.0) * x[i] + static_cast<MML::Real>(1.0);
 		}
 		HermiteInterpRealFunc interp(x, y, derivatives);
 		for (int i = 0; i <= 40; ++i) {
-			Real point = REAL(-2.0) + REAL(4.0) * i / REAL(40.0);
-			Real expected = point * point * point - REAL(2.0) * point * point + point - REAL(1.0);
+			Real point = static_cast<MML::Real>(-2.0) + static_cast<MML::Real>(4.0) * i / static_cast<MML::Real>(40.0);
+			Real expected = point * point * point - static_cast<MML::Real>(2.0) * point * point + point - static_cast<MML::Real>(1.0);
 			REQUIRE_THAT(interp(point), WithinAbs(expected, TOL(1e-11, 1e-4)));
 		}
-		REQUIRE(interp.EvaluateDetailed(REAL(0.25)).algorithm_name == "CubicHermite");
+		REQUIRE(interp.EvaluateDetailed(static_cast<MML::Real>(0.25)).algorithm_name == "CubicHermite");
 	}
 
 	TEST_CASE("HermiteInterp_validates_derivative_data", "[interpolation][hermite][edge]") {
-		Vector<Real> x{REAL(0.0), REAL(1.0), REAL(2.0)};
-		Vector<Real> y{REAL(0.0), REAL(1.0), REAL(4.0)};
-		Vector<Real> derivatives{REAL(0.0), REAL(2.0)};
+		Vector<Real> x{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
+		Vector<Real> y{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0)};
+		Vector<Real> derivatives{static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0)};
 		REQUIRE_THROWS_AS(HermiteInterpRealFunc(x, y, derivatives), RealFuncInterpInitError);
 	}
 
@@ -313,7 +313,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		Real maxError = TestBeds::computeMaxError(interp, data._trueFunction,
 			TestBeds::getStandardEvaluationGrid(data._xMin, data._xMax));
 		REQUIRE(maxError < TOL(0.08, 0.25));
-		REQUIRE(interp.EvaluateDetailed(REAL(0.125)).algorithm_name == "Akima");
+		REQUIRE(interp.EvaluateDetailed(static_cast<MML::Real>(0.125)).algorithm_name == "Akima");
 	}
 
 	TEST_CASE("AkimaInterp_noisy_data_avoids_large_overshoot", "[interpolation][akima][noisy]") {
@@ -321,13 +321,13 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		AkimaInterpRealFunc akima(data._xData, data._yData);
 		SplineInterpRealFunc spline(data._xData, data._yData);
 		Vector<Real> grid = TestBeds::getStandardEvaluationGrid(data._xMin, data._xMax);
-		Real akimaExtreme = REAL(0.0);
-		Real splineExtreme = REAL(0.0);
+		Real akimaExtreme = static_cast<MML::Real>(0.0);
+		Real splineExtreme = static_cast<MML::Real>(0.0);
 		for (int i = 0; i < grid.size(); ++i) {
 			akimaExtreme = std::max(akimaExtreme, std::abs(akima(grid[i])));
 			splineExtreme = std::max(splineExtreme, std::abs(spline(grid[i])));
 		}
-		REQUIRE(akimaExtreme < REAL(1.25));
+		REQUIRE(akimaExtreme < static_cast<MML::Real>(1.25));
 		REQUIRE(akimaExtreme <= splineExtreme + TOL(0.05, 0.15));
 	}
 
@@ -336,14 +336,14 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		AkimaInterpRealFunc akima(runge._xData, runge._yData);
 		Real rungeError = TestBeds::computeMaxError(akima, runge._trueFunction,
 			TestBeds::getStandardEvaluationGrid(runge._xMin, runge._xMax));
-		REQUIRE(rungeError < REAL(0.25));
+		REQUIRE(rungeError < static_cast<MML::Real>(0.25));
 
-		Vector<Real> x = TestBeds::generateUniformNodes(REAL(-3.0), REAL(3.0), 17);
+		Vector<Real> x = TestBeds::generateUniformNodes(static_cast<MML::Real>(-3.0), static_cast<MML::Real>(3.0), 17);
 		Vector<Real> y = TestBeds::evaluateAtNodes(x, TestBeds::RationalSmooth_TrueFunc);
 		RationalInterpRealFunc rational(x, y, 5);
 		Real rationalError = TestBeds::computeMaxError(rational, TestBeds::RationalSmooth_TrueFunc,
-			TestBeds::getStandardEvaluationGrid(REAL(-3.0), REAL(3.0)));
-		REQUIRE(rationalError < REAL(0.35));
+			TestBeds::getStandardEvaluationGrid(static_cast<MML::Real>(-3.0), static_cast<MML::Real>(3.0)));
+		REQUIRE(rationalError < static_cast<MML::Real>(0.35));
 	}
 
 	TEST_CASE("InterpolationTestBed_collections_expose_expected_cases", "[interpolation][testbed]") {
@@ -381,63 +381,63 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 	}
 
 	TEST_CASE("Hermite_and_Akima_detailed_extrapolation_policies", "[interpolation][focused][extrapolation]") {
-		Vector<Real> x{REAL(0.0), REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)};
-		Vector<Real> y{REAL(0.0), REAL(1.0), REAL(4.0), REAL(9.0), REAL(16.0)};
-		Vector<Real> derivatives{REAL(0.0), REAL(2.0), REAL(4.0), REAL(6.0), REAL(8.0)};
+		Vector<Real> x{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)};
+		Vector<Real> y{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(9.0), static_cast<MML::Real>(16.0)};
+		Vector<Real> derivatives{static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(8.0)};
 		HermiteInterpRealFunc hermite(x, y, derivatives);
 		AkimaInterpRealFunc akima(x, y);
 		InterpolationConfig config;
 		config.extrapolation_policy = ExtrapolationPolicy::Clamp;
-		REQUIRE(hermite.EvaluateDetailed(REAL(-1.0), config).WasClamped());
-		REQUIRE(akima.EvaluateDetailed(REAL(5.0), config).WasClamped());
-		REQUIRE_THAT(hermite.EvaluateDetailed(REAL(-1.0), config).value,
-			WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
-		REQUIRE_THAT(akima.EvaluateDetailed(REAL(5.0), config).value,
-			WithinAbs(REAL(16.0), TOL(1e-12, 1e-5)));
+		REQUIRE(hermite.EvaluateDetailed(static_cast<MML::Real>(-1.0), config).WasClamped());
+		REQUIRE(akima.EvaluateDetailed(static_cast<MML::Real>(5.0), config).WasClamped());
+		REQUIRE_THAT(hermite.EvaluateDetailed(static_cast<MML::Real>(-1.0), config).value,
+			WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(akima.EvaluateDetailed(static_cast<MML::Real>(5.0), config).value,
+			WithinAbs(static_cast<MML::Real>(16.0), TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("BarycentricPolynomial_recovers_cubic_on_arbitrary_nodes", "[interpolation][barycentric-polynomial]") {
-		Vector<Real> x{REAL(2.0), REAL(-1.0), REAL(1.0), REAL(-2.0), REAL(0.0)};
+		Vector<Real> x{static_cast<MML::Real>(2.0), static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(-2.0), static_cast<MML::Real>(0.0)};
 		Vector<Real> y(x.size());
 		for (int i = 0; i < x.size(); ++i)
-			y[i] = x[i] * x[i] * x[i] - REAL(2.0) * x[i] + REAL(1.0);
+			y[i] = x[i] * x[i] * x[i] - static_cast<MML::Real>(2.0) * x[i] + static_cast<MML::Real>(1.0);
 		BarycentricPolynomialInterp interp(x, y);
 		for (int i = 0; i <= 40; ++i) {
-			Real point = REAL(-2.0) + REAL(4.0) * i / REAL(40.0);
-			Real expected = point * point * point - REAL(2.0) * point + REAL(1.0);
+			Real point = static_cast<MML::Real>(-2.0) + static_cast<MML::Real>(4.0) * i / static_cast<MML::Real>(40.0);
+			Real expected = point * point * point - static_cast<MML::Real>(2.0) * point + static_cast<MML::Real>(1.0);
 			REQUIRE_THAT(interp(point), WithinAbs(expected, TOL(1e-11, 1e-4)));
 		}
-		REQUIRE(interp.EvaluateDetailed(REAL(0.25)).algorithm_name == "BarycentricPolynomial");
+		REQUIRE(interp.EvaluateDetailed(static_cast<MML::Real>(0.25)).algorithm_name == "BarycentricPolynomial");
 	}
 
 	TEST_CASE("BarycentricPolynomial_validates_nodes_and_policies", "[interpolation][barycentric-polynomial]") {
-		Vector<Real> duplicateX{REAL(0.0), REAL(1.0), REAL(1.0)};
-		Vector<Real> duplicateY{REAL(0.0), REAL(1.0), REAL(2.0)};
+		Vector<Real> duplicateX{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0)};
+		Vector<Real> duplicateY{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
 		REQUIRE_THROWS_AS(BarycentricPolynomialInterp(duplicateX, duplicateY), RealFuncInterpInitError);
 
-		Vector<Real> x{REAL(0.0), REAL(1.0), REAL(2.0)};
-		Vector<Real> y{REAL(0.0), REAL(1.0), REAL(4.0)};
+		Vector<Real> x{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
+		Vector<Real> y{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0)};
 		BarycentricPolynomialInterp interp(x, y);
 		InterpolationConfig config;
 		config.extrapolation_policy = ExtrapolationPolicy::Clamp;
-		auto result = interp.EvaluateDetailed(REAL(3.0), config);
+		auto result = interp.EvaluateDetailed(static_cast<MML::Real>(3.0), config);
 		REQUIRE(result.WasClamped());
 		REQUIRE(result.interval_index == 1);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(4.0), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(result.value, WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("ChebyshevNodeInterpolator_reduces_Runge_error", "[interpolation][chebyshev-nodes]") {
 		constexpr int numNodes = 15;
-		Vector<Real> nodes = ChebyshevInterpolationNodes(REAL(-1.0), REAL(1.0), numNodes);
+		Vector<Real> nodes = ChebyshevInterpolationNodes(static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1.0), numNodes);
 		REQUIRE(nodes.size() == numNodes);
 		for (int i = 1; i < nodes.size(); ++i) REQUIRE(nodes[i] > nodes[i - 1]);
-		REQUIRE(nodes[0] > REAL(-1.0));
-		REQUIRE(nodes[nodes.size() - 1] < REAL(1.0));
+		REQUIRE(nodes[0] > static_cast<MML::Real>(-1.0));
+		REQUIRE(nodes[nodes.size() - 1] < static_cast<MML::Real>(1.0));
 
-		auto runge = [](Real x) { return REAL(1.0) / (REAL(1.0) + REAL(25.0) * x * x); };
+		auto runge = [](Real x) { return static_cast<MML::Real>(1.0) / (static_cast<MML::Real>(1.0) + static_cast<MML::Real>(25.0) * x * x); };
 		auto chebyshev = MakeChebyshevNodeInterpolator(std::function<Real(Real)>(runge),
-			REAL(-1.0), REAL(1.0), numNodes);
-		Vector<Real> uniformNodes = TestBeds::generateUniformNodes(REAL(-1.0), REAL(1.0), numNodes);
+			static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1.0), numNodes);
+		Vector<Real> uniformNodes = TestBeds::generateUniformNodes(static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1.0), numNodes);
 		Vector<Real> uniformValues(numNodes);
 		for (int i = 0; i < numNodes; ++i) uniformValues[i] = runge(uniformNodes[i]);
 		BarycentricPolynomialInterp uniform(uniformNodes, uniformValues);
@@ -445,50 +445,50 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		Real chebyshevMaxError = 0.0;
 		Real uniformMaxError = 0.0;
 		for (int i = 0; i <= 200; ++i) {
-			Real point = REAL(-1.0) + REAL(2.0) * i / REAL(200.0);
+			Real point = static_cast<MML::Real>(-1.0) + static_cast<MML::Real>(2.0) * i / static_cast<MML::Real>(200.0);
 			chebyshevMaxError = std::max(chebyshevMaxError, std::abs(chebyshev(point) - runge(point)));
 			uniformMaxError = std::max(uniformMaxError, std::abs(uniform(point) - runge(point)));
 		}
-		REQUIRE(chebyshevMaxError < REAL(0.08));
-		REQUIRE(chebyshevMaxError < uniformMaxError * REAL(0.1));
+		REQUIRE(chebyshevMaxError < static_cast<MML::Real>(0.08));
+		REQUIRE(chebyshevMaxError < uniformMaxError * static_cast<MML::Real>(0.1));
 	}
 
 	TEST_CASE("HermiteInterp_derivative_and_integral_are_exact_for_cubic", "[interpolation][hermite][calculus]") {
-		Vector<Real> x{REAL(-2.0), REAL(-1.0), REAL(0.0), REAL(1.0), REAL(2.0)};
+		Vector<Real> x{static_cast<MML::Real>(-2.0), static_cast<MML::Real>(-1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
 		Vector<Real> y(x.size()), derivatives(x.size());
 		for (int i = 0; i < x.size(); ++i) {
-			y[i] = x[i] * x[i] * x[i] - REAL(2.0) * x[i] * x[i] + x[i] - REAL(1.0);
-			derivatives[i] = REAL(3.0) * x[i] * x[i] - REAL(4.0) * x[i] + REAL(1.0);
+			y[i] = x[i] * x[i] * x[i] - static_cast<MML::Real>(2.0) * x[i] * x[i] + x[i] - static_cast<MML::Real>(1.0);
+			derivatives[i] = static_cast<MML::Real>(3.0) * x[i] * x[i] - static_cast<MML::Real>(4.0) * x[i] + static_cast<MML::Real>(1.0);
 		}
 		HermiteInterpRealFunc interp(x, y, derivatives);
-		for (Real point : {REAL(-1.5), REAL(-0.25), REAL(0.5), REAL(1.75)})
+		for (Real point : {static_cast<MML::Real>(-1.5), static_cast<MML::Real>(-0.25), static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.75)})
 			REQUIRE_THAT(interp.Derivative(point),
-				WithinAbs(REAL(3.0) * point * point - REAL(4.0) * point + REAL(1.0), TOL(1e-10, 1e-4)));
-		REQUIRE_THAT(interp.Integrate(REAL(-2.0), REAL(2.0)),
-			WithinAbs(-REAL(44.0 / 3.0), TOL(1e-10, 1e-4)));
+				WithinAbs(static_cast<MML::Real>(3.0) * point * point - static_cast<MML::Real>(4.0) * point + static_cast<MML::Real>(1.0), TOL(1e-10, 1e-4)));
+		REQUIRE_THAT(interp.Integrate(static_cast<MML::Real>(-2.0), static_cast<MML::Real>(2.0)),
+			WithinAbs(-static_cast<MML::Real>(44.0 / 3.0), TOL(1e-10, 1e-4)));
 
-		Vector<Real> descendingX{REAL(2.0), REAL(1.0), REAL(0.0), REAL(-1.0), REAL(-2.0)};
+		Vector<Real> descendingX{static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(-1.0), static_cast<MML::Real>(-2.0)};
 		Vector<Real> descendingY(descendingX.size()), descendingDerivatives(descendingX.size());
 		for (int i = 0; i < descendingX.size(); ++i) {
 			Real point = descendingX[i];
-			descendingY[i] = point * point * point - REAL(2.0) * point * point + point - REAL(1.0);
-			descendingDerivatives[i] = REAL(3.0) * point * point - REAL(4.0) * point + REAL(1.0);
+			descendingY[i] = point * point * point - static_cast<MML::Real>(2.0) * point * point + point - static_cast<MML::Real>(1.0);
+			descendingDerivatives[i] = static_cast<MML::Real>(3.0) * point * point - static_cast<MML::Real>(4.0) * point + static_cast<MML::Real>(1.0);
 		}
 		HermiteInterpRealFunc descending(descendingX, descendingY, descendingDerivatives);
-		REQUIRE_THAT(descending.Integrate(REAL(-2.0), REAL(2.0)),
-			WithinAbs(-REAL(44.0 / 3.0), TOL(1e-10, 1e-4)));
+		REQUIRE_THAT(descending.Integrate(static_cast<MML::Real>(-2.0), static_cast<MML::Real>(2.0)),
+			WithinAbs(-static_cast<MML::Real>(44.0 / 3.0), TOL(1e-10, 1e-4)));
 	}
 
 	TEST_CASE("MonotoneCubic_derivative_and_integral_recover_linear_function", "[interpolation][monotone][calculus]") {
-		Vector<Real> x{REAL(0.0), REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)};
-		Vector<Real> y{REAL(1.0), REAL(3.0), REAL(5.0), REAL(7.0), REAL(9.0)};
+		Vector<Real> x{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)};
+		Vector<Real> y{static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(7.0), static_cast<MML::Real>(9.0)};
 		MonotoneCubicInterpRealFunc interp(x, y);
-		for (Real point : {REAL(0.25), REAL(1.5), REAL(3.75)})
-			REQUIRE_THAT(interp.Derivative(point), WithinAbs(REAL(2.0), TOL(1e-12, 1e-5)));
-		REQUIRE_THAT(interp.Integrate(REAL(0.0), REAL(4.0)),
-			WithinAbs(REAL(20.0), TOL(1e-11, 1e-4)));
-		REQUIRE_THAT(interp.Integrate(REAL(4.0), REAL(0.0)),
-			WithinAbs(-REAL(20.0), TOL(1e-11, 1e-4)));
+		for (Real point : {static_cast<MML::Real>(0.25), static_cast<MML::Real>(1.5), static_cast<MML::Real>(3.75)})
+			REQUIRE_THAT(interp.Derivative(point), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(interp.Integrate(static_cast<MML::Real>(0.0), static_cast<MML::Real>(4.0)),
+			WithinAbs(static_cast<MML::Real>(20.0), TOL(1e-11, 1e-4)));
+		REQUIRE_THAT(interp.Integrate(static_cast<MML::Real>(4.0), static_cast<MML::Real>(0.0)),
+			WithinAbs(-static_cast<MML::Real>(20.0), TOL(1e-11, 1e-4)));
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -1311,74 +1311,74 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 	TEST_CASE("Interpolation_EvaluateDetailed_reports_metadata", "[Interpolation][Detailed]")
 	{
-		Vector<Real> x{REAL(0.0), REAL(1.0), REAL(2.0)};
-		Vector<Real> y{REAL(0.0), REAL(2.0), REAL(4.0)};
+		Vector<Real> x{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
+		Vector<Real> y{static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0)};
 		LinearInterpRealFunc interp(x, y, true);
 
-		auto result = interp.EvaluateDetailed(REAL(0.5));
+		auto result = interp.EvaluateDetailed(static_cast<MML::Real>(0.5));
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.interpolation_status == InterpolationStatus::Success);
 		REQUIRE(result.algorithm_name == "Linear");
 		REQUIRE(result.interval_index == 0);
 		REQUIRE(result.function_evaluations == 1);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(result.value, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("Interpolation_EvaluateDetailed_normalizes_out_of_range", "[Interpolation][Detailed]")
 	{
-		Vector<Real> x{REAL(0.0), REAL(1.0), REAL(2.0)};
-		Vector<Real> y{REAL(0.0), REAL(2.0), REAL(4.0)};
+		Vector<Real> x{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
+		Vector<Real> y{static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0)};
 		LinearInterpRealFunc interp(x, y);
 
 		InterpolationConfig clamp;
 		clamp.extrapolation_policy = ExtrapolationPolicy::Clamp;
-		auto clamped = interp.EvaluateDetailed(REAL(-1.0), clamp);
+		auto clamped = interp.EvaluateDetailed(static_cast<MML::Real>(-1.0), clamp);
 		REQUIRE(clamped.IsSuccess());
 		REQUIRE(clamped.WasClamped());
-		REQUIRE(clamped.evaluated_point == REAL(0.0));
-		REQUIRE(clamped.value == REAL(0.0));
+		REQUIRE(clamped.evaluated_point == static_cast<MML::Real>(0.0));
+		REQUIRE(clamped.value == static_cast<MML::Real>(0.0));
 
 		InterpolationConfig allow;
 		allow.extrapolation_policy = ExtrapolationPolicy::Allow;
-		auto extrapolated = interp.EvaluateDetailed(REAL(3.0), allow);
+		auto extrapolated = interp.EvaluateDetailed(static_cast<MML::Real>(3.0), allow);
 		REQUIRE(extrapolated.IsSuccess());
 		REQUIRE(extrapolated.WasExtrapolated());
-		REQUIRE(extrapolated.value == REAL(6.0));
+		REQUIRE(extrapolated.value == static_cast<MML::Real>(6.0));
 
 		InterpolationConfig reject;
 		reject.extrapolation_policy = ExtrapolationPolicy::Throw;
 		reject.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
-		auto rejected = interp.EvaluateDetailed(REAL(3.0), reject);
+		auto rejected = interp.EvaluateDetailed(static_cast<MML::Real>(3.0), reject);
 		REQUIRE(rejected.status == AlgorithmStatus::InvalidInput);
 		REQUIRE(rejected.interpolation_status == InterpolationStatus::OutOfRange);
 	}
 
 	TEST_CASE("Interpolation_EvaluateDetailed_exposes_Neville_error", "[Interpolation][Detailed]")
 	{
-		Vector<Real> x{REAL(0.0), REAL(1.0), REAL(2.0), REAL(3.0)};
-		Vector<Real> y{REAL(1.0), REAL(2.0), REAL(5.0), REAL(10.0)};
+		Vector<Real> x{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)};
+		Vector<Real> y{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(10.0)};
 		PolynomInterpRealFunc interp(x, y, 3);
-		auto result = interp.EvaluateDetailed(REAL(1.5));
+		auto result = interp.EvaluateDetailed(static_cast<MML::Real>(1.5));
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "NevillePolynomial");
-		REQUIRE(result.error_estimate >= REAL(0.0));
+		REQUIRE(result.error_estimate >= static_cast<MML::Real>(0.0));
 	}
 
 	TEST_CASE("Interpolation_EvaluateDetailed_supports_descending_nodes", "[Interpolation][Detailed]")
 	{
-		Vector<Real> x{REAL(3.0), REAL(2.0), REAL(1.0), REAL(0.0)};
-		Vector<Real> y{REAL(6.0), REAL(4.0), REAL(2.0), REAL(0.0)};
+		Vector<Real> x{static_cast<MML::Real>(3.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)};
+		Vector<Real> y{static_cast<MML::Real>(6.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0)};
 		LinearInterpRealFunc interp(x, y);
-		auto inside = interp.EvaluateDetailed(REAL(1.5));
+		auto inside = interp.EvaluateDetailed(static_cast<MML::Real>(1.5));
 		REQUIRE(inside.IsSuccess());
 		REQUIRE(inside.interpolation_status == InterpolationStatus::Success);
-		REQUIRE_THAT(inside.value, WithinAbs(REAL(3.0), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(inside.value, WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-12, 1e-5)));
 
 		InterpolationConfig config;
 		config.extrapolation_policy = ExtrapolationPolicy::Clamp;
-		auto clamped = interp.EvaluateDetailed(REAL(4.0), config);
+		auto clamped = interp.EvaluateDetailed(static_cast<MML::Real>(4.0), config);
 		REQUIRE(clamped.WasClamped());
-		REQUIRE_THAT(clamped.value, WithinAbs(REAL(6.0), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(clamped.value, WithinAbs(static_cast<MML::Real>(6.0), TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("ExtrapolationPolicy_isInRange", "[Interpolation][ExtrapolationPolicy]")
@@ -1435,17 +1435,17 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 	TEST_CASE("Interpolation_FloaterHormann_detailed_result", "[Interpolation][Detailed]")
 	{
-		Vector<Real> x{REAL(0.0), REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)};
-		Vector<Real> y{REAL(0.0), REAL(1.0), REAL(4.0), REAL(9.0), REAL(16.0)};
+		Vector<Real> x{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)};
+		Vector<Real> y{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(9.0), static_cast<MML::Real>(16.0)};
 		BarycentricRationalInterp interp(x, y, 3);
 		InterpolationConfig config;
 		config.extrapolation_policy = ExtrapolationPolicy::Clamp;
-		auto result = interp.EvaluateDetailed(REAL(5.0), config);
+		auto result = interp.EvaluateDetailed(static_cast<MML::Real>(5.0), config);
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.WasClamped());
 		REQUIRE(result.algorithm_name == "FloaterHormannRational");
 		REQUIRE(result.interval_index == 3);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(16.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result.value, WithinAbs(static_cast<MML::Real>(16.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Interpolation_spline_owners_are_copy_and_move_safe", "[Interpolation][Ownership]")
@@ -1455,24 +1455,24 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		STATIC_REQUIRE(std::is_copy_constructible_v<SplineInterpParametricCurve<2>>);
 		STATIC_REQUIRE(std::is_move_constructible_v<SplineInterpParametricCurve<2>>);
 
-		Vector<Real> x1{REAL(0.0), REAL(1.0), REAL(2.0)};
-		Vector<Real> x2{REAL(0.0), REAL(1.0), REAL(2.0)};
+		Vector<Real> x1{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
+		Vector<Real> x2{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
 		Matrix<Real> z(3, 3);
 		for (int i = 0; i < 3; ++i)
 			for (int j = 0; j < 3; ++j) z(i, j) = x1[i] + x2[j];
 		BicubicSplineInterp2D original2d(x1, x2, z);
 		BicubicSplineInterp2D copied2d(original2d);
 		BicubicSplineInterp2D moved2d(std::move(copied2d));
-		REQUIRE_THAT(moved2d(REAL(0.5), REAL(1.5)), WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(moved2d(static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.5)), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-8, 1e-4)));
 
-		Matrix<Real> points(4, 2, {REAL(0.0), REAL(0.0), REAL(1.0), REAL(1.0),
-			REAL(2.0), REAL(2.0), REAL(3.0), REAL(3.0)});
+		Matrix<Real> points(4, 2, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(3.0)});
 		SplineInterpParametricCurve<2> originalCurve(points, false);
 		SplineInterpParametricCurve<2> copiedCurve(originalCurve);
 		SplineInterpParametricCurve<2> movedCurve(std::move(copiedCurve));
-		auto point = movedCurve(REAL(0.5));
-		REQUIRE_THAT(point[0], WithinAbs(REAL(1.5), TOL(1e-8, 1e-4)));
-		REQUIRE_THAT(point[1], WithinAbs(REAL(1.5), TOL(1e-8, 1e-4)));
+		auto point = movedCurve(static_cast<MML::Real>(0.5));
+		REQUIRE_THAT(point[0], WithinAbs(static_cast<MML::Real>(1.5), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(point[1], WithinAbs(static_cast<MML::Real>(1.5), TOL(1e-8, 1e-4)));
 	}
 
 	//////////////////////////////////////////////////////////////////////////////

@@ -8,6 +8,9 @@
  * Cross-platform: works on Windows, Linux, and macOS.
  */
 
+#include "test_data/parametric_surfaces_defs.h"
+#include "VisualizationResult.h"
+
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
@@ -32,41 +35,41 @@ void Show_Parametric_Surface_Examples()
     std::cout << "1. Sphere (radius = 50)\n";
     std::cout << "   Classic parametric: x = r*sin(u)*cos(w), y = r*sin(u)*sin(w), z = r*cos(u)\n";
     Sphere sphere(50.0);
-    Visualizer::VisualizeParametricSurface(sphere, "Sphere",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeParametricSurface(sphere, "Sphere",
                                            30, 50,
-                                           "viz_surface_sphere.mml");
+                                           "viz_surface_sphere.mml"), "VisualizeParametricSurface");
 
     // Example 2: Torus
     std::cout << "2. Torus (R=40, r=15)\n";
     std::cout << "   Donut shape: (R + r*cos(w))*cos(u), (R + r*cos(w))*sin(u), r*sin(w)\n";
     Torus torus(40.0, 15.0);
-    Visualizer::VisualizeParametricSurface(torus, "Torus (Donut)",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeParametricSurface(torus, "Torus (Donut)",
                                            50, 30,
-                                           "viz_surface_torus.mml");
+                                           "viz_surface_torus.mml"), "VisualizeParametricSurface");
 
     // Example 3: Möbius Strip
     std::cout << "3. Mobius Strip\n";
     std::cout << "   Non-orientable surface with only one side!\n";
-    MobiusStrip mobius(30.0);  // Scale = 30 for visibility
-    Visualizer::VisualizeParametricSurface(mobius, "Mobius Strip",
+    MML::TestBeds::ShowcaseSurfaces::MobiusStrip mobius(30.0);  // Scale = 30 for visibility
+    Examples::ReportVisualizationResult(Visualizer::VisualizeParametricSurface(mobius, "Mobius Strip",
                                            60, 15,
-                                           "viz_surface_mobius.mml");
+                                           "viz_surface_mobius.mml"), "VisualizeParametricSurface");
 
     // Example 4: Helicoid
     std::cout << "4. Helicoid (Spiral Ramp)\n";
     std::cout << "   Minimal surface - like a spiral staircase\n";
-    Helicoid helicoid(5.0);  // pitch = 5
-    Visualizer::VisualizeParametricSurface(helicoid, "Helicoid",
+    MML::TestBeds::ShowcaseSurfaces::Helicoid helicoid(5.0);  // pitch = 5
+    Examples::ReportVisualizationResult(Visualizer::VisualizeParametricSurface(helicoid, "Helicoid",
                                            25, 80,
-                                           "viz_surface_helicoid.mml");
+                                           "viz_surface_helicoid.mml"), "VisualizeParametricSurface");
 
     // Example 5: Enneper Surface
     std::cout << "5. Enneper Surface\n";
     std::cout << "   Self-intersecting minimal surface with elegant shape\n";
-    EnneperSurface enneper(15.0);  // scale = 15 for visibility
-    Visualizer::VisualizeParametricSurface(enneper, "Enneper Surface",
+    MML::TestBeds::ShowcaseSurfaces::EnneperSurface enneper(15.0);  // scale = 15 for visibility
+    Examples::ReportVisualizationResult(Visualizer::VisualizeParametricSurface(enneper, "Enneper Surface",
                                            50, 50,
-                                           "viz_surface_enneper.mml");
+                                           "viz_surface_enneper.mml"), "VisualizeParametricSurface");
 
     std::cout << "\nParametric surface examples complete!\n";
 }

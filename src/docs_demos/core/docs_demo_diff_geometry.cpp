@@ -1,3 +1,5 @@
+#include "test_data/parametric_curves_defs.h"
+#include "test_data/parametric_surfaces_defs.h"
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
@@ -53,7 +55,7 @@ void Docs_Demo_Curves_2D_Basic()
 
 	// Lemniscate
 	std::cout << "\n--- LemniscateCurve (Figure-8) ---" << std::endl;
-	LemniscateCurve lemniscate;
+	MML::TestBeds::ShowcaseCurves::LemniscateCurve lemniscate;
 	
 	std::cout << "  Points along lemniscate:" << std::endl;
 	for (int i = 0; i <= 4; i++) {
@@ -65,7 +67,7 @@ void Docs_Demo_Curves_2D_Basic()
 
 	// Deltoid
 	std::cout << "\n--- DeltoidCurve ---" << std::endl;
-	DeltoidCurve deltoid(2);  // Scaled deltoid
+	MML::TestBeds::ShowcaseCurves::DeltoidCurve deltoid(2);  // Scaled deltoid
 	
 	std::cout << "Deltoid: n=2" << std::endl;
 	Vec2Cart deltoid_pt = deltoid(Constants::PI / 3);
@@ -73,7 +75,7 @@ void Docs_Demo_Curves_2D_Basic()
 
 	// Astroid
 	std::cout << "\n--- AstroidCurve ---" << std::endl;
-	AstroidCurve astroid(3.0);  // c=3
+	MML::TestBeds::ShowcaseCurves::AstroidCurve astroid(3.0);  // c=3
 	
 	std::cout << "Astroid: c=3" << std::endl;
 	for (int i = 0; i <= 4; i++) {
@@ -149,7 +151,7 @@ void Docs_Demo_Curves_3D_Basic()
 
 	// Twisted cubic
 	std::cout << "\n--- TwistedCubicCurve ---" << std::endl;
-	TwistedCubicCurve twisted;
+	MML::TestBeds::ShowcaseCurves::TwistedCubicCurve twisted;
 	
 	std::cout << "Twisted Cubic: (t, t^2, t^3)" << std::endl;
 	for (int i = -2; i <= 2; i++) {
@@ -160,7 +162,7 @@ void Docs_Demo_Curves_3D_Basic()
 
 	// Toroidal spiral
 	std::cout << "\n--- ToroidalSpiralCurve ---" << std::endl;
-	ToroidalSpiralCurve toroidal(3, 1.0);  // 3 windings
+	MML::TestBeds::ShowcaseCurves::ToroidalSpiralCurve toroidal(3, 1.0);  // 3 windings
 	
 	std::cout << "Toroidal Spiral: n=3, scale=1.0" << std::endl;
 	for (int i = 0; i <= 4; i++) {
@@ -248,7 +250,7 @@ void Docs_Demo_Curves_Curvature_Torsion()
 
 	// Twisted cubic - varying curvature and torsion
 	std::cout << "\n--- Twisted Cubic (varying curvature and torsion) ---" << std::endl;
-	TwistedCubicCurve twisted;
+	MML::TestBeds::ShowcaseCurves::TwistedCubicCurve twisted;
 	
 	std::cout << "Twisted Cubic: (t, t², t³)" << std::endl;
 	for (int i = 1; i <= 5; i++) {
@@ -441,7 +443,7 @@ void Docs_Demo_Surfaces_Curvature()
 
 	// Monkey Saddle - saddle point with K=0
 	std::cout << "\n--- MonkeySaddle ---" << std::endl;
-	MonkeySaddle saddle;
+	MML::TestBeds::ShowcaseSurfaces::MonkeySaddle saddle;
 	
 	std::cout << "Monkey Saddle z = u(u² - 3w²):" << std::endl;
 	std::cout << "  At origin (u=0, w=0):" << std::endl;
@@ -549,7 +551,7 @@ void Docs_Demo_Surfaces_Special()
 
 	// Möbius Strip
 	std::cout << "\n--- MobiusStrip (non-orientable) ---" << std::endl;
-	MobiusStrip mobius;
+	MML::TestBeds::ShowcaseSurfaces::MobiusStrip mobius;
 	
 	std::cout << "Möbius Strip:" << std::endl;
 	std::cout << "  Parameterization: u in [0, 2PI], w in [-1, 1]" << std::endl;

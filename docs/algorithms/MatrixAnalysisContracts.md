@@ -18,6 +18,30 @@ base Matrix types
 
 Algorithms-layer types do not depend on `Systems::LinearSystem`.
 
+`MatrixAnalyzer::Analyze()` returns numerical data only. Presentation is optional and lives in
+`mml/tools/analyzers/MatrixAnalysisReports.h`; algorithms never include reporting tools.
+`MatrixAnalysis::report` has been removed. Render a snapshot explicitly:
+
+```cpp
+#include <mml/algorithms/Analyzers/MatrixAnalyzer.h>
+#include <mml/tools/analyzers/MatrixAnalysisReports.h>
+
+Matrix<Real> matrix(2, 2, {2, 0, 0, 3});
+MatrixAnalyzer<Real> matrixAnalyzer(matrix);
+const auto matrixAnalysis = matrixAnalyzer.Analyze();
+AnalysisReports::PrintMatrixAnalysis(std::cout, matrixAnalysis, "diagonal");
+```
+
+Reports do not request new factorizations. They accept real or complex analysis snapshots,
+print optional definiteness classifications only when present, and preserve the caller's stream
+formatting. `LinearSystem::Analyze().report` remains available and composes its matrix section
+through this tools-side formatter.
+
+Runnable counterparts: `Docs_Demo_AnalyzerReports` and `Demo_CachedAndComplexAnalysis` in
+[function demos](../../src/docs_demos/algorithms/docs_demo_function_analyzer.cpp) and
+[matrix demos](../../src/docs_demos/algorithms/docs_demo_matrix_alg.cpp).
+Run `MML_DocsApp --analyzer-reports`.
+
 ## Choosing An Interface
 
 Use `MatrixAlg` for independent stateless operations:

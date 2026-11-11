@@ -75,7 +75,7 @@ namespace MML
 
 			for (int i = 0; i < N; i++)
 			{
-				Real acceleration = REAL(0.0);
+				Real acceleration = static_cast<MML::Real>(0.0);
 				for (int j = 0; j < N; j++)
 					for (int k = 0; k < N; k++)
 						acceleration -= _metric.GetChristoffelSymbolSecondKind(i, j, k, position) * state[N + j] * state[N + k];
@@ -130,7 +130,7 @@ namespace MML
 
 			for (int i = 0; i < N; i++)
 			{
-				Real derivative = REAL(0.0);
+				Real derivative = static_cast<MML::Real>(0.0);
 				for (int j = 0; j < N; j++)
 					for (int k = 0; k < N; k++)
 						derivative -= _metric.GetChristoffelSymbolSecondKind(i, j, k, position) * tangent[j] * vector[k];

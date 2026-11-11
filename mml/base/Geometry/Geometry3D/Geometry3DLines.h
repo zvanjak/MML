@@ -88,7 +88,7 @@ namespace MML
 				throw GeometryError("Line3D ctor - null vector as direction");
 
 			_point = pnt;
-			_direction = dir.GetAsUnitVector();
+			_direction = dir.Normalized();
 		}
 		
 		/// @brief Constructs a line through two points
@@ -103,7 +103,7 @@ namespace MML
 
 			Vec3Cart dir(a, b);
 			_point = a;
-			_direction = dir.GetAsUnitVector();
+			_direction = dir.Normalized();
 		}
 
 		/// @brief Gets the reference point on the line (const)
@@ -126,7 +126,7 @@ namespace MML
 		/// @details Two lines are equal if they share the same points (each start point lies
 		///          on the other line) AND their directions are either equal or anti-parallel
 		///          (opposite directions represent the same geometric line).
-		bool AreEqual(const Line3D& b, Real eps = Defaults::Line3DAreEqualTolerance) const
+		bool AreEqual(const Line3D& b, Real eps = Precision::Line3DAreEqualTolerance) const
 		{
 			if (!IsPointOnLine(b.StartPoint()) || !b.IsPointOnLine(StartPoint()))
 				return false;
@@ -139,11 +139,11 @@ namespace MML
 		/// @brief Equality operator
 		bool operator==(const Line3D& b) const
 		{
-			return AreEqual(b, Defaults::Line3DAreEqualTolerance);
+			return AreEqual(b, Precision::Line3DAreEqualTolerance);
 		}
 
 		/// @brief Tests if this line is perpendicular to another line
-		bool IsPerpendicular(const Line3D& b, Real eps = Defaults::Line3DIsPerpendicularTolerance) const
+		bool IsPerpendicular(const Line3D& b, Real eps = Precision::Line3DIsPerpendicularTolerance) const
 		{
 			// |cos(angle)| < eps - without Abs, any negative dot (e.g. anti-parallel) passed
 			return Abs(ScalarProduct(Direction(), b.Direction())) < eps;
@@ -151,7 +151,7 @@ namespace MML
 		
 		/// @brief Tests if this line is parallel to another line
 		/// @details Two lines are parallel if their directions are either equal or anti-parallel
-		bool IsParallel(const Line3D& b, Real eps = Defaults::Line3DIsParallelTolerance) const
+		bool IsParallel(const Line3D& b, Real eps = Precision::Line3DIsParallelTolerance) const
 		{
 			Vec3Cart negDir = -b.Direction();
 			return Direction().IsEqualTo(b.Direction(), eps) || Direction().IsEqualTo(negDir, eps);
@@ -160,7 +160,7 @@ namespace MML
 		/// @brief Tests if a point lies on this line
 		/// @param pnt The point to test
 		/// @param eps Tolerance for the test
-		bool IsPointOnLine(const Pnt3Cart& pnt, Real eps = Defaults::Line3DIsPointOnLineTolerance) const
+		bool IsPointOnLine(const Pnt3Cart& pnt, Real eps = Precision::Line3DIsPointOnLineTolerance) const
 		{
 			if (pnt == StartPoint())
 				return true;	// point is start point of line
@@ -224,7 +224,7 @@ namespace MML
 
 			Vec3Cart n = VectorProduct(d1, d2);
 
-			if (n.isNearZero(std::numeric_limits<Real>::epsilon() * 100))
+			if (n.IsNearZero(Precision::RoundoffZeroThreshold))
 			{
 				// parallel lines: perpendicular component of p1->p2 relative to the shared direction
 				return VectorProduct(Vec3Cart(p1, p2), d1).NormL2() / d1.NormL2();
@@ -252,7 +252,7 @@ namespace MML
 
 			Vec3Cart n = VectorProduct(d1, d2);
 
-			if (n.isNearZero(std::numeric_limits<Real>::epsilon() * 100))		// check for parallel lines
+			if (n.IsNearZero(Precision::RoundoffZeroThreshold))		// check for parallel lines
 			{
 				// perpendicular component of p1->p2 relative to the shared direction
 				out_dist = VectorProduct(Vec3Cart(p1, p2), d1).NormL2() / d1.NormL2();
@@ -314,7 +314,7 @@ namespace MML
 			result.t2 = t2;
 			result.distance = result.point1.Dist(result.point2);
 
-			if (result.distance < Defaults::Line3DIntersectionTolerance) {
+			if (result.distance < Precision::Line3DIntersectionTolerance) {
 				result.type = LineIntersectionType3D::Point;
 			} else {
 				result.type = LineIntersectionType3D::Skew;
@@ -349,7 +349,7 @@ namespace MML
 			if (IsPointOnLine(pnt))
 				throw GeometryError("Line3D::PerpendicularLineThroughPoint - point is on the line");
 
-			return Line3D(pnt, Vec3Cart(pnt, NearestPointOnLine(pnt)).GetAsUnitVector());
+			return Line3D(pnt, Vec3Cart(pnt, NearestPointOnLine(pnt)).Normalized());
 		}
 	};
 

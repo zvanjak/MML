@@ -361,7 +361,7 @@ namespace Collision2D
                                     HandleCollision(stepNum, idx1, idx2, dt);
                             }
                         }
-                        M(i, j).Clear();
+                        M(i, j).clear();
                     }
                 }
             }
@@ -427,7 +427,7 @@ namespace Collision2D
                                                 HandleCollision(stepNum, idx1, idx2, dt);
                                         }
                                     }
-                                    M(i, j).Clear();
+                                    M(i, j).clear();
                                 }
                             }
                         }

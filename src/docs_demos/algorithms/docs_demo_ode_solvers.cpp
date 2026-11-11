@@ -501,7 +501,10 @@ void Docs_Demo_ODE_solvers_RungeKutta_4th_order()
 	std::cout << "Final state: "; sol2.getXValuesAtEnd().Print(std::cout, 8, 4);
 	std::cout << std::endl;
 
-	Visualizer::VisualizeODESysSolAsMultiFunc(sol2, "Lorenz system solution - RK 4th order", std::vector<std::string>{"x", "y", "z"}, "lorenz_RK_4th.mml");
+	const auto visualization = Visualizer::VisualizeODESysSolAsMultiFunc(sol2, "Lorenz system solution - RK 4th order",
+																																			 std::vector<std::string>{"x", "y", "z"}, "lorenz_RK_4th.mml");
+	if (!visualization)
+		std::cerr << "Visualization failed: " << visualization.message << "\n";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

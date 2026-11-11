@@ -40,7 +40,7 @@ The MML solvers handle **index-1 systems** where ∂g/∂y is nonsingular.
 | `SolveDAEBackwardEulerAdaptive` | 1 | L-stable | Adaptive step doubling | Variable dynamics and tolerance control |
 | `SolveDAEBDF2` | 2 | A-stable | Fixed | General moderately stiff index-1 DAEs |
 | `SolveDAEBDF4` | 4 | A(α)-stable | Fixed | Higher accuracy when the solution is smooth |
-| `SolveDAERODAS` | 1-2 | L-stable | Fixed | Linearly implicit solves without Newton iteration |
+| `SolveDAELinearlyImplicit` | 1-2 | L-stable | Fixed | Linearly-implicit trapezoid (frozen Jacobian, no Newton); formerly misnamed `SolveDAERODAS` |
 | `SolveDAERadauIIA` | 5 | L-stable | Fixed | High-accuracy stiff integration |
 | `SolveDAEBackwardEulerWithEvents` | 1 | L-stable | Fixed with event restarts | Hybrid systems and state discontinuities |
 
@@ -97,15 +97,15 @@ Properties:
 
 The BDF2 method uses Backward Euler for the first step to bootstrap.
 
-### BDF4, RODAS, and Radau IIA
+### BDF4, linearly-implicit trapezoid, and Radau IIA
 
 ```cpp
 auto bdf4 = SolveDAEBDF4(system, t0, x0, y0, tEnd, config);
-auto rodas = SolveDAERODAS(system, t0, x0, y0, tEnd, config);
+auto linImpl = SolveDAELinearlyImplicit(system, t0, x0, y0, tEnd, config);
 auto radau = SolveDAERadauIIA(system, t0, x0, y0, tEnd, config);
 ```
 
-BDF4 builds its history with BDF2 substeps. RODAS uses a frozen augmented
+BDF4 builds its history with BDF2 substeps. The linearly-implicit trapezoid uses a frozen augmented
 Jacobian and linear predictor/corrector solves, so its Newton iteration count is
 zero. The three-stage Radau IIA method solves a coupled stage system and is the
 most expensive method per step, but provides fifth-order accuracy and strong
@@ -152,6 +152,22 @@ DAESolverConfig fast = DAESolverConfig::Fast();
 ```
 
 ## Result Structure
+
+Trajectory storage is bounded independently of `max_steps`. The initial condition
+uses one column, so 100,000 accepted intervals require 100,001 points.
+There is no fixed 100,000-column cap: capacity is derived from Matrix's unchanged
+100-million-element budget for each differential/algebraic state matrix, the
+time-vector element budget and integer index representability.
+All DAE drivers, including event integration, retain the stored partial solution
+and return `AlgorithmStatus::ResourceLimitExceeded` together with
+`DAEFailureReason::ResourceLimitExceeded` when the next point cannot be reserved.
+Saved-point counts and accepted-step counters do not advance for that point.
+Growth is transactional across time, differential and algebraic arrays.
+Fixed BDF4, Radau IIA and linearly-implicit budgets count accepted intervals,
+not the initial point.
+
+See [trajectory storage](Differential_equations_solvers.md#trajectory-storage-and-resource-limits)
+for allocation limits, direct-container exceptions and the runnable demo.
 
 ```cpp
 struct DAESolverResult {

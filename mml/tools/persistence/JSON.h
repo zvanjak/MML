@@ -12,6 +12,8 @@
 #define MML_PERSISTENCE_JSON_H
 
 #include <mml/tools/persistence/PersistenceBase.h>
+#include <mml/tools/TextIOFormat.h>
+#include <mml/MMLExceptions.h>
 
 #include <cerrno>
 #include <cmath>
@@ -19,6 +21,7 @@
 #include <functional>
 #include <iomanip>
 #include <limits>
+#include <locale>
 #include <map>
 #include <sstream>
 #include <string>
@@ -104,7 +107,7 @@ namespace Persistence
 
 	struct JsonParseResult
 	{
-		SerializeResult result;
+		IOResult result;
 		JsonValue value;
 	};
 
@@ -137,10 +140,8 @@ namespace Persistence
 			const std::string& _input;
 			std::size_t _pos = 0;
 
-			SerializeResult Fail(const std::string& message) const
-			{
-				return SerializeFailure(SerializeError::MALFORMED_INPUT,
-				                        message + " at byte " + std::to_string(_pos));
+			IOResult Fail(const std::string& message) const {
+				return SerializeFailure(IOError::MALFORMED_INPUT, message + " at byte " + std::to_string(_pos)).At(static_cast<std::int64_t>(_pos));
 			}
 
 			void SkipWhitespace()
@@ -165,8 +166,7 @@ namespace Persistence
 				return false;
 			}
 
-			JsonValue ParseValue(SerializeResult& result, std::size_t depth = 0)
-			{
+			JsonValue ParseValue(IOResult& result, std::size_t depth = 0) {
 				SkipWhitespace();
 				if (_pos >= _input.size())
 				{
@@ -192,8 +192,7 @@ namespace Persistence
 				return JsonValue::Null();
 			}
 
-			JsonValue ParseLiteral(const char* literal, JsonValue value, SerializeResult& result)
-			{
+			JsonValue ParseLiteral(const char* literal, JsonValue value, IOResult& result) {
 				const std::size_t start = _pos;
 				for (const char* p = literal; *p != '\0'; ++p)
 				{
@@ -209,8 +208,7 @@ namespace Persistence
 				return value;
 			}
 
-			JsonValue ParseString(SerializeResult& result)
-			{
+			JsonValue ParseString(IOResult& result) {
 				if (!Consume('"'))
 				{
 					result = Fail("Expected string opening quote");
@@ -268,8 +266,7 @@ namespace Persistence
 				return JsonValue::Null();
 			}
 
-			bool AppendUnicodeEscape(std::string& value, SerializeResult& result)
-			{
+			bool AppendUnicodeEscape(std::string& value, IOResult& result) {
 				unsigned codePoint = 0;
 				if (!ParseUnicodeCodeUnit(codePoint, result))
 					return false;
@@ -303,8 +300,7 @@ namespace Persistence
 				return true;
 			}
 
-			bool ParseUnicodeCodeUnit(unsigned& codeUnit, SerializeResult& result)
-			{
+			bool ParseUnicodeCodeUnit(unsigned& codeUnit, IOResult& result) {
 				if (_pos + 4 > _input.size())
 				{
 					result = Fail("Incomplete unicode escape");
@@ -354,8 +350,7 @@ namespace Persistence
 				}
 			}
 
-			JsonValue ParseNumber(SerializeResult& result)
-			{
+			JsonValue ParseNumber(IOResult& result) {
 				const std::size_t start = _pos;
 				if (_input[_pos] == '-') ++_pos;
 
@@ -399,10 +394,10 @@ namespace Persistence
 				}
 
 				const std::string text = _input.substr(start, _pos - start);
-				errno = 0;
-				char* endPtr = nullptr;
-				const double value = std::strtod(text.c_str(), &endPtr);
-				if (errno == ERANGE || endPtr == text.c_str() || *endPtr != '\0')
+				// Locale-independent: strtod honours the C locale and rejects "3.14" under a
+				// comma-decimal locale, so JSON (always '.') must not go through it.
+				double value = 0.0;
+				if (!TextIO::ParseFloatClassic<double>(text, value))
 				{
 					result = Fail("Invalid or out-of-range number");
 					return JsonValue::Null();
@@ -412,8 +407,7 @@ namespace Persistence
 				return JsonValue::Number(value, text);
 			}
 
-			JsonValue ParseArray(SerializeResult& result, std::size_t depth)
-			{
+			JsonValue ParseArray(IOResult& result, std::size_t depth) {
 				Consume('[');
 				JsonValue::Array values;
 				SkipWhitespace();
@@ -441,8 +435,7 @@ namespace Persistence
 				}
 			}
 
-			JsonValue ParseObject(SerializeResult& result, std::size_t depth)
-			{
+			JsonValue ParseObject(IOResult& result, std::size_t depth) {
 				Consume('{');
 				JsonValue::Object object;
 				std::vector<std::string> keyOrder;
@@ -497,26 +490,24 @@ namespace Persistence
 			for (int i = 0; i < indent; ++i) out << ' ';
 		}
 
-		inline SerializeResult ValidateJsonForWrite(const JsonValue& value)
-		{
+		inline IOResult ValidateJsonForWrite(const JsonValue& value) {
 			switch (value.type)
 			{
 			case JsonValueType::Number:
 				if (!std::isfinite(value.number_value))
-					return SerializeFailure(SerializeError::UNSUPPORTED_SCALAR,
-					                        "JSON writer cannot emit NaN or infinity as standard JSON numbers");
+					return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "JSON writer cannot emit NaN or infinity as standard JSON numbers");
 				break;
 			case JsonValueType::Array:
 				for (const JsonValue& item : value.array_value)
 				{
-					SerializeResult result = ValidateJsonForWrite(item);
+					IOResult result = ValidateJsonForWrite(item);
 					if (!result.success) return result;
 				}
 				break;
 			case JsonValueType::Object:
 				for (const auto& entry : value.object_value)
 				{
-					SerializeResult result = ValidateJsonForWrite(entry.second);
+					IOResult result = ValidateJsonForWrite(entry.second);
 					if (!result.success) return result;
 				}
 				break;
@@ -562,11 +553,14 @@ namespace Persistence
 		return out.str();
 	}
 
-	inline SerializeResult WriteJson(std::ostream& out, const JsonValue& value, const SaveOptions& options = {})
-	{
-		SerializeResult validation = Detail::ValidateJsonForWrite(value);
+	inline IOResult WriteJson(std::ostream& out, const JsonValue& value, const SaveOptions& options = {}) {
+		if (options.precision < 0)
+			return SerializeFailure(IOError::INVALID_PARAMETERS, "JSON precision must be zero (automatic) or positive");
+		IOResult validation = Detail::ValidateJsonForWrite(value);
 		if (!validation.success)
 			return validation;
+
+		TextIO::ScopedTextFormat format(out, options.precision == 0 ? TextIO::RoundTripPrecision<double>() : options.precision);
 
 		const int indentStep = options.pretty_json ? 2 : 0;
 		std::function<void(const JsonValue&, int)> writeValue;
@@ -581,7 +575,7 @@ namespace Persistence
 				out << (json.bool_value ? "true" : "false");
 				break;
 			case JsonValueType::Number:
-				out << std::setprecision(options.precision) << json.number_value;
+				out << json.number_value;
 				break;
 			case JsonValueType::String:
 				out << '"' << EscapeJsonString(json.string_value) << '"';
@@ -618,14 +612,17 @@ namespace Persistence
 
 		writeValue(value, 0);
 		if (out.fail())
-			return SerializeFailure(SerializeError::WRITE_FAILED, "Failed to write JSON value");
+			return SerializeFailure(IOError::WRITE_FAILED, "Failed to write JSON value");
 		return SerializeSuccess();
 	}
 
 	inline std::string ToJsonString(const JsonValue& value, const SaveOptions& options = {})
 	{
 		std::ostringstream out;
-		WriteJson(out, value, options);
+		TextIO::ApplyClassicFormat(out);
+		const auto result = WriteJson(out, value, options);
+		if (!result)
+			throw FileIOError(result.message);
 		return out.str();
 	}
 

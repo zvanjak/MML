@@ -228,7 +228,7 @@ TEST_CASE("SparseMatrixCSR - Matrix-vector product", "[pde][sparse][csr]") {
     std::vector<double> x = {1.0, 2.0, 3.0};
     std::vector<double> y;
     
-    csr.multiply(x, y);
+    csr.Multiply(x, y);
     
     // y = A*x = [1*1 + 2*3, 3*2, 4*1 + 5*3] = [7, 6, 19]
     REQUIRE(y[0] == Approx(7.0));
@@ -241,7 +241,7 @@ TEST_CASE("SparseMatrixCSR - MML Vector operations", "[pde][sparse][csr][vector]
     Vector<double> input{4.0, 5.0};
     Vector<double> output;
 
-    matrix.multiply(input, output);
+    matrix.Multiply(input, output);
     REQUIRE(output[0] == Approx(8.0));
     REQUIRE(output[1] == Approx(15.0));
 
@@ -254,16 +254,16 @@ TEST_CASE("SparseMatrixCSR - MML Vector operations", "[pde][sparse][csr][vector]
     REQUIRE(output[1] == Approx(45.0));
 
     Vector<double> transposeOutput;
-    matrix.multiplyTranspose(input, transposeOutput);
+    matrix.MultiplyTranspose(input, transposeOutput);
     REQUIRE(transposeOutput[0] == Approx(8.0));
     REQUIRE(transposeOutput[1] == Approx(15.0));
 
     Vector<double> solution;
     Vector<double> rightHandSide{8.0, 15.0};
-    matrix.solveLower(rightHandSide, solution);
+    matrix.SolveLower(rightHandSide, solution);
     REQUIRE(solution[0] == Approx(4.0));
     REQUIRE(solution[1] == Approx(5.0));
-    matrix.solveUpper(rightHandSide, solution);
+    matrix.SolveUpper(rightHandSide, solution);
     REQUIRE(solution[0] == Approx(4.0));
     REQUIRE(solution[1] == Approx(5.0));
 }
@@ -281,7 +281,7 @@ TEST_CASE("SparseMatrixCSR - Transpose-vector product", "[pde][sparse][csr]") {
     std::vector<double> x = {1.0, 2.0, 3.0};
     std::vector<double> y;
     
-    csr.multiplyTranspose(x, y);
+    csr.MultiplyTranspose(x, y);
     
     // y = A^T*x = [1*1 + 4*3, 3*2, 2*1 + 5*3] = [13, 6, 17]
     REQUIRE(y[0] == Approx(13.0));
@@ -316,17 +316,17 @@ TEST_CASE("SparseMatrixCSR - Norms", "[pde][sparse][csr]") {
     SparseMatrixCSR<double> csr(coo);
     
     // Frobenius norm: sqrt(9 + 16 + 25) = sqrt(50)
-    REQUIRE(csr.normFrobenius() == Approx(std::sqrt(50.0)));
+    REQUIRE(csr.NormFrobenius() == Approx(std::sqrt(50.0)));
     
     // Infinity norm: max row sum = max(7, 5) = 7
-    REQUIRE(csr.normInf() == Approx(7.0));
+    REQUIRE(csr.NormInf() == Approx(7.0));
     
     // 1-norm: max column sum = max(3, 9) = 9
-    REQUIRE(csr.norm1() == Approx(9.0));
+    REQUIRE(csr.Norm1() == Approx(9.0));
 }
 
 TEST_CASE("SparseMatrixCSR - Identity matrix", "[pde][sparse][csr]") {
-    auto I = identityCSR<double>(4);
+    auto I = IdentityCSR<double>(4);
     
     REQUIRE(I.rows() == 4);
     REQUIRE(I.cols() == 4);
@@ -357,7 +357,7 @@ TEST_CASE("SparseMatrixCSR - Symmetry check", "[pde][sparse][csr]") {
     coo_sym.addEntry(2, 2, 2.0);
     
     SparseMatrixCSR<double> csr_sym(coo_sym);
-    REQUIRE(csr_sym.isSymmetric());
+    REQUIRE(csr_sym.IsSymmetric());
     
     // Non-symmetric matrix
     SparseMatrixCOO<double> coo_nonsym(3, 3);
@@ -367,7 +367,7 @@ TEST_CASE("SparseMatrixCSR - Symmetry check", "[pde][sparse][csr]") {
     coo_nonsym.addEntry(1, 1, 3.0);
     
     SparseMatrixCSR<double> csr_nonsym(coo_nonsym);
-    REQUIRE_FALSE(csr_nonsym.isSymmetric());
+    REQUIRE_FALSE(csr_nonsym.IsSymmetric());
 }
 
 TEST_CASE("SparseMatrixCSR - Lower triangular solve", "[pde][sparse][csr]") {
@@ -387,7 +387,7 @@ TEST_CASE("SparseMatrixCSR - Lower triangular solve", "[pde][sparse][csr]") {
     std::vector<double> b = {2.0, 4.0, 6.0};
     std::vector<double> x;
     
-    L.solveLower(b, x);
+    L.SolveLower(b, x);
     
     // Verify L * x = b
     auto Lx = L * x;
@@ -402,13 +402,13 @@ TEST_CASE("SparseMatrixCSR - Triangular solves reject invalid diagonals", "[pde]
 
     SparseMatrixCSR<double> missingDiagonal(2, 2,
         {1.0, 1.0}, {0, 0}, {0, 1, 2});
-    REQUIRE_THROWS_AS(missingDiagonal.solveLower(b, x), SingularMatrixError);
-    REQUIRE_THROWS_AS(missingDiagonal.solveUpper(b, x), SingularMatrixError);
+    REQUIRE_THROWS_AS(missingDiagonal.SolveLower(b, x), SingularMatrixError);
+    REQUIRE_THROWS_AS(missingDiagonal.SolveUpper(b, x), SingularMatrixError);
 
     SparseMatrixCSR<double> zeroDiagonal(2, 2,
         {1.0, 0.0}, {0, 1}, {0, 1, 2});
-    REQUIRE_THROWS_AS(zeroDiagonal.solveLower(b, x), SingularMatrixError);
-    REQUIRE_THROWS_AS(zeroDiagonal.solveUpper(b, x), SingularMatrixError);
+    REQUIRE_THROWS_AS(zeroDiagonal.SolveLower(b, x), SingularMatrixError);
+    REQUIRE_THROWS_AS(zeroDiagonal.SolveUpper(b, x), SingularMatrixError);
 }
 
 TEST_CASE("SparseMatrixCSR - gemv operation", "[pde][sparse][csr]") {
@@ -487,7 +487,7 @@ TEST_CASE("SparseMatrixCSC - Matrix-vector product", "[pde][sparse][csc]") {
     std::vector<double> x = {1.0, 2.0, 3.0};
     std::vector<double> y;
     
-    csc.multiply(x, y);
+    csc.Multiply(x, y);
     
     // Same result as CSR
     REQUIRE(y[0] == Approx(7.0));
@@ -500,7 +500,7 @@ TEST_CASE("SparseMatrixCSC - MML Vector operations", "[pde][sparse][csc][vector]
     Vector<double> input{4.0, 5.0};
     Vector<double> output;
 
-    matrix.multiply(input, output);
+    matrix.Multiply(input, output);
     REQUIRE(output[0] == Approx(8.0));
     REQUIRE(output[1] == Approx(15.0));
 
@@ -508,7 +508,7 @@ TEST_CASE("SparseMatrixCSC - MML Vector operations", "[pde][sparse][csc][vector]
     REQUIRE(output[0] == Approx(8.0));
     REQUIRE(output[1] == Approx(15.0));
 
-    matrix.multiplyTranspose(input, output);
+    matrix.MultiplyTranspose(input, output);
     REQUIRE(output[0] == Approx(8.0));
     REQUIRE(output[1] == Approx(15.0));
 }
@@ -538,7 +538,7 @@ TEST_CASE("SparseMatrixCSC - CSR conversion round-trip", "[pde][sparse][csc]") {
 ///////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("Laplacian1D - Tridiagonal structure", "[pde][sparse][laplacian]") {
-    auto L = laplacian1D<double>(5, 1.0);
+    auto L = Laplacian1D<double>(5, 1.0);
     
     REQUIRE(L.rows() == 5);
     REQUIRE(L.cols() == 5);
@@ -560,7 +560,7 @@ TEST_CASE("Laplacian1D - Eigenvalue test", "[pde][sparse][laplacian]") {
     // For 1D Laplacian with h=1, eigenvalues are 4*sin²(k*π/(2(n+1))) for k=1..n
     // For n=10: max eigenvalue ≈ 4*sin²(10π/22) ≈ 3.83
     
-    auto L = laplacian1D<double>(10);
+    auto L = Laplacian1D<double>(10);
     
     // Power iteration to estimate largest eigenvalue
     std::vector<double> v(10, 1.0);
@@ -579,7 +579,7 @@ TEST_CASE("Laplacian1D - Eigenvalue test", "[pde][sparse][laplacian]") {
 }
 
 TEST_CASE("Laplacian2D - 5-point stencil structure", "[pde][sparse][laplacian]") {
-    auto L = laplacian2D<double>(3, 3);
+    auto L = Laplacian2D<double>(3, 3);
     
     REQUIRE(L.rows() == 9);
     REQUIRE(L.cols() == 9);
@@ -600,14 +600,14 @@ TEST_CASE("Laplacian2D - 5-point stencil structure", "[pde][sparse][laplacian]")
 }
 
 TEST_CASE("Laplacian2D - Symmetry", "[pde][sparse][laplacian]") {
-    auto L = laplacian2D<double>(5, 5);
+    auto L = Laplacian2D<double>(5, 5);
     
-    REQUIRE(L.isSquare());
-    REQUIRE(L.isSymmetric());
+    REQUIRE(L.IsSquare());
+    REQUIRE(L.IsSymmetric());
 }
 
 TEST_CASE("Laplacian3D - 7-point stencil", "[pde][sparse][laplacian]") {
-    auto L = laplacian3D<double>(3, 3, 3);
+    auto L = Laplacian3D<double>(3, 3, 3);
     
     REQUIRE(L.rows() == 27);
     REQUIRE(L.cols() == 27);
@@ -649,7 +649,7 @@ TEST_CASE("Vector utilities - axpy", "[pde][sparse][util]") {
 }
 
 TEST_CASE("Vector utilities - residual", "[pde][sparse][util]") {
-    auto I = identityCSR<double>(3);
+    auto I = IdentityCSR<double>(3);
     std::vector<double> x = {1.0, 2.0, 3.0};
     std::vector<double> b = {1.0, 2.0, 3.0};
     
@@ -663,7 +663,7 @@ TEST_CASE("Vector utilities - residual", "[pde][sparse][util]") {
 ///////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("SparseMatrixCSR - Memory usage", "[pde][sparse][memory]") {
-    auto L = laplacian2D<double>(100, 100);
+    auto L = Laplacian2D<double>(100, 100);
     
     // 10000 nodes, ~5 nnz per node (except boundaries)
     REQUIRE(L.nnz() < 50000);
@@ -682,7 +682,7 @@ TEST_CASE("SparseMatrixCSR - Dense conversion", "[pde][sparse][dense]") {
     coo.addEntry(2, 2, 5.0);
     
     SparseMatrixCSR<double> csr(coo);
-    auto dense = csr.toDense();
+    auto dense = csr.ToDense();
     
     REQUIRE(dense[0][0] == Approx(1.0));
     REQUIRE(dense[0][1] == Approx(0.0));

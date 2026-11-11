@@ -30,7 +30,15 @@ namespace MML::DifferentialGeometry
 
 		const Surfaces::ISurfaceCartesian& surface() const noexcept { return _surface; }
 
-		Real Component(int i, int j, const VectorN<Real, 2>& pos) const override
+		Real GetChristoffelSymbolSecondKind(int i, int j, int k, const VectorN<Real, 2>& pos) const override {
+			ValidateChristoffelArguments(i, j, k, pos);
+			if (typeid(*this) == typeid(InducedMetric2D))
+				if (const auto* provider = dynamic_cast<const IMetricJetProvider<2>*>(&_surface))
+					return ConnectionFromJet(provider->EvaluateMetricJet(pos), i, j, k);
+			return MetricTensorField<2>::GetChristoffelSymbolSecondKind(i, j, k, pos);
+		}
+
+		Real component(int i, int j, const VectorN<Real, 2>& pos) const override
 		{
 			Real E, F, G;
 			_surface.GetFirstNormalFormCoefficients(pos[0], pos[1], E, F, G);
@@ -43,6 +51,17 @@ namespace MML::DifferentialGeometry
 				return G;
 
 			throw IndexError("InducedMetric2D::Component - index out of range");
+		}
+
+	protected:
+		Real DeriveChristoffelSymbolSecondKind(int i, int j, int k, int axis, const VectorN<Real, 2>& pos) const override {
+			ValidateChristoffelArguments(i, j, k, pos);
+			if (axis < 0 || axis >= 2)
+				throw IndexError("Connection derivative index outside metric dimension");
+			if (typeid(*this) == typeid(InducedMetric2D))
+				if (const auto* provider = dynamic_cast<const IMetricJetProvider<2>*>(&_surface))
+					return ConnectionFromJet(provider->EvaluateMetricJet(pos), i, j, k, axis);
+			return MetricTensorField<2>::DeriveChristoffelSymbolSecondKind(i, j, k, axis, pos);
 		}
 	};
 
@@ -61,7 +80,7 @@ namespace MML::DifferentialGeometry
 
 	inline Real GaussianCurvatureIntrinsic(const MetricTensorField<2>& metric, const VectorN<Real, 2>& pos)
 	{
-		return REAL(0.5) * metric.GetRicciScalar(pos);
+		return static_cast<MML::Real>(0.5) * metric.GetRicciScalar(pos);
 	}
 
 	inline Real GaussianCurvatureIntrinsic(const Surfaces::ISurfaceCartesian& surface, Real u, Real w)

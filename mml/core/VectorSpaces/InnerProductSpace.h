@@ -11,9 +11,10 @@
 #if !defined MML_VECTOR_SPACES_INNER_PRODUCT_SPACE_H
 #define MML_VECTOR_SPACES_INNER_PRODUCT_SPACE_H
 
+#include <mml/algorithms/MatrixAlg/MatrixInversion.h>
 #include <mml/MMLBase.h>
 
-#include <mml/base/DifferentialGeometry/Metric.h>
+#include <mml/core/DifferentialGeometry/Metric.h>
 #include <mml/base/Matrix/MatrixNM.h>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Vector/VectorN.h>
@@ -39,7 +40,7 @@ namespace MML::VectorSpaces
 				throw MatrixNumericalError("InnerProductSpace Gram matrix must be symmetric");
 			if (!isPositiveDefinite(tolerance))
 				throw MatrixNumericalError("InnerProductSpace Gram matrix must be positive definite; indefinite metrics are represented by Metric, not InnerProductSpace");
-			_inverseGram = _gram.GetInverse();
+			_inverseGram = MatrixAlg::Inverse(_gram);
 		}
 
 		static Vector<Scalar> ZeroVector(int size)
@@ -71,14 +72,14 @@ namespace MML::VectorSpaces
 		{
 		}
 
-		explicit InnerProductSpace(const MatrixNM<Scalar, N, N>& gram, Real tolerance = Defaults::MatrixIsEqualTolerance)
+		explicit InnerProductSpace(const MatrixNM<Scalar, N, N>& gram, Real tolerance = Precision::MatrixIsEqualTolerance)
 			: _gram(gram), _inverseGram()
 		{
 			validate(tolerance);
 		}
 
 		template<class FrameTag>
-		explicit InnerProductSpace(const Metric<N, FrameTag>& metric, Real tolerance = Defaults::MatrixIsEqualTolerance)
+		explicit InnerProductSpace(const Metric<N, FrameTag>& metric, Real tolerance = Precision::MatrixIsEqualTolerance)
 			requires std::same_as<Scalar, Real>
 			: InnerProductSpace(metric.covariantComponents(), tolerance)
 		{
@@ -92,7 +93,7 @@ namespace MML::VectorSpaces
 		const MatrixNM<Scalar, N, N>& gramMatrix() const noexcept { return _gram; }
 		const MatrixNM<Scalar, N, N>& inverseGramMatrix() const noexcept { return _inverseGram; }
 
-		bool isSymmetric(Real tolerance = Defaults::MatrixIsEqualTolerance) const
+		bool isSymmetric(Real tolerance = Precision::MatrixIsEqualTolerance) const
 		{
 			for (int i = 0; i < N; i++)
 				for (int j = i + 1; j < N; j++)
@@ -101,7 +102,7 @@ namespace MML::VectorSpaces
 			return true;
 		}
 
-		bool isPositiveDefinite(Real tolerance = Defaults::MatrixIsEqualTolerance) const
+		bool isPositiveDefinite(Real tolerance = Precision::MatrixIsEqualTolerance) const
 		{
 			long double lower[N][N] = {};
 			for (int i = 0; i < N; i++) {
@@ -147,10 +148,10 @@ namespace MML::VectorSpaces
 
 		MatrixNM<Scalar, N, N> gramMatrixInBasis(const Basis<Scalar, N>& basis) const
 		{
-			return basis.matrix().transpose() * _gram * basis.matrix();
+			return basis.matrix().Transposed() * _gram * basis.matrix();
 		}
 
-		Basis<Scalar, N> orthonormalize(const Basis<Scalar, N>& basis, Real tolerance = Defaults::MatrixIsEqualTolerance) const
+		Basis<Scalar, N> orthonormalize(const Basis<Scalar, N>& basis, Real tolerance = Precision::MatrixIsEqualTolerance) const
 		{
 			MatrixNM<Scalar, N, N> orthonormalColumns;
 
@@ -232,7 +233,7 @@ namespace MML::VectorSpaces
 		LinearMap<Scalar, CodomainN, N> adjoint(const LinearMap<Scalar, N, CodomainN>& map,
 			const InnerProductSpace<Scalar, CodomainN>& codomainSpace) const
 		{
-			return LinearMap<Scalar, CodomainN, N>(_inverseGram * map.matrix().transpose() * codomainSpace.gramMatrix());
+			return LinearMap<Scalar, CodomainN, N>(_inverseGram * map.matrix().Transposed() * codomainSpace.gramMatrix());
 		}
 	};
 

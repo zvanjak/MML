@@ -25,6 +25,7 @@
 
 #include <vector>
 #include <string>
+#include <type_traits>
 #include <sstream>
 #include <iomanip>
 #include <optional>
@@ -112,8 +113,16 @@ namespace MML::Systems
 	/// // Bifurcation diagram
 	/// auto bif = analyzer.ComputeBifurcation(0, 20.0, 30.0, 100, {0.1, 0.1, 0.1});
 	/// @endcode
+	/// @note The template parameter is a placeholder: every engine the facade delegates to
+	///       (FixedPointFinder, LyapunovAnalyzer, BifurcationAnalyzer, PhaseSpaceAnalyzer) is
+	///       implemented for `Real` only, so `Type` must be `Real`. It is kept so that existing
+	///       spellings `DynamicalSystemAnalyzer<>` / `DynamicalSystemAnalyzer<Real>` continue to
+	///       compile; a different `Type` is rejected at compile time instead of silently
+	///       converting (analysis v4, SYSTEMS S5).
 	template<typename Type = Real>
 	class DynamicalSystemAnalyzer {
+		static_assert(std::is_same_v<Type, Real>,
+			"DynamicalSystemAnalyzer is implemented for Real only; the Type parameter is a placeholder");
 	public:
 		//=========================================================================
 		// CONSTRUCTOR
@@ -142,7 +151,7 @@ namespace MML::Systems
 		/// @return True if sum of Lyapunov exponents < 0
 		bool IsDissipative(const Vector<Type>& x0, Type integrationTime = 500) const {
 			auto result = LyapunovAnalyzer::Compute(_sys, x0, integrationTime);
-			return result.sum < -1e-6;
+			return result.sum < -Precision::LooseTolerance;
 		}
 
 		/// @brief Get the Lyapunov time (predictability horizon)
@@ -150,7 +159,7 @@ namespace MML::Systems
 		/// @return Time scale 1/λ_max (smaller = less predictable)
 		Type GetLyapunovTime(const Vector<Type>& x0, Type integrationTime = 500) const {
 			auto result = LyapunovAnalyzer::Compute(_sys, x0, integrationTime);
-			if (result.maxExponent > 1e-10)
+			if (result.maxExponent > Precision::LyapunovChaosThreshold)
 				return 1.0 / result.maxExponent;
 			else
 				return std::numeric_limits<Type>::infinity();
@@ -170,7 +179,7 @@ namespace MML::Systems
 		/// @param initialGuess Starting point for Newton iteration
 		/// @param tol Convergence tolerance
 		/// @return Fixed point result (check convergenceResidual for success)
-		FixedPoint<Type> FindFixedPoint(const Vector<Type>& initialGuess, Type tol = 1e-10) const {
+		FixedPoint<Type> FindFixedPoint(const Vector<Type>& initialGuess, Type tol = PrecisionValues<Type>::FixedPointTolerance) const {
 			return FixedPointFinder::Find(_sys, initialGuess, tol);
 		}
 
@@ -180,7 +189,7 @@ namespace MML::Systems
 		/// @param uniqueTol Distance below which two points are considered same
 		/// @return Vector of unique fixed points found
 		std::vector<FixedPoint<Type>> FindFixedPoints(const std::vector<Vector<Type>>& initialGuesses,
-																									Type tol = 1e-10, Type uniqueTol = 1e-6) const {
+																									Type tol = PrecisionValues<Type>::FixedPointTolerance, Type uniqueTol = PrecisionValues<Type>::FixedPointUniquenessTolerance) const {
 			return FixedPointFinder::FindMultiple(_sys, initialGuesses, tol, uniqueTol);
 		}
 
@@ -277,10 +286,14 @@ namespace MML::Systems
 		/// @param section Definition of the Poincaré section
 		/// @param numIntersections Number of intersections to collect
 		/// @param stepSize Initial adaptive integration step size
+		/// @param maxSearchTime Integration-time budget for the crossing search (throws ConvergenceError when exhausted)
+		/// @param transientTime Time integrated and discarded before crossings are recorded
 		/// @return Vector of intersection points
 		std::vector<Vector<Type>> ComputePoincareSection(const Vector<Type>& x0, const PoincareSection<Type>& section,
-																										 int numIntersections = 1000, Type stepSize = 0.01) const {
-			return PhaseSpaceAnalyzer::ComputePoincareSection(_sys, x0, section, numIntersections, stepSize);
+																										 int numIntersections = 1000, Type stepSize = 0.01,
+																										 Type maxSearchTime = DefaultPoincareMaxSearchTime,
+																										 Type transientTime = DefaultTransientTime) const {
+			return PhaseSpaceAnalyzer::ComputePoincareSection(_sys, x0, section, numIntersections, stepSize, maxSearchTime, transientTime);
 		}
 
 		/// @brief Integrate trajectory from initial condition
@@ -315,7 +328,7 @@ namespace MML::Systems
 			report.numParameters = p;
 			report.stateNames.resize(n);
 			report.paramNames.resize(p);
-			report.currentParams.Resize(p);
+			report.currentParams.resize(p);
 
 			for (int i = 0; i < n; ++i)
 				report.stateNames[i] = _sys.getStateName(i);
@@ -359,11 +372,11 @@ namespace MML::Systems
 			// Lyapunov analysis
 			report.lyapunov = ComputeLyapunov(x0, lyapunovTime);
 			report.isChaotic = report.lyapunov.isChaotic;
-			report.isDissipative = report.lyapunov.sum < -1e-6;
-			report.isConservative = std::abs(report.lyapunov.sum) < 1e-4;
+			report.isDissipative = report.lyapunov.sum < -Precision::LooseTolerance;
+			report.isConservative = IsNearlyZero(report.lyapunov.sum, Precision::CoarseTolerance);
 			report.kaplanYorkeDimension = report.lyapunov.kaplanYorkeDimension;
 
-			if (report.lyapunov.maxExponent > 1e-10)
+			if (report.lyapunov.maxExponent > Precision::LyapunovChaosThreshold)
 				report.lyapunovTime = 1.0 / report.lyapunov.maxExponent;
 			else
 				report.lyapunovTime = std::numeric_limits<Type>::infinity();
@@ -456,7 +469,7 @@ namespace MML::Systems
 				for (size_t j = 0; j < fp.eigenvalues.size(); ++j) {
 					if (j > 0) ss << ", ";
 					ss << fp.eigenvalues[j].real();
-					if (std::abs(fp.eigenvalues[j].imag()) > 1e-10) {
+					if (std::abs(fp.eigenvalues[j].imag()) > Precision::EqualityTolerance) {
 						ss << (fp.eigenvalues[j].imag() > 0 ? "+" : "") << fp.eigenvalues[j].imag() << "i";
 					}
 				}
@@ -476,7 +489,7 @@ namespace MML::Systems
 			ss << "  Maximum exponent (λ₁): " << report.lyapunov.maxExponent << "\n";
 			ss << "  Sum of exponents: " << report.lyapunov.sum << "\n";
 			ss << "  Kaplan-Yorke dimension: " << report.kaplanYorkeDimension << "\n";
-			if (report.lyapunovTime < 1e10)
+			if (report.lyapunovTime < Precision::DivergenceMagnitudeThreshold)
 				ss << "  Lyapunov time (1/λ₁): " << report.lyapunovTime << "\n";
 			ss << "\n";
 

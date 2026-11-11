@@ -76,7 +76,7 @@ namespace MML::Algebra
 			Real tolerance = PrecisionValues<Real>::OrthogonalityTolerance)
 		{
 			if (std::abs(matrix(2, 0)) > tolerance || std::abs(matrix(2, 1)) > tolerance ||
-				std::abs(matrix(2, 2) - REAL(1.0)) > tolerance)
+				std::abs(matrix(2, 2) - static_cast<MML::Real>(1.0)) > tolerance)
 				throw DomainError("SE2 homogeneous matrix must have bottom row [0,0,1]");
 			const SO2 rotation(std::atan2(matrix(1, 0), matrix(0, 0)));
 			if (!rotation.matrix().IsEqualTo({{matrix(0, 0), matrix(0, 1)},

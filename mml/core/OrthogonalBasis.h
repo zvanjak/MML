@@ -73,7 +73,7 @@ namespace MML
             };
 
             Integrand integrand(*this, f, n);
-            Real inner_product = IntegrateTrap(integrand, DomainMin(), DomainMax(), eps).value;
+            Real inner_product = IntegrateTrap(integrand, DomainMin(), DomainMax(), eps);
             return inner_product / Normalization(n);
         }
     };

@@ -14,6 +14,7 @@
 #define MML_ODE_SOLVER_EVENT_DETECTION_H
 
 #include <mml/algorithms/ODESolvers/ODESolverAdaptive.h>
+#include <algorithm>
 #include <mml/interfaces/IODESystemWithEvents.h>
 
 namespace MML {
@@ -33,6 +34,8 @@ namespace MML {
 		bool terminatedByEvent;            ///< True if integration ended due to EventAction::Stop
 		Real finalTime;                    ///< Actual final time (may differ from tEnd if stopped)
 		Vector<Real> finalState;           ///< Final state vector
+		AlgorithmStatus status = AlgorithmStatus::Success;
+		std::string error_message;
 
 		EventResult(Real t0, Real tEnd, int dim, int numPoints)
 				: solution(t0, tEnd, dim, numPoints)
@@ -90,9 +93,12 @@ namespace MML {
 																		Real eps = Precision::ODEDefaultTolerance, Real eventTol = Precision::EventTolerance, Real h0 = 0) {
 			int n = sys.getDim();
 			int numEvents = sys.getNumEvents();
-			int numOutputPoints = static_cast<int>(std::ceil((tEnd - t0) / outputInterval)) + 1;
-
-			EventResult result(t0, tEnd, n, numOutputPoints - 1);
+			if (!std::isfinite(tEnd - t0) || !std::isfinite(outputInterval) || outputInterval <= 0)
+				throw ODESolverError("Event integration requires finite endpoints and positive output spacing");
+			const Real direction = tEnd >= t0 ? Real(1) : Real(-1);
+			EventResult result(t0, tEnd, n, 0);
+			const int numOutputPoints = static_cast<int>(std::min(
+				std::ceil(std::abs(tEnd - t0) / outputInterval) + 1, Real(result.solution.max_size() + 1)));
 			this->_stats.reset();
 			this->_stepper.resetFSAL();
 
@@ -108,21 +114,37 @@ namespace MML {
 
 			// Initial step size
 			Real h = (h0 > 0) ? h0 : this->estimateInitialStep(t0, x0, tEnd, eps);
-			h = std::min(h, tEnd - t0);
+			h = direction * std::min(h, std::abs(tEnd - t0));
 
 			// Output management
 			Real tNextOutput = t0;
 			int outputIdx = 0;
 			result.solution.fillValues(outputIdx++, t0, x0);
-			tNextOutput += outputInterval;
+			auto storePoint = [&](Real time, const Vector<Real>& state) {
+				if (!detail::PrepareTrajectoryPoint(result.solution, outputIdx, result.status, result.error_message)) {
+					this->_stats.status = result.status;
+					this->_stats.error_message = result.error_message;
+					result.terminatedByEvent = false;
+					result.finalTime = result.solution.getTValue(result.solution.size() - 1);
+					result.finalState = result.solution.getXValuesAtEnd();
+					while (!result.events.empty() && direction * (result.events.back().time - result.finalTime) > 0)
+						result.events.pop_back();
+					return false;
+				}
+				result.solution.fillValues(outputIdx++, time, state);
+				return true;
+			};
+			tNextOutput += direction * outputInterval;
 
 			const int maxEventIterations = 100; // Safety limit for root finding
 
 			// Main integration loop
-			while (t < tEnd - Constants::Eps) {
-				if (t + h > tEnd) {
+			while (direction * (tEnd - t) > 0) {
+				if (direction * (t + h - tEnd) > 0) {
 					h = tEnd - t;
 				}
+				if (t + h == t)
+					throw ODESolverError("Event step cannot advance floating-point time");
 
 				StepResult stepResult = this->_stepper.doStep(t, x, dxdt, h, eps);
 				this->_stats.recordStep(stepResult);
@@ -144,9 +166,9 @@ namespace MML {
 						EventDirection actualDir = EventDirection::Both;
 
 						// Check sign change
-						if (gPrev[i] * gNew[i] < 0) {
+						if (gPrev[i] * gNew[i] < 0 || (gPrev[i] != 0 && gNew[i] == 0)) {
 							// Determine crossing direction
-							if (gPrev[i] < 0 && gNew[i] > 0) {
+							if (gPrev[i] < gNew[i]) {
 								actualDir = EventDirection::Increasing;
 							} else {
 								actualDir = EventDirection::Decreasing;
@@ -167,13 +189,15 @@ namespace MML {
 							Real gHi = gNew[i];
 
 							for (int iter = 0; iter < maxEventIterations; ++iter) {
-								if (tHi - tLo < eventTol)
+								if (std::abs(tHi - tLo) < eventTol)
 									break;
 
 								// Illinois method (modified regula falsi)
 								Real tMid = tLo - gLo * (tHi - tLo) / (gHi - gLo);
 								// Clamp to interval
-								tMid = std::max<Real>(tLo + Real(0.1) * (tHi - tLo), std::min<Real>(tHi - Real(0.1) * (tHi - tLo), tMid));
+								Real inner1 = tLo + Real(0.1) * (tHi - tLo);
+								Real inner2 = tHi - Real(0.1) * (tHi - tLo);
+								tMid = std::clamp(tMid, std::min(inner1, inner2), std::max(inner1, inner2));
 
 								Vector<Real> xMid = this->_stepper.interpolate(tMid);
 								Real gMid = sys.eventFunction(i, tMid, xMid);
@@ -193,7 +217,7 @@ namespace MML {
 							}
 
 							Real tEvent = tLo;
-							if (tEvent < eventTime) {
+							if (!eventDetected || direction * (tEvent - eventTime) < 0) {
 								eventTime = tEvent;
 								eventIndex = i;
 								eventDetected = true;
@@ -218,12 +242,12 @@ namespace MML {
 						result.events.push_back(evt);
 
 						// Dense output up to event time
-						while (tNextOutput <= eventTime + Constants::Eps && outputIdx < numOutputPoints) {
-							if (tNextOutput <= eventTime) {
+						while (direction * (tNextOutput - eventTime) <= Constants::Eps && outputIdx < numOutputPoints) {
+							if (direction * (tNextOutput - eventTime) <= 0) {
 								Vector<Real> xInterp = this->_stepper.interpolate(tNextOutput);
-								result.solution.fillValues(outputIdx++, tNextOutput, xInterp);
+								if (!storePoint(tNextOutput, xInterp)) return result;
 							}
-							tNextOutput += outputInterval;
+							tNextOutput += direction * outputInterval;
 						}
 
 						// Determine action
@@ -233,6 +257,8 @@ namespace MML {
 							result.terminatedByEvent = true;
 							result.finalTime = eventTime;
 							result.finalState = xEvent;
+							if (result.solution.getTValue(result.solution.size() - 1) != eventTime)
+								if (!storePoint(eventTime, xEvent)) return result;
 							return result;
 						} else if (action == EventAction::Restart) {
 							// Apply state update
@@ -243,23 +269,24 @@ namespace MML {
 							x = xEvent;
 							sys.derivs(t, x, dxdt);
 							sys.eventFunctions(t, x, gPrev);
+							gPrev[eventIndex] = 0;
 							this->_stepper.resetFSAL();
 
 							// Re-estimate step size
 							h = this->estimateInitialStep(t, x, tEnd, eps);
-							h = std::min(h, tEnd - t);
+							h = direction * std::min(h, std::abs(tEnd - t));
 							continue; // Skip normal update
 						}
 						// EventAction::Continue: fall through to normal update
 					}
 
 					// Dense output for this step
-					while (tNextOutput <= tNew + Constants::Eps && outputIdx < numOutputPoints) {
-						if (tNextOutput <= tNew) {
+					while (direction * (tNextOutput - tNew) <= Constants::Eps && outputIdx < numOutputPoints) {
+						if (direction * (tNextOutput - tNew) <= 0) {
 							Vector<Real> xInterp = this->_stepper.interpolate(tNextOutput);
-							result.solution.fillValues(outputIdx++, tNextOutput, xInterp);
+							if (!storePoint(tNextOutput, xInterp)) return result;
 						}
-						tNextOutput += outputInterval;
+						tNextOutput += direction * outputInterval;
 					}
 
 					// Update for next step
@@ -270,14 +297,14 @@ namespace MML {
 					h = stepResult.hNext;
 				}
 
-				if (h < Constants::Eps) {
+				if (std::abs(h) < Constants::Eps && direction * (tEnd - t) > 0) {
 					throw ODESolverError("Step size too small in integrateWithEvents");
 				}
 			}
 
 			// Ensure final point
-			if (outputIdx < numOutputPoints) {
-				result.solution.fillValues(outputIdx++, tEnd, x);
+			if (result.solution.getTValue(result.solution.size() - 1) != tEnd) {
+				if (!storePoint(tEnd, x)) return result;
 			}
 
 			result.finalTime = t;

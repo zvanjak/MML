@@ -11,6 +11,7 @@
 #include <catch2/catch_all.hpp>
 #include <cmath>
 #include <fstream>
+#include <locale>
 #include <string>
 
 #include <mml/MMLBase.h>
@@ -175,6 +176,20 @@ namespace MML::Tests::Tools::DataLoaderTests {
 
 	TEST_CASE("DataLoader - CSV from string", "[dataloader][csv]") {
 		TEST_PRECISION_INFO();
+
+		SECTION("REAL columns parse with '.' regardless of the global locale (wewi.1.4)") {
+			struct CommaDecimalPunct : std::numpunct<char> {
+				char do_decimal_point() const override { return ','; }
+			};
+			const std::locale previous = std::locale::global(std::locale(std::locale::classic(), new CommaDecimalPunct));
+			struct Restore { const std::locale& l; ~Restore() { std::locale::global(l); } } restore{previous};
+
+			Dataset ds = LoadFromString("x,y\n1.5,2.25\n-3.125e2,0.1", DataFormat::CSV, true);
+			REQUIRE(ds["x"].type == ColumnType::REAL);
+			REQUIRE(ds["x"].realData[0] == static_cast<MML::Real>(1.5));
+			REQUIRE(ds["x"].realData[1] == static_cast<MML::Real>(-312.5));
+			REQUIRE(ds["y"].realData[1] == static_cast<MML::Real>(0.1));
+		}
 
 		SECTION("Simple CSV with header") {
 			std::string csv = "name,age,score\nAlice,30,95.5\nBob,25,87.3\nCharlie,35,92.1";

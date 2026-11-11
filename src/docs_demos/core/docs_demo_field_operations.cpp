@@ -142,6 +142,25 @@ void Docs_Demo_Predefined_Fields_With_Operations()
 ///                           GRADIENT DEMOS
 ///////////////////////////////////////////////////////////////////////////////////////
 
+void Docs_Demo_GradientComponentConventions() {
+	ScalarFunction<3> f([](const VectorN<Real, 3>& q) { return q[0] * q[0] + q[1] + q[2] * q[2]; });
+	const Vec3Sph point{2, Constants::PI / 3, Real(0.5)};
+	MetricTensorSpherical metric;
+
+	const auto coordinate = ScalarFieldOperations::Gradient(f, point, metric);
+	const auto physical = VectorFieldOperations::ToPhysical(coordinate, point, metric);
+	const auto specialized = ScalarFieldOperations::GradientSpher(f, point);
+	const auto restored = VectorFieldOperations::ToContravariant(physical, point, metric);
+
+	if (!physical.IsEqualTo(specialized, Precision::LooseTolerance) || !restored.IsEqualTo(coordinate, Precision::LooseTolerance))
+		throw DomainError("Gradient component conversion failed");
+
+	std::cout << "=== GRADIENT COMPONENT CONVENTIONS ===\n"
+						<< "  Coordinate components: " << coordinate << '\n'
+						<< "  Physical components:   " << physical << '\n'
+						<< "  Specialized gradient and conversion round trip verified\n";
+}
+
 void Docs_Demo_GradientCartesian()
 {
     std::cout << "=== GRADIENT - CARTESIAN ===" << std::endl;
@@ -681,6 +700,21 @@ void Docs_Demo_Spherical_Harmonics()
 ///                           MAIN ENTRY POINT
 ///////////////////////////////////////////////////////////////////////////////////////
 
+void Docs_Demo_DeterminantDivergenceStatus() {
+	MetricTensorSpherical metric;
+	VectorFunction<3> radial([](const VectorN<Real, 3>& p) { return VectorN<Real, 3>{p[0], 0, 0}; });
+	FieldOperationConfig config;
+	config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+	auto regular = VectorFieldOperations::DivergenceViaDetDetailed(radial, VectorN<Real, 3>{2, 1, 0}, metric, config);
+	auto singular = VectorFieldOperations::DivergenceViaDetDetailed(radial, VectorN<Real, 3>{0, 1, 0}, metric, config);
+	if (regular)
+		std::cout << "Regular divergence: " << regular.value << "\n";
+	else
+		std::cout << "Regular evaluation failed: " << regular.error_message << "\n";
+	if (!singular)
+		std::cout << "Degenerate metric: " << singular.error_message << "\n";
+}
+
 void Docs_Demo_Field_operations()
 {
     std::cout << "***********************************************************" << std::endl;
@@ -704,8 +738,9 @@ void Docs_Demo_Field_operations()
     Docs_Demo_GradientCartesian();
     Docs_Demo_GradientSpherical();
     Docs_Demo_GradientCylindrical();
-    
-    // Laplacian demonstrations
+		Docs_Demo_GradientComponentConventions();
+
+		// Laplacian demonstrations
     std::cout << "\n***********************************************************" << std::endl;
     std::cout << "*****             LAPLACIAN OPERATIONS              *******" << std::endl;
     std::cout << "***********************************************************" << std::endl;
@@ -722,8 +757,9 @@ void Docs_Demo_Field_operations()
     Docs_Demo_DivergenceCartesian();
     Docs_Demo_DivergenceSpherical();
     Docs_Demo_DivergenceCylindrical();
-    
-    // Curl demonstrations
+		Docs_Demo_DeterminantDivergenceStatus();
+
+		// Curl demonstrations
     std::cout << "\n***********************************************************" << std::endl;
     std::cout << "*****               CURL OPERATIONS                 *******" << std::endl;
     std::cout << "***********************************************************" << std::endl;

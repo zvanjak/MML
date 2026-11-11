@@ -28,8 +28,8 @@ namespace MML::Tests::Algorithms::FourierTests {
 			auto window = Windows::BlackmanHarris(17);
 
 			REQUIRE(window.size() == 17);
-			REQUIRE(std::abs(window[0] - REAL(0.00006)) < TOL(1e-12, 1e-6));
-			REQUIRE(std::abs(window[8] - REAL(1.0)) < TOL(1e-12, 1e-6));
+			REQUIRE(std::abs(window[0] - static_cast<MML::Real>(0.00006)) < TOL(1e-12, 1e-6));
+			REQUIRE(std::abs(window[8] - static_cast<MML::Real>(1.0)) < TOL(1e-12, 1e-6));
 			for (int i = 0; i < 8; i++)
 				REQUIRE(std::abs(window[i] - window[16 - i]) < TOL(1e-12, 1e-6));
 		}
@@ -39,7 +39,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 
 			REQUIRE(window.size() == 17);
 			REQUIRE(std::abs(window[0]) < TOL(1e-12, 1e-6));
-			REQUIRE(std::abs(window[8] - REAL(4.636)) < TOL(1e-12, 1e-5));
+			REQUIRE(std::abs(window[8] - static_cast<MML::Real>(4.636)) < TOL(1e-12, 1e-5));
 			for (int i = 0; i < 8; i++)
 				REQUIRE(std::abs(window[i] - window[16 - i]) < TOL(1e-12, 1e-5));
 		}
@@ -58,7 +58,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 
 		auto tapered = Windows::Tukey(9, 0.5);
 		REQUIRE(std::abs(tapered[0]) < TOL(1e-12, 1e-6));
-		REQUIRE(std::abs(tapered[4] - REAL(1.0)) < TOL(1e-12, 1e-6));
+		REQUIRE(std::abs(tapered[4] - static_cast<MML::Real>(1.0)) < TOL(1e-12, 1e-6));
 		REQUIRE(std::abs(tapered[8]) < TOL(1e-12, 1e-6));
 		REQUIRE_THROWS_AS(Windows::Tukey(8, -0.1), std::invalid_argument);
 		REQUIRE_THROWS_AS(Windows::Tukey(8, 1.1), std::invalid_argument);
@@ -74,22 +74,22 @@ namespace MML::Tests::Algorithms::FourierTests {
 		auto hann = Windows::Hann(4);
 		auto windowed = Windows::ApplyWindow(signal, hann);
 		REQUIRE(std::abs(windowed[0]) < TOL(1e-12, 1e-6));
-		REQUIRE(std::abs(windowed[1] - REAL(1.5)) < TOL(1e-12, 1e-6));
-		REQUIRE(std::abs(windowed[2] - REAL(2.25)) < TOL(1e-12, 1e-6));
+		REQUIRE(std::abs(windowed[1] - static_cast<MML::Real>(1.5)) < TOL(1e-12, 1e-6));
+		REQUIRE(std::abs(windowed[2] - static_cast<MML::Real>(2.25)) < TOL(1e-12, 1e-6));
 		REQUIRE(std::abs(windowed[3]) < TOL(1e-12, 1e-6));
 
 		Vector<Complex> complex_signal(4);
 		for (int i = 0; i < 4; i++)
 			complex_signal[i] = Complex(signal[i], -signal[i]);
 		auto complex_windowed = Windows::ApplyWindow(complex_signal, hann);
-		REQUIRE(std::abs(complex_windowed[1] - Complex(REAL(1.5), REAL(-1.5))) < TOL(1e-12, 1e-6));
+		REQUIRE(std::abs(complex_windowed[1] - Complex(static_cast<MML::Real>(1.5), static_cast<MML::Real>(-1.5))) < TOL(1e-12, 1e-6));
 
 		auto metrics = Windows::Metrics(hann);
-		REQUIRE(std::abs(metrics.sum - REAL(1.5)) < TOL(1e-12, 1e-6));
-		REQUIRE(std::abs(metrics.sum_squares - REAL(1.125)) < TOL(1e-12, 1e-6));
-		REQUIRE(std::abs(metrics.coherent_gain - REAL(0.375)) < TOL(1e-12, 1e-6));
-		REQUIRE(std::abs(metrics.rms_gain - std::sqrt(REAL(0.28125))) < TOL(1e-12, 1e-6));
-		REQUIRE(std::abs(metrics.enbw_bins - REAL(2.0)) < TOL(1e-12, 1e-6));
+		REQUIRE(std::abs(metrics.sum - static_cast<MML::Real>(1.5)) < TOL(1e-12, 1e-6));
+		REQUIRE(std::abs(metrics.sum_squares - static_cast<MML::Real>(1.125)) < TOL(1e-12, 1e-6));
+		REQUIRE(std::abs(metrics.coherent_gain - static_cast<MML::Real>(0.375)) < TOL(1e-12, 1e-6));
+		REQUIRE(std::abs(metrics.rms_gain - std::sqrt(static_cast<MML::Real>(0.28125))) < TOL(1e-12, 1e-6));
+		REQUIRE(std::abs(metrics.enbw_bins - static_cast<MML::Real>(2.0)) < TOL(1e-12, 1e-6));
 
 		Vector<Real> bad_window(3, 1.0);
 		REQUIRE_THROWS_AS(Windows::ApplyWindow(signal, bad_window), std::invalid_argument);
@@ -108,14 +108,13 @@ namespace MML::Tests::Algorithms::FourierTests {
 
 		auto magnitude = Magnitude(spectrum);
 		auto magnitude_squared = MagnitudeSquared(spectrum);
-		auto power = Power(spectrum);
 		auto phase = Phase(spectrum);
 
-		REQUIRE(std::abs(magnitude[0] - REAL(5.0)) < TOL(1e-12, 1e-6));
-		REQUIRE(std::abs(magnitude[1] - std::sqrt(REAL(2.0))) < TOL(1e-12, 1e-6));
-		REQUIRE(std::abs(magnitude_squared[0] - REAL(25.0)) < TOL(1e-12, 1e-6));
-		REQUIRE(std::abs(power[1] - magnitude_squared[1]) < TOL(1e-12, 1e-6));
-		REQUIRE(std::abs(phase[0] - std::atan2(REAL(4.0), REAL(3.0))) < TOL(1e-12, 1e-6));
+		REQUIRE(std::abs(magnitude[0] - static_cast<MML::Real>(5.0)) < TOL(1e-12, 1e-6));
+		REQUIRE(std::abs(magnitude[1] - std::sqrt(static_cast<MML::Real>(2.0))) < TOL(1e-12, 1e-6));
+		REQUIRE(std::abs(magnitude_squared[0] - static_cast<MML::Real>(25.0)) < TOL(1e-12, 1e-6));
+		REQUIRE(IsNearlyEqual(magnitude_squared[1], Real(2)));
+		REQUIRE(std::abs(phase[0] - std::atan2(static_cast<MML::Real>(4.0), static_cast<MML::Real>(3.0))) < TOL(1e-12, 1e-6));
 		REQUIRE(std::abs(phase[2] - Constants::PI) < TOL(1e-12, 1e-6));
 
 		Vector<Complex> empty;
@@ -133,7 +132,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 
 		auto unwrapped = UnwrapPhase(wrapped);
 
-		REQUIRE(std::abs(unwrapped[0] - REAL(0.0)) < TOL(1e-12, 1e-6));
+		REQUIRE(std::abs(unwrapped[0] - static_cast<MML::Real>(0.0)) < TOL(1e-12, 1e-6));
 		REQUIRE(std::abs(unwrapped[1] - 0.75 * Constants::PI) < TOL(1e-12, 1e-6));
 		REQUIRE(std::abs(unwrapped[2] - 1.25 * Constants::PI) < TOL(1e-12, 1e-6));
 		REQUIRE(std::abs(unwrapped[3] - 1.5 * Constants::PI) < TOL(1e-12, 1e-6));
@@ -145,7 +144,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		auto one_sided = FrequencyAxis(8, 80.0, FrequencyAxisLayout::OneSided);
 		REQUIRE(one_sided.size() == 5);
 		for (int i = 0; i < one_sided.size(); i++)
-			REQUIRE(std::abs(one_sided[i] - i * REAL(10.0)) < TOL(1e-12, 1e-6));
+			REQUIRE(std::abs(one_sided[i] - i * static_cast<MML::Real>(10.0)) < TOL(1e-12, 1e-6));
 
 		auto two_sided = FrequencyAxis(8, 80.0);
 		std::array<Real, 8> expected_two_sided = {0.0, 10.0, 20.0, 30.0, -40.0, -30.0, -20.0, -10.0};
@@ -245,9 +244,9 @@ namespace MML::Tests::Algorithms::FourierTests {
 		Vector<Real> x(5);
 		Vector<Real> h(4);
 		for (int i = 0; i < x.size(); i++)
-			x[i] = std::sin(REAL(0.3) * i) + i;
+			x[i] = std::sin(static_cast<MML::Real>(0.3) * i) + i;
 		for (int i = 0; i < h.size(); i++)
-			h[i] = std::cos(REAL(0.4) * i) - REAL(0.25) * i;
+			h[i] = std::cos(static_cast<MML::Real>(0.4) * i) - static_cast<MML::Real>(0.25) * i;
 
 		for (auto mode : {ConvolutionMode::Full, ConvolutionMode::Same, ConvolutionMode::Valid, ConvolutionMode::Circular}) {
 			auto direct = Convolve(x, h, mode, ConvolutionMethod::Direct);
@@ -397,7 +396,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		const int N = 45;
 		Vector<Real> signal(N);
 		for (int i = 0; i < N; i++)
-			signal[i] = REAL(1.5) + std::sin(REAL(0.21) * i) - REAL(0.3) * std::cos(REAL(0.47) * i);
+			signal[i] = static_cast<MML::Real>(1.5) + std::sin(static_cast<MML::Real>(0.21) * i) - static_cast<MML::Real>(0.3) * std::cos(static_cast<MML::Real>(0.47) * i);
 
 		const auto fastCoefficients = DCT::ForwardII_Fast(signal);
 		const auto referenceCoefficients = DCT::ForwardII_Reference(signal);
@@ -512,7 +511,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 			// DCT round-trip accumulates too much error with float precision
 			auto recovered = DCT::InverseII(dctTwo);
 			for (int i = 0; i < two.size(); ++i)
-				REQUIRE_THAT(recovered[i], Catch::Matchers::WithinAbs(two[i], REAL(1e-4)));
+				REQUIRE_THAT(recovered[i], Catch::Matchers::WithinAbs(two[i], static_cast<MML::Real>(1e-4)));
 		} else {
 			REQUIRE(DCT::VerifyRoundTrip(two));
 		}
@@ -715,8 +714,8 @@ namespace MML::Tests::Algorithms::FourierTests {
 			DYNAMIC_SECTION("N=" << size) {
 				Vector<Complex> data(size);
 				for (int i = 0; i < size; i++)
-					data[i] = Complex(std::sin(REAL(0.37) * i) + REAL(0.1) * i,
-					                  std::cos(REAL(0.23) * i) - REAL(0.05) * i);
+					data[i] = Complex(std::sin(static_cast<MML::Real>(0.37) * i) + static_cast<MML::Real>(0.1) * i,
+					                  std::cos(static_cast<MML::Real>(0.23) * i) - static_cast<MML::Real>(0.05) * i);
 
 				const auto expectedForward = DFT::Forward(data, TransformNormalization::None);
 				const auto actualForward = FFT::Forward(data, TransformNormalization::None);
@@ -735,7 +734,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		for (int size : {6, 13, 31}) {
 			Vector<Complex> data(size);
 			for (int i = 0; i < size; i++)
-				data[i] = Complex(std::sin(REAL(0.19) * i), std::cos(REAL(0.31) * i));
+				data[i] = Complex(std::sin(static_cast<MML::Real>(0.19) * i), std::cos(static_cast<MML::Real>(0.31) * i));
 
 			for (auto normalization : {TransformNormalization::Legacy, TransformNormalization::None,
 			                           TransformNormalization::Forward, TransformNormalization::Inverse,
@@ -772,7 +771,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		auto raw_spectrum = DFT::Forward(data, TransformNormalization::None);
 		auto raw_inverse = DFT::Inverse(raw_spectrum, TransformNormalization::None);
 		for (int i = 0; i < data.size(); i++)
-			REQUIRE(std::abs(raw_inverse[i] - data[i] * REAL(data.size())) < TOL(1e-12, 1e-6));
+			REQUIRE(std::abs(raw_inverse[i] - data[i] * static_cast<MML::Real>(data.size())) < TOL(1e-12, 1e-6));
 	}
 
 	TEST_CASE("FFT normalization modes preserve legacy behavior and Parseval scaling", "[Fourier][Normalization]") {
@@ -809,7 +808,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		int N = 16;
 		Vector<Real> data(N);
 		for (int i = 0; i < N; i++)
-			data[i] = std::sin(2.0 * Constants::PI * i / N) + REAL(0.25) * std::cos(6.0 * Constants::PI * i / N);
+			data[i] = std::sin(2.0 * Constants::PI * i / N) + static_cast<MML::Real>(0.25) * std::cos(6.0 * Constants::PI * i / N);
 
 		for (auto normalization : {TransformNormalization::Forward, TransformNormalization::Inverse, TransformNormalization::Orthonormal}) {
 			auto spectrum = RealFFT::Forward(data, normalization);

@@ -92,7 +92,7 @@ auto fp = FixedPointFinder::Find(vdp, guess);
 
 if (fp.convergenceResidual < 1e-10) {
     std::cout << "Found fixed point at: " << fp.location << "\n";
-    std::cout << "Type: " << ToString(fp.type) << "\n";
+    std::cout << "Type: " << to_string(fp.type) << "\n";
     std::cout << "Stable? " << (fp.isStable ? "Yes" : "No") << "\n";
     std::cout << "Eigenvalues: ";
     for (const auto& ev : fp.eigenvalues)
@@ -148,7 +148,7 @@ auto fixedPoints = FixedPointFinder::FindMultiple(vdp, guesses);
 std::cout << "Found " << fixedPoints.size() << " unique fixed points:\n";
 for (const auto& fp : fixedPoints) {
     std::cout << "  Location: " << fp.location 
-              << " Type: " << ToString(fp.type) << "\n";
+              << " Type: " << to_string(fp.type) << "\n";
 }
 ```
 
@@ -273,7 +273,19 @@ auto diagram = BifurcationAnalyzer::Sweep(
 
 ## Discrete Maps
 
-MML includes classic discrete maps with analytical properties:
+MML includes classic discrete maps with analytical properties. They implement `IDiscreteMap<N>`
+(namespace `MML`), which is an `IFunction<Vector<Real>, const Vector<Real>&>` — so `map(x)` and
+`map.iterate(x)` are the same call — and carries the shared `IParametrized` mixin: `getNumParam()`,
+`getParam(i)` / `setParam(i, v)` (index-checked) and `getParams()` / `setParams(v)` (size-checked),
+exactly as for the continuous `IDynamicalSystem`s above. `iterate()` rejects a state of the wrong
+dimension with `VectorDimensionError`.
+
+```cpp
+HenonMap henon(1.4, 0.3);
+henon.getNumParam();                       // 2
+henon.setParams(Vector<Real>({1.2, 0.3})); // VectorDimensionError if the size is not 2
+Vector<Real> next = henon(Vector<Real>({0.1, 0.1}));   // == henon.iterate(...)
+```
 
 ### Logistic Map
 
@@ -544,7 +556,7 @@ public:
         Real alpha = _params[0], beta = _params[1];
         Real gamma = _params[2], delta = _params[3];
         
-        J.Resize(2, 2);
+        J.resize(2, 2);
         J(0,0) = alpha - beta * z;   J(0,1) = -beta * x;
         J(1,0) = delta * z;          J(1,1) = delta * x - gamma;
     }
@@ -559,7 +571,7 @@ public:
 LotkaVolterraSystem lv;
 auto fp = FixedPointFinder::Find(lv, Vector<Real>({5.0, 5.0}));
 std::cout << "Equilibrium populations: " << fp.location << "\n";
-std::cout << "Type: " << ToString(fp.type) << "\n";  // Likely Center
+std::cout << "Type: " << to_string(fp.type) << "\n";  // Likely Center
 ```
 
 ## Integration with ODE Solvers

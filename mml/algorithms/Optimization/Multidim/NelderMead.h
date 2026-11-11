@@ -107,7 +107,7 @@ namespace MML::Optimization {
          * Creates initial simplex by adding delta to each coordinate of start
          */
 		template<int N>
-		MultidimMinimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real delta = 1.0) {
+		MultidimOptimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real delta = 1.0) {
 			// Validate inputs
 			ValidateVectorFinite<N>(start, "NelderMead::Minimize starting point");
 			if (!std::isfinite(delta) || delta == 0.0)
@@ -132,7 +132,7 @@ namespace MML::Optimization {
          * Creates initial simplex by adding deltas[i] to coordinate i of start
          */
 		template<int N>
-		MultidimMinimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, const Vector<Real>& deltas) {
+		MultidimOptimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, const Vector<Real>& deltas) {
 			if (deltas.size() != N)
 				throw MultidimOptimizationError("Deltas vector dimension mismatch");
 
@@ -176,7 +176,7 @@ namespace MML::Optimization {
          * @throws MultidimOptimizationInputError if simplex contains NaN/Inf values
          */
 		template<int N>
-		MultidimMinimizationResult Minimize(const IScalarFunction<N>& func, const Matrix<Real>& simplex) {
+		MultidimOptimizationResult Minimize(const IScalarFunction<N>& func, const Matrix<Real>& simplex) {
 			if (simplex.rows() != N + 1 || simplex.cols() != N)
 				throw MultidimOptimizationError("Simplex dimensions invalid: expected " + std::to_string(N + 1) + " x " +
 												std::to_string(N));
@@ -203,13 +203,24 @@ namespace MML::Optimization {
 		///                   Core Nelder-Mead Algorithm                        ///
 		///////////////////////////////////////////////////////////////////////////
 		template<int N>
-		MultidimMinimizationResult MinimizeFromSimplex(const IScalarFunction<N>& func) {
+		MultidimOptimizationResult MinimizeFromSimplex(const IScalarFunction<N>& func) {
 			// Validate tolerance
 			ValidateMultidimTolerance(_ftol, "NelderMead");
 			if (_maxIter <= 0)
 				throw MultidimOptimizationInputError("NelderMead: maxIter must be positive");
 			
-			const Real tiny = std::max(Real(1.0e-10), std::numeric_limits<Real>::epsilon());
+			const Real tiny = std::max(Precision::EqualityTolerance, Precision::Eps);
+			AlgorithmTimer timer;
+			const auto makeResult = [&](const Vector<Real>& point, Real value, int iterations, bool converged) {
+				MultidimOptimizationResult output(point, value, iterations, converged);
+				output.function_evaluations = _nfunc;
+				output.algorithm_name = "NelderMead";
+				output.elapsed_time_ms = timer.elapsed_ms();
+				const auto extremes = std::minmax_element(_y.begin(), _y.end());
+				output.achieved_tolerance =
+					static_cast<MML::Real>(2.0) * std::abs(*extremes.second - *extremes.first) / (std::abs(*extremes.second) + std::abs(*extremes.first) + tiny);
+				return output;
+			};
 			int ihi, ilo, inhi;
 			VectorN<Real, N> x;
 			Vector<Real> psum(_ndim);
@@ -264,7 +275,7 @@ namespace MML::Optimization {
 					for (int j = 0; j < _ndim; ++j)
 						result[j] = x[j];
 
-					return MultidimMinimizationResult(result, _y[0], _nfunc, true);
+					return makeResult(result, _y[0], iter, true);
 				}
 
 				// Check iteration limit
@@ -272,7 +283,7 @@ namespace MML::Optimization {
 					Vector<Real> result(_ndim);
 					for (int j = 0; j < _ndim; ++j)
 						result[j] = _p(ilo, j);
-					return MultidimMinimizationResult(result, _y[ilo], _nfunc, false);
+					return makeResult(result, _y[ilo], iter, false);
 				}
 
 				// Try reflection
@@ -316,7 +327,7 @@ namespace MML::Optimization {
 			for (int j = 0; j < _ndim; ++j)
 				result[j] = _p(ilo_final, j);
 
-			return MultidimMinimizationResult(result, _y[ilo_final], _nfunc, false);
+			return makeResult(result, _y[ilo_final], _maxIter, false);
 		}
 
 		///////////////////////////////////////////////////////////////////////////
@@ -389,8 +400,8 @@ namespace MML::Optimization {
      * @return Minimization result
      */
 	template<int N>
-	MultidimMinimizationResult NelderMeadMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real delta = 1.0,
-												  Real ftol = PrecisionValues<Real>::OptimizationGradientTolerance) {
+	MultidimOptimizationResult NelderMeadMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real delta = 1.0,
+																								Real ftol = PrecisionValues<Real>::OptimizationGradientTolerance) {
 		NelderMead optimizer(ftol);
 		return optimizer.Minimize(func, start, delta);
 	}
@@ -405,8 +416,8 @@ namespace MML::Optimization {
      * @return Minimization result
      */
 	template<int N>
-	MultidimMinimizationResult NelderMeadMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, const Vector<Real>& deltas,
-												  Real ftol = PrecisionValues<Real>::OptimizationGradientTolerance) {
+	MultidimOptimizationResult NelderMeadMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, const Vector<Real>& deltas,
+																								Real ftol = PrecisionValues<Real>::OptimizationGradientTolerance) {
 		NelderMead optimizer(ftol);
 		return optimizer.Minimize(func, start, deltas);
 	}
@@ -440,8 +451,8 @@ namespace MML::Optimization {
      * @return Maximization result (fmin is negated to give actual maximum value)
      */
 	template<int N>
-	MultidimMinimizationResult NelderMeadMaximize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real delta = 1.0,
-												  Real ftol = PrecisionValues<Real>::OptimizationGradientTolerance) {
+	MultidimOptimizationResult NelderMeadMaximize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real delta = 1.0,
+																								Real ftol = PrecisionValues<Real>::OptimizationGradientTolerance) {
 		NegatedScalarFunction<N> negFunc(func);
 		NelderMead optimizer(ftol);
 		auto result = optimizer.Minimize(negFunc, start, delta);
@@ -462,12 +473,12 @@ namespace MML::Optimization {
      * @return Minimization result with enhanced diagnostics
      */
 	template<int N>
-	MultidimMinimizationResult NelderMeadMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
-												  const MultidimOptimizationConfig& config) {
+	MultidimOptimizationResult NelderMeadMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
+																								const MultidimOptimizationConfig& config) {
 		AlgorithmTimer timer;
 		NelderMead optimizer(config.tolerance, config.max_iterations);
-		MultidimMinimizationResult result = optimizer.Minimize(func, start, config.initial_delta);
-		
+		MultidimOptimizationResult result = optimizer.Minimize(func, start, config.initial_delta);
+
 		// Fill enhanced diagnostic fields
 		result.algorithm_name = "NelderMead";
 		result.elapsed_time_ms = timer.elapsed_ms();
@@ -488,13 +499,13 @@ namespace MML::Optimization {
      * @return Maximization result with enhanced diagnostics (fmin is the maximum value)
      */
 	template<int N>
-	MultidimMinimizationResult NelderMeadMaximize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
-												  const MultidimOptimizationConfig& config) {
+	MultidimOptimizationResult NelderMeadMaximize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
+																								const MultidimOptimizationConfig& config) {
 		AlgorithmTimer timer;
 		NegatedScalarFunction<N> negFunc(func);
 		NelderMead optimizer(config.tolerance, config.max_iterations);
-		MultidimMinimizationResult result = optimizer.Minimize(negFunc, start, config.initial_delta);
-		
+		MultidimOptimizationResult result = optimizer.Minimize(negFunc, start, config.initial_delta);
+
 		result.fmin = -result.fmin; // Convert back to maximum value
 		result.algorithm_name = "NelderMead";
 		result.elapsed_time_ms = timer.elapsed_ms();

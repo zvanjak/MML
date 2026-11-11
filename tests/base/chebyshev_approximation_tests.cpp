@@ -26,34 +26,34 @@ namespace MML::Tests::Base::ChebyshevTests
     TEST_CASE("ChebyshevT - Base cases T_0 and T_1", "[chebyshev][polynomial]")
     {
         // T_0(x) = 1 for all x
-        REQUIRE_THAT(ChebyshevT(0, REAL(0.0)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevT(0, REAL(0.5)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevT(0, REAL(1.0)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevT(0, -REAL(1.0)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(0, static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(0, static_cast<MML::Real>(0.5)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(0, static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(0, -static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
 
         // T_1(x) = x
-        REQUIRE_THAT(ChebyshevT(1, REAL(0.0)), WithinAbs(REAL(0.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevT(1, REAL(0.5)), WithinAbs(REAL(0.5), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevT(1, REAL(1.0)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevT(1, -REAL(1.0)), WithinAbs(-REAL(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(1, static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(1, static_cast<MML::Real>(0.5)), WithinAbs(static_cast<MML::Real>(0.5), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(1, static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(1, -static_cast<MML::Real>(1.0)), WithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
     }
 
     TEST_CASE("ChebyshevT - Known polynomial values", "[chebyshev][polynomial]")
     {
         // T_2(x) = 2x² - 1
-        REQUIRE_THAT(ChebyshevT(2, REAL(0.0)), WithinAbs(-REAL(1.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevT(2, REAL(0.5)), WithinAbs(2*REAL(0.25) - 1, TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevT(2, REAL(1.0)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(2, static_cast<MML::Real>(0.0)), WithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(2, static_cast<MML::Real>(0.5)), WithinAbs(2*static_cast<MML::Real>(0.25) - 1, TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(2, static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
 
         // T_3(x) = 4x³ - 3x
-        REQUIRE_THAT(ChebyshevT(3, REAL(0.0)), WithinAbs(REAL(0.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevT(3, REAL(0.5)), WithinAbs(4*REAL(0.125) - REAL(1.5), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevT(3, REAL(1.0)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(3, static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(3, static_cast<MML::Real>(0.5)), WithinAbs(4*static_cast<MML::Real>(0.125) - static_cast<MML::Real>(1.5), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(3, static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
 
         // T_4(x) = 8x⁴ - 8x² + 1
-        REQUIRE_THAT(ChebyshevT(4, REAL(0.0)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevT(4, REAL(1.0)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
-        Real x = REAL(0.5);
+        REQUIRE_THAT(ChebyshevT(4, static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(4, static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        Real x = static_cast<MML::Real>(0.5);
         Real expected_T4 = 8*x*x*x*x - 8*x*x + 1;
         REQUIRE_THAT(ChebyshevT(4, x), WithinAbs(expected_T4, TOL(1e-14, 1e-5)));
     }
@@ -62,7 +62,7 @@ namespace MML::Tests::Base::ChebyshevTests
     {
         for (int n = 0; n <= 20; n++)
         {
-            REQUIRE_THAT(ChebyshevT(n, REAL(1.0)), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
+            REQUIRE_THAT(ChebyshevT(n, static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-12, 1e-5)));
         }
     }
 
@@ -70,8 +70,8 @@ namespace MML::Tests::Base::ChebyshevTests
     {
         for (int n = 0; n <= 20; n++)
         {
-            Real expected = (n % 2 == 0) ? REAL(1.0) : -REAL(1.0);
-            REQUIRE_THAT(ChebyshevT(n, -REAL(1.0)), WithinAbs(expected, TOL(1e-12, 1e-5)));
+            Real expected = (n % 2 == 0) ? static_cast<MML::Real>(1.0) : -static_cast<MML::Real>(1.0);
+            REQUIRE_THAT(ChebyshevT(n, -static_cast<MML::Real>(1.0)), WithinAbs(expected, TOL(1e-12, 1e-5)));
         }
     }
 
@@ -81,7 +81,7 @@ namespace MML::Tests::Base::ChebyshevTests
         
         for (int n = 0; n <= 10; n++)
         {
-            for (Real theta : {REAL(0.0), pi/6, pi/4, pi/3, pi/2, 2*pi/3, pi})
+            for (Real theta : {static_cast<MML::Real>(0.0), pi/6, pi/4, pi/3, pi/2, 2*pi/3, pi})
             {
                 Real x = std::cos(theta);
                 Real T_n = ChebyshevT(n, x);
@@ -97,16 +97,16 @@ namespace MML::Tests::Base::ChebyshevTests
         {
             for (int i = 0; i <= 100; i++)
             {
-                Real x = -REAL(1.0) + REAL(2.0) * i / REAL(100.0);
+                Real x = -static_cast<MML::Real>(1.0) + static_cast<MML::Real>(2.0) * i / static_cast<MML::Real>(100.0);
                 Real T_n = ChebyshevT(n, x);
-                REQUIRE(std::abs(T_n) <= REAL(1.0) + TOL(1e-12, 1e-5));
+                REQUIRE(std::abs(T_n) <= static_cast<MML::Real>(1.0) + TOL(1e-12, 1e-5));
             }
         }
     }
 
     TEST_CASE("ChebyshevT - Invalid input", "[chebyshev][polynomial]")
     {
-        REQUIRE_THROWS_AS(ChebyshevT(-1, REAL(0.5)), std::invalid_argument);
+        REQUIRE_THROWS_AS(ChebyshevT(-1, static_cast<MML::Real>(0.5)), std::invalid_argument);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -116,33 +116,33 @@ namespace MML::Tests::Base::ChebyshevTests
     TEST_CASE("ChebyshevU - Base cases U_0 and U_1", "[chebyshev][polynomial]")
     {
         // U_0(x) = 1
-        REQUIRE_THAT(ChebyshevU(0, REAL(0.0)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevU(0, REAL(0.5)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevU(0, REAL(1.0)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevU(0, static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevU(0, static_cast<MML::Real>(0.5)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevU(0, static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
 
         // U_1(x) = 2x
-        REQUIRE_THAT(ChebyshevU(1, REAL(0.0)), WithinAbs(REAL(0.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevU(1, REAL(0.5)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevU(1, REAL(1.0)), WithinAbs(REAL(2.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevU(1, static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevU(1, static_cast<MML::Real>(0.5)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevU(1, static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-14, 1e-5)));
     }
 
     TEST_CASE("ChebyshevU - Known polynomial values", "[chebyshev][polynomial]")
     {
         // U_2(x) = 4x² - 1
-        REQUIRE_THAT(ChebyshevU(2, REAL(0.0)), WithinAbs(-REAL(1.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevU(2, REAL(0.5)), WithinAbs(4*REAL(0.25) - 1, TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevU(2, REAL(1.0)), WithinAbs(REAL(3.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevU(2, static_cast<MML::Real>(0.0)), WithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevU(2, static_cast<MML::Real>(0.5)), WithinAbs(4*static_cast<MML::Real>(0.25) - 1, TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevU(2, static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-14, 1e-5)));
 
         // U_3(x) = 8x³ - 4x
-        REQUIRE_THAT(ChebyshevU(3, REAL(0.0)), WithinAbs(REAL(0.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(ChebyshevU(3, REAL(1.0)), WithinAbs(REAL(4.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevU(3, static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(ChebyshevU(3, static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-14, 1e-5)));
     }
 
     TEST_CASE("ChebyshevU - Property: U_n(1) = n + 1", "[chebyshev][polynomial]")
     {
         for (int n = 0; n <= 20; n++)
         {
-            REQUIRE_THAT(ChebyshevU(n, REAL(1.0)), WithinAbs(static_cast<Real>(n + 1), TOL(1e-10, 1e-5)));
+            REQUIRE_THAT(ChebyshevU(n, static_cast<MML::Real>(1.0)), WithinAbs(static_cast<Real>(n + 1), TOL(1e-10, 1e-5)));
         }
     }
 
@@ -150,14 +150,14 @@ namespace MML::Tests::Base::ChebyshevTests
     {
         for (int n = 0; n <= 20; n++)
         {
-            Real expected = ((n % 2 == 0) ? REAL(1.0) : -REAL(1.0)) * (n + 1);
-            REQUIRE_THAT(ChebyshevU(n, -REAL(1.0)), WithinAbs(expected, TOL(1e-10, 1e-5)));
+            Real expected = ((n % 2 == 0) ? static_cast<MML::Real>(1.0) : -static_cast<MML::Real>(1.0)) * (n + 1);
+            REQUIRE_THAT(ChebyshevU(n, -static_cast<MML::Real>(1.0)), WithinAbs(expected, TOL(1e-10, 1e-5)));
         }
     }
 
     TEST_CASE("ChebyshevU - Invalid input", "[chebyshev][polynomial]")
     {
-        REQUIRE_THROWS_AS(ChebyshevU(-1, REAL(0.5)), std::invalid_argument);
+        REQUIRE_THROWS_AS(ChebyshevU(-1, static_cast<MML::Real>(0.5)), std::invalid_argument);
     }
 
     TEST_CASE("ChebyshevT and ChebyshevU - Derivative relationship", "[chebyshev][polynomial]")
@@ -168,7 +168,7 @@ namespace MML::Tests::Base::ChebyshevTests
         
         for (int n = 1; n <= 10; n++)
         {
-            for (Real x : {-REAL(0.8), -REAL(0.3), REAL(0.0), REAL(0.5), REAL(0.9)})
+            for (Real x : {-static_cast<MML::Real>(0.8), -static_cast<MML::Real>(0.3), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.9)})
             {
                 // Numerical derivative of T_n
                 Real dT_dx = (ChebyshevT(n, x + h) - ChebyshevT(n, x - h)) / (2 * h);
@@ -187,18 +187,18 @@ namespace MML::Tests::Base::ChebyshevTests
         // Test that high-degree polynomials remain stable and bounded
         for (int n : {25, 50, 100})
         {
-            for (Real x : {-REAL(0.99), -REAL(0.5), REAL(0.0), REAL(0.5), REAL(0.99)})
+            for (Real x : {-static_cast<MML::Real>(0.99), -static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.99)})
             {
                 Real T_n = ChebyshevT(n, x);
                 INFO("n = " << n << ", x = " << x);
-                REQUIRE(std::abs(T_n) <= REAL(1.0) + TOL(1e-10, 1e-5));
+                REQUIRE(std::abs(T_n) <= static_cast<MML::Real>(1.0) + TOL(1e-10, 1e-5));
             }
         }
         
         // At endpoints, always T_n(1)=1 and T_n(-1)=(-1)^n
-        REQUIRE_THAT(ChebyshevT(100, REAL(1.0)), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-        REQUIRE_THAT(ChebyshevT(100, -REAL(1.0)), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));  // 100 is even
-        REQUIRE_THAT(ChebyshevT(101, -REAL(1.0)), WithinAbs(-REAL(1.0), TOL(1e-10, 1e-5))); // 101 is odd
+        REQUIRE_THAT(ChebyshevT(100, static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(ChebyshevT(100, -static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));  // 100 is even
+        REQUIRE_THAT(ChebyshevT(101, -static_cast<MML::Real>(1.0)), WithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5))); // 101 is odd
     }
 
     TEST_CASE("ChebyshevU - High degree stability", "[chebyshev][polynomial]")
@@ -207,16 +207,16 @@ namespace MML::Tests::Base::ChebyshevTests
         // U_n(1) = n+1, U_n(-1) = (-1)^n * (n+1)
         for (int n : {25, 50, 100})
         {
-            REQUIRE_THAT(ChebyshevU(n, REAL(1.0)), WithinAbs(static_cast<Real>(n + 1), TOL(1e-8, 1e-4)));
-            Real expected_neg = ((n % 2 == 0) ? REAL(1.0) : -REAL(1.0)) * (n + 1);
-            REQUIRE_THAT(ChebyshevU(n, -REAL(1.0)), WithinAbs(expected_neg, TOL(1e-8, 1e-4)));
+            REQUIRE_THAT(ChebyshevU(n, static_cast<MML::Real>(1.0)), WithinAbs(static_cast<Real>(n + 1), TOL(1e-8, 1e-4)));
+            Real expected_neg = ((n % 2 == 0) ? static_cast<MML::Real>(1.0) : -static_cast<MML::Real>(1.0)) * (n + 1);
+            REQUIRE_THAT(ChebyshevU(n, -static_cast<MML::Real>(1.0)), WithinAbs(expected_neg, TOL(1e-8, 1e-4)));
         }
     }
 
     TEST_CASE("ChebyshevT - Recurrence relation verification", "[chebyshev][polynomial]")
     {
         // Verify the recurrence: T_{n+1}(x) = 2x·T_n(x) - T_{n-1}(x)
-        for (Real x : {-REAL(0.7), REAL(0.0), REAL(0.3), REAL(0.8)})
+        for (Real x : {-static_cast<MML::Real>(0.7), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.3), static_cast<MML::Real>(0.8)})
         {
             for (int n = 2; n <= 15; n++)
             {
@@ -232,7 +232,7 @@ namespace MML::Tests::Base::ChebyshevTests
     TEST_CASE("ChebyshevU - Recurrence relation verification", "[chebyshev][polynomial]")
     {
         // Verify the recurrence: U_{n+1}(x) = 2x·U_n(x) - U_{n-1}(x)
-        for (Real x : {-REAL(0.7), REAL(0.0), REAL(0.3), REAL(0.8)})
+        for (Real x : {-static_cast<MML::Real>(0.7), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.3), static_cast<MML::Real>(0.8)})
         {
             for (int n = 2; n <= 15; n++)
             {
@@ -259,9 +259,9 @@ namespace MML::Tests::Base::ChebyshevTests
             for (int k = 0; k < n; k++)
             {
                 Real root = roots[k];
-                REQUIRE(root > -REAL(1.0));
-                REQUIRE(root < REAL(1.0));
-                REQUIRE_THAT(ChebyshevT(n, root), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+                REQUIRE(root > -static_cast<MML::Real>(1.0));
+                REQUIRE(root < static_cast<MML::Real>(1.0));
+                REQUIRE_THAT(ChebyshevT(n, root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-12, 1e-5)));
             }
         }
     }
@@ -274,14 +274,14 @@ namespace MML::Tests::Base::ChebyshevTests
             REQUIRE(extrema.size() == n + 1);
             
             // Check endpoints
-            REQUIRE_THAT(extrema[0], WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
-            REQUIRE_THAT(extrema[n], WithinAbs(-REAL(1.0), TOL(1e-14, 1e-5)));
+            REQUIRE_THAT(extrema[0], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+            REQUIRE_THAT(extrema[n], WithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
             
             for (int k = 0; k <= n; k++)
             {
                 Real ext = extrema[k];
                 Real T_n = ChebyshevT(n, ext);
-                REQUIRE_THAT(std::abs(T_n), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
+                REQUIRE_THAT(std::abs(T_n), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-12, 1e-5)));
             }
         }
     }
@@ -293,52 +293,52 @@ namespace MML::Tests::Base::ChebyshevTests
     TEST_CASE("ChebyshevApproximation - Constant function", "[chebyshev][approximation]")
     {
         // Approximate f(x) = 5 on [0, 1]
-        auto f = [](Real) { return REAL(5.0); };
-        ChebyshevApproximation approx(f, REAL(0.0), REAL(1.0), 10);
+        auto f = [](Real) { return static_cast<MML::Real>(5.0); };
+        ChebyshevApproximation approx(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 10);
 
         // Only c_0 should be significant
-        REQUIRE_THAT(approx.Coefficient(0), WithinAbs(REAL(10.0), TOL(1e-12, 1e-5))); // c_0 = 2*f (due to normalization)
+        REQUIRE_THAT(approx.Coefficient(0), WithinAbs(static_cast<MML::Real>(10.0), TOL(1e-12, 1e-5))); // c_0 = 2*f (due to normalization)
         for (int j = 1; j < 10; j++)
         {
-            REQUIRE_THAT(approx.Coefficient(j), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+            REQUIRE_THAT(approx.Coefficient(j), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-12, 1e-5)));
         }
 
         // Evaluation should return 5
-        REQUIRE_THAT(approx(REAL(0.0)), WithinAbs(REAL(5.0), TOL(1e-12, 1e-5)));
-        REQUIRE_THAT(approx(REAL(0.5)), WithinAbs(REAL(5.0), TOL(1e-12, 1e-5)));
-        REQUIRE_THAT(approx(REAL(1.0)), WithinAbs(REAL(5.0), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(approx(static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(approx(static_cast<MML::Real>(0.5)), WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(approx(static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-12, 1e-5)));
     }
 
     TEST_CASE("ChebyshevApproximation - Linear function", "[chebyshev][approximation]")
     {
         // Approximate f(x) = 2x + 3 on [-1, 1]
-        auto f = [](Real x) { return REAL(2.0)*x + REAL(3.0); };
-        ChebyshevApproximation approx(f, -REAL(1.0), REAL(1.0), 10);
+        auto f = [](Real x) { return static_cast<MML::Real>(2.0)*x + static_cast<MML::Real>(3.0); };
+        ChebyshevApproximation approx(f, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), 10);
 
         // On [-1,1], f(x) = 2x + 3 has Chebyshev expansion c_0 = 6, c_1 = 2
-        REQUIRE_THAT(approx.Coefficient(0), WithinAbs(REAL(6.0), TOL(1e-12, 1e-5)));
-        REQUIRE_THAT(approx.Coefficient(1), WithinAbs(REAL(2.0), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(approx.Coefficient(0), WithinAbs(static_cast<MML::Real>(6.0), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(approx.Coefficient(1), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-12, 1e-5)));
         for (int j = 2; j < 10; j++)
         {
-            REQUIRE_THAT(approx.Coefficient(j), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+            REQUIRE_THAT(approx.Coefficient(j), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-12, 1e-5)));
         }
 
         // Test evaluation
-        REQUIRE_THAT(approx(-REAL(1.0)), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
-        REQUIRE_THAT(approx(REAL(0.0)), WithinAbs(REAL(3.0), TOL(1e-12, 1e-5)));
-        REQUIRE_THAT(approx(REAL(1.0)), WithinAbs(REAL(5.0), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(approx(-static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(approx(static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(approx(static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-12, 1e-5)));
     }
 
     TEST_CASE("ChebyshevApproximation - sin(x) on [0, pi]", "[chebyshev][approximation]")
     {
         const Real pi = Constants::PI;
         auto f = [](Real x) { return std::sin(x); };
-        ChebyshevApproximation approx(f, REAL(0.0), pi, 20);
+        ChebyshevApproximation approx(f, static_cast<MML::Real>(0.0), pi, 20);
 
         // Test accuracy at various points
-        REQUIRE_THAT(approx(REAL(0.0)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-        REQUIRE_THAT(approx(pi/2), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-        REQUIRE_THAT(approx(pi), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(approx(static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(approx(pi/2), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(approx(pi), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 
         // Maximum error should be small
         Real maxErr = approx.MaxError(f);
@@ -348,12 +348,12 @@ namespace MML::Tests::Base::ChebyshevTests
     TEST_CASE("ChebyshevApproximation - exp(x) on [-1, 1]", "[chebyshev][approximation]")
     {
         auto f = [](Real x) { return std::exp(x); };
-        ChebyshevApproximation approx(f, -REAL(1.0), REAL(1.0), 20);
+        ChebyshevApproximation approx(f, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), 20);
 
         // Test accuracy
-        REQUIRE_THAT(approx(-REAL(1.0)), WithinAbs(std::exp(-REAL(1.0)), TOL(1e-10, 1e-5)));
-        REQUIRE_THAT(approx(REAL(0.0)), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-        REQUIRE_THAT(approx(REAL(1.0)), WithinAbs(std::exp(REAL(1.0)), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(approx(-static_cast<MML::Real>(1.0)), WithinAbs(std::exp(-static_cast<MML::Real>(1.0)), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(approx(static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(approx(static_cast<MML::Real>(1.0)), WithinAbs(std::exp(static_cast<MML::Real>(1.0)), TOL(1e-10, 1e-5)));
 
         // Coefficients should decay rapidly for analytic functions
         Real maxErr = approx.MaxError(f);
@@ -365,18 +365,18 @@ namespace MML::Tests::Base::ChebyshevTests
         // Runge function: 1/(1 + 25x²)
         // This function is notorious for Runge's phenomenon with equidistant interpolation,
         // but Chebyshev approximation handles it well with enough terms.
-        auto runge = [](Real x) { return REAL(1.0) / (REAL(1.0) + REAL(25.0)*x*x); };
+        auto runge = [](Real x) { return static_cast<MML::Real>(1.0) / (static_cast<MML::Real>(1.0) + static_cast<MML::Real>(25.0)*x*x); };
         
         // Use more terms for this challenging function
-        ChebyshevApproximation approx(runge, -REAL(1.0), REAL(1.0), 80);
+        ChebyshevApproximation approx(runge, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), 80);
 
         // Maximum error should be reasonably small
         Real maxErr = approx.MaxError(runge);
         REQUIRE(maxErr < 1e-6);  // Much better than equidistant polynomial interpolation
 
         // Test at critical points
-        REQUIRE_THAT(approx(REAL(0.0)), WithinAbs(REAL(1.0), TOL(1e-6, 1e-3)));
-        REQUIRE_THAT(approx(REAL(0.2)), WithinAbs(runge(REAL(0.2)), TOL(1e-6, 1e-3)));
+        REQUIRE_THAT(approx(static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-6, 1e-3)));
+        REQUIRE_THAT(approx(static_cast<MML::Real>(0.2)), WithinAbs(runge(static_cast<MML::Real>(0.2)), TOL(1e-6, 1e-3)));
     }
 
     TEST_CASE("ChebyshevApproximation - Domain mapping", "[chebyshev][approximation]")
@@ -385,23 +385,23 @@ namespace MML::Tests::Base::ChebyshevTests
         auto f = [](Real x) { return x*x; };  // f(x) = x²
 
         // On [0, 2]
-        ChebyshevApproximation approx1(f, REAL(0.0), REAL(2.0), 10);
-        REQUIRE_THAT(approx1(REAL(0.0)), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
-        REQUIRE_THAT(approx1(REAL(1.0)), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
-        REQUIRE_THAT(approx1(REAL(2.0)), WithinAbs(REAL(4.0), TOL(1e-12, 1e-5)));
+        ChebyshevApproximation approx1(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), 10);
+        REQUIRE_THAT(approx1(static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(approx1(static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(approx1(static_cast<MML::Real>(2.0)), WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-12, 1e-5)));
 
         // On [10, 20]
-        ChebyshevApproximation approx2(f, REAL(10.0), REAL(20.0), 10);
-        REQUIRE_THAT(approx2(REAL(10.0)), WithinAbs(REAL(100.0), TOL(1e-10, 1e-3)));
-        REQUIRE_THAT(approx2(REAL(15.0)), WithinAbs(REAL(225.0), TOL(1e-10, 1e-3)));
-        REQUIRE_THAT(approx2(REAL(20.0)), WithinAbs(REAL(400.0), TOL(1e-10, 1e-3)));
+        ChebyshevApproximation approx2(f, static_cast<MML::Real>(10.0), static_cast<MML::Real>(20.0), 10);
+        REQUIRE_THAT(approx2(static_cast<MML::Real>(10.0)), WithinAbs(static_cast<MML::Real>(100.0), TOL(1e-10, 1e-3)));
+        REQUIRE_THAT(approx2(static_cast<MML::Real>(15.0)), WithinAbs(static_cast<MML::Real>(225.0), TOL(1e-10, 1e-3)));
+        REQUIRE_THAT(approx2(static_cast<MML::Real>(20.0)), WithinAbs(static_cast<MML::Real>(400.0), TOL(1e-10, 1e-3)));
     }
 
     TEST_CASE("ChebyshevApproximation - Coefficient convergence", "[chebyshev][approximation]")
     {
         // For analytic functions, coefficients decay exponentially
         auto f = [](Real x) { return std::exp(x); };
-        ChebyshevApproximation approx(f, -REAL(1.0), REAL(1.0), 30);
+        ChebyshevApproximation approx(f, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), 30);
 
         // Check that later coefficients are much smaller
         Real c0 = std::abs(approx.Coefficient(0));
@@ -415,7 +415,7 @@ namespace MML::Tests::Base::ChebyshevTests
     TEST_CASE("ChebyshevApproximation detailed result reports diagnostics", "[chebyshev][approximation][detailed]")
     {
         std::function<Real(Real)> function = [](Real x) { return std::exp(x); };
-        auto result = ApproximateChebyshevDetailed(function, -REAL(1.0), REAL(1.0), 24, 129, 4);
+        auto result = ApproximateChebyshevDetailed(function, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), 24, 129, 4);
         REQUIRE(result.IsSuccess());
         REQUIRE(result.converged);
         REQUIRE(result.algorithm_name == "ChebyshevApproximation");
@@ -424,7 +424,7 @@ namespace MML::Tests::Base::ChebyshevTests
         REQUIRE(result.coefficients.size() == 24);
         REQUIRE(result.samples_used == 153);
         REQUIRE(result.function_evaluations == result.samples_used);
-        REQUIRE(result.coefficient_tail_error >= REAL(0.0));
+        REQUIRE(result.coefficient_tail_error >= static_cast<MML::Real>(0.0));
         REQUIRE(result.max_error_estimate < TOL(1e-11, 1e-4));
         REQUIRE(result.rms_error_estimate <= result.max_error_estimate);
     }
@@ -437,7 +437,7 @@ namespace MML::Tests::Base::ChebyshevTests
         config.max_terms = 64;
         config.validation_samples = 129;
         std::function<Real(Real)> function = [](Real x) { return std::exp(x); };
-        auto result = ApproximateChebyshevAdaptive(function, -REAL(1.0), REAL(1.0), config);
+        auto result = ApproximateChebyshevAdaptive(function, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), config);
         REQUIRE(result.IsSuccess());
         REQUIRE(result.converged);
         REQUIRE(result.terms_used > config.initial_terms);
@@ -454,9 +454,9 @@ namespace MML::Tests::Base::ChebyshevTests
         config.max_terms = 128;
         config.validation_samples = 257;
         std::function<Real(Real)> runge = [](Real x) {
-            return REAL(1.0) / (REAL(1.0) + REAL(25.0) * x * x);
+            return static_cast<MML::Real>(1.0) / (static_cast<MML::Real>(1.0) + static_cast<MML::Real>(25.0) * x * x);
         };
-        auto result = ApproximateChebyshevAdaptive(runge, -REAL(1.0), REAL(1.0), config);
+        auto result = ApproximateChebyshevAdaptive(runge, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), config);
         REQUIRE(result.IsSuccess());
         REQUIRE(result.converged);
         REQUIRE(result.terms_used >= 32);
@@ -471,7 +471,7 @@ namespace MML::Tests::Base::ChebyshevTests
         config.max_terms = 32;
         config.validation_samples = 257;
         std::function<Real(Real)> cusp = [](Real x) { return std::abs(x); };
-        auto result = ApproximateChebyshevAdaptive(cusp, -REAL(1.0), REAL(1.0), config);
+        auto result = ApproximateChebyshevAdaptive(cusp, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), config);
         REQUIRE_FALSE(result.converged);
         REQUIRE(result.status == AlgorithmStatus::ToleranceUnachievable);
         REQUIRE(result.terms_used == config.max_terms);
@@ -480,9 +480,9 @@ namespace MML::Tests::Base::ChebyshevTests
 
     TEST_CASE("ChebyshevApproximation vectorized evaluation and uniform sampling", "[chebyshev][approximation][vectorized]")
     {
-        auto function = [](Real x) { return x * x - REAL(0.5); };
-        ChebyshevApproximation approximation(function, -REAL(2.0), REAL(2.0), 8);
-        Vector<Real> points({-REAL(2.0), -REAL(0.25), REAL(0.5), REAL(2.0)});
+        auto function = [](Real x) { return x * x - static_cast<MML::Real>(0.5); };
+        ChebyshevApproximation approximation(function, -static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0), 8);
+        Vector<Real> points({-static_cast<MML::Real>(2.0), -static_cast<MML::Real>(0.25), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)});
         Vector<Real> values = approximation.Evaluate(points);
         REQUIRE(values.size() == points.size());
         for (int i = 0; i < points.size(); ++i)
@@ -493,9 +493,9 @@ namespace MML::Tests::Base::ChebyshevTests
         approximation.SampleUniform(5, grid, samples);
         REQUIRE(grid.size() == 5);
         REQUIRE(samples.size() == 5);
-        REQUIRE_THAT(grid[0], WithinAbs(-REAL(2.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(grid[4], WithinAbs(REAL(2.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(grid[2], WithinAbs(REAL(0.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(grid[0], WithinAbs(-static_cast<MML::Real>(2.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(grid[4], WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(grid[2], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-14, 1e-5)));
         REQUIRE_THROWS_AS(approximation.UniformGrid(1), std::invalid_argument);
     }
 
@@ -509,11 +509,11 @@ namespace MML::Tests::Base::ChebyshevTests
         auto sin_f = [](Real x) { return std::sin(x); };
         auto cos_f = [](Real x) { return std::cos(x); };
 
-        ChebyshevApproximation sin_approx(sin_f, REAL(0.0), 2*pi, 30);
+        ChebyshevApproximation sin_approx(sin_f, static_cast<MML::Real>(0.0), 2*pi, 30);
         ChebyshevApproximation deriv = sin_approx.Derivative();
 
         // Derivative of sin should approximate cos
-        for (Real x = REAL(0.1); x < 2*pi - REAL(0.1); x += REAL(0.2))
+        for (Real x = static_cast<MML::Real>(0.1); x < 2*pi - static_cast<MML::Real>(0.1); x += static_cast<MML::Real>(0.2))
         {
             REQUIRE_THAT(deriv(x), WithinAbs(cos_f(x), TOL(1e-8, 1e-4)));
         }
@@ -523,11 +523,11 @@ namespace MML::Tests::Base::ChebyshevTests
     {
         auto exp_f = [](Real x) { return std::exp(x); };
 
-        ChebyshevApproximation exp_approx(exp_f, -REAL(1.0), REAL(1.0), 25);
+        ChebyshevApproximation exp_approx(exp_f, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), 25);
         ChebyshevApproximation deriv = exp_approx.Derivative();
 
         // Derivative of exp should be exp
-        for (Real x = -REAL(0.9); x < REAL(0.9); x += REAL(0.1))
+        for (Real x = -static_cast<MML::Real>(0.9); x < static_cast<MML::Real>(0.9); x += static_cast<MML::Real>(0.1))
         {
             REQUIRE_THAT(deriv(x), WithinAbs(exp_f(x), TOL(1e-10, 1e-5)));
         }
@@ -539,10 +539,10 @@ namespace MML::Tests::Base::ChebyshevTests
         auto f = [](Real x) { return x*x*x - 2*x + 1; };
         auto df = [](Real x) { return 3*x*x - 2; };
 
-        ChebyshevApproximation approx(f, -REAL(1.0), REAL(1.0), 10);
+        ChebyshevApproximation approx(f, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), 10);
         ChebyshevApproximation deriv = approx.Derivative();
 
-        for (Real x = -REAL(0.9); x < REAL(0.9); x += REAL(0.1))
+        for (Real x = -static_cast<MML::Real>(0.9); x < static_cast<MML::Real>(0.9); x += static_cast<MML::Real>(0.1))
         {
             REQUIRE_THAT(deriv(x), WithinAbs(df(x), TOL(1e-10, 1e-5)));
         }
@@ -557,14 +557,14 @@ namespace MML::Tests::Base::ChebyshevTests
         const Real pi = Constants::PI;
         auto cos_f = [](Real x) { return std::cos(x); };
 
-        ChebyshevApproximation cos_approx(cos_f, REAL(0.0), pi, 30);
+        ChebyshevApproximation cos_approx(cos_f, static_cast<MML::Real>(0.0), pi, 30);
         ChebyshevApproximation integ = cos_approx.Integral();
 
         // Integral of cos is sin (plus constant)
         // At x = 0, integral should be 0 (by construction)
-        Real C = integ(REAL(0.0));  // Should be close to 0
+        Real C = integ(static_cast<MML::Real>(0.0));  // Should be close to 0
         
-        for (Real x = REAL(0.1); x < pi - REAL(0.1); x += REAL(0.2))
+        for (Real x = static_cast<MML::Real>(0.1); x < pi - static_cast<MML::Real>(0.1); x += static_cast<MML::Real>(0.2))
         {
             // sin(x) - sin(0) = sin(x)
             REQUIRE_THAT(integ(x) - C, WithinAbs(std::sin(x), TOL(1e-8, 1e-4)));
@@ -575,14 +575,14 @@ namespace MML::Tests::Base::ChebyshevTests
     {
         auto f = [](Real x) { return std::sin(x) * std::exp(-x/2); };
 
-        ChebyshevApproximation approx(f, REAL(0.0), REAL(5.0), 40);
+        ChebyshevApproximation approx(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), 40);
         ChebyshevApproximation integ = approx.Integral();
         ChebyshevApproximation recovered = integ.Derivative();
 
         // Derivative of integral should recover original
-        for (Real x = REAL(0.1); x < REAL(4.9); x += REAL(0.2))
+        for (Real x = static_cast<MML::Real>(0.1); x < static_cast<MML::Real>(4.9); x += static_cast<MML::Real>(0.2))
         {
-            REQUIRE_THAT(recovered(x), WithinAbs(f(x), REAL(1e-7)));
+            REQUIRE_THAT(recovered(x), WithinAbs(f(x), static_cast<MML::Real>(1e-7)));
         }
     }
 
@@ -597,12 +597,12 @@ namespace MML::Tests::Base::ChebyshevTests
         
         // Let's test converting a polynomial through Chebyshev
         auto f = [](Real x) { return 2*x*x - 1; };  // This is T_2
-        ChebyshevApproximation approx(f, -REAL(1.0), REAL(1.0), 5);
+        ChebyshevApproximation approx(f, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), 5);
         
         Polynom<Real> poly = approx.ToPolynomial();
 
         // The polynomial should evaluate to the same values as original
-        for (Real x = -REAL(1.0); x <= REAL(1.0); x += REAL(0.1))
+        for (Real x = -static_cast<MML::Real>(1.0); x <= static_cast<MML::Real>(1.0); x += static_cast<MML::Real>(0.1))
         {
             REQUIRE_THAT(poly(x), WithinAbs(f(x), TOL(1e-10, 1e-5)));
         }
@@ -611,12 +611,12 @@ namespace MML::Tests::Base::ChebyshevTests
     TEST_CASE("ChebyshevApproximation::ToPolynomial - accuracy", "[chebyshev][conversion]")
     {
         auto f = [](Real x) { return std::exp(x); };
-        ChebyshevApproximation approx(f, -REAL(1.0), REAL(1.0), 15);
+        ChebyshevApproximation approx(f, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), 15);
         
         Polynom<Real> poly = approx.ToPolynomial();
 
         // Polynomial should give similar results to Chebyshev evaluation
-        for (Real x = -REAL(0.9); x <= REAL(0.9); x += REAL(0.1))
+        for (Real x = -static_cast<MML::Real>(0.9); x <= static_cast<MML::Real>(0.9); x += static_cast<MML::Real>(0.1))
         {
             REQUIRE_THAT(poly(x), WithinAbs(approx(x), TOL(1e-10, 1e-5)));
         }
@@ -625,14 +625,14 @@ namespace MML::Tests::Base::ChebyshevTests
     TEST_CASE("ChebyshevApproximation::FromPolynomial - round trip", "[chebyshev][conversion]")
     {
         // Create a polynomial
-        Polynom<Real> p({REAL(1.0), -REAL(2.0), REAL(3.0), -REAL(1.0)});  // 1 - 2x + 3x² - x³
+        Polynom<Real> p({static_cast<MML::Real>(1.0), -static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), -static_cast<MML::Real>(1.0)});  // 1 - 2x + 3x² - x³
 
         // Convert to Chebyshev and back
-        ChebyshevApproximation approx = ChebyshevApproximation::FromPolynomial(p, -REAL(1.0), REAL(1.0));
+        ChebyshevApproximation approx = ChebyshevApproximation::FromPolynomial(p, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0));
         Polynom<Real> p_back = approx.ToPolynomial();
 
         // Should be close to original
-        for (Real x = -REAL(1.0); x <= REAL(1.0); x += REAL(0.1))
+        for (Real x = -static_cast<MML::Real>(1.0); x <= static_cast<MML::Real>(1.0); x += static_cast<MML::Real>(0.1))
         {
             REQUIRE_THAT(p_back(x), WithinAbs(p(x), TOL(1e-10, 1e-5)));
         }
@@ -645,7 +645,7 @@ namespace MML::Tests::Base::ChebyshevTests
     TEST_CASE("ChebyshevApproximation::Truncate", "[chebyshev][truncation]")
     {
         auto f = [](Real x) { return std::exp(x); };
-        ChebyshevApproximation approx(f, -REAL(1.0), REAL(1.0), 50);
+        ChebyshevApproximation approx(f, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), 50);
 
         // Truncate based on threshold
         int original_terms = approx.NumTerms();
@@ -664,14 +664,14 @@ namespace MML::Tests::Base::ChebyshevTests
     TEST_CASE("ChebyshevApproximation::SetNumTerms", "[chebyshev][truncation]")
     {
         auto f = [](Real x) { return std::sin(x); };
-        ChebyshevApproximation approx(f, REAL(0.0), Constants::PI, 30);
+        ChebyshevApproximation approx(f, static_cast<MML::Real>(0.0), Constants::PI, 30);
 
         // Use fewer terms
         approx.SetNumTerms(10);
         REQUIRE(approx.NumTerms() == 10);
 
         // Should still approximate reasonably
-        REQUIRE_THAT(approx(Constants::PI/2), WithinAbs(REAL(1.0), REAL(1e-5)));
+        REQUIRE_THAT(approx(Constants::PI/2), WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5)));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -683,42 +683,42 @@ namespace MML::Tests::Base::ChebyshevTests
         auto f = [](Real x) { return x; };
 
         // Invalid n
-        REQUIRE_THROWS_AS(ChebyshevApproximation(f, REAL(0.0), REAL(1.0), 0), std::invalid_argument);
-        REQUIRE_THROWS_AS(ChebyshevApproximation(f, REAL(0.0), REAL(1.0), -5), std::invalid_argument);
+        REQUIRE_THROWS_AS(ChebyshevApproximation(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 0), std::invalid_argument);
+        REQUIRE_THROWS_AS(ChebyshevApproximation(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), -5), std::invalid_argument);
 
         // Invalid domain (a >= b)
-        REQUIRE_THROWS_AS(ChebyshevApproximation(f, REAL(1.0), REAL(1.0), 10), std::invalid_argument);
-        REQUIRE_THROWS_AS(ChebyshevApproximation(f, REAL(2.0), REAL(1.0), 10), std::invalid_argument);
+        REQUIRE_THROWS_AS(ChebyshevApproximation(f, static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), 10), std::invalid_argument);
+        REQUIRE_THROWS_AS(ChebyshevApproximation(f, static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), 10), std::invalid_argument);
 
         // Empty coefficients
         Vector<Real> empty;
-        REQUIRE_THROWS_AS(ChebyshevApproximation(empty, REAL(0.0), REAL(1.0)), std::invalid_argument);
+        REQUIRE_THROWS_AS(ChebyshevApproximation(empty, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)), std::invalid_argument);
     }
 
     TEST_CASE("ChebyshevApproximation - Out of range evaluation", "[chebyshev][validation]")
     {
         auto f = [](Real x) { return x; };
-        ChebyshevApproximation approx(f, REAL(0.0), REAL(1.0), 10);
+        ChebyshevApproximation approx(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 10);
 
         // Evaluation outside domain should throw
-        REQUIRE_THROWS_AS(approx(-REAL(0.1)), std::domain_error);
-        REQUIRE_THROWS_AS(approx(REAL(1.1)), std::domain_error);
+        REQUIRE_THROWS_AS(approx(-static_cast<MML::Real>(0.1)), std::domain_error);
+        REQUIRE_THROWS_AS(approx(static_cast<MML::Real>(1.1)), std::domain_error);
 
         // Edge cases should be fine
-        REQUIRE_NOTHROW(approx(REAL(0.0)));
-        REQUIRE_NOTHROW(approx(REAL(1.0)));
+        REQUIRE_NOTHROW(approx(static_cast<MML::Real>(0.0)));
+        REQUIRE_NOTHROW(approx(static_cast<MML::Real>(1.0)));
     }
 
     TEST_CASE("ChebyshevApproximation - Accessors", "[chebyshev][accessors]")
     {
         auto f = [](Real x) { return x*x; };
-        ChebyshevApproximation approx(f, -REAL(2.0), REAL(3.0), 15);
+        ChebyshevApproximation approx(f, -static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), 15);
 
         REQUIRE(approx.degree() == 14);
         REQUIRE(approx.NumCoefficients() == 15);
         REQUIRE(approx.NumTerms() == 15);
-        REQUIRE_THAT(approx.DomainMin(), WithinAbs(-REAL(2.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(approx.DomainMax(), WithinAbs(REAL(3.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(approx.DomainMin(), WithinAbs(-static_cast<MML::Real>(2.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(approx.DomainMax(), WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-14, 1e-5)));
 
         // Coefficient access
         REQUIRE_NOTHROW(approx.Coefficient(0));
@@ -734,23 +734,23 @@ namespace MML::Tests::Base::ChebyshevTests
     TEST_CASE("ChebyshevApproximation - Copy construction", "[chebyshev][copy]")
     {
         auto f = [](Real x) { return std::sin(x); };
-        ChebyshevApproximation original(f, REAL(0.0), Constants::PI, 20);
+        ChebyshevApproximation original(f, static_cast<MML::Real>(0.0), Constants::PI, 20);
 
         ChebyshevApproximation copy(original);
 
         REQUIRE(copy.NumCoefficients() == original.NumCoefficients());
-        REQUIRE_THAT(copy(REAL(1.0)), WithinAbs(original(REAL(1.0)), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(copy(static_cast<MML::Real>(1.0)), WithinAbs(original(static_cast<MML::Real>(1.0)), TOL(1e-14, 1e-5)));
     }
 
     TEST_CASE("ChebyshevApproximation - Move construction", "[chebyshev][move]")
     {
         auto f = [](Real x) { return std::sin(x); };
-        ChebyshevApproximation original(f, REAL(0.0), Constants::PI, 20);
-        Real val_at_1 = original(REAL(1.0));
+        ChebyshevApproximation original(f, static_cast<MML::Real>(0.0), Constants::PI, 20);
+        Real val_at_1 = original(static_cast<MML::Real>(1.0));
 
         ChebyshevApproximation moved(std::move(original));
 
-        REQUIRE_THAT(moved(REAL(1.0)), WithinAbs(val_at_1, TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(moved(static_cast<MML::Real>(1.0)), WithinAbs(val_at_1, TOL(1e-14, 1e-5)));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -763,7 +763,7 @@ namespace MML::Tests::Base::ChebyshevTests
         
         for (int n = 0; n <= 10; n++)
         {
-            for (Real x : {-REAL(1.0), -REAL(0.5), REAL(0.0), REAL(0.5), REAL(1.0)})
+            for (Real x : {-static_cast<MML::Real>(1.0), -static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.0)})
             {
                 REQUIRE_THAT(basis.Evaluate(n, x), WithinAbs(ChebyshevT(n, x), TOL(1e-14, 1e-5)));
             }
@@ -775,11 +775,11 @@ namespace MML::Tests::Base::ChebyshevTests
         ChebyshevBasis basis;
         
         // w(x) = 1/sqrt(1 - x^2)
-        REQUIRE_THAT(basis.WeightFunction(REAL(0.0)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(basis.WeightFunction(REAL(0.5)), WithinAbs(REAL(1.0) / std::sqrt(REAL(0.75)), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(basis.WeightFunction(static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(basis.WeightFunction(static_cast<MML::Real>(0.5)), WithinAbs(static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(0.75)), TOL(1e-12, 1e-5)));
         
         // At x = 0.8, w(0.8) = 1/sqrt(1 - 0.64) = 1/sqrt(0.36) = 1/0.6 ≈ 1.667
-        REQUIRE_THAT(basis.WeightFunction(REAL(0.8)), WithinAbs(REAL(1.0) / REAL(0.6), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(basis.WeightFunction(static_cast<MML::Real>(0.8)), WithinAbs(static_cast<MML::Real>(1.0) / static_cast<MML::Real>(0.6), TOL(1e-12, 1e-5)));
     }
 
     TEST_CASE("ChebyshevBasis - Normalization", "[chebyshev][basis]")
@@ -793,7 +793,7 @@ namespace MML::Tests::Base::ChebyshevTests
         // ||T_n||^2 = pi/2 for n > 0
         for (int n = 1; n <= 10; n++)
         {
-            REQUIRE_THAT(basis.Normalization(n), WithinAbs(pi / REAL(2.0), TOL(1e-14, 1e-5)));
+            REQUIRE_THAT(basis.Normalization(n), WithinAbs(pi / static_cast<MML::Real>(2.0), TOL(1e-14, 1e-5)));
         }
     }
 
@@ -801,8 +801,8 @@ namespace MML::Tests::Base::ChebyshevTests
     {
         ChebyshevBasis basis;
         
-        REQUIRE_THAT(basis.DomainMin(), WithinAbs(-REAL(1.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(basis.DomainMax(), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(basis.DomainMin(), WithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(basis.DomainMax(), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
     }
 
     TEST_CASE("ChebyshevBasis - Recurrence coefficients", "[chebyshev][basis]")
@@ -814,9 +814,9 @@ namespace MML::Tests::Base::ChebyshevTests
         for (int n = 0; n <= 10; n++)
         {
             basis.RecurrenceCoefficients(n, a, b, c);
-            REQUIRE_THAT(a, WithinAbs(REAL(2.0), TOL(1e-14, 1e-5)));
-            REQUIRE_THAT(b, WithinAbs(REAL(0.0), TOL(1e-14, 1e-5)));
-            REQUIRE_THAT(c, WithinAbs(-REAL(1.0), TOL(1e-14, 1e-5)));
+            REQUIRE_THAT(a, WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-14, 1e-5)));
+            REQUIRE_THAT(b, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-14, 1e-5)));
+            REQUIRE_THAT(c, WithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
         }
     }
 
@@ -837,7 +837,7 @@ namespace MML::Tests::Base::ChebyshevTests
                 REQUIRE_THAT(extrema[k], WithinAbs(expected, TOL(1e-14, 1e-5)));
                 
                 // |T_n(extremum)| = 1
-                REQUIRE_THAT(std::abs(ChebyshevT(n, extrema[k])), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
+                REQUIRE_THAT(std::abs(ChebyshevT(n, extrema[k])), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-12, 1e-5)));
             }
         }
     }
@@ -855,7 +855,7 @@ namespace MML::Tests::Base::ChebyshevTests
             for (int k = 0; k < n; k++)
             {
                 // Verify T_n(zero) = 0
-                REQUIRE_THAT(ChebyshevT(n, zeros[k]), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+                REQUIRE_THAT(ChebyshevT(n, zeros[k]), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-12, 1e-5)));
             }
         }
     }
@@ -865,7 +865,7 @@ namespace MML::Tests::Base::ChebyshevTests
         ChebyshevBasis basis;
         Real a, b, c;
         
-        REQUIRE_THROWS_AS(basis.Evaluate(-1, REAL(0.5)), std::invalid_argument);
+        REQUIRE_THROWS_AS(basis.Evaluate(-1, static_cast<MML::Real>(0.5)), std::invalid_argument);
         REQUIRE_THROWS_AS(basis.Normalization(-1), std::invalid_argument);
         REQUIRE_THROWS_AS(basis.RecurrenceCoefficients(-1, a, b, c), std::invalid_argument);
         REQUIRE_THROWS_AS(basis.GetExtrema(-1), std::invalid_argument);
@@ -883,7 +883,7 @@ namespace MML::Tests::Base::ChebyshevTests
         
         for (int n = 0; n <= 10; n++)
         {
-            for (Real x : {-REAL(1.0), -REAL(0.5), REAL(0.0), REAL(0.5), REAL(1.0)})
+            for (Real x : {-static_cast<MML::Real>(1.0), -static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.0)})
             {
                 REQUIRE_THAT(basis.Evaluate(n, x), WithinAbs(ChebyshevU(n, x), TOL(1e-12, 1e-5)));
             }
@@ -895,12 +895,12 @@ namespace MML::Tests::Base::ChebyshevTests
         ChebyshevBasisSecondKind basis;
         
         // w(x) = sqrt(1 - x^2)
-        REQUIRE_THAT(basis.WeightFunction(REAL(0.0)), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(basis.WeightFunction(REAL(0.5)), WithinAbs(std::sqrt(REAL(0.75)), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(basis.WeightFunction(static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(basis.WeightFunction(static_cast<MML::Real>(0.5)), WithinAbs(std::sqrt(static_cast<MML::Real>(0.75)), TOL(1e-12, 1e-5)));
         
         // At boundaries w = 0
-        REQUIRE_THAT(basis.WeightFunction(REAL(1.0)), WithinAbs(REAL(0.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(basis.WeightFunction(-REAL(1.0)), WithinAbs(REAL(0.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(basis.WeightFunction(static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(basis.WeightFunction(-static_cast<MML::Real>(1.0)), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-14, 1e-5)));
     }
 
     TEST_CASE("ChebyshevBasisSecondKind - Normalization", "[chebyshev][basis]")
@@ -911,7 +911,7 @@ namespace MML::Tests::Base::ChebyshevTests
         // ||U_n||^2 = pi/2 for all n >= 0
         for (int n = 0; n <= 10; n++)
         {
-            REQUIRE_THAT(basis.Normalization(n), WithinAbs(pi / REAL(2.0), TOL(1e-14, 1e-5)));
+            REQUIRE_THAT(basis.Normalization(n), WithinAbs(pi / static_cast<MML::Real>(2.0), TOL(1e-14, 1e-5)));
         }
     }
 
@@ -919,8 +919,8 @@ namespace MML::Tests::Base::ChebyshevTests
     {
         ChebyshevBasisSecondKind basis;
         
-        REQUIRE_THAT(basis.DomainMin(), WithinAbs(-REAL(1.0), TOL(1e-14, 1e-5)));
-        REQUIRE_THAT(basis.DomainMax(), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(basis.DomainMin(), WithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
+        REQUIRE_THAT(basis.DomainMax(), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
     }
 
     TEST_CASE("ChebyshevBasisSecondKind - Recurrence coefficients", "[chebyshev][basis]")
@@ -932,9 +932,9 @@ namespace MML::Tests::Base::ChebyshevTests
         for (int n = 0; n <= 10; n++)
         {
             basis.RecurrenceCoefficients(n, a, b, c);
-            REQUIRE_THAT(a, WithinAbs(REAL(2.0), TOL(1e-14, 1e-5)));
-            REQUIRE_THAT(b, WithinAbs(REAL(0.0), TOL(1e-14, 1e-5)));
-            REQUIRE_THAT(c, WithinAbs(-REAL(1.0), TOL(1e-14, 1e-5)));
+            REQUIRE_THAT(a, WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-14, 1e-5)));
+            REQUIRE_THAT(b, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-14, 1e-5)));
+            REQUIRE_THAT(c, WithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-14, 1e-5)));
         }
     }
 
@@ -951,7 +951,7 @@ namespace MML::Tests::Base::ChebyshevTests
             for (int k = 0; k < n; k++)
             {
                 // Verify U_n(zero) = 0
-                REQUIRE_THAT(ChebyshevU(n, zeros[k]), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+                REQUIRE_THAT(ChebyshevU(n, zeros[k]), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-12, 1e-5)));
             }
         }
     }
@@ -961,7 +961,7 @@ namespace MML::Tests::Base::ChebyshevTests
         ChebyshevBasisSecondKind basis;
         Real a, b, c;
         
-        REQUIRE_THROWS_AS(basis.Evaluate(-1, REAL(0.5)), std::invalid_argument);
+        REQUIRE_THROWS_AS(basis.Evaluate(-1, static_cast<MML::Real>(0.5)), std::invalid_argument);
         REQUIRE_THROWS_AS(basis.Normalization(-1), std::invalid_argument);
         REQUIRE_THROWS_AS(basis.RecurrenceCoefficients(-1, a, b, c), std::invalid_argument);
         REQUIRE_THROWS_AS(basis.GetZeros(0), std::invalid_argument);

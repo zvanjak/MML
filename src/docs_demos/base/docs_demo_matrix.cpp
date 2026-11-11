@@ -1,3 +1,6 @@
+#ifndef MML_USE_SINGLE_HEADER
+#include <mml/algorithms/MatrixAlg/MatrixInversion.h>
+#endif
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
@@ -303,7 +306,7 @@ void Docs_Demo_Matrix_invert()
                           3.0, 1.0,  1.0 });
 
   std::cout << "m1       = " << m1 << std::endl;
-  auto m2 = m1.inverse();
+  auto m2 = MatrixAlg::Inverse(m1);
 
   std::cout << "m2 (inv) = " << m2 << std::endl;
 
@@ -336,16 +339,16 @@ void Docs_Demo_Matrix_transpose()
   Matrix<Real> m1(2, 2, { 1.0, -1.0, 
                           1.5, 3.0 });
   std::cout << "m1          = " << m1 << std::endl;
-  std::cout << "m1 (transp) = " << m1.transpose() << std::endl;
+  std::cout << "m1 (transp) = " << m1.Transposed() << std::endl;
 
   Matrix<Real> m2(2, 4, { 1.0, -1.0, 2.0, 1.0,
                           1.5,  3.0, 7.0, 4.0 });
   std::cout << "m2          = " << m2 << std::endl;
-  std::cout << "m2 (transp) = " << m2.transpose() << std::endl;
+  std::cout << "m2 (transp) = " << m2.Transposed() << std::endl;
 
   Matrix<Real> m3(5, 1, { 1.0, -1.0, 2.0, 1.0, 3.0 });
   std::cout << "m3          = " << m3 << std::endl;
-  std::cout << "m3 (transp) = " << m3.transpose() << std::endl;
+  std::cout << "m3 (transp) = " << m3.Transposed() << std::endl;
 
   // we can do transposing in place (BUT ONLY FOR SQUARE MATRICES!)
   m1.Transpose();
@@ -493,7 +496,7 @@ void Docs_Demo_Matrix_Row_Col_Access()
   // Extract row and column
   Vector<Real> row = A.VectorFromRow(1);     // Get row 1 (second row)
   Vector<Real> col = A.VectorFromColumn(2);  // Get column 2 (third column)
-  Vector<Real> diag = A.diagonal();       // Get main diagonal
+  Vector<Real> diag = A.getDiagonal();       // Get main diagonal
   
   std::cout << "VectorFromRow(1):    " << row << std::endl;
   std::cout << "VectorFromColumn(2): " << col << std::endl;
@@ -568,15 +571,15 @@ void Docs_Demo_Matrix_Properties()
   std::cout << "General matrix A:\n" << A << std::endl;
 
   // Property checks
-  std::cout << "I.isIdentity():      " << (I.isIdentity() ? "true" : "false") << std::endl;
-  std::cout << "A.isIdentity():      " << (A.isIdentity() ? "true" : "false") << std::endl;
+  std::cout << "I.IsIdentity():      " << (I.IsIdentity() ? "true" : "false") << std::endl;
+  std::cout << "A.IsIdentity():      " << (A.IsIdentity() ? "true" : "false") << std::endl;
   std::cout << "IsDiagonal(D):  " << (MatrixAlg::IsDiagonal(D) ? "true" : "false") << std::endl;
   std::cout << "IsDiagonal(A):  " << (MatrixAlg::IsDiagonal(A) ? "true" : "false") << std::endl;
   std::cout << "IsSymmetric(S): " << (MatrixAlg::IsSymmetric(S) ? "true" : "false") << std::endl;
   std::cout << "IsSymmetric(A): " << (MatrixAlg::IsSymmetric(A) ? "true" : "false") << std::endl;
 
   // Trace
-  std::cout << "\nD.trace(): " << D.trace() << " (1+2+3 = 6)" << std::endl;
+  std::cout << "\nD.Trace(): " << D.Trace() << " (1+2+3 = 6)" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

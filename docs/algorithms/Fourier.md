@@ -4,6 +4,32 @@ MML provides complex DFT and FFT transforms, real-input FFT support, cosine and 
 transforms, window functions, spectrum utilities, and convolution algorithms through
 `mml/algorithms/Fourier/Fourier.h`.
 
+## Spectrum ownership
+
+`mml/algorithms/Fourier/FourierSpectrum.h` owns operations on transform output:
+`Magnitude`, `MagnitudeSquared`, `Phase`, `UnwrapPhase`, `FrequencyAxis` and its
+layout enum, `FFTShift`, and `IFFTShift`. `MagnitudeSquared` is raw `|X[k]|^2`,
+not power per Hz or a normalized one-sided spectrum. The redundant `Power`
+spelling is removed without a forwarding alias.
+
+```cpp
+#include <mml/algorithms/Fourier/FourierSpectrum.h>
+
+Vector<Complex> coefficients{Complex(3, 4), Complex(0, 2)};
+const auto squared = MML::Fourier::MagnitudeSquared(coefficients);
+const auto frequencies = MML::Fourier::FrequencyAxis(
+    8, Real(80), MML::Fourier::FrequencyAxisLayout::OneSided);
+```
+
+Runnable counterpart: `Docs_Demo_SpectrumUtilities()` in
+[docs_demo_fourier.cpp](../../src/docs_demos/algorithms/docs_demo_fourier.cpp);
+run `MML_DocsApp --spectrum-utilities`.
+
+Native `fourier/Spectrum.h` in MML-Packages-Private owns windowed periodograms,
+Welch averaging, STFT/power spectrograms, frame-start timing, and dB presentation
+policy. It consumes these core utilities rather than supplying another frequency
+axis implementation. This separation introduces no package dependency into core.
+
 ## FFT sizes
 
 `FFT::Forward`, `FFT::Inverse`, and `FFT::Transform` accept every non-empty input size.

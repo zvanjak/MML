@@ -34,7 +34,7 @@ namespace MML
 			Vector<Real> singularValues;
 			Matrix<Complex> V;
 			int sweeps = 0;
-			Real maxCorrelation = REAL(0.0);
+			Real maxCorrelation = static_cast<MML::Real>(0.0);
 		};
 
 		static Result Decompose(
@@ -45,7 +45,7 @@ namespace MML
 			if (matrix.rows() == 0 || matrix.cols() == 0)
 				throw MatrixDimensionError("ComplexSVDecompositionSolver - matrix must be non-empty",
 					matrix.rows(), matrix.cols(), -1, -1);
-			if (!std::isfinite(tolerance) || tolerance < REAL(0.0))
+			if (!std::isfinite(tolerance) || tolerance < static_cast<MML::Real>(0.0))
 				throw DomainError("ComplexSVDecompositionSolver - tolerance must be finite and nonnegative");
 			if (maxSweeps <= 0)
 				throw DomainError("ComplexSVDecompositionSolver - maxSweeps must be positive");
@@ -83,7 +83,7 @@ namespace MML
 
 		static Real ColumnNormSquared(const Matrix<Complex>& matrix, int col)
 		{
-			Real result = REAL(0.0);
+			Real result = static_cast<MML::Real>(0.0);
 			for (int row = 0; row < matrix.rows(); ++row)
 				result += std::norm(matrix(row, col));
 			return result;
@@ -107,11 +107,11 @@ namespace MML
 				for (int col = 0; col < leadingColumns; ++col)
 					result(row, col) = leading(row, col);
 
-			const Real completionTolerance = std::numeric_limits<Real>::epsilon() * REAL(32.0) * dimension;
+			const Real completionTolerance = Precision::SVDCompletionTolerancePerDimension * dimension;
 			int completed = leadingColumns;
 			for (int basisIndex = 0; basisIndex < dimension && completed < dimension; ++basisIndex) {
 				Vector<Complex> candidate(dimension);
-				candidate[basisIndex] = Complex{REAL(1.0), REAL(0.0)};
+				candidate[basisIndex] = Complex{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)};
 				for (int pass = 0; pass < 2; ++pass)
 					for (int col = 0; col < completed; ++col) {
 						Complex projection{};
@@ -138,7 +138,7 @@ namespace MML
 		{
 			const int rows = matrix.rows();
 			const int cols = matrix.cols();
-			Real scale = REAL(0.0);
+			Real scale = static_cast<MML::Real>(0.0);
 			for (int row = 0; row < rows; ++row)
 				for (int col = 0; col < cols; ++col) {
 					const Real magnitude = std::abs(matrix(row, col));
@@ -149,28 +149,28 @@ namespace MML
 
 			Matrix<Complex> working(rows, cols);
 			Matrix<Complex> right = Matrix<Complex>::Identity(cols);
-			if (scale == REAL(0.0)) {
+			if (scale == static_cast<MML::Real>(0.0)) {
 				Result zero;
 				zero.U = Matrix<Complex>::Identity(rows);
 				zero.V = std::move(right);
-				zero.singularValues.Resize(cols);
+				zero.singularValues.resize(cols);
 				return zero;
 			}
 			for (int row = 0; row < rows; ++row)
 				for (int col = 0; col < cols; ++col)
 					working(row, col) = matrix(row, col) / scale;
 
-			const Real convergenceTolerance = std::max(tolerance, REAL(32.0) * std::numeric_limits<Real>::epsilon());
+			const Real convergenceTolerance = std::max(tolerance, static_cast<MML::Real>(32.0) * std::numeric_limits<Real>::epsilon());
 			Real maxCorrelation = std::numeric_limits<Real>::infinity();
 			int sweep = 0;
 			for (; sweep < maxSweeps; ++sweep) {
-				maxCorrelation = REAL(0.0);
+				maxCorrelation = static_cast<MML::Real>(0.0);
 				bool rotated = false;
 				for (int p = 0; p < cols - 1; ++p)
 					for (int q = p + 1; q < cols; ++q) {
 						const Real alpha = ColumnNormSquared(working, p);
 						const Real beta = ColumnNormSquared(working, q);
-						if (alpha == REAL(0.0) || beta == REAL(0.0))
+						if (alpha == static_cast<MML::Real>(0.0) || beta == static_cast<MML::Real>(0.0))
 							continue;
 						const Complex gamma = ColumnInnerProduct(working, p, q);
 						const Real gammaMagnitude = std::abs(gamma);
@@ -179,11 +179,11 @@ namespace MML
 						if (correlation <= convergenceTolerance)
 							continue;
 
-						const Real zeta = (beta - alpha) / (REAL(2.0) * gammaMagnitude);
-						const Real tangent = zeta >= REAL(0.0)
-							? REAL(1.0) / (zeta + std::hypot(REAL(1.0), zeta))
-							: -REAL(1.0) / (-zeta + std::hypot(REAL(1.0), zeta));
-						const Real cosine = REAL(1.0) / std::hypot(REAL(1.0), tangent);
+						const Real zeta = (beta - alpha) / (static_cast<MML::Real>(2.0) * gammaMagnitude);
+						const Real tangent = zeta >= static_cast<MML::Real>(0.0)
+							? static_cast<MML::Real>(1.0) / (zeta + std::hypot(static_cast<MML::Real>(1.0), zeta))
+							: -static_cast<MML::Real>(1.0) / (-zeta + std::hypot(static_cast<MML::Real>(1.0), zeta));
+						const Real cosine = static_cast<MML::Real>(1.0) / std::hypot(static_cast<MML::Real>(1.0), tangent);
 						const Real sine = tangent * cosine;
 						const Complex phase = gamma / gammaMagnitude;
 						RotateColumns(working, p, q, cosine, sine, phase);
@@ -217,7 +217,7 @@ namespace MML
 			int normalizedColumns = 0;
 			for (int col = 0; col < cols; ++col) {
 				const Real scaledNorm = singularValues[col] / scale;
-				if (scaledNorm <= std::numeric_limits<Real>::min())
+				if (scaledNorm <= std::numeric_limits<Real>::min())   // underflow guard: denormal reflector
 					break;
 				for (int row = 0; row < rows; ++row)
 					economyLeft(row, col) = working(row, col) / scaledNorm;

@@ -1,6 +1,8 @@
 # Function Analyzer
 
-**Location**: `mml/algorithms/FunctionsAnalyzer.h`  
+**Numerical API**: `mml/algorithms/Analyzers/FunctionsAnalyzer.h`
+
+**Optional reports**: `mml/tools/analyzers/FunctionAnalysisReports.h`
 **Dependencies**: RootFinding, Derivation, Integration, Statistics
 
 ---
@@ -9,14 +11,21 @@
 
 The Function Analyzer framework provides comprehensive tools for analyzing real-valued functions: finding roots, extrema, inflection points, detecting discontinuities, and comparing functions. It combines numerical techniques from calculus, root finding, and statistics to provide deep insights into function behavior.
 
+> **These are sampling heuristics, not proofs.** Every predicate and search evaluates the function on a
+> fixed grid (`numPoints`) and probes it with finite-difference derivatives and absolute thresholds
+> (`eps`). `IsMonotonicOnSamples` / `AppearsContinuous` returning `true` means *no counter-evidence was found at
+> the sample points*; features narrower than the grid spacing are missed and steep-but-continuous
+> functions can be flagged as discontinuous. Use the analyzer to get a first picture of an unfamiliar
+> function - not as a correctness check inside an algorithm (CONTRACT_POLICY §11 / analysis v4 A13).
+
 ### Key Capabilities
 
 - **Critical Point Analysis**: Locate and classify local minima, maxima, and saddle points
 - **Discontinuity Detection**: Find and classify jump, removable, infinite, and oscillatory discontinuities
-- **Continuity Verification**: Test function continuity at points and over intervals
+- **Continuity Exploration**: Probe for evidence of discontinuities at points and over intervals
 - **Root Finding**: Locate zeros of functions in intervals
 - **Inflection Points**: Find where concavity changes (second derivative sign changes)
-- **Monotonicity Testing**: Determine if functions are strictly increasing/decreasing
+- **Monotonicity Testing**: Check monotonic ordering of sampled values
 - **Function Comparison**: Compute difference metrics (absolute, relative, integrated)
 - **Limit Computation**: Calculate left and right limits numerically
 
@@ -36,7 +45,7 @@ The Function Analyzer framework provides comprehensive tools for analyzing real-
 
 | Class | Purpose | Key Methods |
 |-------|---------|-------------|
-| `RealFunctionAnalyzer` | Single function analysis | `GetRoots`, `GetLocalOptimums`, `FindDiscontinuities` |
+| `RealFunctionAnalyzer` | Single function analysis | `GetRoots`, `GetLocalOptimums`, `FindDiscontinuityCandidates` |
 | `RealFunctionComparer` | Compare two functions | `getAbsDiffMax`, `getIntegratedAbsDiff` |
 | `ScalarFieldAnalyzer` | 3D scalar field analysis | `IsConservative` (gradient field check) |
 | `VectorFieldAnalyzer` | 3D vector field analysis | `IsSolenoidal` (divergence-free check) |
@@ -69,13 +78,14 @@ class RealFunctionAnalyzer
 {
 public:
     RealFunctionAnalyzer(const IRealFunction& f);
-    RealFunctionAnalyzer(const IRealFunction& f, std::string funcName);
 };
 ```
 
 **Parameters:**
 - `f` - Function implementing `IRealFunction` interface
-- `funcName` - Optional descriptive name for output formatting
+
+Display names belong to report functions, not the numerical analyzer. Mathematical operations
+return data without writing output; including the numerical header does not include reporting tools.
 
 **Example 1: Basic Setup**
 
@@ -86,7 +96,7 @@ public:
 auto polynomial = [](Real x) { return x*x*x - 6*x*x + 9*x + 1; };
 RealFunctionFromStdFunc func(polynomial);
 
-RealFunctionAnalyzer analyzer(func, "x³ - 6x² + 9x + 1");
+RealFunctionAnalyzer analyzer(func);
 ```
 
 ---
@@ -232,7 +242,7 @@ auto composite = [](Real x) {
     return std::sin(x) + 0.5 * std::sin(3.0 * x); 
 };
 RealFunctionFromStdFunc func(composite);
-RealFunctionAnalyzer analyzer(func, "sin(x) + 0.5*sin(3x)");
+RealFunctionAnalyzer analyzer(func);
 
 auto criticalPoints = analyzer.GetLocalOptimumsClassified(0.0, 2*Constants::PI);
 
@@ -327,11 +337,11 @@ for (Real x : inflections)
 ### Point-Level Tests
 
 ```cpp
-bool isDefinedAtPoint(Real x) const;
-bool isContinuousAtPoint(Real x, Real eps = 1e-6);
-bool isDerivativeDefinedAtPoint(Real x, Real eps = 1e-6);
-bool isInflectionPoint(Real x, Real eps = 1e-6);
-bool isLocalOptimum(Real x, Real eps = 1e-6);
+bool IsDefinedAtPoint(Real x) const;
+bool IsContinuousAtPoint(Real x, Real eps = 1e-6);
+bool IsDerivativeDefinedAtPoint(Real x, Real eps = 1e-6);
+bool IsInflectionPoint(Real x, Real eps = 1e-6);
+bool IsLocalOptimum(Real x, Real eps = 1e-6);
 ```
 
 **Example 9: Point Analysis**
@@ -347,9 +357,9 @@ RealFunctionAnalyzer analyzer(func);
 // Test at discontinuity
 Real x = 0.0;
 std::cout << "Analysis at x = " << x << ":" << std::endl;
-std::cout << "  Defined: " << (analyzer.isDefinedAtPoint(x) ? "yes" : "no") << std::endl;
-std::cout << "  Continuous: " << (analyzer.isContinuousAtPoint(x, 1e-6) ? "yes" : "no") << std::endl;
-std::cout << "  Derivative exists: " << (analyzer.isDerivativeDefinedAtPoint(x, 1e-6) ? "yes" : "no") << std::endl;
+std::cout << "  Defined: " << (analyzer.IsDefinedAtPoint(x) ? "yes" : "no") << std::endl;
+std::cout << "  Continuous: " << (analyzer.IsContinuousAtPoint(x, 1e-6) ? "yes" : "no") << std::endl;
+std::cout << "  Derivative exists: " << (analyzer.IsDerivativeDefinedAtPoint(x, 1e-6) ? "yes" : "no") << std::endl;
 
 // Output:
 // Defined: yes
@@ -360,10 +370,10 @@ std::cout << "  Derivative exists: " << (analyzer.isDerivativeDefinedAtPoint(x, 
 ### Interval-Level Tests
 
 ```cpp
-bool isContinuous(Real x1, Real x2, int numPoints, Real eps = 1e-6, 
+bool AppearsContinuous(Real x1, Real x2, int numPoints, Real eps = 1e-6,
                   std::vector<Real>* discontinuities = nullptr);
 
-bool isMonotonic(Real x1, Real x2, int numPoints);
+bool IsMonotonicOnSamples(Real x1, Real x2, int numPoints);
 ```
 
 **Example 10: Interval Continuity**
@@ -378,7 +388,7 @@ RealFunctionAnalyzer analyzer(func);
 
 // Check continuity with discontinuity detection
 std::vector<Real> discontinuities;
-bool continuous = analyzer.isContinuous(0.0, 5.0, 500, 1e-6, &discontinuities);
+bool continuous = analyzer.AppearsContinuous(0.0, 5.0, 500, 1e-6, &discontinuities);
 
 std::cout << "Function is " << (continuous ? "continuous" : "discontinuous") << std::endl;
 
@@ -507,10 +517,10 @@ std::cout << "Left limit:  " << disc.leftLimit << std::endl;   // -∞
 std::cout << "Right limit: " << disc.rightLimit << std::endl;  // +∞
 ```
 
-### FindDiscontinuities - Comprehensive Search
+### FindDiscontinuityCandidates - Comprehensive Search
 
 ```cpp
-std::vector<DiscontinuityPoint> FindDiscontinuities(Real x1, Real x2, 
+std::vector<DiscontinuityPoint> FindDiscontinuityCandidates(Real x1, Real x2,
                                                      int numPoints = 1000, 
                                                      Real eps = 1e-6);
 ```
@@ -531,7 +541,7 @@ RealFunctionFromStdFunc func(tanFunc);
 RealFunctionAnalyzer analyzer(func);
 
 // Find discontinuities in [-π, π]
-auto discontinuities = analyzer.FindDiscontinuities(-Constants::PI, Constants::PI, 2000);
+auto discontinuities = analyzer.FindDiscontinuityCandidates(-Constants::PI, Constants::PI, 2000);
 
 std::cout << "Found " << discontinuities.size() << " discontinuities:" << std::endl;
 for (const auto& disc : discontinuities)
@@ -550,49 +560,26 @@ for (const auto& disc : discontinuities)
 // Expected: discontinuities near -π/2, π/2
 ```
 
-### PrintContinuityAnalysis - Formatted Report
+### AnalyzeContinuity and tools-side PrintContinuityAnalysis
 
-```cpp
-void PrintContinuityAnalysis(Real x1, Real x2, int numPoints = 1000, Real eps = 1e-6);
-```
+`AnalyzeContinuity` returns candidate classifications together with the interval, subdivision
+count, and probe tolerance. The report consumes this snapshot; it does not evaluate the function.
 
 **Example 16: Full Continuity Report**
 
 ```cpp
-// Piecewise function with multiple discontinuities
-auto complex = [](Real x) {
-    if (x < -1) return x + 2;
-    if (x < 0) return 1.0 / x;  // Infinite discontinuity at x=0
-    if (x < 1) return 0.0;      // Jump at x=0
-    return x - 1;               // Jump at x=1
-};
-RealFunctionFromStdFunc func(complex);
-RealFunctionAnalyzer analyzer(func);
+#include <mml/tools/analyzers/FunctionAnalysisReports.h>
 
-// Generate comprehensive analysis report
-analyzer.PrintContinuityAnalysis(-2.0, 2.0, 1000);
-
-/* Output:
-=== CONTINUITY ANALYSIS ===
-Interval: [-2.000000, 2.000000]
-Sample points: 1000
-Tolerance: 0.000001
-
-✗ Function has 2 discontinuity point(s):
-
-Discontinuity #1 at x = 0.000000
-  Type: INFINITE
-  Left limit:  -∞
-  Right limit: 0.000000
-  f(0.000000): 0.000000
-
-Discontinuity #2 at x = 1.000000
-  Type: JUMP (jump size: 1.000000)
-  Left limit:  0.000000
-  Right limit: 0.000000
-  f(1.000000): 0.000000
-*/
+RealFunctionFromStdFunc f([](Real x) { return std::floor(x); });
+const RealFunctionAnalyzer analyzer(f);
+const auto continuity = analyzer.AnalyzeContinuity(-2.5, 2.5, 100);
+AnalysisReports::PrintContinuityAnalysis(std::cout, continuity, "floor(x)");
 ```
+
+An empty candidate list means **no candidates were detected**, not that continuity was proved.
+The search uses `numSubintervals + 1` initial grid nodes and additional probes; the subdivision
+count is not a total function-evaluation count. Invalid bounds, nonpositive subdivisions, and
+nonfinite or nonpositive probe tolerances are rejected with `std::invalid_argument`.
 
 ---
 
@@ -709,53 +696,74 @@ std::cout << "Integrated absolute difference: " << absDiff << std::endl;
 
 ---
 
-## Print Methods - Formatted Output
+## Optional Tools-Side Reports
+
+All report functions live in `MML::AnalysisReports`, accept an explicit `std::ostream&`,
+and consume already computed data. They never call the original function. They use classic-locale
+six-significant-digit display formatting and restore the caller's locale, flags, precision, width,
+and fill character, including when stream output throws. Standard ostream error-state and exception
+mask behavior is preserved.
 
 ### PrintPointAnalysis
-
-```cpp
-void PrintPointAnalysis(Real x, Real eps = 1e-6);
-```
 
 **Example 20: Point Report**
 
 ```cpp
 auto func = [](Real x) { return std::abs(x); };
 RealFunctionFromStdFunc f(func);
-RealFunctionAnalyzer analyzer(f, "|x|");
+RealFunctionAnalyzer analyzer(f);
 
-analyzer.PrintPointAnalysis(0.0);
-
-/* Output:
-Function analysis at point: 0:
-  Defined at point:      yes
-  Continuous at point:   yes
-  Derivative defined:    no
-  Is inflection point:   no
-*/
+const auto point = analyzer.AnalyzePoint(0.0);
+AnalysisReports::PrintPointAnalysis(std::cout, point, "|x|");
 ```
 
 ### PrintIntervalAnalysis
-
-```cpp
-void PrintIntervalAnalysis(Real x1, Real x2, int numPoints, Real eps = 1e-6);
-```
 
 **Example 21: Interval Report**
 
 ```cpp
 auto func = [](Real x) { return 1.0 / (1.0 + x*x); };  // Lorentzian
 RealFunctionFromStdFunc f(func);
-RealFunctionAnalyzer analyzer(f, "1/(1+x²)");
+RealFunctionAnalyzer analyzer(f);
 
-analyzer.PrintIntervalAnalysis(-5.0, 5.0, 1000);
-
-/* Output:
-f(x) = 1/(1+x²) - Function analysis in interval [-5.00, 5.00] with 1000 points:
-  Defined    : yes
-  Continuous : yes
-*/
+const auto interval = analyzer.AnalyzeInterval(-5.0, 5.0, 1000);
+AnalysisReports::PrintIntervalAnalysis(std::cout, interval, "1/(1+x^2)");
 ```
+
+The interval grid is unchanged: `x1 + i*(x2-x1)/numPoints`, for `0 <= i < numPoints`.
+The right endpoint is excluded. `minValue` and `maxValue` are **finite sampled extrema**,
+not global bounds. If every sample is nonfinite, the report says extrema are unavailable
+rather than printing numerical sentinel values.
+
+### Reusing Results and Detailed Tables
+
+```cpp
+RealFunction f(+[](Real x) { return x * x * x - 3 * x + 1; });
+const RealFunctionAnalyzer analyzer(f);
+const auto interval = analyzer.AnalyzeInterval(-2.0, 2.0, 100);
+const auto details = analyzer.AnalyzePoints(-2.0, 2.0, 20);
+AnalysisReports::PrintIntervalAnalysis(std::cout, interval);
+AnalysisReports::PrintDetailedIntervalAnalysis(std::cout, details);
+std::ostringstream savedReport;
+AnalysisReports::PrintIntervalAnalysis(savedReport, interval);
+```
+
+The same snapshot can be rendered repeatedly without repeating any function evaluations.
+For numerical point results, `isContinuous`, `isDerivativeDefined`, and `isInflectionPoint`
+record probe outcomes, not existence proofs. Interval flags likewise describe sampled evidence;
+their legacy field names do not strengthen these guarantees.
+
+### Migration
+
+- Pass a function only to `RealFunctionAnalyzer`; pass display names to report functions.
+- Replace member `Print*` calls with `AnalysisReports::Print*(stream, result, optionalName)`.
+- Use `IsMonotonicOnSamples`, `AppearsContinuous`, and `FindDiscontinuityCandidates`.
+  The former `IsMonotonic`, `IsContinuous`, and `FindDiscontinuities` spellings remain deprecated
+  numerical aliases. Printer member functions are removed, not forwarded back into tools.
+- Numerical comparisons and searches remain in algorithms. Field analyzers are unchanged.
+
+Runnable counterparts: [docs_demo_function_analyzer.cpp](../../src/docs_demos/algorithms/docs_demo_function_analyzer.cpp).
+Build `MML_DocsApp` and run it with `--analyzer-reports`.
 
 ---
 
@@ -867,7 +875,7 @@ Real period = analyzer.calcRootsPeriod(t1, t2, numPoints);  // Uses Statistics::
 ### Performance Considerations
 
 **Expensive operations** (in order):
-1. `FindDiscontinuities` - multi-stage refinement
+1. `FindDiscontinuityCandidates` - multi-stage refinement
 2. `GetLocalOptimumsClassified` - multiple derivative evaluations
 3. `isContinuous` - adaptive sampling
 4. `GetRoots` - root bracketing + refinement
@@ -900,13 +908,13 @@ Real period = analyzer.calcRootsPeriod(t1, t2, numPoints);  // Uses Statistics::
 ```cpp
 void AnalyzeFunction(const IRealFunction& func, Real a, Real b)
 {
-    RealFunctionAnalyzer analyzer(func, "f(x)");
+    RealFunctionAnalyzer analyzer(func);
     
     // Find all interesting features
     auto roots = analyzer.GetRoots(a, b);
     auto extrema = analyzer.GetLocalOptimumsClassified(a, b);
     auto inflections = analyzer.GetInflectionPoints(a, b);
-    auto discontinuities = analyzer.FindDiscontinuities(a, b);
+    auto discontinuities = analyzer.FindDiscontinuityCandidates(a, b);
     
     // Print comprehensive report
     std::cout << "=== FUNCTION ANALYSIS ===" << std::endl;
@@ -915,7 +923,7 @@ void AnalyzeFunction(const IRealFunction& func, Real a, Real b)
     std::cout << "Inflection points: " << inflections.size() << std::endl;
     std::cout << "Discontinuities: " << discontinuities.size() << std::endl;
     
-    analyzer.PrintContinuityAnalysis(a, b);
+    AnalysisReports::PrintContinuityAnalysis(std::cout, analyzer.AnalyzeContinuity(a, b));
 }
 ```
 

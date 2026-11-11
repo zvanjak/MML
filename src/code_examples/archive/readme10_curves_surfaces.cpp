@@ -1,3 +1,4 @@
+#include "test_data/parametric_curves_defs.h"
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
@@ -21,8 +22,8 @@ void Readme_curves_surfaces()
     Curves::CurveCartesian3D test_curve1([](Real t) -> VectorN<Real, 3> { return VectorN<Real, 3>{t, t*t, t*t*t}; });
     
     // using predefined curve
-    Curves::LemniscateCurve     lemniscate;
-    Curves::ToroidalSpiralCurve torus(3, 2.0);
+    MML::TestBeds::ShowcaseCurves::LemniscateCurve     lemniscate;
+    MML::TestBeds::ShowcaseCurves::ToroidalSpiralCurve torus(3, 2.0);
     
     // using curve from TestData
     const Curves::CurveCartesian3D &test_curve = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix")._curve;

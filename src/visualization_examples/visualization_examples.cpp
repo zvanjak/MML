@@ -47,6 +47,8 @@
  * @date December 2025
  */
 
+#include "VisualizationResult.h"
+
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
@@ -332,19 +334,19 @@ void Show_Backend_Switching_Demo()
 
     // Step 1: Visualize with current backend
     std::cout << "Step 1: Using current backend (" << backendName(original) << ")\n";
-    Visualizer::VisualizeRealFunction(f, "Current Backend", -10.0, 10.0, 200, "backend_demo_current.mml");
+    Examples::ReportVisualizationResult(Visualizer::VisualizeRealFunction(f, "Current Backend", -10.0, 10.0, 200, "backend_demo_current.mml"), "VisualizeRealFunction");
 
     // Step 2: Switch to Qt
     std::cout << "\nStep 2: Switching to Qt backend\n";
     SetVisualizerBackend(VisualizerBackend::Qt);
     std::cout << "  Backend is now: " << backendName(GetVisualizerBackend()) << "\n";
-    Visualizer::VisualizeRealFunction(f, "Qt Backend", -10.0, 10.0, 200, "backend_demo_qt.mml");
+    Examples::ReportVisualizationResult(Visualizer::VisualizeRealFunction(f, "Qt Backend", -10.0, 10.0, 200, "backend_demo_qt.mml"), "VisualizeRealFunction");
 
     // Step 3: Switch to FLTK
     std::cout << "\nStep 3: Switching to FLTK backend\n";
     SetVisualizerBackend(VisualizerBackend::FLTK);
     std::cout << "  Backend is now: " << backendName(GetVisualizerBackend()) << "\n";
-    Visualizer::VisualizeRealFunction(f, "FLTK Backend", -10.0, 10.0, 200, "backend_demo_fltk.mml");
+    Examples::ReportVisualizationResult(Visualizer::VisualizeRealFunction(f, "FLTK Backend", -10.0, 10.0, 200, "backend_demo_fltk.mml"), "VisualizeRealFunction");
 
     // Restore original backend
     SetVisualizerBackend(original);

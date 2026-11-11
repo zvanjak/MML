@@ -13,6 +13,7 @@
 #define MML_OPTIMIZATION_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/MMLExceptions.h>
 #include <mml/base/AlgorithmTypes.h>
 #include <mml/MMLNumericValidation.h>
@@ -31,9 +32,9 @@ namespace MML {
 		int _iterations;
 
 	public:
-		OptimizationError(std::string inMessage, int iterations = 0)
-			: NumericalMethodError(inMessage)
-			, _iterations(iterations) {}
+		explicit OptimizationError(std::string inMessage, int iterations = 0)
+				: NumericalMethodError(inMessage)
+				, _iterations(iterations) {}
 
 		int iterations() const noexcept { return _iterations; }
 	};
@@ -74,7 +75,7 @@ namespace MML {
 		/// Factory method for fast (lower precision) configuration
 		static Minimization1DConfig Fast() {
 			Minimization1DConfig config;
-			config.tolerance = 1e-4;
+			config.tolerance = Precision::CoarseTolerance;
 			config.max_iterations = 30;
 			return config;
 		}
@@ -84,31 +85,30 @@ namespace MML {
 	///
 	/// Contains the location of the minimum, the function value at that point,
 	/// the number of iterations used, convergence status, and timing information.
-	struct MinimizationResult {
+	struct [[nodiscard]] Minimization1DResult : IterativeResultBase {
 		// === Primary Output ===
 		Real xmin = 0.0;		///< Location of the minimum
 		Real fmin = 0.0;		///< Function value at the minimum
 
 		// === Convergence Status ===
 		int iterations = 0;		///< Number of iterations performed
-		bool converged = false;	///< Whether the algorithm converged
 
 		// === Diagnostics ===
-		std::string algorithm_name;  ///< Algorithm used (GoldenSection, Brent, BrentWithDeriv)
-		AlgorithmStatus status = AlgorithmStatus::Success;
-		std::string error_message;   ///< Error description (empty on success)
-		double elapsed_time_ms = 0.0;  ///< Execution time
-		int function_evaluations = 0;  ///< Total function evaluations
 
-		MinimizationResult() = default;
-		MinimizationResult(Real x, Real f, int iter, bool conv = true)
-			: xmin(x)
-			, fmin(f)
-			, iterations(iter)
-			, converged(conv) {}
+		Minimization1DResult() = default;
+		Minimization1DResult(Real x, Real f, int iter, bool conv = true)
+				: xmin(x)
+				, fmin(f)
+				, iterations(iter) {
+			iterations_used = iter;
+			converged = conv;
+			status = conv ? AlgorithmStatus::Success : AlgorithmStatus::MaxIterationsExceeded;
+		}
 	};
 
 	/// @brief Struct to hold a bracket around a minimum.
+	using MinimizationResult [[deprecated("use Minimization1DResult")]] = Minimization1DResult;
+
 	///
 	/// Contains three points (ax, bx, cx) and their function values (fa, fb, fc)
 	/// such that bx is between ax and cx, and fb < min(fa, fc).
@@ -145,7 +145,7 @@ namespace MML {
 	/// MinimumBracket bracket = Minimization::BracketMinimum(func, 0.0, 1.0);
 	///
 	/// // 3. Refine using Brent's method
-	/// MinimizationResult result = Minimization::BrentMinimize(func, bracket);
+	/// Minimization1DResult result = Minimization::BrentMinimize(func, bracket);
 	///
 	/// // Result: xmin ≈ 2.0, fmin ≈ 1.0
 	/// @endcode
@@ -210,7 +210,7 @@ namespace MML {
 			
 			const Real GOLD = Constants::GoldenRatio; // Golden ratio (1 + sqrt(5)) / 2
 			const Real GLIMIT = 100.0;	// Maximum magnification for parabolic step
-			const Real TINY = 1.0e-20;	// Small number to prevent division by zero
+			const Real TINY = Precision::DivisionSafetyThreshold;	// Small number to prevent division by zero
 
 			MinimumBracket result;
 			result.ax = a;
@@ -360,12 +360,13 @@ namespace MML {
 		/// @param func    Real function to minimize
 		/// @param bracket Pre-computed bracket from BracketMinimum
 		/// @param tol     Fractional tolerance (default: 3e-8, ≈ √(machine epsilon))
-		/// @return MinimizationResult with xmin, fmin, and iteration count
+		/// @return Minimization1DResult with xmin, fmin, and iteration count
 		///
 		/// @note Based on Numerical Recipes §10.2
 		/// @see BracketMinimum to obtain initial bracket
 		/// @see BrentMinimize for typically faster convergence
-		static MinimizationResult GoldenSectionSearch(const IRealFunction& func, const MinimumBracket& bracket, Real tol = PrecisionValues<Real>::OptimizationTolerance) {
+		static Minimization1DResult GoldenSectionSearch(const IRealFunction& func, const MinimumBracket& bracket,
+																										Real tol = PrecisionValues<Real>::OptimizationTolerance) {
 			// Input validation
 			ValidateTolerance(tol, "GoldenSectionSearch");
 			if (!bracket.valid) {
@@ -375,7 +376,9 @@ namespace MML {
 			const Real R = 0.61803399; // Golden ratio conjugate (1 - φ) = (√5-1)/2
 			const Real C = 1.0 - R;	   // = 1/φ = 2/(√5+1)
 
-			MinimizationResult result;
+			AlgorithmTimer timer;
+			Minimization1DResult result;
+			result.algorithm_name = "GoldenSectionSearch";
 			result.converged = false;
 			result.iterations = 0;
 
@@ -398,6 +401,7 @@ namespace MML {
 			// Main iteration loop
 			while (std::abs(x3 - x0) > tol * (std::abs(x1) + std::abs(x2))) {
 				result.iterations++;
+				result.iterations_used = result.iterations;
 
 				if (f2 < f1) {
 					// Minimum is in [x1, x3], narrow from left
@@ -426,13 +430,14 @@ namespace MML {
 			}
 
 			result.converged = true;
+			result.achieved_tolerance = std::abs(x3 - x0);
+			result.elapsed_time_ms = timer.elapsed_ms();
 			return result;
 		}
 
 		template<RealFunctionCallable Function>
-			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static MinimizationResult GoldenSectionSearch(Function&& func, const MinimumBracket& bracket, Real tol = PrecisionValues<Real>::OptimizationTolerance)
-		{
+		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>) static Minimization1DResult
+			GoldenSectionSearch(Function&& func, const MinimumBracket& bracket, Real tol = PrecisionValues<Real>::OptimizationTolerance) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
 			return GoldenSectionSearch(adapter, bracket, tol);
 		}
@@ -443,13 +448,14 @@ namespace MML {
 		/// @param a     Initial left search bound
 		/// @param b     Initial right search bound
 		/// @param tol   Fractional tolerance
-		/// @return MinimizationResult with xmin, fmin, and iteration count
-		static MinimizationResult GoldenSectionSearch(const IRealFunction& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance) {
+		/// @return Minimization1DResult with xmin, fmin, and iteration count
+		static Minimization1DResult GoldenSectionSearch(const IRealFunction& func, Real a, Real b,
+																										Real tol = PrecisionValues<Real>::OptimizationTolerance) {
 			// Input validation (bounds validated in BracketMinimum, tolerance here)
 			ValidateTolerance(tol, "GoldenSectionSearch");
 			MinimumBracket bracket = BracketMinimum(func, a, b);
 			if (!bracket.valid) {
-				MinimizationResult result;
+				Minimization1DResult result;
 				result.status = AlgorithmStatus::AlgorithmSpecificFailure;
 				result.error_message = "Failed to bracket minimum in GoldenSectionSearch";
 				return result;
@@ -458,9 +464,8 @@ namespace MML {
 		}
 
 		template<RealFunctionCallable Function>
-			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static MinimizationResult GoldenSectionSearch(Function&& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance)
-		{
+		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>) static Minimization1DResult
+			GoldenSectionSearch(Function&& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
 			return GoldenSectionSearch(adapter, a, b, tol);
 		}
@@ -515,15 +520,15 @@ namespace MML {
 		/// @param bracket Pre-computed bracket from BracketMinimum
 		/// @param tol     Fractional tolerance (default: 3e-8)
 		/// @param maxIter Maximum iterations (default: 100)
-		/// @return MinimizationResult with xmin, fmin, and iteration count
+		/// @return Minimization1DResult with xmin, fmin, and iteration count
 		///
 		/// @throws OptimizationError if maximum iterations exceeded
 		///
 		/// @note Based on Numerical Recipes §10.3
 		/// @see BracketMinimum to obtain initial bracket
 		/// @see BrentMinimizeWithDeriv for version using derivatives
-		static MinimizationResult BrentMinimize(const IRealFunction& func, const MinimumBracket& bracket, Real tol = PrecisionValues<Real>::OptimizationTolerance,
-												int maxIter = 100) {
+		static Minimization1DResult BrentMinimize(const IRealFunction& func, const MinimumBracket& bracket,
+																							Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			// Input validation
 			ValidateTolerance(tol, "BrentMinimize");
 			if (!bracket.valid) {
@@ -534,9 +539,11 @@ namespace MML {
 			}
 			
 			const Real CGOLD = 0.3819660; // Golden ratio for section (1 - 1/φ)
-			const Real ZEPS = std::sqrt(std::numeric_limits<Real>::epsilon()) * 1.0e-3;
+			const Real ZEPS = Precision::BrentZeroEpsilon;
 
-			MinimizationResult result;
+			AlgorithmTimer timer;
+			Minimization1DResult result;
+			result.algorithm_name = "BrentMinimize";
 			result.converged = false;
 			result.iterations = 0;
 
@@ -554,6 +561,7 @@ namespace MML {
 
 			for (int iter = 0; iter < maxIter; iter++) {
 				result.iterations++;
+				result.iterations_used = result.iterations;
 				xm = 0.5 * (a + b); // Midpoint
 				tol1 = tol * std::abs(x) + ZEPS;
 				tol2 = 2.0 * tol1;
@@ -563,6 +571,7 @@ namespace MML {
 					result.xmin = x;
 					result.fmin = fx;
 					result.converged = true;
+					result.elapsed_time_ms = timer.elapsed_ms();
 					return result;
 				}
 
@@ -638,14 +647,14 @@ namespace MML {
 			result.converged = false;
 			result.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.error_message = "Maximum iterations exceeded in BrentMinimize";
+			result.elapsed_time_ms = timer.elapsed_ms();
 			return result;
 		}
 
 		template<RealFunctionCallable Function>
-			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static MinimizationResult BrentMinimize(Function&& func, const MinimumBracket& bracket, Real tol = PrecisionValues<Real>::OptimizationTolerance,
-												int maxIter = 100)
-		{
+		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>) static Minimization1DResult
+			BrentMinimize(Function&& func, const MinimumBracket& bracket, Real tol = PrecisionValues<Real>::OptimizationTolerance,
+										int maxIter = 100) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
 			return BrentMinimize(adapter, bracket, tol, maxIter);
 		}
@@ -657,9 +666,10 @@ namespace MML {
 		/// @param b       Initial right search bound
 		/// @param tol     Fractional tolerance
 		/// @param maxIter Maximum iterations
-		/// @return MinimizationResult with xmin, fmin, and iteration count
+		/// @return Minimization1DResult with xmin, fmin, and iteration count
 		/// @throws NumericInputError if inputs are invalid (NaN/Inf bounds, invalid tolerance)
-		static MinimizationResult BrentMinimize(const IRealFunction& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
+		static Minimization1DResult BrentMinimize(const IRealFunction& func, Real a, Real b,
+																							Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			// Validate inputs early for clear error messages
 			ValidateTolerance(tol, "BrentMinimize");
 			if (maxIter <= 0)
@@ -668,7 +678,7 @@ namespace MML {
 			
 			MinimumBracket bracket = BracketMinimum(func, a, b);
 			if (!bracket.valid) {
-				MinimizationResult result;
+				Minimization1DResult result;
 				result.status = AlgorithmStatus::AlgorithmSpecificFailure;
 				result.error_message = "Failed to bracket minimum in BrentMinimize";
 				return result;
@@ -677,9 +687,8 @@ namespace MML {
 		}
 
 		template<RealFunctionCallable Function>
-			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static MinimizationResult BrentMinimize(Function&& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100)
-		{
+		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>) static Minimization1DResult
+			BrentMinimize(Function&& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
 			return BrentMinimize(adapter, a, b, tol, maxIter);
 		}
@@ -730,15 +739,15 @@ namespace MML {
 		/// @param bracket Pre-computed bracket from BracketMinimum
 		/// @param tol     Fractional tolerance (default: 3e-8)
 		/// @param maxIter Maximum iterations (default: 100)
-		/// @return MinimizationResult with xmin, fmin, and iteration count
+		/// @return Minimization1DResult with xmin, fmin, and iteration count
 		///
 		/// @throws OptimizationError if maximum iterations exceeded
 		/// @throws NumericInputError if inputs are invalid
 		///
 		/// @note Based on Numerical Recipes §10.4 (dbrent)
 		/// @see BrentMinimize for version without derivatives
-		static MinimizationResult BrentMinimizeWithDeriv(const IRealFunction& func, const IRealFunction& dfunc,
-														 const MinimumBracket& bracket, Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
+		static Minimization1DResult BrentMinimizeWithDeriv(const IRealFunction& func, const IRealFunction& dfunc, const MinimumBracket& bracket,
+																											 Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			// Validate inputs
 			ValidateTolerance(tol, "BrentMinimizeWithDeriv");
 			if (maxIter <= 0)
@@ -746,9 +755,11 @@ namespace MML {
 			if (!bracket.valid)
 				throw NumericInputError("BrentMinimizeWithDeriv: bracket is not valid");
 			
-			const Real ZEPS = std::sqrt(std::numeric_limits<Real>::epsilon()) * 1.0e-3;
+			const Real ZEPS = Precision::BrentZeroEpsilon;
 
-			MinimizationResult result;
+			AlgorithmTimer timer;
+			Minimization1DResult result;
+			result.algorithm_name = "BrentMinimizeWithDeriv";
 			result.converged = false;
 			result.iterations = 0;
 
@@ -770,6 +781,7 @@ namespace MML {
 			for (int iter = 0; iter < maxIter; iter++) {
 				result.iterations++;
 				xm = 0.5 * (a + b);
+				result.iterations_used = result.iterations;
 				tol1 = tol * std::abs(x) + ZEPS;
 				tol2 = 2.0 * tol1;
 
@@ -778,6 +790,7 @@ namespace MML {
 					result.xmin = x;
 					result.fmin = fx;
 					result.converged = true;
+					result.elapsed_time_ms = timer.elapsed_ms();
 					return result;
 				}
 
@@ -844,6 +857,7 @@ namespace MML {
 						result.xmin = x;
 						result.fmin = fx;
 						result.converged = true;
+						result.elapsed_time_ms = timer.elapsed_ms();
 						return result;
 					}
 				}
@@ -893,15 +907,15 @@ namespace MML {
 			result.converged = false;
 			result.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.error_message = "Maximum iterations exceeded in BrentMinimizeWithDeriv";
+			result.elapsed_time_ms = timer.elapsed_ms();
 			return result;
 		}
 
 		template<RealFunctionCallable Function, RealFunctionCallable DerivativeFunction>
-			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction> &&
-				!std::derived_from<std::remove_cvref_t<DerivativeFunction>, IRealFunction>)
-		static MinimizationResult BrentMinimizeWithDeriv(Function&& func, DerivativeFunction&& dfunc,
-												 const MinimumBracket& bracket, Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100)
-		{
+		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction> &&
+						 !std::derived_from<std::remove_cvref_t<DerivativeFunction>, IRealFunction>) static Minimization1DResult
+			BrentMinimizeWithDeriv(Function&& func, DerivativeFunction&& dfunc, const MinimumBracket& bracket,
+														 Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
 			MML::Detail::RealFunctionCallableAdapter<DerivativeFunction> derivativeAdapter(dfunc);
 			return BrentMinimizeWithDeriv(adapter, derivativeAdapter, bracket, tol, maxIter);
@@ -915,10 +929,10 @@ namespace MML {
 		/// @param b       Initial right search bound
 		/// @param tol     Fractional tolerance
 		/// @param maxIter Maximum iterations
-		/// @return MinimizationResult with xmin, fmin, and iteration count
+		/// @return Minimization1DResult with xmin, fmin, and iteration count
 		/// @throws NumericInputError if inputs are invalid (NaN/Inf bounds, invalid tolerance)
-		static MinimizationResult BrentMinimizeWithDeriv(const IRealFunction& func, const IRealFunction& dfunc, Real a, Real b,
-														 Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
+		static Minimization1DResult BrentMinimizeWithDeriv(const IRealFunction& func, const IRealFunction& dfunc, Real a, Real b,
+																											 Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			// Validate inputs early for clear error messages
 			ValidateTolerance(tol, "BrentMinimizeWithDeriv");
 			if (maxIter <= 0)
@@ -927,7 +941,7 @@ namespace MML {
 			
 			MinimumBracket bracket = BracketMinimum(func, a, b);
 			if (!bracket.valid) {
-				MinimizationResult result;
+				Minimization1DResult result;
 				result.status = AlgorithmStatus::AlgorithmSpecificFailure;
 				result.error_message = "Failed to bracket minimum in BrentMinimizeWithDeriv";
 				return result;
@@ -936,11 +950,10 @@ namespace MML {
 		}
 
 		template<RealFunctionCallable Function, RealFunctionCallable DerivativeFunction>
-			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction> &&
-				!std::derived_from<std::remove_cvref_t<DerivativeFunction>, IRealFunction>)
-		static MinimizationResult BrentMinimizeWithDeriv(Function&& func, DerivativeFunction&& dfunc, Real a, Real b,
-												 Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100)
-		{
+		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction> &&
+						 !std::derived_from<std::remove_cvref_t<DerivativeFunction>, IRealFunction>) static Minimization1DResult
+			BrentMinimizeWithDeriv(Function&& func, DerivativeFunction&& dfunc, Real a, Real b,
+														 Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
 			MML::Detail::RealFunctionCallableAdapter<DerivativeFunction> derivativeAdapter(dfunc);
 			return BrentMinimizeWithDeriv(adapter, derivativeAdapter, a, b, tol, maxIter);
@@ -955,19 +968,19 @@ namespace MML {
 		/// @param a     Initial left search bound
 		/// @param b     Initial right search bound
 		/// @param tol   Fractional tolerance
-		/// @return MinimizationResult with xmax, fmax (note: fmax is actual max value)
-		static MinimizationResult GoldenSectionMaximize(const IRealFunction& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance) {
+		/// @return Minimization1DResult with xmax, fmax (note: fmax is actual max value)
+		static Minimization1DResult GoldenSectionMaximize(const IRealFunction& func, Real a, Real b,
+																											Real tol = PrecisionValues<Real>::OptimizationTolerance) {
 			// Negate function to turn maximum into minimum
 			RealFunctionFromStdFunc negFunc([&func](Real x) { return -func(x); });
-			MinimizationResult result = GoldenSectionSearch(negFunc, a, b, tol);
+			Minimization1DResult result = GoldenSectionSearch(negFunc, a, b, tol);
 			result.fmin = -result.fmin; // Restore original function value
 			return result;
 		}
 
 		template<RealFunctionCallable Function>
-			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static MinimizationResult GoldenSectionMaximize(Function&& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance)
-		{
+		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>) static Minimization1DResult
+			GoldenSectionMaximize(Function&& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
 			return GoldenSectionMaximize(adapter, a, b, tol);
 		}
@@ -979,18 +992,18 @@ namespace MML {
 		/// @param b       Initial right search bound
 		/// @param tol     Fractional tolerance
 		/// @param maxIter Maximum iterations
-		/// @return MinimizationResult with xmax, fmax
-		static MinimizationResult BrentMaximize(const IRealFunction& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
+		/// @return Minimization1DResult with xmax, fmax
+		static Minimization1DResult BrentMaximize(const IRealFunction& func, Real a, Real b,
+																							Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			RealFunctionFromStdFunc negFunc([&func](Real x) { return -func(x); });
-			MinimizationResult result = BrentMinimize(negFunc, a, b, tol, maxIter);
+			Minimization1DResult result = BrentMinimize(negFunc, a, b, tol, maxIter);
 			result.fmin = -result.fmin;
 			return result;
 		}
 
 		template<RealFunctionCallable Function>
-			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static MinimizationResult BrentMaximize(Function&& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100)
-		{
+		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>) static Minimization1DResult
+			BrentMaximize(Function&& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
 			return BrentMaximize(adapter, a, b, tol, maxIter);
 		}
@@ -1005,12 +1018,11 @@ namespace MML {
 		/// @param a      Initial left search bound
 		/// @param b      Initial right search bound
 		/// @param config Configuration with tolerance and max iterations
-		/// @return MinimizationResult with xmin, fmin, diagnostics, and timing
-		static MinimizationResult GoldenSectionSearch(const IRealFunction& func, Real a, Real b, 
-		                                               const Minimization1DConfig& config) {
+		/// @return Minimization1DResult with xmin, fmin, diagnostics, and timing
+		static Minimization1DResult GoldenSectionSearch(const IRealFunction& func, Real a, Real b, const Minimization1DConfig& config) {
 			AlgorithmTimer timer;  // Starts automatically
 
-			MinimizationResult result = GoldenSectionSearch(func, a, b, config.tolerance);
+			Minimization1DResult result = GoldenSectionSearch(func, a, b, config.tolerance);
 			result.algorithm_name = "GoldenSection";
 			result.elapsed_time_ms = timer.elapsed_ms();
 
@@ -1023,10 +1035,8 @@ namespace MML {
 		}
 
 		template<RealFunctionCallable Function>
-			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static MinimizationResult GoldenSectionSearch(Function&& func, Real a, Real b,
-		                                               const Minimization1DConfig& config)
-		{
+		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>) static Minimization1DResult
+			GoldenSectionSearch(Function&& func, Real a, Real b, const Minimization1DConfig& config) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
 			return GoldenSectionSearch(adapter, a, b, config);
 		}
@@ -1037,12 +1047,11 @@ namespace MML {
 		/// @param a      Initial left search bound
 		/// @param b      Initial right search bound
 		/// @param config Configuration with tolerance and max iterations
-		/// @return MinimizationResult with xmin, fmin, diagnostics, and timing
-		static MinimizationResult BrentMinimize(const IRealFunction& func, Real a, Real b,
-		                                         const Minimization1DConfig& config) {
+		/// @return Minimization1DResult with xmin, fmin, diagnostics, and timing
+		static Minimization1DResult BrentMinimize(const IRealFunction& func, Real a, Real b, const Minimization1DConfig& config) {
 			AlgorithmTimer timer;  // Starts automatically
 
-			MinimizationResult result = BrentMinimize(func, a, b, config.tolerance, config.max_iterations);
+			Minimization1DResult result = BrentMinimize(func, a, b, config.tolerance, config.max_iterations);
 			result.algorithm_name = "Brent";
 			result.elapsed_time_ms = timer.elapsed_ms();
 
@@ -1056,10 +1065,8 @@ namespace MML {
 		}
 
 		template<RealFunctionCallable Function>
-			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static MinimizationResult BrentMinimize(Function&& func, Real a, Real b,
-		                                         const Minimization1DConfig& config)
-		{
+		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>) static Minimization1DResult
+			BrentMinimize(Function&& func, Real a, Real b, const Minimization1DConfig& config) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
 			return BrentMinimize(adapter, a, b, config);
 		}
@@ -1071,13 +1078,12 @@ namespace MML {
 		/// @param a      Initial left search bound
 		/// @param b      Initial right search bound
 		/// @param config Configuration with tolerance and max iterations
-		/// @return MinimizationResult with xmin, fmin, diagnostics, and timing
-		static MinimizationResult BrentMinimizeWithDeriv(const IRealFunction& func, const IRealFunction& dfunc,
-		                                                  Real a, Real b, const Minimization1DConfig& config) {
+		/// @return Minimization1DResult with xmin, fmin, diagnostics, and timing
+		static Minimization1DResult BrentMinimizeWithDeriv(const IRealFunction& func, const IRealFunction& dfunc, Real a, Real b,
+																											 const Minimization1DConfig& config) {
 			AlgorithmTimer timer;  // Starts automatically
 
-			MinimizationResult result = BrentMinimizeWithDeriv(func, dfunc, a, b, 
-			                                                    config.tolerance, config.max_iterations);
+			Minimization1DResult result = BrentMinimizeWithDeriv(func, dfunc, a, b, config.tolerance, config.max_iterations);
 			result.algorithm_name = "BrentWithDeriv";
 			result.elapsed_time_ms = timer.elapsed_ms();
 
@@ -1091,23 +1097,20 @@ namespace MML {
 		}
 
 		template<RealFunctionCallable Function, RealFunctionCallable DerivativeFunction>
-			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction> &&
-				!std::derived_from<std::remove_cvref_t<DerivativeFunction>, IRealFunction>)
-		static MinimizationResult BrentMinimizeWithDeriv(Function&& func, DerivativeFunction&& dfunc,
-		                                                  Real a, Real b, const Minimization1DConfig& config)
-		{
+		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction> &&
+						 !std::derived_from<std::remove_cvref_t<DerivativeFunction>, IRealFunction>) static Minimization1DResult
+			BrentMinimizeWithDeriv(Function&& func, DerivativeFunction&& dfunc, Real a, Real b, const Minimization1DConfig& config) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
 			MML::Detail::RealFunctionCallableAdapter<DerivativeFunction> derivativeAdapter(dfunc);
 			return BrentMinimizeWithDeriv(adapter, derivativeAdapter, a, b, config);
 		}
 
 		/// @brief Find maximum using Brent's method with configuration object.
-		static MinimizationResult BrentMaximize(const IRealFunction& func, Real a, Real b,
-		                                         const Minimization1DConfig& config) {
+		static Minimization1DResult BrentMaximize(const IRealFunction& func, Real a, Real b, const Minimization1DConfig& config) {
 			AlgorithmTimer timer;
 
 			RealFunctionFromStdFunc negFunc([&func](Real x) { return -func(x); });
-			MinimizationResult result = BrentMinimize(negFunc, a, b, config.tolerance, config.max_iterations);
+			Minimization1DResult result = BrentMinimize(negFunc, a, b, config.tolerance, config.max_iterations);
 			result.fmin = -result.fmin;
 			result.algorithm_name = "BrentMaximize";
 			result.elapsed_time_ms = timer.elapsed_ms();
@@ -1122,10 +1125,8 @@ namespace MML {
 		}
 
 		template<RealFunctionCallable Function>
-			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static MinimizationResult BrentMaximize(Function&& func, Real a, Real b,
-		                                         const Minimization1DConfig& config)
-		{
+		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>) static Minimization1DResult
+			BrentMaximize(Function&& func, Real a, Real b, const Minimization1DConfig& config) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
 			return BrentMaximize(adapter, a, b, config);
 		}

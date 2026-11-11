@@ -83,12 +83,12 @@ namespace MML {
 		Real Circumradius() const { return (_a * _b * _c) / (4.0 * Area()); }
 
 		// Classification
-		bool IsRight(Real eps = Defaults::ShapePropertyTolerance) const {
+		bool IsRight(Real eps = Precision::ShapePropertyTolerance) const {
 			Real a2 = _a * _a, b2 = _b * _b, c2 = _c * _c;
 			return std::abs(a2 + b2 - c2) < eps || std::abs(a2 + c2 - b2) < eps || std::abs(b2 + c2 - a2) < eps;
 		}
-		bool IsIsosceles(Real eps = Defaults::ShapePropertyTolerance) const { return std::abs(_a - _b) < eps || std::abs(_a - _c) < eps || std::abs(_b - _c) < eps; }
-		bool IsEquilateral(Real eps = Defaults::ShapePropertyTolerance) const { return std::abs(_a - _b) < eps && std::abs(_a - _c) < eps; }
+		bool IsIsosceles(Real eps = Precision::ShapePropertyTolerance) const { return std::abs(_a - _b) < eps || std::abs(_a - _c) < eps || std::abs(_b - _c) < eps; }
+		bool IsEquilateral(Real eps = Precision::ShapePropertyTolerance) const { return std::abs(_a - _b) < eps && std::abs(_a - _c) < eps; }
 		bool IsAcute() const {
 			Real a2 = _a * _a, b2 = _b * _b, c2 = _c * _c;
 			return (a2 + b2 > c2) && (a2 + c2 > b2) && (b2 + c2 > a2);
@@ -97,7 +97,7 @@ namespace MML {
 			Real a2 = _a * _a, b2 = _b * _b, c2 = _c * _c;
 			return (a2 + b2 < c2) || (a2 + c2 < b2) || (b2 + c2 < a2);
 		}
-		bool IsScalene(Real eps = Defaults::ShapePropertyTolerance) const { return std::abs(_a - _b) > eps && std::abs(_a - _c) > eps && std::abs(_b - _c) > eps; }
+		bool IsScalene(Real eps = Precision::ShapePropertyTolerance) const { return std::abs(_a - _b) > eps && std::abs(_a - _c) > eps && std::abs(_b - _c) > eps; }
 	};
 
 	/// @brief Circle defined by radius (coordinate-free)
@@ -162,7 +162,7 @@ namespace MML {
 			, _b(semiMinor) {}
 
 		bool IsValid() const { return _a > 0 && _b > 0; }
-		bool IsCircle(Real eps = Defaults::ShapePropertyTolerance) const { return std::abs(_a - _b) < eps; }
+		bool IsCircle(Real eps = Precision::ShapePropertyTolerance) const { return std::abs(_a - _b) < eps; }
 
 		Real Area() const { return Constants::PI * _a * _b; }
 
@@ -409,7 +409,7 @@ namespace MML {
 			, _height(height) {}
 
 		bool IsValid() const { return _width > 0 && _height > 0; }
-		bool IsSquare(Real eps = Defaults::ShapePropertyTolerance) const { return std::abs(_width - _height) < eps; }
+		bool IsSquare(Real eps = Precision::ShapePropertyTolerance) const { return std::abs(_width - _height) < eps; }
 
 		Real Area() const { return _width * _height; }
 		Real Perimeter() const { return 2.0 * (_width + _height); }
@@ -458,9 +458,9 @@ namespace MML {
 			, _angle(angle) {}
 
 		bool IsValid() const { return _a > 0 && _b > 0 && _angle > 0 && _angle < Constants::PI; }
-		bool IsRectangle(Real eps = Defaults::ShapePropertyTolerance) const { return std::abs(_angle - Constants::PI / 2) < eps; }
-		bool IsRhombus(Real eps = Defaults::ShapePropertyTolerance) const { return std::abs(_a - _b) < eps; }
-		bool IsSquare(Real eps = Defaults::ShapePropertyTolerance) const { return IsRectangle(eps) && IsRhombus(eps); }
+		bool IsRectangle(Real eps = Precision::ShapePropertyTolerance) const { return std::abs(_angle - Constants::PI / 2) < eps; }
+		bool IsRhombus(Real eps = Precision::ShapePropertyTolerance) const { return std::abs(_a - _b) < eps; }
+		bool IsSquare(Real eps = Precision::ShapePropertyTolerance) const { return IsRectangle(eps) && IsRhombus(eps); }
 
 		Real Area() const { return _a * _b * sin(_angle); }
 		Real Perimeter() const { return 2.0 * (_a + _b); }
@@ -527,7 +527,7 @@ namespace MML {
 		}
 
 		bool IsValid() const { return _side > 0 && _d1 > 0 && _d2 > 0; }
-		bool IsSquare(Real eps = Defaults::ShapePropertyTolerance) const { return std::abs(_d1 - _d2) < eps; }
+		bool IsSquare(Real eps = Precision::ShapePropertyTolerance) const { return std::abs(_d1 - _d2) < eps; }
 
 		Real Area() const { return 0.5 * _d1 * _d2; }
 		Real Perimeter() const { return 4.0 * _side; }
@@ -570,7 +570,7 @@ namespace MML {
 			, _height(height) {}
 
 		bool IsValid() const { return _a > 0 && _b > 0 && _height > 0; }
-		bool IsParallelogram(Real eps = Defaults::ShapePropertyTolerance) const { return std::abs(_a - _b) < eps; }
+		bool IsParallelogram(Real eps = Precision::ShapePropertyTolerance) const { return std::abs(_a - _b) < eps; }
 
 		Real Area() const { return 0.5 * (_a + _b) * _height; }
 

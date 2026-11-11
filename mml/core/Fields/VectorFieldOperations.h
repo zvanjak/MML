@@ -12,14 +12,53 @@
 #if !defined MML_VECTOR_FIELD_OPERATIONS_H
 #define MML_VECTOR_FIELD_OPERATIONS_H
 
+#include <mml/algorithms/MatrixSingularity.h>
 #include <mml/core/Fields/FieldOperationsCommon.h>
 #include <mml/core/DifferentialGeometry/CoordinateSingularities.h>
-#include <mml/base/Algebra/Algorithms/FieldMatrixAlgorithms.h>
 
 namespace MML
 {
+	namespace FieldOperationDetail {
+		template<int N>
+		VectorN<Real, N> ConvertOrthogonalComponents(const VectorN<Real, N>& components, const VectorN<Real, N>& pos,
+																								 const MetricTensorField<N>& metric, bool toPhysical) {
+			const char* operation = toPhysical ? "ToPhysical" : "ToContravariant";
+			if (!metric.IsRiemannian() || metric.getNumCovar() != 2 || metric.getNumContravar() != 0)
+				throw DomainError(std::string(operation) + ": a covariant Riemannian metric is required");
+			for (int i = 0; i < N; ++i)
+				if (!std::isfinite(pos[i]) || !std::isfinite(components[i]))
+					throw DomainError(std::string(operation) + ": position and vector components must be finite");
+
+			const auto g = metric.GetCovariantMetric(pos);
+			VectorN<Real, N> scales;
+			for (int i = 0; i < N; ++i) {
+				if (!std::isfinite(g(i, i)) || g(i, i) <= 0)
+					throw DomainError(std::string(operation) + ": metric diagonal must be finite and positive");
+				scales[i] = std::sqrt(g(i, i));
+				if (IsUnsafeDenominator(scales[i]))
+					throw DomainError(std::string(operation) + ": metric scale factor is too small for safe conversion");
+			}
+			for (int i = 0; i < N; ++i)
+				for (int j = 0; j < N; ++j) {
+					if (!std::isfinite(g(i, j)))
+						throw DomainError(std::string(operation) + ": metric components must be finite");
+					// Normalize by both basis lengths without forming their potentially overflowing product.
+					if (i != j && !IsNearlyZero(g(i, j) / scales[i] / scales[j], Precision::OrthogonalityTolerance))
+						throw DomainError(std::string(operation) + ": nonorthogonal coordinates require an explicit orthonormal frame");
+				}
+
+			VectorN<Real, N> result;
+			for (int i = 0; i < N; ++i) {
+				result[i] = toPhysical ? components[i] * scales[i] : components[i] / scales[i];
+				if (!std::isfinite(result[i]))
+					throw DomainError(std::string(operation) + ": converted component is not finite");
+			}
+			return result;
+		}
+	} // namespace FieldOperationDetail
+
 	///////////////////////////////////////////////////////////////////////////////////////////
-	/// VectorFieldOperations - Differential operations on vector fields
+	/// VectorFieldOperations - Differential operations and vector component conversions
 	///
 	/// Provides divergence and curl operations for vector-valued functions.
 	/// Supports:
@@ -34,6 +73,22 @@ namespace MML
 	///////////////////////////////////////////////////////////////////////////////////////////
 	namespace VectorFieldOperations
 	{
+		/// Convert contravariant coordinate-basis components v^i to physical components h_i v^i.
+		/// Requires a finite, positive diagonal covariant Riemannian metric, with h_i = sqrt(g_ii).
+		/// Off-diagonal correlations must be below Precision::OrthogonalityTolerance.
+		/// Throws DomainError for invalid inputs, unsafe scales or nonfinite output. This does not lower indices.
+		template<int N>
+		VectorN<Real, N> ToPhysical(const VectorN<Real, N>& components, const VectorN<Real, N>& pos, const MetricTensorField<N>& metric) {
+			return FieldOperationDetail::ConvertOrthogonalComponents(components, pos, metric, true);
+		}
+
+		/// Convert physical orthonormal-basis components to contravariant components v^i = v^hat_i / h_i.
+		/// Has the same metric and finiteness requirements as ToPhysical; this does not raise indices.
+		template<int N>
+		VectorN<Real, N> ToContravariant(const VectorN<Real, N>& components, const VectorN<Real, N>& pos, const MetricTensorField<N>& metric) {
+			return FieldOperationDetail::ConvertOrthogonalComponents(components, pos, metric, false);
+		}
+
 		///////////////////////////////////////////////////////////////////////////////////////////
 		//                           GENERAL COORDINATE OPERATIONS
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -45,6 +100,7 @@ namespace MML
 		///   ∇·F = ∂ᵢFⁱ + Γⁱᵢₖ Fᵏ
 		///
 		/// where Γⁱⱼₖ are the Christoffel symbols of the second kind.
+		/// Input components are contravariant coordinate-basis components, not physical components.
 		///
 		/// @tparam N                Number of dimensions
 		/// @param vectorField       Vector function F: ℝᴺ → ℝᴺ
@@ -64,7 +120,7 @@ namespace MML
 			for (int i = 0; i < N; i++)
 			{
 				// Standard partial derivative term: ∂Fⁱ/∂xⁱ
-				div += Derivation::DeriveVecPartial<N>(vectorField, i, i, pos, nullptr);
+				div += Differential::VectorPartial<N>(vectorField, i, i, pos);
 
 				// Christoffel symbol correction for curved coordinates: Γⁱᵢₖ Fᵏ
 				for (int k = 0; k < N; k++)
@@ -90,37 +146,112 @@ namespace MML
 		/// @param vectorField       Vector function F: ℝᴺ → ℝᴺ (contravariant components)
 		/// @param pos               Position vector in the coordinate system
 		/// @param metricTensorField Metric tensor field defining the coordinate geometry
-		/// @return                  Scalar divergence value ∇·F
+		/// @return                  Divergence value with status and derivative diagnostics
 		///
 		/// @note For Cartesian coordinates, √g = 1 everywhere and this reduces to DivCart.
 		/// @note For spherical coordinates, √g = r²sinθ.
 		/// @note For cylindrical coordinates, √g = r.
 		/// @see Divergence, DivCart
+		/// Determinant divergence with status reporting and derivative diagnostics.
+		/// Degenerate center/stencil metrics are InvalidInput with ConvertToStatus, otherwise DomainError.
+		/// Normalize volume ratios in log space to avoid determinant underflow/overflow.
+		template<int N>
+		static EvaluationResult<Real> DivergenceViaDetDetailed(const IVectorFunction<N>& vectorField, const VectorN<Real, N>& pos,
+																													 const MetricTensorField<N>& metricTensorField,
+																													 const FieldOperationConfig& config = {}) {
+			using ResultType = EvaluationResult<Real>;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>("DivergenceViaDet", config, [&](ResultType& result, int& func_evals) {
+				if (metricTensorField.getNumContravar() != 0 || metricTensorField.getNumCovar() != 2)
+					throw DomainError("DivergenceViaDet requires covariant metric storage");
+				const auto* vectorDerivatives = dynamic_cast<const IVectorDerivativeProvider<N>*>(&vectorField);
+				const auto* metricDerivatives = dynamic_cast<const IMetricJetProvider<N>*>(&metricTensorField);
+				if (config.derivative_order == 0 && vectorDerivatives && metricDerivatives) {
+					Singularity::RequireFiniteCoordinates<N>(pos, "DivergenceViaDet");
+					const auto jet = metricDerivatives->EvaluateMetricJet(pos);
+					MatrixNM<Real, N, N> inverse;
+					try {
+						inverse = Singularity::InverseMatrix(jet.value, SingularityPolicy::Throw);
+					} catch (const SingularMatrixError&) {
+						throw DomainError("DivergenceViaDet: degenerate metric");
+					}
+					const auto field = vectorField(pos);
+					++func_evals;
+					Real div = 0;
+					for (int i = 0; i < N; ++i) {
+						Singularity::RequireFiniteMatrix(jet.first[i], "DivergenceViaDet metric derivative");
+						Real logVolumePartial = 0;
+						for (int a = 0; a < N; ++a)
+							for (int b = 0; b < N; ++b)
+								logVolumePartial += Real(0.5) * inverse(a, b) * jet.first[i](b, a);
+						div += vectorDerivatives->EvaluateComponentPartial(pos, i, i) + field[i] * logVolumePartial;
+						++func_evals;
+					}
+					if (!std::isfinite(div))
+						throw NumericalMethodError("DivergenceViaDet: nonfinite provider result");
+					result.value = div;
+					FieldOperationDetail::MarkProviderResult(result, func_evals, func_evals);
+					return;
+				}
+				auto logVolume = [&](const VectorN<Real, N>& x) {
+					Singularity::RequireFiniteCoordinates<N>(x, "DivergenceViaDet");
+					try {
+						return Real(0.5) * Singularity::LogAbsDeterminant(metricTensorField.GetCovariantMetric(x));
+					} catch (const SingularMatrixError& ex) {
+						throw DomainError(std::string("DivergenceViaDet: degenerate metric: ") + ex.what());
+					}
+				};
+				const Real reference = logVolume(pos);
+				Real div = 0, error = 0;
+				for (int i = 0; i < N; ++i) {
+					ScalarFunctionFromStdFunc<N> weightedComponent([&](const VectorN<Real, N>& x) {
+						const Real weight = std::exp(logVolume(x) - reference);
+						if (!std::isfinite(weight) || weight == 0)
+							throw NumericalMethodError("DivergenceViaDet: volume ratio underflow or overflow");
+						++func_evals;
+						const Real value = weight * vectorField(x)[i];
+						if (config.check_finite && !std::isfinite(value))
+							throw NumericalMethodError("DivergenceViaDet: nonfinite volume-weighted field value");
+						return value;
+					});
+					Real componentError = 0;
+					Real* estimate = config.estimate_error ? &componentError : nullptr;
+					switch (config.derivative_order) {
+					case 0:
+					case 4:
+						div += Derivation::NDer4Partial(weightedComponent, i, pos, estimate);
+						break;
+					case 1:
+						div += Derivation::NDer1Partial(weightedComponent, i, pos, estimate);
+						break;
+					case 2:
+						div += Derivation::NDer2Partial(weightedComponent, i, pos, estimate);
+						break;
+					case 6:
+						div += Derivation::NDer6Partial(weightedComponent, i, pos, estimate);
+						break;
+					case 8:
+						div += Derivation::NDer8Partial(weightedComponent, i, pos, estimate);
+						break;
+					default:
+						throw ArgumentError("DivergenceViaDet: derivative_order must be 0, 1, 2, 4, 6, or 8");
+					}
+					error += std::abs(componentError);
+				}
+				if (!std::isfinite(div) || !std::isfinite(error))
+					throw NumericalMethodError("DivergenceViaDet: nonfinite derivative result");
+				result.value = div;
+				if (config.estimate_error)
+					result.error = error;
+			});
+		}
+
+		/// Scalar determinant divergence; throws on degenerate metrics instead of returning zero.
 		template<int N>
 		static Real DivergenceViaDet(const IVectorFunction<N>& vectorField, const VectorN<Real, N>& pos,
-		                             const MetricTensorField<N>& metricTensorField)
-		{
-			// Compute √g at the evaluation point
-			Real g = Algebra::FieldMatrixDeterminant(metricTensorField.GetCovariantMetric(pos));
-			Real sqrt_g = std::sqrt(std::abs(g));
-
-			if (sqrt_g < Defaults::DefaultTolerance)
-				return Real(0);  // Degenerate metric — divergence undefined
-
-			Real div = 0.0;
-			for (int i = 0; i < N; i++)
-			{
-				// Differentiate the scalar function √g(x) · Fⁱ(x) with respect to xⁱ
-				ScalarFunctionFromStdFunc<N> sqrt_g_Fi(
-					[&vectorField, &metricTensorField, i](const VectorN<Real, N>& x) -> Real {
-						Real gx = Algebra::FieldMatrixDeterminant(metricTensorField.GetCovariantMetric(x));
-						return std::sqrt(std::abs(gx)) * vectorField(x)[i];
-					}
-				);
-				div += Derivation::DerivePartial<N>(sqrt_g_Fi, i, pos, nullptr);
-			}
-
-			return div / sqrt_g;
+																 const MetricTensorField<N>& metricTensorField) {
+			FieldOperationConfig config;
+			config.estimate_error = false;
+			return DivergenceViaDetDetailed(vectorField, pos, metricTensorField, config).value;
 		}
 
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -154,7 +285,7 @@ namespace MML
 		{
 			Real div = 0.0;
 			for (int i = 0; i < N; i++)
-				div += Derivation::DeriveVecPartial<N>(vectorField, i, i, pos, nullptr);
+				div += Differential::VectorPartial<N>(vectorField, i, i, pos);
 
 			return div;
 		}
@@ -172,23 +303,25 @@ namespace MML
 		                const FieldOperationConfig& config = {})
 		{
 			using ResultType = EvaluationResult<Real>;
-			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
-				"DivCart", config,
-				[&](ResultType& result, int& func_evals) {
-					Real div = 0.0;
-					Real total_error = 0.0;
-					for (int i = 0; i < N; i++) {
-						Real err = 0.0;
-						div += Derivation::DeriveVecPartial<N>(vectorField, i, i, pos,
-						                                       config.estimate_error ? &err : nullptr);
-						if (config.estimate_error)
-							total_error += std::abs(err);
-					}
-					result.value = div;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>("DivCart", config, [&](ResultType& result, int& func_evals) {
+				if (FieldOperationDetail::UsesProvidedDerivatives(vectorField, config)) {
+					result.value = DivCart(vectorField, pos);
+					FieldOperationDetail::MarkProviderResult(result, N, func_evals);
+					return;
+				}
+				Real div = 0.0;
+				Real total_error = 0.0;
+				for (int i = 0; i < N; i++) {
+					Real err = 0.0;
+					div += Derivation::DeriveVecPartial<N>(vectorField, i, i, pos, config.estimate_error ? &err : nullptr);
 					if (config.estimate_error)
-						result.error = total_error;
-					func_evals = N * 5; // NDer4 default: ~5 evaluations per component
-				});
+						total_error += std::abs(err);
+				}
+				result.value = div;
+				if (config.estimate_error)
+					result.error = total_error;
+				func_evals = N * 5; // NDer4 default: ~5 evaluations per component
+			});
 		}
 
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -201,6 +334,7 @@ namespace MML
 		///   ∇·F = (1/r²)∂(r²Fᵣ)/∂r + (1/r·sinθ)∂(sinθ·Fθ)/∂θ + (1/r·sinθ)∂Fφ/∂φ
 		///
 		/// @param vectorField Vector function F(r, θ, φ) = (Fᵣ, Fθ, Fφ)
+		/// @note F uses physical components in the local orthonormal basis, as returned by GradientSpher.
 		/// @param x           Position (r, θ, φ) with r > 0, 0 < θ < π
 		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            Scalar divergence value ∇·F
@@ -217,7 +351,7 @@ namespace MML
 
 			VectorN<Real, 3> derivs;
 			for (int i = 0; i < 3; i++)
-				derivs[i] = Derivation::DeriveVecPartial<3>(vectorField, i, i, x, nullptr);
+				derivs[i] = Differential::VectorPartial<3>(vectorField, i, i, x);
 
 			// Calculate inverse factors with singularity handling
 			Real inv_r2 = Singularity::SafeInverseR2(r, policy, "DivSpher 1/r²");
@@ -251,7 +385,9 @@ namespace MML
 				"DivSpher", config,
 				[&](ResultType& result, int& func_evals) {
 					result.value = DivSpher(vectorField, pos, policy);
-					func_evals = 3 * 5 + 1; // 3 partial derivs + 1 function eval
+					func_evals = dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField) ? 4 : 3 * 5 + 1;
+					if (dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField))
+						FieldOperationDetail::MarkProviderResult(result, func_evals, func_evals);
 				});
 		}
 
@@ -265,6 +401,7 @@ namespace MML
 		///   ∇·F = (1/r)∂(r·Fᵣ)/∂r + (1/r)∂Fφ/∂φ + ∂Fz/∂z
 		///
 		/// @param vectorField Vector function F(r, φ, z) = (Fᵣ, Fφ, Fz)
+		/// @note F uses physical components in the local orthonormal basis, as returned by GradientCyl.
 		/// @param x           Position (r, φ, z) with r > 0
 		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            Scalar divergence value ∇·F
@@ -280,7 +417,7 @@ namespace MML
 
 			VectorN<Real, 3> derivs;
 			for (int i = 0; i < 3; i++)
-				derivs[i] = Derivation::DeriveVecPartial<3>(vectorField, i, i, x, nullptr);
+				derivs[i] = Differential::VectorPartial<3>(vectorField, i, i, x);
 
 			// Calculate inverse factor with singularity handling
 			Real inv_r = Singularity::SafeInverseR(r, policy, "DivCyl 1/r");
@@ -313,7 +450,9 @@ namespace MML
 				"DivCyl", config,
 				[&](ResultType& result, int& func_evals) {
 					result.value = DivCyl(vectorField, pos, policy);
-					func_evals = 3 * 5 + 1; // 3 partial derivs + 1 function eval
+					func_evals = dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField) ? 4 : 3 * 5 + 1;
+					if (dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField))
+						FieldOperationDetail::MarkProviderResult(result, func_evals, func_evals);
 				});
 		}
 
@@ -348,16 +487,16 @@ namespace MML
 		static Vec3Cart CurlCart(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos)
 		{
 			// ∂Fz/∂y and ∂Fy/∂z for x-component of curl
-			Real dzdy = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);
-			Real dydz = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);
+			Real dzdy = Differential::VectorPartial<3>(vectorField, 2, 1, pos);
+			Real dydz = Differential::VectorPartial<3>(vectorField, 1, 2, pos);
 
 			// ∂Fx/∂z and ∂Fz/∂x for y-component of curl
-			Real dxdz = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);
-			Real dzdx = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);
+			Real dxdz = Differential::VectorPartial<3>(vectorField, 0, 2, pos);
+			Real dzdx = Differential::VectorPartial<3>(vectorField, 2, 0, pos);
 
 			// ∂Fy/∂x and ∂Fx/∂y for z-component of curl
-			Real dydx = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);
-			Real dxdy = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);
+			Real dydx = Differential::VectorPartial<3>(vectorField, 1, 0, pos);
+			Real dxdy = Differential::VectorPartial<3>(vectorField, 0, 1, pos);
 
 			Vector3Cartesian curl{ dzdy - dydz, dxdz - dzdx, dydx - dxdy };
 
@@ -375,36 +514,36 @@ namespace MML
 		                 const FieldOperationConfig& config = {})
 		{
 			using ResultType = EvaluationResult<Vec3Cart, Vec3Cart>;
-			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
-				"CurlCart", config,
-				[&](ResultType& result, int& func_evals) {
-					Real e_dzdy = 0, e_dydz = 0, e_dxdz = 0, e_dzdx = 0, e_dydx = 0, e_dxdy = 0;
-					Real* ep = config.estimate_error ? &e_dzdy : nullptr;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>("CurlCart", config, [&](ResultType& result, int& func_evals) {
+				if (FieldOperationDetail::UsesProvidedDerivatives(vectorField, config)) {
+					result.value = CurlCart(vectorField, pos);
+					FieldOperationDetail::MarkProviderResult(result, 6, func_evals);
+					return;
+				}
+				Real e_dzdy = 0, e_dydz = 0, e_dxdz = 0, e_dzdx = 0, e_dydx = 0, e_dxdy = 0;
+				Real* ep = config.estimate_error ? &e_dzdy : nullptr;
 
-					Real dzdy = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, ep);
-					ep = config.estimate_error ? &e_dydz : nullptr;
-					Real dydz = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, ep);
+				Real dzdy = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, ep);
+				ep = config.estimate_error ? &e_dydz : nullptr;
+				Real dydz = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, ep);
 
-					ep = config.estimate_error ? &e_dxdz : nullptr;
-					Real dxdz = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, ep);
-					ep = config.estimate_error ? &e_dzdx : nullptr;
-					Real dzdx = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, ep);
+				ep = config.estimate_error ? &e_dxdz : nullptr;
+				Real dxdz = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, ep);
+				ep = config.estimate_error ? &e_dzdx : nullptr;
+				Real dzdx = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, ep);
 
-					ep = config.estimate_error ? &e_dydx : nullptr;
-					Real dydx = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, ep);
-					ep = config.estimate_error ? &e_dxdy : nullptr;
-					Real dxdy = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, ep);
+				ep = config.estimate_error ? &e_dydx : nullptr;
+				Real dydx = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, ep);
+				ep = config.estimate_error ? &e_dxdy : nullptr;
+				Real dxdy = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, ep);
 
-					result.value = Vec3Cart{dzdy - dydz, dxdz - dzdx, dydx - dxdy};
-					if (config.estimate_error) {
-						result.error = Vec3Cart{
-							std::abs(e_dzdy) + std::abs(e_dydz),
-							std::abs(e_dxdz) + std::abs(e_dzdx),
-							std::abs(e_dydx) + std::abs(e_dxdy)
-						};
-					}
-					func_evals = 6 * 5; // 6 partial derivatives, ~5 evals each (NDer4)
-				});
+				result.value = Vec3Cart{dzdy - dydz, dxdz - dzdx, dydx - dxdy};
+				if (config.estimate_error) {
+					result.error =
+						Vec3Cart{std::abs(e_dzdy) + std::abs(e_dydz), std::abs(e_dxdz) + std::abs(e_dzdx), std::abs(e_dydx) + std::abs(e_dxdy)};
+				}
+				func_evals = 6 * 5; // 6 partial derivatives, ~5 evals each (NDer4)
+			});
 		}
 
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -431,14 +570,14 @@ namespace MML
 			VectorN<Real, 3> vals = vectorField(pos);
 
 			// Partial derivatives of each component
-			Real dphidtheta = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);  // ∂Fφ/∂θ
-			Real dthetadphi = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);  // ∂Fθ/∂φ
+			Real dphidtheta = Differential::VectorPartial<3>(vectorField, 2, 1, pos); // ∂Fφ/∂θ
+			Real dthetadphi = Differential::VectorPartial<3>(vectorField, 1, 2, pos); // ∂Fθ/∂φ
 
-			Real drdphi = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);      // ∂Fᵣ/∂φ
-			Real dphidr = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);      // ∂Fφ/∂r
+			Real drdphi = Differential::VectorPartial<3>(vectorField, 0, 2, pos); // ∂Fᵣ/∂φ
+			Real dphidr = Differential::VectorPartial<3>(vectorField, 2, 0, pos); // ∂Fφ/∂r
 
-			Real dthetadr = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);    // ∂Fθ/∂r
-			Real drdtheta = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);    // ∂Fᵣ/∂θ
+			Real dthetadr = Differential::VectorPartial<3>(vectorField, 1, 0, pos); // ∂Fθ/∂r
+			Real drdtheta = Differential::VectorPartial<3>(vectorField, 0, 1, pos); // ∂Fᵣ/∂θ
 
 			const Real& r = pos[0];
 			const Real& theta = pos[1];
@@ -476,7 +615,9 @@ namespace MML
 				"CurlSpher", config,
 				[&](ResultType& result, int& func_evals) {
 					result.value = CurlSpher(vectorField, pos, policy);
-					func_evals = 6 * 5 + 1; // 6 partial derivs + 1 function eval
+					func_evals = dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField) ? 7 : 6 * 5 + 1;
+					if (dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField))
+						FieldOperationDetail::MarkProviderResult(result, func_evals, func_evals);
 				});
 		}
 
@@ -506,14 +647,14 @@ namespace MML
 			VectorN<Real, 3> vals = vectorField(pos);
 
 			// Partial derivatives
-			Real dzdphi = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);  // ∂Fz/∂φ
-			Real dphidz = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);  // ∂Fφ/∂z
+			Real dzdphi = Differential::VectorPartial<3>(vectorField, 2, 1, pos); // ∂Fz/∂φ
+			Real dphidz = Differential::VectorPartial<3>(vectorField, 1, 2, pos); // ∂Fφ/∂z
 
-			Real drdz = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);    // ∂Fᵣ/∂z
-			Real dzdr = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);    // ∂Fz/∂r
+			Real drdz = Differential::VectorPartial<3>(vectorField, 0, 2, pos); // ∂Fᵣ/∂z
+			Real dzdr = Differential::VectorPartial<3>(vectorField, 2, 0, pos); // ∂Fz/∂r
 
-			Real dphidr = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);  // ∂Fφ/∂r
-			Real drdphi = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);  // ∂Fᵣ/∂φ
+			Real dphidr = Differential::VectorPartial<3>(vectorField, 1, 0, pos); // ∂Fφ/∂r
+			Real drdphi = Differential::VectorPartial<3>(vectorField, 0, 1, pos); // ∂Fᵣ/∂φ
 
 			// Calculate inverse factor with singularity handling
 			Real inv_r = Singularity::SafeInverseR(r, policy, "CurlCyl 1/r");
@@ -547,7 +688,9 @@ namespace MML
 				"CurlCyl", config,
 				[&](ResultType& result, int& func_evals) {
 					result.value = CurlCyl(vectorField, pos, policy);
-					func_evals = 6 * 5 + 1; // 6 partial derivs + 1 function eval
+					func_evals = dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField) ? 7 : 6 * 5 + 1;
+					if (dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField))
+						FieldOperationDetail::MarkProviderResult(result, func_evals, func_evals);
 				});
 		}
 	};

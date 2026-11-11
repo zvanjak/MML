@@ -139,7 +139,7 @@ void Docs_Demo_DynamicalSystem_FixedPoints()
 	std::cout << "Fixed point found: "; fp.location.Print(std::cout, 10, 6); std::cout << "\n";
 	std::cout << "Convergence residual: " << std::scientific << fp.convergenceResidual << "\n";
 	std::cout << "Newton iterations: " << fp.iterations << "\n";
-	std::cout << "Type: " << ToString(fp.type) << "\n";
+	std::cout << "Type: " << to_string(fp.type) << "\n";
 	std::cout << "Stable: " << (fp.isStable ? "yes" : "no") << "\n";
 	
 	std::cout << "\nEigenvalues of Jacobian:\n";
@@ -158,18 +158,18 @@ void Docs_Demo_DynamicalSystem_FixedPoints()
 	// Origin
 	auto fp_origin = FixedPointFinder::Find(lorenz, Vector<Real>({0.0, 0.0, 0.0}));
 	std::cout << "Origin: "; fp_origin.location.Print(std::cout, 8, 4); 
-	std::cout << " - " << ToString(fp_origin.type) << "\n";
+	std::cout << " - " << to_string(fp_origin.type) << "\n";
 	
 	// C+ fixed point (around sqrt(β(ρ-1)), sqrt(β(ρ-1)), ρ-1)
 	Real val = std::sqrt(8.0/3.0 * (28.0 - 1.0));
 	auto fp_cplus = FixedPointFinder::Find(lorenz, Vector<Real>({val, val, 27.0}));
 	std::cout << "C+ point: "; fp_cplus.location.Print(std::cout, 8, 4);
-	std::cout << " - " << ToString(fp_cplus.type) << "\n";
+	std::cout << " - " << to_string(fp_cplus.type) << "\n";
 	
 	// C- fixed point
 	auto fp_cminus = FixedPointFinder::Find(lorenz, Vector<Real>({-val, -val, 27.0}));
 	std::cout << "C- point: "; fp_cminus.location.Print(std::cout, 8, 4);
-	std::cout << " - " << ToString(fp_cminus.type) << "\n";
+	std::cout << " - " << to_string(fp_cminus.type) << "\n";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -199,7 +199,7 @@ void Docs_Demo_DynamicalSystem_FixedPointTypes()
 		auto fp = FixedPointFinder::Find(vdp, Vector<Real>({0.0, 0.0}));
 		
 		std::cout << "μ = " << std::fixed << std::setprecision(1) << mu 
-		          << ": " << std::setw(16) << ToString(fp.type);
+		          << ": " << std::setw(16) << to_string(fp.type);
 		
 		// Show eigenvalues
 		std::cout << "  eigenvalues: ";
@@ -358,6 +358,13 @@ void Docs_Demo_DynamicalSystem_HenonMap()
 	HenonMap henon(1.4, 0.3);  // Classic parameters
 	
 	std::cout << "\nClassic parameters: a = " << henon.getA() << ", b = " << henon.getB() << "\n";
+
+	// IDiscreteMap is an IFunction with the IParametrized mixin (docs: Discrete Maps intro)
+	std::cout << "getNumParam() = " << henon.getNumParam() << "\n";
+	henon.setParams(Vector<Real>({1.2, 0.3}));          // VectorDimensionError if the size is not 2
+	Vector<Real> next = henon(Vector<Real>({0.1, 0.1})); // == henon.iterate(...)
+	std::cout << "henon(0.1, 0.1) with a = 1.2: (" << next[0] << ", " << next[1] << ")\n";
+	henon.setParams(Vector<Real>({1.4, 0.3}));
 	
 	// Generate trajectory
 	std::cout << "\n--- Trajectory on Strange Attractor ---\n";
@@ -621,11 +628,11 @@ void Docs_Demo_DynamicalSystem_ChaosDetection()
 	// 1. Check fixed points
 	std::cout << "\n1. Fixed Point Analysis:\n";
 	auto fp = FixedPointFinder::Find(lorenz, Vector<Real>({0.0, 0.0, 0.0}));
-	std::cout << "   Origin: " << ToString(fp.type) << " (unstable)\n";
+	std::cout << "   Origin: " << to_string(fp.type) << " (unstable)\n";
 	
 	Real val = std::sqrt(8.0/3.0 * 27.0);
 	auto fp2 = FixedPointFinder::Find(lorenz, Vector<Real>({val, val, 27.0}));
-	std::cout << "   C+ point: " << ToString(fp2.type) << "\n";
+	std::cout << "   C+ point: " << to_string(fp2.type) << "\n";
 	
 	// 2. Compute Lyapunov exponents
 	std::cout << "\n2. Lyapunov Exponents:\n";

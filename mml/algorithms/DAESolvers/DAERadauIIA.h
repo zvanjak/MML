@@ -21,6 +21,7 @@
 #define MML_DAE_RADAU_IIA_H
 
 #include "DAESolverBase.h"
+#include <algorithm>
 #include <array>
 #include <cmath>
 
@@ -59,9 +60,9 @@ namespace MML {
 	                                         Real t0, const Vector<Real>& x0, const Vector<Real>& y0,
 	                                         Real t_end, const DAESolverConfig& config = DAESolverConfig())
 	{
-		if (t_end <= t0)
-			throw ArgumentError("SolveDAERadauIIA: t_end must be greater than t0 (reverse-time integration is not supported)");
-		if (config.step_size <= 0)
+		if (!std::isfinite(t_end - t0) || t_end == t0)
+			throw ArgumentError("SolveDAERadauIIA: requires distinct finite endpoints");
+		if (!std::isfinite(config.step_size) || config.step_size <= 0)
 			throw ArgumentError("SolveDAERadauIIA: config.step_size must be positive");
 
 		AlgorithmTimer timer;
@@ -69,9 +70,7 @@ namespace MML {
 		int diffDim = system.getDiffDim();
 		int algDim = system.getAlgDim();
 		int totalDim = diffDim + algDim;
-		int num_steps = static_cast<int>((t_end - t0) / config.step_size) + 1;
-
-		DAESolverResult result(t0, t_end, diffDim, algDim, num_steps);
+		DAESolverResult result(t0, t_end, diffDim, algDim, 0);
 		result.algorithm_name = "DAERadauIIA";
 		result.solution.fillValues(0, t0, x0, y0);
 		if (!ValidateDAEInitialState(system, t0, x0, y0, config, result)) {
@@ -108,7 +107,8 @@ namespace MML {
 		Vector<Real> x = x0;
 		Vector<Real> y = y0;
 		Real t = t0;
-		Real h = config.step_size;
+		const Real direction = t_end > t0 ? Real(1) : Real(-1);
+		Real h = direction * config.step_size;
 
 		// Stage values: K_i for differential, L_i for algebraic
 		// K_i = f(t + c_i*h, X_i, Y_i), L_i = y-values at stage
@@ -127,11 +127,13 @@ namespace MML {
 			Matrix<Real>(algDim, algDim), Matrix<Real>(algDim, algDim), Matrix<Real>(algDim, algDim)};
 
 		int step = 1;
-		while (t + h/2 <= t_end && step < config.max_steps) {
+		while (direction * (t_end - t) > 0 && step <= config.max_steps) {
+			if (!PrepareDAETrajectoryPoint(result, step)) break;
 
 			// Clamp step size to reach t_end exactly
-			Real h_actual = std::min(h, t_end - t);
-			if (h_actual < DAETimeTolerance(t_end, h)) break;
+			Real h_actual = direction * std::min(std::abs(h), std::abs(t_end - t));
+			if (!ValidateDAETimeStep(t, t + h_actual, result, "Radau IIA")) break;
+			if (std::abs(h_actual) < DAETimeTolerance(t_end, h)) break;
 
 			Vector<Real> stageX(3 * diffDim), stageY(3 * algDim);
 			for (int stage = 0; stage < 3; ++stage) {
@@ -177,7 +179,7 @@ namespace MML {
 						dfDx[stage], dfDy[stage], dgDx[stage], dgDy[stage]);
 
 				for (int row = 0; row < 3 * totalDim; ++row)
-					for (int col = 0; col < 3 * totalDim; ++col) jacobian(row, col) = REAL(0.0);
+					for (int col = 0; col < 3 * totalDim; ++col) jacobian(row, col) = static_cast<MML::Real>(0.0);
 				const Real coefficients[3][3] = {{a11, a12, a13}, {a21, a22, a23}, {a31, a32, a33}};
 				const int algebraicOffset = 3 * diffDim;
 				for (int si = 0; si < 3; ++si) {
@@ -185,7 +187,7 @@ namespace MML {
 						for (int i = 0; i < diffDim; ++i) {
 							for (int j = 0; j < diffDim; ++j)
 								jacobian(si * diffDim + i, sj * diffDim + j) =
-									(si == sj && i == j ? REAL(1.0) : REAL(0.0))
+									(si == sj && i == j ? static_cast<MML::Real>(1.0) : static_cast<MML::Real>(0.0))
 									- h_actual * coefficients[si][sj] * dfDx[sj](i, j);
 							for (int j = 0; j < algDim; ++j)
 								jacobian(si * diffDim + i, algebraicOffset + sj * algDim + j) =
@@ -228,9 +230,10 @@ namespace MML {
 		}
 
 		// Finalize
-		result.solution.setFinalSize(step - 1);
+		if (result.status != AlgorithmStatus::ResourceLimitExceeded)
+			result.solution.setFinalSize(step - 1);
 		result.total_steps = step - 1;
-		if (t_end - t > DAETimeTolerance(t_end, config.step_size) && result.status == AlgorithmStatus::Success) {
+		if (direction * (t_end - t) > DAETimeTolerance(t_end, config.step_size) && result.status == AlgorithmStatus::Success) {
 			result.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.failure_reason = DAEFailureReason::MaxStepsExceeded;
 			result.error_message = "Maximum Radau IIA step count reached before t_end";

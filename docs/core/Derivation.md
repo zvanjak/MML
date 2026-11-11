@@ -9,6 +9,7 @@ This document covers numerical computation of derivatives using finite differenc
 - [Automatic Step Size](#automatic-step-size)
 - [Error Estimation](#error-estimation)
 - [Function Types](#function-types)
+- [Jacobians, Hessians and Gradients — one vocabulary](#jacobians-hessians-and-gradients--one-vocabulary)
 - [Higher-Order Derivatives](#higher-order-derivatives)
 - [Examples](#examples)
 - [Performance and Accuracy](#performance-and-accuracy)
@@ -476,13 +477,13 @@ J = [ y  x  0 ]   [ 2  1  0 ]
 ```
 
 For full fixed-size or dynamic vector-function Jacobians, prefer
-`calcJacobian` or `calcJacobianDyn`. They perturb one input coordinate at a time
+`CalcJacobian` (fixed size via `IVectorFunction`, dynamic size via `std::function`). They perturb one input coordinate at a time
 and fill the complete output column from each vector evaluation, requiring four
 vector-function calls per input dimension:
 
 ```cpp
 int evaluations = 0;
-Matrix<Real> J = Derivation::calcJacobianDyn(function, point, 0.0, &evaluations);
+Matrix<Real> J = Derivation::CalcJacobian(function, point, 0.0, &evaluations);
 // evaluations == 4 * point.size()
 ```
 
@@ -543,7 +544,69 @@ Real dSxx_dx = Derivation::NDer4Partial(stress_field, 0, 0, 0, pos);
 
 ---
 
+## Jacobians, Hessians and Gradients — one vocabulary
+
+MML computes Jacobians three ways — finite differences (`MML::Derivation`), forward-mode
+automatic differentiation with `Dual<T>` numbers and reverse-mode AD with a `Tape` (both in
+`MML::AD`). Since 2.1 they share one naming scheme ([CONTRACT_POLICY §11](../CONTRACT_POLICY.md#11-naming-convention)):
+`Calc<Object>[<Method>]`, where the method suffix names the technology and the *argument types*
+select fixed vs. dynamic size (no `Dyn` suffix). The 2.0 spellings (`calcJacobian`,
+`calcJacobianDyn`, `jacobianForwardAD`, `AD::gradient`, …) remain as `[[deprecated]]` aliases.
+
+| Entry point | Input | Result | Method | Default step | Order / cost |
+|---|---|---|---|---|---|
+| `Derivation::CalcJacobian(f, pos [, h, &evals])` | `IVectorFunction<N>` / `IVectorFunctionNM<N,M>` + `VectorN` | `MatrixNM` | central differences | `ε^{1/5}·max(1,|x_j|)` per column | 4th order, 4·N vector evaluations |
+| `Derivation::CalcJacobian(f, pos [, outputDim] [, h, &evals])` | `std::function<Vector(const Vector&)>` + `Vector` | `Matrix` | central differences | same | 4th order, 4·n; validates output dimension and finiteness |
+| `Derivation::CalcJacobianInPlace(f, pos, J [, h, &evals])`, `CalcJacobianColumns(f, pos, J, m, h, &evals)` | as above, pre-allocated `J` | in place | same | same | same — for Newton loops |
+| `Derivation::CalcJacobianOrder2(f, pos [, h])` | `std::function` + `Vector` | `Matrix` | central differences | `ε^{1/3}` | 2nd order, 2·n — half the cost |
+| `Derivation::CalcJacobianODE(derivs, t, x [, J] [, h])` | `derivs(t, x, dxdt)` | `Matrix` | central differences | `√ε·max(1,|x_j|)` | 2nd order, 2·n — what stiff steppers use |
+| `Derivation::CalcJacobianMap(map, x, J [, h])` | `x_{n+1} = f(x_n)` | in place | central differences | `√ε·max(1,|x_j|)` | 2nd order, 2·n |
+| `Derivation::CalcHessian(f, pos [, H] [, h])` | `IScalarFunction<N>` + `VectorN` | `MatrixNM` | `NSecDer4Partial` per entry | per-entry automatic step | 4th order, N(N+1)/2 mixed partials |
+| `AD::CalcJacobianForwardAD(f, point)` | callable on `std::vector<Dual<T>>` | `Matrix<T>` | forward AD | — (exact to rounding) | n+1 evaluations |
+| `AD::CalcJacobianReverseAD(f, point)` | callable on `std::vector<ADVar>` | `Matrix<Real>` | reverse AD | — | m+1 evaluations + m backward sweeps |
+| `AD::CalcHessianForwardAD(f, point)` | callable on `std::vector<Dual<Dual<T>>>` | `Matrix<T>` | nested forward AD | — | n(n+1)/2 evaluations |
+| `AD::CalcGradientForwardAD(f, x)`, `AD::CalcGradientReverseAD(f, x)` | scalar callable | `std::vector` | forward / reverse AD | — | n evaluations / 1 evaluation + 1 sweep |
+| `AD::CalcDerivativeForwardAD(f, x)` | scalar callable on `Dual<T>` | `{value, derivative}` | forward AD | — | 1 evaluation |
+
+The finite-difference entries report **no error estimate** — they are raw matrices, and the step
+column above is the only accuracy knob (`h == 0` selects the default; a nonzero `h` is an absolute
+step applied to every coordinate). Per-element error estimates are available through
+`NDer4Partial(..., &err)` and friends. The AD entries are exact up to rounding and do not take a
+step at all. For a user-supplied Jacobian on an ODE system see `IODESystemWithJacobian`.
+
+```cpp
+// Numerical: fixed size through the interface, dynamic size through std::function
+VectorFunction<2> polar([](const VectorN<Real, 2>& q) {
+	return VectorN<Real, 2>{ q[0] * std::cos(q[1]), q[0] * std::sin(q[1]) };
+});
+VectorN<Real, 2> q0{ 2.0, 0.5 };
+MatrixNM<Real, 2, 2> Jfix = Derivation::CalcJacobian(polar, q0);
+
+int evals = 0;
+Matrix<Real> Jdyn = Derivation::CalcJacobian(
+	[](const Vector<Real>& q) { return Vector<Real>{ q[0] * std::cos(q[1]), q[0] * std::sin(q[1]) }; },
+	Vector<Real>{ 2.0, 0.5 }, 0.0, &evals);              // evals == 8
+
+// Forward and reverse AD on the same map
+auto polarAD = [](const auto& q) {
+	using std::cos; using std::sin;
+	return std::vector<std::decay_t<decltype(q[0])>>{ q[0] * cos(q[1]), q[0] * sin(q[1]) };
+};
+Matrix<Real> Jfwd = AD::CalcJacobianForwardAD(polarAD, std::vector<Real>{ 2.0, 0.5 });
+Matrix<Real> Jrev = AD::CalcJacobianReverseAD(polarAD, std::vector<Real>{ 2.0, 0.5 });
+// Jfix, Jdyn, Jfwd, Jrev agree to ~1e-10 (finite differences) / rounding (AD)
+```
+
+---
+
 ## Higher-Order Derivatives
+
+For scalar-generic expressions used by existing geometry and field algorithms,
+see [Automatic differentiation for geometry and fields](Automatic_differentiation.md).
+The opt-in adapters retain the ordinary Real-valued interfaces while supplying
+first/second partials, third curve derivatives, and metric jets. Nested elementary
+functions support higher-order forward propagation; AD does not supply a
+roundoff bound or remove nonsmooth points and chart singularities.
 
 ### Second Derivatives
 
@@ -822,7 +885,7 @@ std::cout << "Manual h derivative: " << der_manual
 | Order 6 | 6-7 | 8-10 | 6n-7n |
 | Order 8 | 8-9 | 11-13 | 8n-9n |
 
-**Full vector-function Jacobian:** `calcJacobian` and `calcJacobianDyn` use
+**Full vector-function Jacobian:** the `CalcJacobian` overloads use
 exactly $4n$ vector-function evaluations for an $m\times n$ fourth-order
 Jacobian. Computing individual partial derivatives separately can cost more.
 

@@ -2,7 +2,7 @@
 
 This guide documents the MML object-persistence framework implemented under
 `mml/tools/persistence/`. It covers the durable `.mmlj` JSON and `.mmlb` binary
-formats used by generic `Persistence::Save` / `Persistence::Load` workflows.
+formats and count-prefixed text used by generic `Persistence::Save` / `Persistence::Load` workflows.
 
 For legacy visualizer exports such as sampled functions, curves, fields, ODE
 solutions, and particle simulations, use `.mml` presentation files documented in
@@ -18,7 +18,8 @@ inputs, but they are not general object round-trip persistence files.
 | Visualizer text | `.mml` | Presentation export for plotting and visualizers | Yes | Export-only sampled data |
 | MML JSON object | `.mmlj` | Structured object persistence | Yes | `Vector`, `VectorN`, `Matrix`, `MatrixNM` |
 | MML binary object | `.mmlb` | Compact object persistence | No | real/complex dynamic vectors and matrices |
-| CSV/text helpers | `.csv`, `.txt`, `.dat` | Simple matrix I/O and inspection | Yes | existing matrix helper APIs |
+| Object text | `.txt`, `.dat` | Simple numeric object persistence | Yes | dynamic vectors and matrices |
+| CSV helpers | `.csv` | Matrix I/O and inspection | Yes | matrices |
 
 Use `.mmlj` when you want readable object files, schema metadata, golden-file
 fixtures, or easy debugging. Use `.mmlb` when you want compact, exact binary
@@ -43,12 +44,92 @@ The concrete implementation headers are:
 #include <mml/tools/persistence/VectorBinary.h>
 #include <mml/tools/persistence/MatrixBinary.h>
 #include <mml/tools/persistence/VectorJSON.h>
+#include <mml/tools/persistence/VectorIO.h>
 #include <mml/tools/persistence/MatrixJSON.h>
 ```
 
 ---
 
 ## Basic Examples
+
+### Vector Text Persistence
+
+`Vector<T>` no longer owns `SaveToFile` or `LoadFromFile`. Those APIs are removed with
+no compatibility aliases. Include `Persistence.h` (or `persistence/VectorIO.h`) and use
+`Persistence::Save` / `Load`; generic vector dispatch is no longer owned by `VectorJSON.h`.
+
+```cpp
+Vector<Real> values{1.25, -2.5, std::nextafter(Real(1), Real(2))};
+const auto filename = std::filesystem::temp_directory_path() / "mml_vector_demo.txt";
+IOResult saved = Persistence::Save(values, filename.string());
+Vector<Real> restored;
+IOResult loaded = Persistence::Load(filename.string(), restored);
+```
+
+Always check `IOResult`. Default file format inference accepts `.txt`, `.dat`, or `.mml`
+as object text, `.mmlj` as JSON and `.mmlb`/`.bin` as binary. Unknown extensions require an
+explicit format; vector CSV is not implemented. A count-prefixed vector `.mml` file is
+**not** a sampled-function or other visualizer presentation file.
+
+Text retains the existing layout: a nonnegative element count followed by one value per line:
+
+```text
+3
+1
+-2
+3
+```
+
+The reader accepts whitespace-separated values, including existing count-prefixed files.
+An empty vector is represented by `0`. Supported text scalars are integers (excluding `bool`),
+real floating-point types and complex floating-point types. Character-sized integers are
+written as decimal numbers, not character glyphs. Complex values use `(real,imag)` syntax,
+with optional internal whitespace on input.
+
+Automatic precision uses the actual scalar or complex component's `max_digits10`, independent
+of configured `Real`. Finite values round-trip exactly; signed zero is preserved. Special
+tokens are `nan`, `inf`, and `-inf`, including within complex components. NaN payload bits
+and NaN sign are not preserved. Formatting is classic-locale and caller stream formatting
+is restored on success, returned failure, or exceptions.
+
+```cpp
+std::stringstream text;
+text << std::fixed << std::setprecision(2);
+IOResult streamed = Persistence::Save(text, values, Persistence::Format::Text);
+IOResult readBack = Persistence::Load(text, restored, Persistence::Format::Text);
+```
+
+Stream operations require an explicit format. File overloads also accept options in the
+same order as matrix persistence: `Save(vector, filename, saveOptions, format)` and
+`Load(filename, vector, loadOptions, format)`. Unsupported scalar/format combinations return
+`UNSUPPORTED_SCALAR` or `INVALID_FORMAT`; integer or complex text requests do not instantiate
+unsupported JSON/binary codecs.
+
+Generic vector loads are **transactional for text, JSON and binary**: the destination changes
+only after a complete successful decode. Direct format-specific codec APIs retain their existing
+contracts. Counts are validated before resizing, and the existing `max_allocation_bytes` budget
+limits the decoded vector payload (not total parser/process memory). Malformed or truncated
+text reports the input line; file results retain the filename. `strict_schema = true` rejects
+trailing text data, while `false` permits following data after the declared values.
+
+```cpp
+Persistence::LoadOptions limited;
+limited.max_allocation_bytes = sizeof(Real);
+Vector<Real> unchanged{9, 8};
+std::istringstream oversized("2\n1\n2\n");
+IOResult rejected = Persistence::Load(
+    oversized, unchanged, Persistence::Format::Text, limited);
+// ALLOCATION_LIMIT_EXCEEDED; unchanged is still {9, 8}.
+```
+
+Stream exception masks retain standard ostream/istream behavior; enabled I/O exceptions
+propagate while formatting and the load destination remain unchanged. Load allocation/capacity
+failures return explicit allocation errors. Text does not embed object metadata.
+
+Runnable counterpart: `Docs_Demo_VectorPersistence()` in
+[docs_demo_serializer.cpp](../../src/docs_demos/tools/docs_demo_serializer.cpp).
+Run `MML_DocsApp --vector-persistence`; this demonstrates file/stream round trips, integer
+and complex text, special values, failure atomicity and allocation limits.
 
 ### Vector JSON Round Trip
 
@@ -59,13 +140,13 @@ using namespace MML;
 
 Vector<Real> v{1.25, -2.5, 3.75};
 
-SerializeResult saved = Persistence::Save(v, "vector.mmlj");
+IOResult saved = Persistence::Save(v, "vector.mmlj");
 if (!saved.success) {
     std::cerr << saved.message << '\n';
 }
 
 Vector<Real> loaded;
-SerializeResult loadedResult = Persistence::Load("vector.mmlj", loaded);
+IOResult loadedResult = Persistence::Load("vector.mmlj", loaded);
 ```
 
 The same operation can be performed explicitly:
@@ -235,7 +316,7 @@ the requested interpolator, scalar metadata, schema version, and interpolation
 options before constructing the target interpolation object.
 
 Implemented load helpers return `LoadFunctionResult<T>`, which contains both a
-`SerializeResult` and the reconstructed interpolation object. Check
+`IOResult` and the reconstructed interpolation object. Check
 `result.success` before using `function`:
 
 ```cpp
@@ -245,7 +326,7 @@ if (loaded.result.success) {
 }
 ```
 
-Current sampled-function validation uses the same `SerializeError` vocabulary as
+Current sampled-function validation uses the same `IOError` vocabulary as
 other persistence APIs:
 
 | Condition | Error |
@@ -269,7 +350,7 @@ into an interpolation object.
 
 ```cpp
 Persistence::SaveOptions options;
-options.precision = 17;
+options.precision = 0;
 options.pretty_json = true;
 options.include_metadata = true;
 options.allow_lossy = false;
@@ -277,9 +358,49 @@ options.metadata.title = "test fixture";
 options.metadata.tags["source"] = "unit-test";
 ```
 
-`precision` controls JSON numeric output. `pretty_json` controls indentation and
+`precision = 0` (the default) selects automatic round-trip precision. Vector text and matrix
+text/CSV use `std::numeric_limits<T>::max_digits10`, or the component type for
+complex values, regardless of the configured `Real`. JSON uses the round-trip
+precision of its internal `double` numeric representation. A positive precision
+explicitly requests that many significant digits and can intentionally lose
+information; a negative precision is an error. Binary payloads do not use this
+text option.
+
+`pretty_json` controls indentation and
 newlines. User metadata is available for object-persistence formats, but the
 current dense vector/matrix serializers only emit required schema metadata.
+
+### Exact Matrix Text/CSV Round Trips
+
+Default file helpers and stream overloads share the same round-trip formatting.
+They use the classic locale and default floating-point notation, independent of
+the caller's locale, `fixed`/`scientific`/`hexfloat`, precision, or padding.
+Stream saves and loads restore the caller's locale, flags, precision, width,
+and fill character, including on errors and exceptions. Complex CSV cells are
+quoted so the component separator is not mistaken for a column separator.
+
+```cpp
+auto require = [](const IOResult& result) {
+    if (!result.success)
+        throw std::runtime_error(result.message);
+};
+Persistence::SaveOptions options; // precision == 0: automatic
+Matrix<double> original(1, 2);
+original(0, 0) = std::nextafter(1.0, 2.0);
+original(0, 1) = 1.0 / 7.0;
+std::stringstream text;
+text << std::fixed << std::setprecision(2);
+require(Persistence::Save(text, original, Persistence::Format::Text, options));
+Matrix<double> restored;
+require(Persistence::Load(text, restored, Persistence::Format::Text));
+if (restored(0, 0) != original(0, 0) || restored(0, 1) != original(0, 1))
+    throw std::runtime_error("Matrix text round trip lost precision");
+```
+
+Runnable counterpart: `Docs_Demo_PersistencePortability()` in
+`src/docs_demos/tools/docs_demo_serializer.cpp`. Run
+`MML_DocsApp --persistence-portability` to verify exact text round trips,
+caller-format restoration, and canonical binary long-double storage.
 
 ### LoadOptions
 
@@ -438,8 +559,14 @@ not implemented yet.
 The `LongDouble` payload does not copy ABI bytes. It stores value class, sign,
 source precision, binary exponent, and a 128-bit significand in a fixed 24-byte
 record. This avoids platform-specific padding and x87 representation details.
+The 24-byte width is a wire-format constant, not `sizeof(long double)`. It is
+recorded in the envelope and checked before decoding. `float` and `double`
+require IEEE-754 binary32/binary64 host representations and use explicit
+little-endian 4/8-byte words; complex scalars encode two such words.
 A reader rejects a finite value whose source precision exceeds the target
-platform's `long double` precision rather than silently rounding it. Signed
+platform's `long double` precision or whose exponent/subnormal value cannot be
+represented exactly. Invalid class/sign/precision fields, non-normalized
+significands, and nonzero zero/nonfinite payload fields are rejected. Signed
 zero, infinity, and NaN classification are preserved; NaN payload bits are not.
 
 ### Vector Payload
@@ -465,7 +592,7 @@ After the 48-byte envelope:
 
 ## Validation And Troubleshooting
 
-All new object-persistence APIs return `SerializeResult` and do not throw for
+All new object-persistence APIs return `IOResult` and do not throw for
 normal validation failures.
 
 ```cpp

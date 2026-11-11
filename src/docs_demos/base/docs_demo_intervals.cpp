@@ -53,7 +53,7 @@ void Docs_Demo_Intervals()
 	// Equidistant covering
 	std::cout << "\n*** Equidistant Covering ***" << std::endl;
 	std::vector<Real> points;
-	closed.GetEquidistantCovering(5, points);
+	closed.getEquidistantCovering(5, points);
 	std::cout << "5 equidistant points in [0, 10]: ";
 	for (const auto& p : points) {
 		std::cout << p << " ";

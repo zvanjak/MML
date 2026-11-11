@@ -28,7 +28,7 @@ namespace CompGeometry {
 	class ConvexHull2D {
 	private:
 		// Use centralized geometry epsilon from Constants
-		static constexpr Real EPSILON = Constants::GEOMETRY_EPSILON;
+		static constexpr Real EPSILON = Precision::GeometryEpsilon;
 
 	public:
 		// ========================================================================

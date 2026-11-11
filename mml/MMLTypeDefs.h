@@ -3,7 +3,7 @@
 ///                                                                                   ///
 ///  File:        MMLTypeDefs.h                                                       ///
 ///  Description: Core type definition - the Real floating-point type                 ///
-///               Minimal header with zero dependencies, included by MMLPrecision.h   ///
+///               Namespaced Real/Complex aliases, included by MMLPrecision.h         ///
 ///               and MMLExceptions.h before MMLBase.h orchestrates everything        ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
@@ -12,6 +12,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_TYPEDEFS_H
 #define MML_TYPEDEFS_H
+
+#include <complex>
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Real Type Configuration
@@ -42,15 +44,18 @@
 //     (none)                   → typedef double Real (default)
 //
 // CURRENT CONFIGURATION:
+namespace MML {
 #if defined(MML_USE_FLOAT)
-typedef float Real;
+using Real = float;
 #elif defined(MML_USE_DOUBLE)
-typedef double Real;
+using Real = double;
 #elif defined(MML_USE_LONG_DOUBLE)
-typedef long double Real;
+using Real = long double;
 #else
-typedef double Real; // default real type
+using Real = double; // default real type
 #endif
+using Complex = std::complex<Real>;
+}
 //
 // EXPERIMENTAL / ONGOING DEVELOPMENT (not yet fully supported):
 // typedef __float128				 Real;    // Quad precision (GCC/Clang-on-Linux only, 128-bit IEEE 754)
@@ -79,11 +84,11 @@ typedef double Real; // default real type
 //    - For float builds: implicit conversion (acceptable precision loss)
 //    - For long double: constants may have less precision than Real
 //    - For __float128 (future): will require quad-precision constants with Q suffix
-//    - Use REAL() macro for literals that should match Real precision
+//    - Use MML::Real(value) or static_cast<MML::Real>(value) for typed literals
 //
 // 4. API CONTRACTS:
 //    - All MML APIs use Real consistently
-//    - Template parameters like Vector<Real>, Matrix<Real> must match the global Real
+//    - Template parameters like Vector<Real>, Matrix<Real> must match MML::Real
 //    - Mixing Real with explicit float/double types is supported but requires care
 //
 // 5. THREAD SAFETY:
@@ -105,4 +110,3 @@ typedef double Real; // default real type
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #endif
-

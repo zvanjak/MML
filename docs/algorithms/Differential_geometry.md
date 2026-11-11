@@ -20,7 +20,7 @@ Comprehensive toolkit for **differential geometry of curves and surfaces** - fro
 |--------|------|
 | `mml/base/DifferentialGeometry/DifferentialForm.h` | Pointwise differential forms and wedge products. |
 | `mml/base/DifferentialGeometry/Hodge.h` | Hodge star, orientation, and metric-derived cross product. |
-| `mml/base/DifferentialGeometry/Metric.h` | Typed metric value object plus `flat`/`sharp` musical maps. |
+| `mml/core/DifferentialGeometry/Metric.h` | Typed metric value object plus `flat`/`sharp` musical maps. |
 | `mml/base/DifferentialGeometry/TypedFields.h` | Typed scalar/vector/form field interfaces. |
 | `mml/core/DifferentialGeometry/FieldOperations.h` | Exterior derivative, metric gradient, typed divergence/curl wrappers. |
 | `mml/core/DifferentialGeometry/InducedMetric.h` | Surface first fundamental form as a `MetricTensorField<2>`. |
@@ -830,7 +830,8 @@ assert((B - B_check).NormL2() < 1e-6);
 ```cpp
 // Cusps, kinks cause numerical issues
 // Example: Astroid has cusps at t = 0, π/2, π, 3π/2
-Curves::AstroidCurve astroid;
+#include <test_data/parametric_curves_defs.h>
+MML::TestBeds::ShowcaseCurves::AstroidCurve astroid;
 Real kappa = astroid.getCurvature(0);  // BAD: cusp!
 ```
 

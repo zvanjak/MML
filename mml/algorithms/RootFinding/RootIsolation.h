@@ -2,7 +2,9 @@
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
 ///  File:        RootIsolation.h                                                     ///
-///  Description: Structured scalar root isolation over finite intervals             ///
+///  Description: Sampling-based scalar root bracketing over finite intervals (sign changes   ///
+///               on a uniform grid plus heuristic tangent-root candidates) - not algebraic   ///
+///               root isolation; completeness is not certified                              ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
 ///  License:     MIT License (see LICENSE.md)                                         ///
@@ -203,6 +205,15 @@ namespace MML::RootFinding {
 		}
 	} // namespace Detail
 
+	/// @brief Sampling-based root bracketing: locate sign changes (and, optionally, tangent-root
+	/// candidates) of `function` on `[lower, upper]` by evaluating it on `num_intervals` equal cells.
+	///
+	/// **This is not root isolation in the algebraic sense** (Sturm sequences, Descartes' rule,
+	/// interval arithmetic): it cannot certify that every root was found or that each returned
+	/// interval holds exactly one. Roots closer together than the cell width are merged or missed,
+	/// and `TangentCandidate` entries come from a three-point |f| minimum refined by golden-section
+	/// search on |f| — they are candidates, not proven roots (check `residual`). Use the result to
+	/// seed `FindRootBrentDetailed` on each `SignChange` interval.
 	inline std::vector<RootCandidate> FindRootIntervals(const IRealFunction& function,
 		Real lower, Real upper, const RootIsolationConfig& config = {}) {
 		return Detail::FindRootIntervalsImpl(function, nullptr, lower, upper, config);

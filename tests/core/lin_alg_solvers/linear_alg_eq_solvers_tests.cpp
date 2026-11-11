@@ -522,7 +522,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 			REQUIRE(solution.IsEqualTo(system._sol, TOL(1e-14, 1e-5)));
 			REQUIRE((system._mat * solution).IsEqualTo(system._rhs, TOL(1e-14, 1e-5)));
 			REQUIRE(system._rank == 2);
-			REQUIRE(system._cond_2 >= REAL(1.0));
+			REQUIRE(system._cond_2 >= static_cast<MML::Real>(1.0));
 		}
 	}
 
@@ -852,22 +852,22 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		
 		// Well-conditioned matrix (condition number should be close to 1)
 		Matrix<Real> well_cond(3, 3);
-		well_cond[0][0] = REAL(2.0); well_cond[0][1] = REAL(0.0); well_cond[0][2] = REAL(0.0);
-		well_cond[1][0] = REAL(0.0); well_cond[1][1] = REAL(2.0); well_cond[1][2] = REAL(0.0);
-		well_cond[2][0] = REAL(0.0); well_cond[2][1] = REAL(0.0); well_cond[2][2] = REAL(2.0);
+		well_cond[0][0] = static_cast<MML::Real>(2.0); well_cond[0][1] = static_cast<MML::Real>(0.0); well_cond[0][2] = static_cast<MML::Real>(0.0);
+		well_cond[1][0] = static_cast<MML::Real>(0.0); well_cond[1][1] = static_cast<MML::Real>(2.0); well_cond[1][2] = static_cast<MML::Real>(0.0);
+		well_cond[2][0] = static_cast<MML::Real>(0.0); well_cond[2][1] = static_cast<MML::Real>(0.0); well_cond[2][2] = static_cast<MML::Real>(2.0);
 		
 		SVDecompositionSolver<Real> svd_well(well_cond);
 		Real inv_cond_well = svd_well.inv_condition();
 		// For identity-like matrix, inverse condition should be 1.0
-		REQUIRE(std::abs(inv_cond_well - REAL(1.0)) < TOL(1e-14, 1e-5));
+		REQUIRE(std::abs(inv_cond_well - static_cast<MML::Real>(1.0)) < TOL(1e-14, 1e-5));
 		
 		// Ill-conditioned matrix (large condition number = small inverse condition)
 		TestBeds::TestLinearSystem hilbert = TestBeds::LinearAlgEqTestBed::getLinAlgEqSystem("hilbert_5x5");
 		SVDecompositionSolver<Real> svd_hilbert(hilbert._mat);
 		Real inv_cond_hilbert = svd_hilbert.inv_condition();
 		// Hilbert 5x5 has condition number ~943,656, so inverse condition ~1e-6
-		REQUIRE(inv_cond_hilbert < REAL(1e-4));
-		REQUIRE(inv_cond_hilbert > REAL(0.0));
+		REQUIRE(inv_cond_hilbert < static_cast<MML::Real>(1e-4));
+		REQUIRE(inv_cond_hilbert > static_cast<MML::Real>(0.0));
 	}
 
 	TEST_CASE("Test_SVDSolver_Rank_FullRank", "[SVDSolver]")
@@ -888,9 +888,9 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		TEST_PRECISION_INFO();
 		// Create a rank-2 matrix (3x3 with one dependent row)
 		Matrix<Real> rank_deficient(3, 3);
-		rank_deficient[0][0] = REAL(1.0); rank_deficient[0][1] = REAL(2.0); rank_deficient[0][2] = REAL(3.0);
-		rank_deficient[1][0] = REAL(4.0); rank_deficient[1][1] = REAL(5.0); rank_deficient[1][2] = REAL(6.0);
-		rank_deficient[2][0] = REAL(5.0); rank_deficient[2][1] = REAL(7.0); rank_deficient[2][2] = REAL(9.0);  // Row 3 = Row 1 + Row 2
+		rank_deficient[0][0] = static_cast<MML::Real>(1.0); rank_deficient[0][1] = static_cast<MML::Real>(2.0); rank_deficient[0][2] = static_cast<MML::Real>(3.0);
+		rank_deficient[1][0] = static_cast<MML::Real>(4.0); rank_deficient[1][1] = static_cast<MML::Real>(5.0); rank_deficient[1][2] = static_cast<MML::Real>(6.0);
+		rank_deficient[2][0] = static_cast<MML::Real>(5.0); rank_deficient[2][1] = static_cast<MML::Real>(7.0); rank_deficient[2][2] = static_cast<MML::Real>(9.0);  // Row 3 = Row 1 + Row 2
 		
 		SVDecompositionSolver<Real> svd(rank_deficient);
 		int rank = svd.Rank();
@@ -906,9 +906,9 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		TEST_PRECISION_INFO();
 		// Create a rank-2 matrix (3x3) with known nullspace
 		Matrix<Real> A(3, 3);
-		A[0][0] = REAL(1.0); A[0][1] = REAL(2.0); A[0][2] = REAL(3.0);
-		A[1][0] = REAL(4.0); A[1][1] = REAL(5.0); A[1][2] = REAL(6.0);
-		A[2][0] = REAL(5.0); A[2][1] = REAL(7.0); A[2][2] = REAL(9.0);  // Row 3 = Row 1 + Row 2
+		A[0][0] = static_cast<MML::Real>(1.0); A[0][1] = static_cast<MML::Real>(2.0); A[0][2] = static_cast<MML::Real>(3.0);
+		A[1][0] = static_cast<MML::Real>(4.0); A[1][1] = static_cast<MML::Real>(5.0); A[1][2] = static_cast<MML::Real>(6.0);
+		A[2][0] = static_cast<MML::Real>(5.0); A[2][1] = static_cast<MML::Real>(7.0); A[2][2] = static_cast<MML::Real>(9.0);  // Row 3 = Row 1 + Row 2
 		
 		SVDecompositionSolver<Real> svd(A);
 		Matrix<Real> nullspace = svd.Nullspace();
@@ -934,9 +934,9 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		TEST_PRECISION_INFO();
 		// Create a rank-2 matrix (3x3)
 		Matrix<Real> A(3, 3);
-		A[0][0] = REAL(1.0); A[0][1] = REAL(2.0); A[0][2] = REAL(3.0);
-		A[1][0] = REAL(4.0); A[1][1] = REAL(5.0); A[1][2] = REAL(6.0);
-		A[2][0] = REAL(5.0); A[2][1] = REAL(7.0); A[2][2] = REAL(9.0);
+		A[0][0] = static_cast<MML::Real>(1.0); A[0][1] = static_cast<MML::Real>(2.0); A[0][2] = static_cast<MML::Real>(3.0);
+		A[1][0] = static_cast<MML::Real>(4.0); A[1][1] = static_cast<MML::Real>(5.0); A[1][2] = static_cast<MML::Real>(6.0);
+		A[2][0] = static_cast<MML::Real>(5.0); A[2][1] = static_cast<MML::Real>(7.0); A[2][2] = static_cast<MML::Real>(9.0);
 		
 		SVDecompositionSolver<Real> svd(A);
 		Matrix<Real> range = svd.Range();
@@ -947,20 +947,20 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		
 		// Verify columns are orthonormal (from U matrix)
 		// Column 1 dot Column 2 should be 0
-		Real dot_product = REAL(0.0);
+		Real dot_product = static_cast<MML::Real>(0.0);
 		for (int i = 0; i < 3; i++)
 			dot_product += range[i][0] * range[i][1];
 		REQUIRE(std::abs(dot_product) < TOL(1e-12, 1e-5));
 		
 		// Each column should have unit norm
-		Real norm1 = REAL(0.0), norm2 = REAL(0.0);
+		Real norm1 = static_cast<MML::Real>(0.0), norm2 = static_cast<MML::Real>(0.0);
 		for (int i = 0; i < 3; i++)
 		{
 			norm1 += range[i][0] * range[i][0];
 			norm2 += range[i][1] * range[i][1];
 		}
-		REQUIRE(std::abs(norm1 - REAL(1.0)) < TOL(1e-12, 1e-5));
-		REQUIRE(std::abs(norm2 - REAL(1.0)) < TOL(1e-12, 1e-5));
+		REQUIRE(std::abs(norm1 - static_cast<MML::Real>(1.0)) < TOL(1e-12, 1e-5));
+		REQUIRE(std::abs(norm2 - static_cast<MML::Real>(1.0)) < TOL(1e-12, 1e-5));
 	}
 
 	TEST_CASE("Test_SVDSolver_DecompositionVerification", "[SVDSolver]")
@@ -984,7 +984,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		{
 			for (int j = 0; j < n; j++)
 			{
-				Real sum = REAL(0.0);
+				Real sum = static_cast<MML::Real>(0.0);
 				for (int k = 0; k < n; k++)
 					sum += U[i][k] * W[k] * V[j][k];  // V^T[k][j] = V[j][k]
 				reconstructed[i][j] = sum;
@@ -1019,10 +1019,10 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		{
 			for (int j = 0; j < n; j++)
 			{
-				Real sum = REAL(0.0);
+				Real sum = static_cast<MML::Real>(0.0);
 				for (int k = 0; k < A.rows(); k++)
 					sum += U[k][i] * U[k][j];
-				Real expected = (i == j) ? REAL(1.0) : REAL(0.0);
+				Real expected = (i == j) ? static_cast<MML::Real>(1.0) : static_cast<MML::Real>(0.0);
 				REQUIRE(std::abs(sum - expected) < TOL(1e-12, 1e-5));
 			}
 		}
@@ -1032,10 +1032,10 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		{
 			for (int j = 0; j < n; j++)
 			{
-				Real sum = REAL(0.0);
+				Real sum = static_cast<MML::Real>(0.0);
 				for (int k = 0; k < n; k++)
 					sum += V[k][i] * V[k][j];
-				Real expected = (i == j) ? REAL(1.0) : REAL(0.0);
+				Real expected = (i == j) ? static_cast<MML::Real>(1.0) : static_cast<MML::Real>(0.0);
 				REQUIRE(std::abs(sum - expected) < TOL(1e-12, 1e-5));
 			}
 		}
@@ -1084,9 +1084,9 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		// Test pseudoinverse solution for rank-deficient system
 		// The SVD automatically handles rank-deficiency by zeroing small singular values
 		Matrix<Real> A(3, 3);
-		A[0][0] = REAL(1.0); A[0][1] = REAL(2.0); A[0][2] = REAL(3.0);
-		A[1][0] = REAL(2.0); A[1][1] = REAL(4.0); A[1][2] = REAL(6.0);  // Row 2 = 2 * Row 1
-		A[2][0] = REAL(3.0); A[2][1] = REAL(6.0); A[2][2] = REAL(9.0);  // Row 3 = 3 * Row 1
+		A[0][0] = static_cast<MML::Real>(1.0); A[0][1] = static_cast<MML::Real>(2.0); A[0][2] = static_cast<MML::Real>(3.0);
+		A[1][0] = static_cast<MML::Real>(2.0); A[1][1] = static_cast<MML::Real>(4.0); A[1][2] = static_cast<MML::Real>(6.0);  // Row 2 = 2 * Row 1
+		A[2][0] = static_cast<MML::Real>(3.0); A[2][1] = static_cast<MML::Real>(6.0); A[2][2] = static_cast<MML::Real>(9.0);  // Row 3 = 3 * Row 1
 		
 		// This matrix has rank 1
 		SVDecompositionSolver<Real> svd(A);
@@ -1094,9 +1094,9 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		
 		// Create a consistent RHS (in the range of A)
 		Vector<Real> b(3);
-		b[0] = REAL(6.0);   // 1*1 + 2*1 + 3*1 = 6
-		b[1] = REAL(12.0);  // 2*1 + 4*1 + 6*1 = 12
-		b[2] = REAL(18.0);  // 3*1 + 6*1 + 9*1 = 18
+		b[0] = static_cast<MML::Real>(6.0);   // 1*1 + 2*1 + 3*1 = 6
+		b[1] = static_cast<MML::Real>(12.0);  // 2*1 + 4*1 + 6*1 = 12
+		b[2] = static_cast<MML::Real>(18.0);  // 3*1 + 6*1 + 9*1 = 18
 		
 		// SVD should give minimum-norm solution
 		Vector<Real> x = svd.Solve(b);
@@ -1422,7 +1422,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 
 		// Solve for different RHS using same decomposition
 		Vector<Real> rhs2(5);
-		rhs2[0] = REAL(1.0); rhs2[1] = REAL(0.0); rhs2[2] = REAL(0.0); rhs2[3] = REAL(0.0); rhs2[4] = REAL(0.0);
+		rhs2[0] = static_cast<MML::Real>(1.0); rhs2[1] = static_cast<MML::Real>(0.0); rhs2[2] = static_cast<MML::Real>(0.0); rhs2[3] = static_cast<MML::Real>(0.0); rhs2[4] = static_cast<MML::Real>(0.0);
 		Vector<Real> sol2 = luSolver.Solve(rhs2);
 
 		// Verify: A * sol2 = rhs2
@@ -1614,7 +1614,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		{
 			for (int j = 0; j < testBed._n; j++)
 			{
-				Real expected = (i == j) ? REAL(1.0) : REAL(0.0);
+				Real expected = (i == j) ? static_cast<MML::Real>(1.0) : static_cast<MML::Real>(0.0);
 				REQUIRE(std::abs(identity[i][j] - expected) < TOL(1e-13, 1e-5));
 			}
 		}
@@ -1638,7 +1638,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Real log_det = solver.logdet();
 
 		// Compute determinant using eigenvalues: det(A) = product of eigenvalues
-		Real expected_det = REAL(1.0);
+		Real expected_det = static_cast<MML::Real>(1.0);
 		for (int i = 0; i < testBed._eigen_values.size(); i++)
 			expected_det *= testBed._eigen_values[i];
 		Real expected_log_det = std::log(expected_det);
@@ -1648,7 +1648,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		INFO("Difference = " << std::abs(log_det - expected_log_det));
 
 		// Eigenvalues are approximate (3 decimals), so use relaxed tolerance
-		REQUIRE(std::abs(log_det - expected_log_det) < REAL(0.05));
+		REQUIRE(std::abs(log_det - expected_log_det) < static_cast<MML::Real>(0.05));
 	}
 
 	TEST_CASE("Test_CholeskySolver_LogDet_4x4", "[CholeskySolver]")
@@ -1665,13 +1665,13 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		CholeskySolver<Real> solver(mat);
 		Real log_det = solver.logdet();
 
-		Real expected_det = REAL(1.0);
+		Real expected_det = static_cast<MML::Real>(1.0);
 		for (int i = 0; i < testBed._eigen_values.size(); i++)
 			expected_det *= testBed._eigen_values[i];
 		Real expected_log_det = std::log(expected_det);
 
 		// Eigenvalues are approximate (3 decimals), so use relaxed tolerance
-		REQUIRE(std::abs(log_det - expected_log_det) < REAL(0.05));
+		REQUIRE(std::abs(log_det - expected_log_det) < static_cast<MML::Real>(0.05));
 	}
 	*/
 
@@ -1695,7 +1695,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		{
 			for (int j = 0; j < testBed._n; j++)
 			{
-				Real sum = REAL(0.0);
+				Real sum = static_cast<MML::Real>(0.0);
 				for (int k = 0; k < testBed._n; k++)
 					sum += L[i][k] * L[j][k];  // L * L^T
 				LLT[i][j] = sum;
@@ -1717,10 +1717,10 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 			TEST_PRECISION_INFO();
 		// Test that non-positive-definite matrix throws exception
 		Matrix<Real> non_spd(2, 2);
-		non_spd[0][0] = REAL(1.0);
-		non_spd[0][1] = REAL(2.0);
-		non_spd[1][0] = REAL(2.0);
-		non_spd[1][1] = REAL(1.0);  // Eigenvalues: 3, -1 (not positive definite)
+		non_spd[0][0] = static_cast<MML::Real>(1.0);
+		non_spd[0][1] = static_cast<MML::Real>(2.0);
+		non_spd[1][0] = static_cast<MML::Real>(2.0);
+		non_spd[1][1] = static_cast<MML::Real>(1.0);  // Eigenvalues: 3, -1 (not positive definite)
 
 		REQUIRE_THROWS_AS((CholeskySolver<Real>(non_spd)), SingularMatrixError);
 	}
@@ -1837,7 +1837,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		{
 			for (int j = 0; j < A.cols(); j++)
 			{
-				Real sum = REAL(0.0);
+				Real sum = static_cast<MML::Real>(0.0);
 				for (int k = 0; k < A.rows(); k++)
 					sum += Q[k][i] * Q[k][j];
 				QtQ[i][j] = sum;
@@ -1849,7 +1849,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		{
 			for (int j = 0; j < A.cols(); j++)
 			{
-				Real expected = (i == j) ? REAL(1.0) : REAL(0.0);
+				Real expected = (i == j) ? static_cast<MML::Real>(1.0) : static_cast<MML::Real>(0.0);
 				REQUIRE(std::abs(QtQ[i][j] - expected) < TOL(1e-13, 1e-5));
 			}
 		}
@@ -1889,7 +1889,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		{
 			for (int j = 0; j < mat.cols(); j++)
 			{
-				Real expected = (i == j) ? REAL(1.0) : REAL(0.0);
+				Real expected = (i == j) ? static_cast<MML::Real>(1.0) : static_cast<MML::Real>(0.0);
 				REQUIRE(std::abs(identity[i][j] - expected) < TOL(1e-13, 1e-5));
 			}
 		}
@@ -1912,13 +1912,13 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 
 		// Verify that this minimizes ||Ax - b||
 		Vector<Real> residual = mat * solution - rhs;
-		Real residual_norm = REAL(0.0);
+		Real residual_norm = static_cast<MML::Real>(0.0);
 		for (int i = 0; i < residual.size(); i++)
 			residual_norm += residual[i] * residual[i];
 		residual_norm = std::sqrt(residual_norm);
 
-		// Residual should be small (documented as ≈ REAL(0.267) for this system)
-		REQUIRE(residual_norm < REAL(0.3));
+		// Residual should be small (documented as ≈ static_cast<MML::Real>(0.267) for this system)
+		REQUIRE(residual_norm < static_cast<MML::Real>(0.3));
 	}
 
 	TEST_CASE("Test_QRSolver_LeastSquares_Regression_5x3", "[QRSolver][least-squares]")
@@ -2134,7 +2134,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Vector<Real> qtb_explicit(A.cols());
 		for (int i = 0; i < A.cols(); i++)
 		{
-			Real sum = REAL(0.0);
+			Real sum = static_cast<MML::Real>(0.0);
 			for (int j = 0; j < A.rows(); j++)
 				sum += Q[j][i] * b[j];
 			qtb_explicit[i] = sum;
@@ -2165,7 +2165,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Vector<Real> qb_explicit(A.rows());
 		for (int i = 0; i < A.rows(); i++)
 		{
-			Real sum = REAL(0.0);
+			Real sum = static_cast<MML::Real>(0.0);
 			for (int j = 0; j < A.cols(); j++)
 				sum += Q[i][j] * b[j];
 			qb_explicit[i] = sum;
@@ -2192,9 +2192,9 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Matrix<Real> data(n, m1 + m2 + 1);
 		for (int i = 0; i < n; i++)
 		{
-			data[i][0] = (i > 0) ? REAL(-1.0) : REAL(0.0);      // subdiagonal
-			data[i][1] = REAL(2.0);                              // diagonal
-			data[i][2] = (i < n-1) ? REAL(-1.0) : REAL(0.0);    // superdiagonal
+			data[i][0] = (i > 0) ? static_cast<MML::Real>(-1.0) : static_cast<MML::Real>(0.0);      // subdiagonal
+			data[i][1] = static_cast<MML::Real>(2.0);                              // diagonal
+			data[i][2] = (i < n-1) ? static_cast<MML::Real>(-1.0) : static_cast<MML::Real>(0.0);    // superdiagonal
 		}
 		
 		BandDiagonalMatrix A(n, m1, m2, data);
@@ -2202,7 +2202,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		// Create a known solution and compute RHS
 		Vector<Real> x_exact(n);
 		for (int i = 0; i < n; i++)
-			x_exact[i] = REAL(i + 1);  // [1, 2, 3, 4, 5]
+			x_exact[i] = static_cast<MML::Real>(i + 1);  // [1, 2, 3, 4, 5]
 		
 		Vector<Real> b = A * x_exact;
 		
@@ -2229,17 +2229,17 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		for (int i = 0; i < n; i++)
 		{
 			for (int j = 0; j < m1 + m2 + 1; j++)
-				data[i][j] = REAL(0.0);
+				data[i][j] = static_cast<MML::Real>(0.0);
 		}
 		
 		// Fill the diagonals: 1, -4, 6, -4, 1 pattern (biharmonic-like)
 		for (int i = 0; i < n; i++)
 		{
-			data[i][2] = REAL(6.0);  // main diagonal
-			if (i >= 1) data[i][1] = REAL(-4.0);  // first subdiagonal
-			if (i >= 2) data[i][0] = REAL(1.0);   // second subdiagonal
-			if (i < n-1) data[i][3] = REAL(-4.0); // first superdiagonal
-			if (i < n-2) data[i][4] = REAL(1.0);  // second superdiagonal
+			data[i][2] = static_cast<MML::Real>(6.0);  // main diagonal
+			if (i >= 1) data[i][1] = static_cast<MML::Real>(-4.0);  // first subdiagonal
+			if (i >= 2) data[i][0] = static_cast<MML::Real>(1.0);   // second subdiagonal
+			if (i < n-1) data[i][3] = static_cast<MML::Real>(-4.0); // first superdiagonal
+			if (i < n-2) data[i][4] = static_cast<MML::Real>(1.0);  // second superdiagonal
 		}
 		
 		BandDiagonalMatrix A(n, m1, m2, data);
@@ -2247,7 +2247,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		// Known solution
 		Vector<Real> x_exact(n);
 		for (int i = 0; i < n; i++)
-			x_exact[i] = std::sin(REAL(i) * REAL(0.5));
+			x_exact[i] = std::sin(static_cast<MML::Real>(i) * static_cast<MML::Real>(0.5));
 		
 		Vector<Real> b = A * x_exact;
 		
@@ -2270,23 +2270,23 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		for (int i = 0; i < n; i++)
 		{
 			for (int j = 0; j < m1 + m2 + 1; j++)
-				data[i][j] = REAL(0.0);
+				data[i][j] = static_cast<MML::Real>(0.0);
 		}
 		
 		// Fill with specific values
 		for (int i = 0; i < n; i++)
 		{
-			data[i][1] = REAL(4.0);  // main diagonal (column m1)
-			if (i >= 1) data[i][0] = REAL(-1.0);  // subdiagonal
-			if (i < n-1) data[i][2] = REAL(-1.0); // first superdiagonal
-			if (i < n-2) data[i][3] = REAL(-0.5); // second superdiagonal
+			data[i][1] = static_cast<MML::Real>(4.0);  // main diagonal (column m1)
+			if (i >= 1) data[i][0] = static_cast<MML::Real>(-1.0);  // subdiagonal
+			if (i < n-1) data[i][2] = static_cast<MML::Real>(-1.0); // first superdiagonal
+			if (i < n-2) data[i][3] = static_cast<MML::Real>(-0.5); // second superdiagonal
 		}
 		
 		BandDiagonalMatrix A(n, m1, m2, data);
 		
 		Vector<Real> x_exact(n);
 		for (int i = 0; i < n; i++)
-			x_exact[i] = REAL(i * i + 1);  // [1, 2, 5, 10, 17]
+			x_exact[i] = static_cast<MML::Real>(i * i + 1);  // [1, 2, 5, 10, 17]
 		
 		Vector<Real> b = A * x_exact;
 		
@@ -2306,9 +2306,9 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Matrix<Real> data(n, m1 + m2 + 1);
 		for (int i = 0; i < n; i++)
 		{
-			data[i][0] = (i > 0) ? REAL(-1.0) : REAL(0.0);
-			data[i][1] = REAL(3.0);
-			data[i][2] = (i < n-1) ? REAL(-1.0) : REAL(0.0);
+			data[i][0] = (i > 0) ? static_cast<MML::Real>(-1.0) : static_cast<MML::Real>(0.0);
+			data[i][1] = static_cast<MML::Real>(3.0);
+			data[i][2] = (i < n-1) ? static_cast<MML::Real>(-1.0) : static_cast<MML::Real>(0.0);
 		}
 		
 		BandDiagonalMatrix A(n, m1, m2, data);
@@ -2317,8 +2317,8 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Vector<Real> x1_exact(n), x2_exact(n);
 		for (int i = 0; i < n; i++)
 		{
-			x1_exact[i] = REAL(i + 1);
-			x2_exact[i] = REAL((i + 1) * (i + 1));
+			x1_exact[i] = static_cast<MML::Real>(i + 1);
+			x2_exact[i] = static_cast<MML::Real>((i + 1) * (i + 1));
 		}
 		
 		// Create RHS matrix
@@ -2356,9 +2356,9 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		
 		Matrix<Real> data(n, m1 + m2 + 1);
 		// Matrix: [2, -1, 0; -1, 2, -1; 0, -1, 2]
-		data[0][0] = REAL(0.0);  data[0][1] = REAL(2.0);  data[0][2] = REAL(-1.0);
-		data[1][0] = REAL(-1.0); data[1][1] = REAL(2.0);  data[1][2] = REAL(-1.0);
-		data[2][0] = REAL(-1.0); data[2][1] = REAL(2.0);  data[2][2] = REAL(0.0);
+		data[0][0] = static_cast<MML::Real>(0.0);  data[0][1] = static_cast<MML::Real>(2.0);  data[0][2] = static_cast<MML::Real>(-1.0);
+		data[1][0] = static_cast<MML::Real>(-1.0); data[1][1] = static_cast<MML::Real>(2.0);  data[1][2] = static_cast<MML::Real>(-1.0);
+		data[2][0] = static_cast<MML::Real>(-1.0); data[2][1] = static_cast<MML::Real>(2.0);  data[2][2] = static_cast<MML::Real>(0.0);
 		
 		BandDiagonalMatrix A(n, m1, m2, data);
 		
@@ -2367,7 +2367,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		
 		// The determinant of this tridiagonal Laplacian matrix is 4
 		// det = 2*(2*2 - (-1)*(-1)) - (-1)*((-1)*2 - 0) = 2*(4-1) + (-2) = 6 - 2 = 4
-		REQUIRE(std::abs(det - REAL(4.0)) < TOL(1e-12, 1e-5));
+		REQUIRE(std::abs(det - static_cast<MML::Real>(4.0)) < TOL(1e-12, 1e-5));
 	}
 	
 	TEST_CASE("BandDiagonalSolver - Diagonal only (m1=0, m2=0)", "[BandDiagonalSolver]")
@@ -2379,28 +2379,28 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		int m1 = 0, m2 = 0;
 		
 		Matrix<Real> data(n, 1);
-		data[0][0] = REAL(2.0);
-		data[1][0] = REAL(3.0);
-		data[2][0] = REAL(4.0);
-		data[3][0] = REAL(5.0);
+		data[0][0] = static_cast<MML::Real>(2.0);
+		data[1][0] = static_cast<MML::Real>(3.0);
+		data[2][0] = static_cast<MML::Real>(4.0);
+		data[3][0] = static_cast<MML::Real>(5.0);
 		
 		BandDiagonalMatrix A(n, m1, m2, data);
 		
 		Vector<Real> b(n);
-		b[0] = REAL(4.0);
-		b[1] = REAL(9.0);
-		b[2] = REAL(16.0);
-		b[3] = REAL(25.0);
+		b[0] = static_cast<MML::Real>(4.0);
+		b[1] = static_cast<MML::Real>(9.0);
+		b[2] = static_cast<MML::Real>(16.0);
+		b[3] = static_cast<MML::Real>(25.0);
 		
 		BandDiagonalSolver solver(A);
 		Vector<Real> x = solver.Solve(b);
 		
 		// Solution should be b[i] / A[i][i]
 		Vector<Real> x_expected(n);
-		x_expected[0] = REAL(2.0);
-		x_expected[1] = REAL(3.0);
-		x_expected[2] = REAL(4.0);
-		x_expected[3] = REAL(5.0);
+		x_expected[0] = static_cast<MML::Real>(2.0);
+		x_expected[1] = static_cast<MML::Real>(3.0);
+		x_expected[2] = static_cast<MML::Real>(4.0);
+		x_expected[3] = static_cast<MML::Real>(5.0);
 		
 		REQUIRE(x.IsEqualTo(x_expected, TOL(1e-14, 1e-5)));
 	}
@@ -2416,9 +2416,9 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Matrix<Real> data(n, m1 + m2 + 1);
 		for (int i = 0; i < n; i++)
 		{
-			data[i][0] = (i > 0) ? REAL(-1.0) : REAL(0.0);
-			data[i][1] = REAL(2.5);  // Diagonally dominant for stability
-			data[i][2] = (i < n-1) ? REAL(-1.0) : REAL(0.0);
+			data[i][0] = (i > 0) ? static_cast<MML::Real>(-1.0) : static_cast<MML::Real>(0.0);
+			data[i][1] = static_cast<MML::Real>(2.5);  // Diagonally dominant for stability
+			data[i][2] = (i < n-1) ? static_cast<MML::Real>(-1.0) : static_cast<MML::Real>(0.0);
 		}
 		
 		BandDiagonalMatrix A(n, m1, m2, data);
@@ -2426,7 +2426,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		// Create solution with known pattern
 		Vector<Real> x_exact(n);
 		for (int i = 0; i < n; i++)
-			x_exact[i] = std::sin(REAL(i) * Constants::PI / REAL(n));
+			x_exact[i] = std::sin(static_cast<MML::Real>(i) * Constants::PI / static_cast<MML::Real>(n));
 		
 		Vector<Real> b = A * x_exact;
 		
@@ -2434,7 +2434,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Vector<Real> x_computed = solver.Solve(b);
 		
 		// Check relative error
-		Real max_rel_error = REAL(0.0);
+		Real max_rel_error = static_cast<MML::Real>(0.0);
 		for (int i = 0; i < n; i++)
 		{
 			if (std::abs(x_exact[i]) > TOL(1e-10, 1e-5))
@@ -2548,7 +2548,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 	TEST_CASE("CholeskySolveDetailed - Success (SPD matrix)", "[LinAlgDirect][Detailed][Cholesky]") {
 		// Construct a symmetric positive-definite matrix: A = L * L^T
 		Matrix<Real> L(3, 3, {2, 0, 0, 1, 3, 0, -1, 2, 4});
-		Matrix<Real> A = L * L.transpose(); // SPD by construction
+		Matrix<Real> A = L * L.Transposed(); // SPD by construction
 
 		Vector<Real> x_exact({1, 2, 3});
 		Vector<Real> b = A * x_exact;
@@ -2564,7 +2564,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 
 	TEST_CASE("CholeskySolveDetailed - With Residual", "[LinAlgDirect][Detailed][Cholesky]") {
 		Matrix<Real> L(3, 3, {2, 0, 0, 1, 3, 0, -1, 2, 4});
-		Matrix<Real> A = L * L.transpose();
+		Matrix<Real> A = L * L.Transposed();
 
 		Vector<Real> x_exact({1, 2, 3});
 		Vector<Real> b = A * x_exact;

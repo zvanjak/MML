@@ -78,7 +78,7 @@ namespace MML::Algebra
 			for (int column = 0; column < 3; column++)
 				if (std::abs(matrix(3, column)) > tolerance)
 					throw DomainError("SE3 homogeneous matrix must have bottom row [0,0,0,1]");
-			if (std::abs(matrix(3, 3) - REAL(1.0)) > tolerance)
+			if (std::abs(matrix(3, 3) - static_cast<MML::Real>(1.0)) > tolerance)
 				throw DomainError("SE3 homogeneous matrix must have bottom row [0,0,0,1]");
 			MatrixNM<Real, 3, 3> rotationMatrix;
 			for (int row = 0; row < 3; row++)

@@ -915,7 +915,7 @@ void Test_HessenbergReduction(PrecisionTestSuite& suite)
             bool is_hess = MatrixAlg::IsUpperHessenberg(result.H);
             
             // Check Q is orthogonal
-            bool is_ortho = MatrixAlg::IsOrthogonal(result.Q, {REAL(1e-10), REAL(1e-10)});
+            bool is_ortho = MatrixAlg::IsOrthogonal(result.Q, {static_cast<MML::Real>(1e-10), static_cast<MML::Real>(1e-10)});
             
             // Verify H = Q^T * A * Q
             Matrix<Real> QTAQ = Utils::SimilarityTransform(result.Q, A);

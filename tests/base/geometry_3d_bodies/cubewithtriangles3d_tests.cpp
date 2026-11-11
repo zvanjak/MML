@@ -67,7 +67,7 @@ TEST_CASE("CubeWithTriangles3D::GetCenter", "[geometry][cubewithtriangles][cente
     SECTION("Cube at origin")
     {
         CubeWithTriangles3D cube(5.0);
-        Pnt3Cart center = cube.GetCenter();
+        Pnt3Cart center = cube.getCenter();
         REQUIRE_THAT(center.X() , RealApprox(0.0));
         REQUIRE_THAT(center.Y() , RealApprox(0.0));
         REQUIRE_THAT(center.Z() , RealApprox(0.0));
@@ -77,7 +77,7 @@ TEST_CASE("CubeWithTriangles3D::GetCenter", "[geometry][cubewithtriangles][cente
     {
         Pnt3Cart expectedCenter(10.0, 20.0, 30.0);
         CubeWithTriangles3D cube(7.0, expectedCenter);
-        Pnt3Cart center = cube.GetCenter();
+        Pnt3Cart center = cube.getCenter();
         REQUIRE_THAT(center.X() , RealApprox(10.0));
         REQUIRE_THAT(center.Y() , RealApprox(20.0));
         REQUIRE_THAT(center.Z() , RealApprox(30.0));
@@ -89,7 +89,7 @@ TEST_CASE("CubeWithTriangles3D::GetBoundingBox", "[geometry][cubewithtriangles][
     SECTION("Cube at origin")
     {
         CubeWithTriangles3D cube(10.0);
-        Box3D bbox = cube.GetBoundingBox();
+        Box3D bbox = cube.getBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-5.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(-5.0));
@@ -104,7 +104,7 @@ TEST_CASE("CubeWithTriangles3D::GetBoundingBox", "[geometry][cubewithtriangles][
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         CubeWithTriangles3D cube(6.0, center);
-        Box3D bbox = cube.GetBoundingBox();
+        Box3D bbox = cube.getBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(7.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(17.0));
@@ -121,7 +121,7 @@ TEST_CASE("CubeWithTriangles3D::GetBoundingSphere", "[geometry][cubewithtriangle
     SECTION("Sphere centered at cube center")
     {
         CubeWithTriangles3D cube(6.0);
-        BoundingSphere3D bsphere = cube.GetBoundingSphere();
+        BoundingSphere3D bsphere = cube.getBoundingSphere();
         
         REQUIRE_THAT(bsphere.Center().X() , RealApprox(0.0));
         REQUIRE_THAT(bsphere.Center().Y() , RealApprox(0.0));
@@ -135,7 +135,7 @@ TEST_CASE("CubeWithTriangles3D::GetBoundingSphere", "[geometry][cubewithtriangle
     SECTION("Bounding sphere contains all corners")
     {
         CubeWithTriangles3D cube(8.0);
-        BoundingSphere3D bsphere = cube.GetBoundingSphere();
+        BoundingSphere3D bsphere = cube.getBoundingSphere();
         
         // Check all 8 corners
         REQUIRE(bsphere.Contains(Pnt3Cart(4.0, 4.0, 4.0)));
@@ -152,7 +152,7 @@ TEST_CASE("CubeWithTriangles3D::GetBoundingSphere", "[geometry][cubewithtriangle
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         CubeWithTriangles3D cube(4.0, center);
-        BoundingSphere3D bsphere = cube.GetBoundingSphere();
+        BoundingSphere3D bsphere = cube.getBoundingSphere();
         
         REQUIRE_THAT(bsphere.Center().X() , RealApprox(10.0));
         REQUIRE_THAT(bsphere.Center().Y() , RealApprox(20.0));
@@ -168,7 +168,7 @@ TEST_CASE("CubeWithTriangles3D::ToString", "[geometry][cubewithtriangles][string
     SECTION("Cube at origin")
     {
         CubeWithTriangles3D cube(5.0);
-        std::string str = cube.ToString();
+        std::string str = cube.to_string();
         
         REQUIRE(str.find("CubeWithTriangles3D") != std::string::npos);
         REQUIRE(str.find("Center") != std::string::npos);
@@ -182,7 +182,7 @@ TEST_CASE("CubeWithTriangles3D::ToString", "[geometry][cubewithtriangles][string
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         CubeWithTriangles3D cube(8.0, center);
-        std::string str = cube.ToString();
+        std::string str = cube.to_string();
         
         REQUIRE(str.find("8") != std::string::npos);  // Side
     }
@@ -193,14 +193,14 @@ TEST_CASE("CubeWithTriangles3D::Getters", "[geometry][cubewithtriangles][getters
     SECTION("GetSide")
     {
         CubeWithTriangles3D cube(7.5);
-        REQUIRE_THAT(cube.GetSide() , RealApprox(7.5));
+        REQUIRE_THAT(cube.getSide() , RealApprox(7.5));
     }
 
     SECTION("GetSide at arbitrary position")
     {
         Pnt3Cart center(5.0, 10.0, 15.0);
         CubeWithTriangles3D cube(12.0, center);
-        REQUIRE_THAT(cube.GetSide() , RealApprox(12.0));
+        REQUIRE_THAT(cube.getSide() , RealApprox(12.0));
     }
 }
 
@@ -270,14 +270,14 @@ TEST_CASE("CubeWithTriangles3D::TriangleSurfaces", "[geometry][cubewithtriangles
         CubeWithTriangles3D cube(5.0);
         // Access through BodyWithTriangleSurfaces interface
         // A cube has 6 faces, each decomposed into 2 triangles = 12 triangles
-        REQUIRE(cube.ToString().find("Triangles=12") != std::string::npos);
+        REQUIRE(cube.to_string().find("Triangles=12") != std::string::npos);
     }
 
     SECTION("Cube at arbitrary position has 12 triangles")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         CubeWithTriangles3D cube(8.0, center);
-        REQUIRE(cube.ToString().find("Triangles=12") != std::string::npos);
+        REQUIRE(cube.to_string().find("Triangles=12") != std::string::npos);
     }
 }
 
@@ -288,12 +288,12 @@ TEST_CASE("BodyWithTriangleSurfaces derives geometry from a closed triangle mesh
     REQUIRE_THAT(cube.BodyWithTriangleSurfaces::Volume(), RealApprox(8.0));
     REQUIRE_THAT(cube.BodyWithTriangleSurfaces::SurfaceArea(), RealApprox(24.0));
 
-    const Pnt3Cart center = cube.BodyWithTriangleSurfaces::GetCenter();
+    const Pnt3Cart center = cube.BodyWithTriangleSurfaces::getCenter();
     REQUIRE_THAT(center.X(), RealApprox(3.0));
     REQUIRE_THAT(center.Y(), RealApprox(4.0));
     REQUIRE_THAT(center.Z(), RealApprox(5.0));
 
-    const BoundingSphere3D sphere = cube.BodyWithTriangleSurfaces::GetBoundingSphere();
+    const BoundingSphere3D sphere = cube.BodyWithTriangleSurfaces::getBoundingSphere();
     REQUIRE_THAT(sphere.Radius(), RealApprox(std::sqrt(3.0)).epsilon(TOL(1e-9, 1e-6)).margin(TOL(1e-9, 1e-6)));
 
     REQUIRE(cube.BodyWithTriangleSurfaces::IsInside(Pnt3Cart(3.0, 4.0, 5.0)));

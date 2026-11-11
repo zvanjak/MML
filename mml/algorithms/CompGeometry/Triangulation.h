@@ -8,6 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 #include <mml/MMLBase.h>
+#include <mml/base/AlgorithmTypes.h>
 #include <mml/base/Geometry/Geometry2D.h>
 #include <mml/algorithms/CompGeometry/CompGeometryBase.h>
 #include <mml/algorithms/CompGeometry/RobustPredicates.h>
@@ -16,6 +17,8 @@
 #include <array>
 #include <map>
 #include <random>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace MML::CompGeometry {
@@ -78,7 +81,7 @@ struct DelaunayTriangulation {
 	/// @return Linearly interpolated value using barycentric coordinates
 	Real Interpolate(const Point2Cartesian& p, const std::vector<Real>& values, 
 					 Real defaultVal = 0.0) const {
-		constexpr Real EPSILON = 1e-10;
+		constexpr Real EPSILON = Precision::GeometryEpsilon;
 		if (values.size() != points.size())
 			return defaultVal;
 
@@ -134,7 +137,7 @@ private:
 //////////////////////////////////////////////////////////////////////////////////////////
 class Triangulation {
 	// Use centralized geometry epsilon from Constants
-	static constexpr Real EPSILON = Constants::GEOMETRY_EPSILON;
+	static constexpr Real EPSILON = Precision::GeometryEpsilon;
 
 public:
 	// ========================================================================
@@ -145,19 +148,35 @@ public:
 	// Time complexity: O(n²)
 	// ========================================================================
 
-	/// @brief Triangulate a simple polygon using ear clipping
+	/// @brief Result of ear-clipping triangulation with diagnostics
+	struct EarClipResult {
+		std::vector<Triangle2D> triangles;      ///< Triangles produced
+		bool used_fan_fallback = false;         ///< True if no ear existed at some stage (input not a simple polygon)
+		int unclipped_vertices = 0;             ///< Vertices remaining when the fallback engaged (0 if none)
+		AlgorithmStatus status = AlgorithmStatus::Success;
+		std::string error_message;
+		bool IsSuccess() const noexcept { return status == AlgorithmStatus::Success; }
+	};
+
+	/// @brief Triangulate a simple polygon using ear clipping, with diagnostics
 	/// @param polygon The input polygon (must be simple - no self-intersections)
-	/// @return Vector of triangles forming the triangulation
-	static std::vector<Triangle2D> EarClipTriangulation(const Polygon2D& polygon) {
-		std::vector<Triangle2D> triangles;
+	/// @details For a simple polygon the two-ears theorem guarantees an ear at every stage.
+	///          If none is found the input is self-intersecting or degenerate; the remaining
+	///          vertices are fan-triangulated so the output is still a complete set of triangles,
+	///          but the result is flagged (status InvalidInput, used_fan_fallback = true) because
+	///          a fan of a non-simple polygon is not a triangulation of it. Until analysis v4
+	///          (ALGORITHMS A10) this fallback was silent.
+	static EarClipResult EarClipTriangulationDetailed(const Polygon2D& polygon) {
+		EarClipResult result;
+		std::vector<Triangle2D>& triangles = result.triangles;
 		int n = polygon.NumVertices();
 
 		if (n < 3)
-			return triangles;
+			return result;
 
 		if (n == 3) {
 			triangles.push_back(Triangle2D(polygon[0], polygon[1], polygon[2]));
-			return triangles;
+			return result;
 		}
 
 		// Copy vertices to working list
@@ -193,12 +212,16 @@ public:
 			}
 
 			if (!earFound) {
-				// Polygon may be self-intersecting or degenerate
-				// Fall back to fan triangulation for remaining vertices
+				// Not a simple polygon (self-intersecting or degenerate): fan the rest and say so
+				result.used_fan_fallback = true;
+				result.unclipped_vertices = static_cast<int>(vertices.size());
+				result.status = AlgorithmStatus::InvalidInput;
+				result.error_message = "EarClipTriangulation: no ear found with " + std::to_string(vertices.size()) +
+					" vertices remaining - polygon is not simple (self-intersecting or degenerate); remaining vertices fan-triangulated";
 				for (size_t i = 1; i < vertices.size() - 1; i++) {
 					triangles.push_back(Triangle2D(vertices[0], vertices[i], vertices[i + 1]));
 				}
-				break;
+				return result;
 			}
 		}
 
@@ -207,7 +230,19 @@ public:
 			triangles.push_back(Triangle2D(vertices[0], vertices[1], vertices[2]));
 		}
 
-		return triangles;
+		return result;
+	}
+
+	/// @brief Triangulate a simple polygon using ear clipping
+	/// @param polygon The input polygon (must be simple - no self-intersections)
+	/// @return Vector of triangles forming the triangulation
+	/// @throws GeometryError if the polygon is not simple (no ear could be found). Use
+	///         EarClipTriangulationDetailed to receive the fan-triangulated fallback with a status instead.
+	static std::vector<Triangle2D> EarClipTriangulation(const Polygon2D& polygon) {
+		EarClipResult result = EarClipTriangulationDetailed(polygon);
+		if (result.used_fan_fallback)
+			throw GeometryError(result.error_message);
+		return std::move(result.triangles);
 	}
 
 	// ========================================================================
@@ -246,9 +281,9 @@ public:
 		Real deltaMax = std::max(dx, dy);
 		
 		// Ensure deltaMax is large enough for numerical stability
-		deltaMax = std::max<Real>(deltaMax, std::max<Real>(std::abs(minX), std::abs(minY)) * Real(1e-10));
-		deltaMax = std::max<Real>(deltaMax, std::max<Real>(std::abs(maxX), std::abs(maxY)) * Real(1e-10));
-		deltaMax = std::max<Real>(deltaMax, Real(1e-10));  // Absolute minimum
+		deltaMax = std::max<Real>(deltaMax, std::max<Real>(std::abs(minX), std::abs(minY)) * Precision::GeometryEpsilon);
+		deltaMax = std::max<Real>(deltaMax, std::max<Real>(std::abs(maxX), std::abs(maxY)) * Precision::GeometryEpsilon);
+		deltaMax = std::max<Real>(deltaMax, Precision::GeometryEpsilon);  // Absolute minimum
 		
 		Real midX = (minX + maxX) / Real(2.0);
 		Real midY = (minY + maxY) / Real(2.0);

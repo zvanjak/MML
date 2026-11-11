@@ -4,6 +4,26 @@
 
 Dynamic-size matrix with runtime dimensions. Template parameter `T` can be any numeric type.
 
+## Allocation limits
+
+Dynamic Matrix limits allocation by the product `rows * cols`, not by an
+arbitrary cap on either axis. The existing budget is **100,000,000 elements**
+(about 800 MB for doubles). For example, a 1-by-100,001 matrix is valid.
+Dimensions remain non-negative `int` values; `MaxDimension()` describes that
+index representability ceiling, while `MaxElementCount()` exposes the allocation
+budget. Validation checks the product by division before multiplication, so
+oversized shapes cannot overflow the allocation calculation.
+
+Negative dimensions raise `MatrixDimensionError`; over-budget products raise
+`MatrixAllocationError` before allocation. Resizing preserves the existing matrix
+when validation rejects the new shape. Zero-element shapes do not consume the
+element budget merely because their nonzero axis is large. These limits do not
+guarantee that the operating system can satisfy a particular allocation.
+
+The long/narrow matrix and trajectory counterpart is
+[docs_demo_trajectory_resources.cpp](../../src/docs_demos/algorithms/docs_demo_trajectory_resources.cpp),
+run with `MML_DocsApp --trajectory-resources`.
+
 ## Runnable Examples
 
 All code examples in this document are available as runnable code in `src/docs_demos/docs_demo_matrix.cpp`. Build and run `MML_DocsApp` to see them in action.
@@ -52,7 +72,7 @@ Matrix<double> B(data);
 
 // Special matrices
 auto I = Matrix<double>::Identity(5);     // 5×5 identity
-auto diag = Matrix<double>::GetDiagonalMatrix(Vector<double>({1,2,3})); // Diagonal matrix
+auto diag = Matrix<double>::Diagonal(Vector<double>({1,2,3})); // Diagonal matrix
 ```
 
 ## Access & Properties
@@ -75,7 +95,7 @@ A.InitRowWithVector(0, Vector<double>({9,8,7}));   // Set row
 A.InitColWithVector(1, Vector<double>({1,1,1}));   // Set column
 
 // Diagonal
-Vector<double> diag = A.GetDiagonal();  // Main diagonal
+Vector<double> diag = A.getDiagonal();  // Main diagonal
 ```
 
 ## Arithmetic Operations
@@ -108,7 +128,7 @@ Vector<double> result = A * v;
 Matrix<double> A{3,3,{1,2,3,4,5,6,7,8,9}};
 
 // Transpose
-Matrix<double> At = A.transpose();  // Returns copy
+Matrix<double> At = A.Transposed();  // Returns copy
 A.Transpose();                          // In-place (square only)
 
 // Determinant (free function)
@@ -139,8 +159,8 @@ Matrix<double> L = A.GetLower();  // Lower triangular (with diagonal)
 Matrix<double> U = A.GetUpper();  // Upper triangular (with diagonal)
 
 // Resize
-A.Resize(5, 5);                    // Discard old data
-A.Resize(5, 5, true);              // Preserve existing elements
+A.resize(5, 5);                    // Discard old data
+A.resize(5, 5, true);              // Preserve existing elements
 ```
 
 ## I/O and Printing

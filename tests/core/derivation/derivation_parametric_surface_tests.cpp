@@ -119,46 +119,46 @@ namespace MML::Tests::Core::DerivationParametricSurfaceTests
     TEST_CASE("SimplePlane - First Partial Derivatives", "[parametric_surface][nder1]")
     {
         SimplePlane plane;
-        Real u = REAL(1.0), w = REAL(2.0);
+        Real u = static_cast<MML::Real>(1.0), w = static_cast<MML::Real>(2.0);
         
         // Analytical: r_u = (1, 0, 1)
         VectorN<Real, 3> r_u = NDer1_u(plane, u, w);
-        REQUIRE_THAT(r_u[0], WithinAbs(REAL(1.0), TOL(1e-9, 5e-4)));
-        REQUIRE_THAT(r_u[1], WithinAbs(REAL(0.0), TOL(1e-9, 5e-4)));
-        REQUIRE_THAT(r_u[2], WithinAbs(REAL(1.0), TOL(1e-9, 5e-4)));
+        REQUIRE_THAT(r_u[0], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-9, 5e-4)));
+        REQUIRE_THAT(r_u[1], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 5e-4)));
+        REQUIRE_THAT(r_u[2], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-9, 5e-4)));
         
         // Analytical: r_w = (0, 1, 2)
         VectorN<Real, 3> r_w = NDer1_w(plane, u, w);
-        REQUIRE_THAT(r_w[0], WithinAbs(REAL(0.0), TOL(1e-9, 5e-4)));
-        REQUIRE_THAT(r_w[1], WithinAbs(REAL(1.0), TOL(1e-9, 5e-4)));
-        REQUIRE_THAT(r_w[2], WithinAbs(REAL(2.0), TOL(1e-9, 5e-4)));
+        REQUIRE_THAT(r_w[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 5e-4)));
+        REQUIRE_THAT(r_w[1], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-9, 5e-4)));
+        REQUIRE_THAT(r_w[2], WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-9, 5e-4)));
     }
     
     TEST_CASE("Sphere - First Partial Derivatives at Multiple Points", "[parametric_surface][nder1]")
     {
-        Real R = REAL(2.0);
+        Real R = static_cast<MML::Real>(2.0);
         Sphere sphere(R);
         
         // Test at u=π/4, w=π/3
-        Real u = Constants::PI / REAL(4.0);
-        Real w = Constants::PI / REAL(3.0);
+        Real u = Constants::PI / static_cast<MML::Real>(4.0);
+        Real w = Constants::PI / static_cast<MML::Real>(3.0);
         
         VectorN<Real, 3> r_u_num = NDer1_u(sphere, u, w);
         VectorN<Real, 3> r_w_num = NDer1_w(sphere, u, w);
         
         // Analytical r_u = (R*cos(u)*cos(w), R*cos(u)*sin(w), -R*sin(u))
-        Real r_u_x = R * cos(u) * cos(w);  // 2 * cos(π/4) * cos(π/3) = 2 * REAL(0.707) * REAL(0.5) ≈ REAL(0.707)
-        Real r_u_y = R * cos(u) * sin(w);  // 2 * cos(π/4) * sin(π/3) ≈ REAL(1.225)
-        Real r_u_z = -R * sin(u);          // -2 * sin(π/4) ≈ -REAL(1.414)
+        Real r_u_x = R * cos(u) * cos(w);  // 2 * cos(π/4) * cos(π/3) = 2 * static_cast<MML::Real>(0.707) * static_cast<MML::Real>(0.5) ≈ static_cast<MML::Real>(0.707)
+        Real r_u_y = R * cos(u) * sin(w);  // 2 * cos(π/4) * sin(π/3) ≈ static_cast<MML::Real>(1.225)
+        Real r_u_z = -R * sin(u);          // -2 * sin(π/4) ≈ -static_cast<MML::Real>(1.414)
         
         REQUIRE_THAT(r_u_num[0], WithinAbs(r_u_x, TOL(1e-6, 1e-3)));
         REQUIRE_THAT(r_u_num[1], WithinAbs(r_u_y, TOL(1e-6, 1e-3)));
         REQUIRE_THAT(r_u_num[2], WithinAbs(r_u_z, TOL(1e-6, 1e-3)));
         
         // Analytical r_w = (-R*sin(u)*sin(w), R*sin(u)*cos(w), 0)
-        Real r_w_x = -R * sin(u) * sin(w);  // -2 * sin(π/4) * sin(π/3) ≈ -REAL(1.225)
-        Real r_w_y = R * sin(u) * cos(w);   // 2 * sin(π/4) * cos(π/3) ≈ REAL(0.707)
-        Real r_w_z = REAL(0.0);
+        Real r_w_x = -R * sin(u) * sin(w);  // -2 * sin(π/4) * sin(π/3) ≈ -static_cast<MML::Real>(1.225)
+        Real r_w_y = R * sin(u) * cos(w);   // 2 * sin(π/4) * cos(π/3) ≈ static_cast<MML::Real>(0.707)
+        Real r_w_z = static_cast<MML::Real>(0.0);
         
         REQUIRE_THAT(r_w_num[0], WithinAbs(r_w_x, TOL(1e-6, 1e-3)));
         REQUIRE_THAT(r_w_num[1], WithinAbs(r_w_y, TOL(1e-6, 1e-3)));
@@ -168,19 +168,19 @@ namespace MML::Tests::Core::DerivationParametricSurfaceTests
     TEST_CASE("Paraboloid - First Partial Derivatives", "[parametric_surface][nder1]")
     {
         Paraboloid paraboloid;
-        Real u = REAL(1.5), w = REAL(2.5);
+        Real u = static_cast<MML::Real>(1.5), w = static_cast<MML::Real>(2.5);
         
         // Analytical: r_u = (1, 0, 2u)
         VectorN<Real, 3> r_u = NDer1_u(paraboloid, u, w);
-        REQUIRE_THAT(r_u[0], WithinAbs(REAL(1.0), TOL(1e-9, 5e-4)));
-        REQUIRE_THAT(r_u[1], WithinAbs(REAL(0.0), TOL(1e-9, 5e-4)));
-        REQUIRE_THAT(r_u[2], WithinAbs(REAL(2.0) * u, TOL(1e-6, 3e-3)));
+        REQUIRE_THAT(r_u[0], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-9, 5e-4)));
+        REQUIRE_THAT(r_u[1], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 5e-4)));
+        REQUIRE_THAT(r_u[2], WithinAbs(static_cast<MML::Real>(2.0) * u, TOL(1e-6, 3e-3)));
         
         // Analytical: r_w = (0, 1, 2w)
         VectorN<Real, 3> r_w = NDer1_w(paraboloid, u, w);
-        REQUIRE_THAT(r_w[0], WithinAbs(REAL(0.0), TOL(1e-6, 3e-3)));  // First derivative numerical precision
-        REQUIRE_THAT(r_w[1], WithinAbs(REAL(1.0), TOL(1e-9, 5e-4)));
-        REQUIRE_THAT(r_w[2], WithinAbs(REAL(2.0) * w, TOL(1e-6, 3e-3)));
+        REQUIRE_THAT(r_w[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-6, 3e-3)));  // First derivative numerical precision
+        REQUIRE_THAT(r_w[1], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-9, 5e-4)));
+        REQUIRE_THAT(r_w[2], WithinAbs(static_cast<MML::Real>(2.0) * w, TOL(1e-6, 3e-3)));
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -191,28 +191,28 @@ namespace MML::Tests::Core::DerivationParametricSurfaceTests
     TEST_CASE("SimplePlane - Central Difference First Derivatives", "[parametric_surface][nder2]")
     {
         SimplePlane plane;
-        Real u = REAL(1.0), w = REAL(2.0);
+        Real u = static_cast<MML::Real>(1.0), w = static_cast<MML::Real>(2.0);
         
         // NDer2_u computes (f(u+h) - f(u-h))/(2h) = first derivative using 2-point stencil
         VectorN<Real, 3> r_u_2 = NDer2_u(plane, u, w);
         VectorN<Real, 3> r_w_2 = NDer2_w(plane, u, w);
         
         // For plane z = x + 2y: r_u = (1, 0, 1), r_w = (0, 1, 2)
-        REQUIRE_THAT(r_u_2[0], WithinAbs(REAL(1.0), TOL(1e-9, 1e-4)));
-        REQUIRE_THAT(r_u_2[1], WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
-        REQUIRE_THAT(r_u_2[2], WithinAbs(REAL(1.0), TOL(1e-9, 1e-4)));
+        REQUIRE_THAT(r_u_2[0], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-9, 1e-4)));
+        REQUIRE_THAT(r_u_2[1], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 1e-4)));
+        REQUIRE_THAT(r_u_2[2], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-9, 1e-4)));
         
-        REQUIRE_THAT(r_w_2[0], WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
-        REQUIRE_THAT(r_w_2[1], WithinAbs(REAL(1.0), TOL(1e-9, 1e-4)));
-        REQUIRE_THAT(r_w_2[2], WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
+        REQUIRE_THAT(r_w_2[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 1e-4)));
+        REQUIRE_THAT(r_w_2[1], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-9, 1e-4)));
+        REQUIRE_THAT(r_w_2[2], WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-9, 1e-4)));
     }
     
     TEST_CASE("Sphere - Central Difference First Derivatives", "[parametric_surface][nder2]")
     {
-        Real R = REAL(2.0);
+        Real R = static_cast<MML::Real>(2.0);
         Sphere sphere(R);
-        Real u = Constants::PI / REAL(4.0);
-        Real w = Constants::PI / REAL(3.0);
+        Real u = Constants::PI / static_cast<MML::Real>(4.0);
+        Real w = Constants::PI / static_cast<MML::Real>(3.0);
         
         VectorN<Real, 3> r_u_2 = NDer2_u(sphere, u, w);
         VectorN<Real, 3> r_w_2 = NDer2_w(sphere, u, w);
@@ -236,45 +236,45 @@ namespace MML::Tests::Core::DerivationParametricSurfaceTests
     TEST_CASE("Paraboloid - Pure Second Derivatives (d2r/du2)", "[parametric_surface][nder2_uu]")
     {
         Paraboloid paraboloid;
-        Real u = REAL(1.5), w = REAL(2.5);
+        Real u = static_cast<MML::Real>(1.5), w = static_cast<MML::Real>(2.5);
         
         // Analytical: r_uu = (0, 0, 2)
         VectorN<Real, 3> r_uu = NDer2_uu(paraboloid, u, w);
-        REQUIRE_THAT(r_uu[0], WithinAbs(REAL(0.0), TOL(1e-5, 3e-3)));  // Second derivative numerical precision
-        REQUIRE_THAT(r_uu[1], WithinAbs(REAL(0.0), TOL(1e-5, 3e-3)));
-        REQUIRE_THAT(r_uu[2], WithinAbs(REAL(2.0), TOL(2e-5, 5e-3)));
+        REQUIRE_THAT(r_uu[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-5, 3e-3)));  // Second derivative numerical precision
+        REQUIRE_THAT(r_uu[1], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-5, 3e-3)));
+        REQUIRE_THAT(r_uu[2], WithinAbs(static_cast<MML::Real>(2.0), TOL(2e-5, 5e-3)));
         
         // Analytical: r_ww = (0, 0, 2)
         VectorN<Real, 3> r_ww = NDer2_ww(paraboloid, u, w);
-        REQUIRE_THAT(r_ww[0], WithinAbs(REAL(0.0), TOL(1e-5, 3e-3)));  // Second derivative numerical precision
-        REQUIRE_THAT(r_ww[1], WithinAbs(REAL(0.0), TOL(1e-5, 3e-3)));
-        REQUIRE_THAT(r_ww[2], WithinAbs(REAL(2.0), TOL(2e-5, 5e-3)));
+        REQUIRE_THAT(r_ww[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-5, 3e-3)));  // Second derivative numerical precision
+        REQUIRE_THAT(r_ww[1], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-5, 3e-3)));
+        REQUIRE_THAT(r_ww[2], WithinAbs(static_cast<MML::Real>(2.0), TOL(2e-5, 5e-3)));
     }
     
     TEST_CASE("HyperbolicParaboloid - Pure Second Derivatives", "[parametric_surface][nder2_uu]")
     {
         HyperbolicParaboloid saddle;
-        Real u = REAL(1.0), w = REAL(2.0);
+        Real u = static_cast<MML::Real>(1.0), w = static_cast<MML::Real>(2.0);
         
         // Analytical: r_uu = (0, 0, 2)
         VectorN<Real, 3> r_uu = NDer2_uu(saddle, u, w);
-        REQUIRE_THAT(r_uu[0], WithinAbs(REAL(0.0), TOL(1e-5, 3e-3)));  // Second derivative numerical precision
-        REQUIRE_THAT(r_uu[1], WithinAbs(REAL(0.0), TOL(1e-5, 3e-3)));
-        REQUIRE_THAT(r_uu[2], WithinAbs(REAL(2.0), TOL(2e-5, 5e-3)));
+        REQUIRE_THAT(r_uu[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-5, 3e-3)));  // Second derivative numerical precision
+        REQUIRE_THAT(r_uu[1], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-5, 3e-3)));
+        REQUIRE_THAT(r_uu[2], WithinAbs(static_cast<MML::Real>(2.0), TOL(2e-5, 5e-3)));
         
         // Analytical: r_ww = (0, 0, -2)
         VectorN<Real, 3> r_ww = NDer2_ww(saddle, u, w);
-        REQUIRE_THAT(r_ww[0], WithinAbs(REAL(0.0), TOL(1e-5, 3e-3)));
-        REQUIRE_THAT(r_ww[1], WithinAbs(REAL(0.0), TOL(1e-5, 3e-3)));
-        REQUIRE_THAT(r_ww[2], WithinAbs(-REAL(2.0), TOL(2e-5, 5e-3)));
+        REQUIRE_THAT(r_ww[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-5, 3e-3)));
+        REQUIRE_THAT(r_ww[1], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-5, 3e-3)));
+        REQUIRE_THAT(r_ww[2], WithinAbs(-static_cast<MML::Real>(2.0), TOL(2e-5, 5e-3)));
     }
     
     TEST_CASE("Sphere - Pure Second Derivatives", "[parametric_surface][nder2_uu]")
     {
-        Real R = REAL(2.0);
+        Real R = static_cast<MML::Real>(2.0);
         Sphere sphere(R);
-        Real u = Constants::PI / REAL(4.0);
-        Real w = Constants::PI / REAL(3.0);
+        Real u = Constants::PI / static_cast<MML::Real>(4.0);
+        Real w = Constants::PI / static_cast<MML::Real>(3.0);
         
         // Analytical: r_uu = (-R*sin(u)*cos(w), -R*sin(u)*sin(w), -R*cos(u))
         VectorN<Real, 3> r_uu = NDer2_uu(sphere, u, w);
@@ -290,7 +290,7 @@ namespace MML::Tests::Core::DerivationParametricSurfaceTests
         VectorN<Real, 3> r_ww = NDer2_ww(sphere, u, w);
         Real r_ww_x = -R * sin(u) * cos(w);
         Real r_ww_y = -R * sin(u) * sin(w);
-        Real r_ww_z = REAL(0.0);
+        Real r_ww_z = static_cast<MML::Real>(0.0);
         
         REQUIRE_THAT(r_ww[0], WithinAbs(r_ww_x, TOL3(1e-5, 3e-3, 1e-6)));
         REQUIRE_THAT(r_ww[1], WithinAbs(r_ww_y, TOL3(1e-5, 3e-3, 1e-6)));
@@ -304,7 +304,7 @@ namespace MML::Tests::Core::DerivationParametricSurfaceTests
     TEST_CASE("SimplePlane - Mixed Derivative (Should Be Zero)", "[parametric_surface][nder2_uw][critical]")
     {
         SimplePlane plane;
-        Real u = REAL(1.0), w = REAL(2.0);
+        Real u = static_cast<MML::Real>(1.0), w = static_cast<MML::Real>(2.0);
         
         // For plane z = x + 2y, all second derivatives are zero
         // Analytical: r_uw = (0, 0, 0)
@@ -312,9 +312,9 @@ namespace MML::Tests::Core::DerivationParametricSurfaceTests
         // precision is limited by floating-point roundoff ~ eps*|f|/h²
         VectorN<Real, 3> r_uw = NDer2_uw(plane, u, w);
         
-        REQUIRE_THAT(r_uw[0], WithinAbs(REAL(0.0), TOL(1e-6, 1e-3)));
-        REQUIRE_THAT(r_uw[1], WithinAbs(REAL(0.0), TOL(1e-6, 1e-3)));
-        REQUIRE_THAT(r_uw[2], WithinAbs(REAL(0.0), TOL(1e-6, 1e-3)));
+        REQUIRE_THAT(r_uw[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-6, 1e-3)));
+        REQUIRE_THAT(r_uw[1], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-6, 1e-3)));
+        REQUIRE_THAT(r_uw[2], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-6, 1e-3)));
     }
     
     TEST_CASE("MixedProductSurface - Mixed Derivative (Critical Test!)", "[parametric_surface][nder2_uw][critical]")
@@ -323,7 +323,7 @@ namespace MML::Tests::Core::DerivationParametricSurfaceTests
         
         // Test at multiple points - this surface has r_uw = (0, 0, 1) everywhere!
         Real test_points[][2] = {
-            {REAL(0.0), REAL(0.0)}, {REAL(1.0), REAL(1.0)}, {REAL(2.0), REAL(3.0)}, {-REAL(1.5), REAL(2.5)}, {REAL(3.0), -REAL(2.0)}
+            {static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)}, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0)}, {static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)}, {-static_cast<MML::Real>(1.5), static_cast<MML::Real>(2.5)}, {static_cast<MML::Real>(3.0), -static_cast<MML::Real>(2.0)}
         };
         
         for (auto& point : test_points) {
@@ -336,54 +336,54 @@ namespace MML::Tests::Core::DerivationParametricSurfaceTests
             VectorN<Real, 3> r_uw = NDer2_uw(surface, u, w);
             
             INFO("Testing at u=" << u << ", w=" << w);
-            REQUIRE_THAT(r_uw[0], WithinAbs(REAL(0.0), TOL(1e-6, 1e-3)));  // Mixed partial numerical precision
-            REQUIRE_THAT(r_uw[1], WithinAbs(REAL(0.0), TOL(1e-6, 1e-3)));
-            REQUIRE_THAT(r_uw[2], WithinAbs(REAL(1.0), TOL(1e-5, 1e-3)));  // THE CRITICAL COMPONENT!
+            REQUIRE_THAT(r_uw[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-6, 1e-3)));  // Mixed partial numerical precision
+            REQUIRE_THAT(r_uw[1], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-6, 1e-3)));
+            REQUIRE_THAT(r_uw[2], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-5, 1e-3)));  // THE CRITICAL COMPONENT!
         }
     }
     
     TEST_CASE("Paraboloid - Mixed Derivative (Should Be Zero)", "[parametric_surface][nder2_uw][critical]")
     {
         Paraboloid paraboloid;
-        Real u = REAL(1.5), w = REAL(2.5);
+        Real u = static_cast<MML::Real>(1.5), w = static_cast<MML::Real>(2.5);
         
         // Analytical: r(u,w) = (u, w, u² + w²)
         // r_uw = (0, 0, 0)
         // Tolerance 1e-6: numerical mixed partial precision limited by roundoff
         VectorN<Real, 3> r_uw = NDer2_uw(paraboloid, u, w);
         
-        REQUIRE_THAT(r_uw[0], WithinAbs(REAL(0.0), TOL(1e-6, 1e-3)));
-        REQUIRE_THAT(r_uw[1], WithinAbs(REAL(0.0), TOL(1e-6, 1e-3)));
-        REQUIRE_THAT(r_uw[2], WithinAbs(REAL(0.0), TOL(1e-6, 1e-3)));
+        REQUIRE_THAT(r_uw[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-6, 1e-3)));
+        REQUIRE_THAT(r_uw[1], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-6, 1e-3)));
+        REQUIRE_THAT(r_uw[2], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-6, 1e-3)));
     }
     
     TEST_CASE("HyperbolicParaboloid - Mixed Derivative (Should Be Zero)", "[parametric_surface][nder2_uw][critical]")
     {
         HyperbolicParaboloid saddle;
-        Real u = REAL(1.0), w = REAL(2.0);
+        Real u = static_cast<MML::Real>(1.0), w = static_cast<MML::Real>(2.0);
         
         // Analytical: r(u,w) = (u, w, u² - w²)
         // r_uw = (0, 0, 0)
         VectorN<Real, 3> r_uw = NDer2_uw(saddle, u, w);
         
-        REQUIRE_THAT(r_uw[0], WithinAbs(REAL(0.0), TOL(1e-5, 1e-3)));  // Mixed partial numerical precision
-        REQUIRE_THAT(r_uw[1], WithinAbs(REAL(0.0), TOL(1e-5, 1e-3)));
-        REQUIRE_THAT(r_uw[2], WithinAbs(REAL(0.0), TOL(1e-5, 1e-3)));
+        REQUIRE_THAT(r_uw[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-5, 1e-3)));  // Mixed partial numerical precision
+        REQUIRE_THAT(r_uw[1], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-5, 1e-3)));
+        REQUIRE_THAT(r_uw[2], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-5, 1e-3)));
     }
     
     TEST_CASE("Sphere - Mixed Derivative", "[parametric_surface][nder2_uw][critical]")
     {
-        Real R = REAL(2.0);
+        Real R = static_cast<MML::Real>(2.0);
         Sphere sphere(R);
-        Real u = Constants::PI / REAL(4.0);
-        Real w = Constants::PI / REAL(3.0);
+        Real u = Constants::PI / static_cast<MML::Real>(4.0);
+        Real w = Constants::PI / static_cast<MML::Real>(3.0);
         
         // Analytical: r_uw = (-R*cos(u)*sin(w), R*cos(u)*cos(w), 0)
         VectorN<Real, 3> r_uw = NDer2_uw(sphere, u, w);
         
         Real r_uw_x = -R * cos(u) * sin(w);
         Real r_uw_y = R * cos(u) * cos(w);
-        Real r_uw_z = REAL(0.0);
+        Real r_uw_z = static_cast<MML::Real>(0.0);
         
         REQUIRE_THAT(r_uw[0], WithinAbs(r_uw_x, TOL(1e-6, 1e-3)));
         REQUIRE_THAT(r_uw[1], WithinAbs(r_uw_y, TOL(1e-6, 1e-3)));
@@ -401,35 +401,35 @@ namespace MML::Tests::Core::DerivationParametricSurfaceTests
         // New formula: (f(u+h,w+h) - f(u+h,w-h) - f(u-h,w+h) + f(u-h,w-h))/(4h²) - CORRECT!
         
         MixedProductSurface surface;
-        Real u = REAL(2.0), w = REAL(3.0);
+        Real u = static_cast<MML::Real>(2.0), w = static_cast<MML::Real>(3.0);
         
         // With the old buggy formula, this would give approximately:
-        // (f(REAL(2.001),REAL(3.001)) - 2f(2,3) + f(REAL(1.999),REAL(2.999)))/h²
-        // = ((REAL(2.001), REAL(3.001), REAL(6.005001)) - 2(2,3,6) + (REAL(1.999), REAL(2.999), REAL(5.994001)))/h²
-        // ≈ (0, 0, -REAL(0.998))/h² which would be huge and wrong!
+        // (f(static_cast<MML::Real>(2.001),static_cast<MML::Real>(3.001)) - 2f(2,3) + f(static_cast<MML::Real>(1.999),static_cast<MML::Real>(2.999)))/h²
+        // = ((static_cast<MML::Real>(2.001), static_cast<MML::Real>(3.001), static_cast<MML::Real>(6.005001)) - 2(2,3,6) + (static_cast<MML::Real>(1.999), static_cast<MML::Real>(2.999), static_cast<MML::Real>(5.994001)))/h²
+        // ≈ (0, 0, -static_cast<MML::Real>(0.998))/h² which would be huge and wrong!
         
         // With the correct formula, we get:
         VectorN<Real, 3> r_uw = NDer2_uw(surface, u, w);
         
-        // The z-component should be exactly REAL(1.0), not some huge negative number
-        REQUIRE_THAT(r_uw[2], WithinAbs(REAL(1.0), TOL(1e-5, 1e-3)));  // Mixed partial numerical precision
-        REQUIRE(r_uw[2] > REAL(0.0));  // Must be positive!
-        REQUIRE(std::abs(r_uw[2]) < REAL(2.0));  // Must be reasonable magnitude
+        // The z-component should be exactly static_cast<MML::Real>(1.0), not some huge negative number
+        REQUIRE_THAT(r_uw[2], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-5, 1e-3)));  // Mixed partial numerical precision
+        REQUIRE(r_uw[2] > static_cast<MML::Real>(0.0));  // Must be positive!
+        REQUIRE(std::abs(r_uw[2]) < static_cast<MML::Real>(2.0));  // Must be reasonable magnitude
     }
     
     TEST_CASE("Integration Test: Surfaces Second Fundamental Form Uses Correct NDer2_uw", "[parametric_surface][integration]")
     {
         // This verifies that the fix propagates to actual surface geometry calculations
-        CylinderSurface cylinder(REAL(1.0), REAL(2.0));
-        Real u = Constants::PI / REAL(4.0);
-        Real w = REAL(1.0);
+        CylinderSurface cylinder(static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0));
+        Real u = Constants::PI / static_cast<MML::Real>(4.0);
+        Real w = static_cast<MML::Real>(1.0);
         
         Real L, M, N;
         cylinder.GetSecondNormalFormCoefficients(u, w, L, M, N);
         
         // For cylinder: M should be exactly 0 (no twist in surface)
-        // Before the fix, M was -REAL(1.5) (completely wrong!)
-        // After the fix, M should be REAL(0.0)
-        REQUIRE_THAT(M, WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+        // Before the fix, M was -static_cast<MML::Real>(1.5) (completely wrong!)
+        // After the fix, M should be static_cast<MML::Real>(0.0)
+        REQUIRE_THAT(M, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 1e-4)));
     }
 }

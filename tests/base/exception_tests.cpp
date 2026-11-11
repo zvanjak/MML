@@ -9,8 +9,64 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include "../../mml/MMLExceptions.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/core/LinAlgEqSolvers/LinAlgDirect.h>
+#include <type_traits>
 
 using namespace MML;
+
+TEST_CASE("Exception string constructors are explicit", "[exceptions][wewi.3.6]") {
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, IndexError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, SingularMatrixError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, IntegrationTooManySteps>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, RealFuncInterpInitError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, RealFuncInterpRuntimeError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, TensorIndexError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, RootFindingError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, ODESolverError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, StatisticsError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, NumericalMethodError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, MatrixNumericalError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, ConvergenceError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, GeometryError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, QuaternionError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, FileIOError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, FourierError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, VisualizerError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, CurveFittingError>);
+	STATIC_REQUIRE_FALSE(std::is_convertible_v<std::string, DataError>);
+	STATIC_REQUIRE(std::is_constructible_v<ConvergenceError, std::string>);
+}
+
+TEST_CASE("Vector checked access is an index error with correct metadata", "[exceptions][wewi.3.6]") {
+	Vector<Real> vector(3);
+	const Vector<Real>& constant = vector;
+	VectorN<Real, 3> fixed;
+	const VectorN<Real, 3>& constantFixed = fixed;
+	for (int index : {-1, 3}) {
+		REQUIRE_THROWS_AS(vector.at(index), VectorAccessBoundsError);
+		REQUIRE_THROWS_AS(constant.at(index), IndexError);
+		REQUIRE_THROWS_AS(fixed.at(index), IndexError);
+		REQUIRE_THROWS_AS(constantFixed.at(index), std::out_of_range);
+		try {
+			(void)vector.at(index);
+			FAIL("Expected index exception");
+		} catch (const IndexError& error) {
+			REQUIRE(error.index() == index);
+			REQUIRE(error.size() == 3);
+		}
+	}
+}
+
+TEST_CASE("Cholesky distinguishes domain errors from dimension errors", "[exceptions][wewi.3.6]") {
+	Matrix<Real> nonsymmetric(2, 2, {static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0)});
+	REQUIRE_THROWS_AS(CholeskySolver<Real>(nonsymmetric), DomainError);
+	Matrix<Real> nonsquare(2, 3);
+	REQUIRE_THROWS_AS(CholeskySolver<Real>(nonsquare), MatrixDimensionError);
+	Matrix<Complex> complexDiagonal(1, 1, {Complex(static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0))});
+	REQUIRE_THROWS_AS(CholeskySolver<Complex>(complexDiagonal), DomainError);
+}
 
 TEST_CASE("MMLException - catch all MML exceptions", "[exceptions]")
 {

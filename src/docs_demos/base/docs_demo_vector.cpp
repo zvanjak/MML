@@ -21,8 +21,27 @@
 
 #include <iostream>
 #include <iomanip>
+#include <limits>
+#include <sstream>
+#include <stdexcept>
 
 using namespace MML;
+
+void Docs_Demo_UnsignedVector()
+{
+	Vector<unsigned int> values{3, 4, 0};
+	std::cout << "Unsigned vector: " << values << '\n'
+	          << "L1 / L2 / Linf: " << values.NormL1() << " / " << values.NormL2()
+	          << " / " << values.NormLInf() << '\n';
+	if (!IsNearlyEqual(values.NormL1(), Real(7)) || !IsNearlyEqual(values.NormL2(), Real(5)))
+		throw std::runtime_error("Unsigned vector magnitude regression");
+	const auto maximum = std::numeric_limits<unsigned long long>::max();
+	Vector<unsigned long long> wide{maximum, 0};
+	const std::string text = wide.to_string(0, 6);
+	if (text != "[" + std::to_string(maximum) + ", 0]")
+		throw std::runtime_error("Unsigned vector printing narrowed an integer");
+	std::cout << "Native maximum integer: " << text << '\n';
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                           Construction Examples                                     ///
@@ -308,20 +327,20 @@ void Demo_Vector_Modification()
     Vector<double> r({1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
     std::cout << "  Original:                " << r << std::endl;
     
-    r.Resize(5, true);  // Shrink, preserve elements
+    r.resize(5, true);  // Shrink, preserve elements
     std::cout << "  After Resize(5, true):   " << r << std::endl;
     
-    r.Resize(8, true);  // Grow, preserve elements (new ones are zero)
+    r.resize(8, true);  // Grow, preserve elements (new ones are zero)
     std::cout << "  After Resize(8, true):   " << r << std::endl;
     
-    r.Resize(3);  // Shrink without preserve flag
+    r.resize(3);  // Shrink without preserve flag
     std::cout << "  After Resize(3):         " << r << std::endl;
 
     // Clear
     std::cout << "\nClear operation:" << std::endl;
     Vector<double> toClear({1, 2, 3, 4, 5});
     std::cout << "  Before Clear(): " << toClear << " (size=" << toClear.size() << ")" << std::endl;
-    toClear.Clear();
+    toClear.clear();
     std::cout << "  After Clear():  size=" << toClear.size() << ", empty=" << (toClear.empty() ? "true" : "false") << std::endl;
 }
 
@@ -440,8 +459,8 @@ void Demo_Vector_Equality()
     std::cout << "\nNull vector check:" << std::endl;
     Vector<double> zero(5);  // All zeros
     Vector<double> nonzero({0, 0, 0.0001, 0, 0});
-    std::cout << "  Vector(5).isZero():     " << (zero.isZero() ? "true" : "false") << std::endl;
-    std::cout << "  {0,0,0.0001,0,0}.isZero(): " << (nonzero.isZero() ? "true" : "false") << std::endl;
+    std::cout << "  Vector(5).IsZero():     " << (zero.IsZero() ? "true" : "false") << std::endl;
+    std::cout << "  {0,0,0.0001,0,0}.IsZero(): " << (nonzero.IsZero() ? "true" : "false") << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

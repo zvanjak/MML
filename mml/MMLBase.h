@@ -12,8 +12,6 @@
 #if !defined MML_BASE_H
 #define MML_BASE_H
 
-#define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
-
 // MML headers first (catches missing includes in them)
 #include <mml/MMLTypeDefs.h>
 #include <mml/MMLExceptions.h>
@@ -21,21 +19,12 @@
 #include <mml/MMLConcepts.h>
 
 // Standard headers - only what MMLBase.h actually uses
+#include <algorithm>
 #include <cmath>
 #include <complex>
 #include <cstdint>
 #include <limits>
-
-// Macro for type-safe numeric literals that match Real type
-// This ensures literals like 0.0, 1.0 match the current Real precision
-// Usage: Real x = REAL(3.14159265358979323846);
-#ifndef REAL
-#define REAL(x) static_cast<Real>(x)
-#endif
-
-// Complex must have the same underlying type as Real
-// Changing Real automatically changes Complex precision
-typedef std::complex<Real> Complex; // default complex type
+#include <type_traits>
 
 namespace MML {
 
@@ -62,45 +51,85 @@ namespace MML {
 	// Generic absolute value functions
 	template<class Type>
 	static Real Abs(const Type& a) {
-		return std::abs(a);
+		// Unsigned magnitudes are already nonnegative; std::abs has no unsigned overload.
+		if constexpr (std::is_unsigned_v<Type>)
+			return static_cast<Real>(a);
+		else
+			return std::abs(a);
 	}
 	template<class Type>
 	static Real Abs(const std::complex<Type>& a) {
 		return hypot(a.real(), a.imag());
 	}
 
+	/// @brief Overflow/underflow-safe Euclidean norm accumulator (LAPACK dnrm2 scale/ssq scheme).
+	/// @details sqrt(sum x_i^2) overflows for |x_i| > ~1e154 and underflows to 0 for |x_i| < ~1e-154
+	///          although the norm itself is representable. Feed |x_i| (a real magnitude) one at a
+	///          time via add(), read the norm with value(). Used by Vector/VectorN::NormL2
+	///          (analysis v4, roadmap item 18: "naive norms").
+	struct StableNormL2Accumulator {
+		Real scale = 0.0;   ///< Largest magnitude seen so far
+		Real ssq = 1.0;     ///< Sum of (x_i / scale)^2
+
+		void add(Real magnitude) {
+			if (magnitude == 0.0)
+				return;
+			if (scale < magnitude) {
+				const Real ratio = scale / magnitude;
+				ssq = 1.0 + ssq * ratio * ratio;
+				scale = magnitude;
+			} else {
+				const Real ratio = magnitude / scale;
+				ssq += ratio * ratio;
+			}
+		}
+		Real value() const { return scale * std::sqrt(ssq); }
+	};
+
 	////////////         Floating-Point Comparison Functions         ////////////
-	/// @brief Check if two values are equal within absolute tolerance.
-	/// @details Use for values expected to be near zero.
-	inline bool isWithinAbsPrec(Real a, Real b, Real eps) { return std::abs(a - b) < eps; }
+	// The canonical comparison vocabulary (docs/TOLERANCE_POLICY.md section 3). Inline tolerance
+	// arithmetic elsewhere in the library should go through these so the semantics are in one place.
 
-	/// @brief Check if two values are equal within relative tolerance.
-	/// @details Use for values of similar magnitude away from zero.
-	inline bool isWithinRelPrec(Real a, Real b, Real eps) { return std::abs(a - b) < eps * std::max(Abs(a), Abs(b)); }
+	/// @brief |a - b| < absEps. Use when the values are expected to be near zero (or the scale is known).
+	inline bool IsWithinAbs(Real a, Real b, Real absEps) { return std::abs(a - b) < absEps; }
 
-	/// @brief Check if two values are nearly equal using combined absolute and relative tolerance.
-	/// @details This is the recommended comparison for general floating-point equality.
-	///          Handles both small values (where absolute tolerance dominates) and
-	///          large values (where relative tolerance dominates) correctly.
-	/// @param a First value
-	/// @param b Second value
-	/// @param absEps Absolute tolerance (dominates for values near zero)
-	/// @param relEps Relative tolerance (dominates for large values)
-	/// @return true if |a - b| < absEps + relEps * max(|a|, |b|)
-	inline bool isNearlyEqual(Real a, Real b, Real absEps, Real relEps) {
+	/// @brief |a - b| < relEps * max(|a|, |b|), with a == b always true (so (0, 0) is "equal").
+	/// Use when both values are away from zero and only their magnitude matters.
+	inline bool IsWithinRel(Real a, Real b, Real relEps) {
+		return a == b || std::abs(a - b) < relEps * std::max(Abs(a), Abs(b));
+	}
+
+	/// @brief Combined test: |a - b| < absEps + relEps * max(|a|, |b|). The recommended general
+	/// floating-point equality: absEps dominates near zero, relEps dominates for large values.
+	inline bool IsNearlyEqual(Real a, Real b, Real absEps, Real relEps) {
 		return std::abs(a - b) < absEps + relEps * std::max(Abs(a), Abs(b));
 	}
 
-	/// @brief Check if two values are nearly equal using a single tolerance for both abs and rel.
-	/// @details Convenience overload that uses the same tolerance for absolute and relative comparison.
-	inline bool isNearlyEqual(Real a, Real b, Real eps) { return isNearlyEqual(a, b, eps, eps); }
+	/// @brief Combined test with one tolerance used for both parts.
+	inline bool IsNearlyEqual(Real a, Real b, Real eps = Precision::EqualityTolerance) { return IsNearlyEqual(a, b, eps, eps); }
 
-	/// @brief Check if a value is nearly zero (within tolerance of zero).
-	/// @details Use for checking if a value is effectively zero in numerical computations.
-	/// @param a Value to check
-	/// @param eps Tolerance (defaults to NumericalZeroThreshold)
-	/// @return true if |a| < eps
-	inline bool isNearlyZero(Real a, Real eps = PrecisionValues<Real>::NumericalZeroThreshold) { return std::abs(a) < eps; }
+	/// @brief |a| < eps. "This computed quantity is negligible." Exact `== 0` is reserved for
+	/// structural/literal inputs and IEEE special cases (TOLERANCE_POLICY section 4).
+	inline bool IsNearlyZero(Real a, Real eps = Precision::ZeroTolerance) { return std::abs(a) < eps; }
+
+	/// @brief |x| <= eps * scale: a scale-aware negligibility test, e.g. a pivot against the matrix norm
+	/// (`IsNegligibleRelativeTo(pivot, norm * n, Precision::Eps)`), a residual against ‖b‖, a step against |x|.
+	inline bool IsNegligibleRelativeTo(Real x, Real scale, Real eps = Precision::Eps) { return std::abs(x) <= eps * std::abs(scale); }
+
+	/// @brief Guard for division: true when |denominator| is so small that the quotient is meaningless.
+	inline bool IsUnsafeDenominator(Real d) { return std::abs(d) < Precision::DivisionSafetyThreshold; }
+
+	// ---- 2.0 spellings (CONTRACT_POLICY section 11: free predicates are PascalCase) ----
+	[[deprecated("use IsWithinAbs()")]]
+	inline bool isWithinAbsPrec(Real a, Real b, Real eps) { return IsWithinAbs(a, b, eps); }
+	[[deprecated("use IsWithinRel()")]]
+	inline bool isWithinRelPrec(Real a, Real b, Real eps) { return IsWithinRel(a, b, eps); }
+	[[deprecated("use IsNearlyEqual()")]]
+	inline bool isNearlyEqual(Real a, Real b, Real absEps, Real relEps) { return IsNearlyEqual(a, b, absEps, relEps); }
+	[[deprecated("use IsNearlyEqual()")]]
+	inline bool isNearlyEqual(Real a, Real b, Real eps) { return IsNearlyEqual(a, b, eps, eps); }
+	[[deprecated("use IsNearlyZero()")]]
+	inline bool isNearlyZero(Real a, Real eps = Precision::ZeroTolerance) { return IsNearlyZero(a, eps); }
 
 	template<class T>
 	inline T POW2(const T& a) {
@@ -141,9 +170,6 @@ namespace MML {
 
 		static inline constexpr Real GoldenRatio = Real(1.618033988749894848204586834365638118L); // (1 + sqrt(5)) / 2
 
-		// Geometry epsilon for floating-point comparisons in geometric algorithms
-		static inline constexpr Real GEOMETRY_EPSILON = Real(1e-10L);
-
 		// Precision constants - use Real type for consistency with library's floating-point type
 		static inline constexpr Real Eps = std::numeric_limits<Real>::epsilon();
 		static inline constexpr Real PosInf = std::numeric_limits<Real>::infinity();
@@ -174,12 +200,12 @@ namespace MML {
 	}
 
 	struct AlgorithmContext {
-		// Integration parameters (using PrecisionValues for consistency)
-		Real trapezoidIntegrationEPS = REAL(1.0e-4);
-		Real simpsonIntegrationEPS = REAL(1.0e-5);
-		Real rombergIntegrationEPS = PrecisionValues<Real>::DefaultTolerance;
-		Real workIntegralPrecision = REAL(1e-05);
-		Real lineIntegralPrecision = REAL(1e-05);
+		// Integration parameters — runtime-adjustable per thread; the values come from Precision
+		Real trapezoidIntegrationEPS = Precision::TrapezoidIntegrationTolerance;
+		Real simpsonIntegrationEPS = Precision::SimpsonIntegrationTolerance;
+		Real rombergIntegrationEPS = Precision::RombergIntegrationTolerance;
+		Real workIntegralPrecision = Precision::LineIntegralTolerance;
+		Real lineIntegralPrecision = Precision::LineIntegralTolerance;
 
 		int trapezoidIntegrationMaxSteps = 20;
 		int simpsonIntegrationMaxSteps = 20;
@@ -236,55 +262,55 @@ namespace MML {
 		static inline Detail::ThreadLocalAlias<int, PrintContext, &PrintContext::vectorNWidth> VectorNPrintWidth;
 		static inline Detail::ThreadLocalAlias<int, PrintContext, &PrintContext::vectorNPrecision> VectorNPrintPrecision;
 
-		//////////               Default precisions             ///////////
-		// Use the precision values based on the Real type
-		static inline const Real ComplexAreEqualTolerance = PrecisionValues<Real>::ComplexAreEqualTolerance;
-		static inline const Real ComplexAreEqualAbsTolerance = PrecisionValues<Real>::ComplexAreEqualAbsTolerance;
-		static inline const Real VectorIsEqualTolerance = PrecisionValues<Real>::VectorIsEqualTolerance;
-		static inline const Real MatrixIsEqualTolerance = PrecisionValues<Real>::MatrixIsEqualTolerance;
+		//////////   Deprecated tolerance mirrors (TOLERANCE_POLICY section 7)   ///////////
+		// Precision::X is the canonical spelling; these copies are removed after one minor release.
+		[[deprecated("use Precision::ComplexAreEqualTolerance")]] static inline const Real ComplexAreEqualTolerance = Precision::ComplexAreEqualTolerance;
+		[[deprecated("use Precision::ComplexAreEqualAbsTolerance")]] static inline const Real ComplexAreEqualAbsTolerance = Precision::ComplexAreEqualAbsTolerance;
+		[[deprecated("use Precision::VectorIsEqualTolerance")]] static inline const Real VectorIsEqualTolerance = Precision::VectorIsEqualTolerance;
+		[[deprecated("use Precision::MatrixIsEqualTolerance")]] static inline const Real MatrixIsEqualTolerance = Precision::MatrixIsEqualTolerance;
 
-		static inline const Real Pnt2CartIsEqualTolerance = PrecisionValues<Real>::Pnt2CartIsEqualTolerance;
-		static inline const Real Pnt2PolarIsEqualTolerance = PrecisionValues<Real>::Pnt2PolarIsEqualTolerance;
-		static inline const Real Pnt3CartIsEqualTolerance = PrecisionValues<Real>::Pnt3CartIsEqualTolerance;
-		static inline const Real Pnt3SphIsEqualTolerance = PrecisionValues<Real>::Pnt3SphIsEqualTolerance;
-		static inline const Real Pnt3CylIsEqualTolerance = PrecisionValues<Real>::Pnt3CylIsEqualTolerance;
+		[[deprecated("use Precision::Pnt2CartIsEqualTolerance")]] static inline const Real Pnt2CartIsEqualTolerance = Precision::Pnt2CartIsEqualTolerance;
+		[[deprecated("use Precision::Pnt2PolarIsEqualTolerance")]] static inline const Real Pnt2PolarIsEqualTolerance = Precision::Pnt2PolarIsEqualTolerance;
+		[[deprecated("use Precision::Pnt3CartIsEqualTolerance")]] static inline const Real Pnt3CartIsEqualTolerance = Precision::Pnt3CartIsEqualTolerance;
+		[[deprecated("use Precision::Pnt3SphIsEqualTolerance")]] static inline const Real Pnt3SphIsEqualTolerance = Precision::Pnt3SphIsEqualTolerance;
+		[[deprecated("use Precision::Pnt3CylIsEqualTolerance")]] static inline const Real Pnt3CylIsEqualTolerance = Precision::Pnt3CylIsEqualTolerance;
 
-		static inline const Real Vec2CartIsEqualTolerance = PrecisionValues<Real>::Vec2CartIsEqualTolerance;
-		static inline const Real Vec3CartIsEqualTolerance = PrecisionValues<Real>::Vec3CartIsEqualTolerance;
-		static inline const Real Vec3CartIsParallelTolerance = PrecisionValues<Real>::Vec3CartIsParallelTolerance;
+		[[deprecated("use Precision::Vec2CartIsEqualTolerance")]] static inline const Real Vec2CartIsEqualTolerance = Precision::Vec2CartIsEqualTolerance;
+		[[deprecated("use Precision::Vec3CartIsEqualTolerance")]] static inline const Real Vec3CartIsEqualTolerance = Precision::Vec3CartIsEqualTolerance;
+		[[deprecated("use Precision::Vec3CartIsParallelTolerance")]] static inline const Real Vec3CartIsParallelTolerance = Precision::Vec3CartIsParallelTolerance;
 
-		static inline const Real Vec3SphIsEqualTolerance = PrecisionValues<Real>::Vec3SphIsEqualTolerance;
+		[[deprecated("use Precision::Vec3SphIsEqualTolerance")]] static inline const Real Vec3SphIsEqualTolerance = Precision::Vec3SphIsEqualTolerance;
 
 		// Angle comparison tolerance (for wrap-aware angle equality)
-		static inline const Real AngleIsEqualTolerance = PrecisionValues<Real>::AngleIsEqualTolerance;
+		[[deprecated("use Precision::AngleIsEqualTolerance")]] static inline const Real AngleIsEqualTolerance = Precision::AngleIsEqualTolerance;
 
 		// Shape property tolerance (for geometric shape classification)
-		static inline const Real ShapePropertyTolerance = PrecisionValues<Real>::ShapePropertyTolerance;
+		[[deprecated("use Precision::ShapePropertyTolerance")]] static inline const Real ShapePropertyTolerance = Precision::ShapePropertyTolerance;
 
-		static inline const Real Line3DAreEqualTolerance = PrecisionValues<Real>::Line3DAreEqualTolerance;
-		static inline const Real Line3DIsPointOnLineTolerance = PrecisionValues<Real>::Line3DIsPointOnLineTolerance;
-		static inline const Real Line3DIsPerpendicularTolerance = PrecisionValues<Real>::Line3DIsPerpendicularTolerance;
-		static inline const Real Line3DIsParallelTolerance = PrecisionValues<Real>::Line3DIsParallelTolerance;
-		static inline const Real Line3DIntersectionTolerance = PrecisionValues<Real>::Line3DIntersectionTolerance;
+		[[deprecated("use Precision::Line3DAreEqualTolerance")]] static inline const Real Line3DAreEqualTolerance = Precision::Line3DAreEqualTolerance;
+		[[deprecated("use Precision::Line3DIsPointOnLineTolerance")]] static inline const Real Line3DIsPointOnLineTolerance = Precision::Line3DIsPointOnLineTolerance;
+		[[deprecated("use Precision::Line3DIsPerpendicularTolerance")]] static inline const Real Line3DIsPerpendicularTolerance = Precision::Line3DIsPerpendicularTolerance;
+		[[deprecated("use Precision::Line3DIsParallelTolerance")]] static inline const Real Line3DIsParallelTolerance = Precision::Line3DIsParallelTolerance;
+		[[deprecated("use Precision::Line3DIntersectionTolerance")]] static inline const Real Line3DIntersectionTolerance = Precision::Line3DIntersectionTolerance;
 
-		static inline const Real Plane3DIsPointOnPlaneTolerance = PrecisionValues<Real>::Plane3DIsPointOnPlaneTolerance;
+		[[deprecated("use Precision::Plane3DIsPointOnPlaneTolerance")]] static inline const Real Plane3DIsPointOnPlaneTolerance = Precision::Plane3DIsPointOnPlaneTolerance;
 
-		static inline const Real Triangle3DIsPointInsideTolerance = PrecisionValues<Real>::Triangle3DIsPointInsideTolerance;
-		static inline const Real Triangle3DIsRightTolerance = PrecisionValues<Real>::Triangle3DIsRightTolerance;
-		static inline const Real Triangle3DIsIsoscelesTolerance = PrecisionValues<Real>::Triangle3DIsIsoscelesTolerance;
-		static inline const Real Triangle3DIsEquilateralTolerance = PrecisionValues<Real>::Triangle3DIsEquilateralTolerance;
+		[[deprecated("use Precision::Triangle3DIsPointInsideTolerance")]] static inline const Real Triangle3DIsPointInsideTolerance = Precision::Triangle3DIsPointInsideTolerance;
+		[[deprecated("use Precision::Triangle3DIsRightTolerance")]] static inline const Real Triangle3DIsRightTolerance = Precision::Triangle3DIsRightTolerance;
+		[[deprecated("use Precision::Triangle3DIsIsoscelesTolerance")]] static inline const Real Triangle3DIsIsoscelesTolerance = Precision::Triangle3DIsIsoscelesTolerance;
+		[[deprecated("use Precision::Triangle3DIsEquilateralTolerance")]] static inline const Real Triangle3DIsEquilateralTolerance = Precision::Triangle3DIsEquilateralTolerance;
 
-		static inline const Real IsMatrixSymmetricTolerance = PrecisionValues<Real>::IsMatrixSymmetricTolerance;
-		static inline const Real IsMatrixDiagonalTolerance = PrecisionValues<Real>::IsMatrixDiagonalTolerance;
-		static inline const Real IsMatrixUnitTolerance = PrecisionValues<Real>::IsMatrixUnitTolerance;
-		static inline const Real IsMatrixZeroTolerance = PrecisionValues<Real>::IsMatrixZeroTolerance;
-		static inline const Real IsMatrixOrthogonalTolerance = PrecisionValues<Real>::IsMatrixOrthogonalTolerance;
+		[[deprecated("use Precision::IsMatrixSymmetricTolerance")]] static inline const Real IsMatrixSymmetricTolerance = Precision::IsMatrixSymmetricTolerance;
+		[[deprecated("use Precision::IsMatrixDiagonalTolerance")]] static inline const Real IsMatrixDiagonalTolerance = Precision::IsMatrixDiagonalTolerance;
+		[[deprecated("use Precision::IsMatrixUnitTolerance")]] static inline const Real IsMatrixUnitTolerance = Precision::IsMatrixUnitTolerance;
+		[[deprecated("use Precision::IsMatrixZeroTolerance")]] static inline const Real IsMatrixZeroTolerance = Precision::IsMatrixZeroTolerance;
+		[[deprecated("use Precision::IsMatrixOrthogonalTolerance")]] static inline const Real IsMatrixOrthogonalTolerance = Precision::IsMatrixOrthogonalTolerance;
 
-		static inline const Real RankAlgEPS = PrecisionValues<Real>::RankAlgEPS;
+		[[deprecated("use Precision::RankAlgEPS")]] static inline const Real RankAlgEPS = Precision::RankAlgEPS;
 
 		// Numerical thresholds from PrecisionValues
-		static inline const Real DefaultTolerance = PrecisionValues<Real>::DefaultTolerance;
-		static inline const Real OrthogonalityTolerance = PrecisionValues<Real>::OrthogonalityTolerance;
+		[[deprecated("use Precision::DefaultTolerance")]] static inline const Real DefaultTolerance = Precision::DefaultTolerance;
+		[[deprecated("use Precision::OrthogonalityTolerance")]] static inline const Real OrthogonalityTolerance = Precision::OrthogonalityTolerance;
 
 		// Algorithm parameters (per-thread; reads/writes affect the calling thread only)
 		// Usage: Defaults::TrapezoidIntegrationEPS = 1e-6;

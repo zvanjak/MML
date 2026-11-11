@@ -109,7 +109,9 @@ namespace MML
 		/// @param x X-coordinates of data points
 		/// @param y Y-coordinates of data points
 		/// @return Polynomial such that P(x[i]) = y[i]
+		/// @note Only available when values of FieldT can be stored as CoefT (not for PolynomComplexRealCoef).
     static Polynom FromValues(const std::vector<FieldT>& x, const std::vector<FieldT>& y)
+        requires std::is_convertible_v<FieldT, CoefT>
     {
       int n = (int)x.size();
       if (n != (int)y.size())
@@ -173,14 +175,19 @@ namespace MML
 		int  degree() const noexcept { return (int)_vecCoef.size() - 1; }
 		/// @brief Sets degree of polynomial (resizes coefficient vector).
 		/// @param newDeg New degree
-		void SetDegree(int newDeg) { _vecCoef.resize(newDeg + 1); }
+		/// @brief Sets degree of polynomial (resizes coefficient vector); -1 yields the null polynomial.
+		void SetDegree(int newDeg) {
+			if (newDeg < -1)
+				throw ArgumentError("Polynom::SetDegree - degree must be >= -1");
+			_vecCoef.resize(newDeg + 1);
+		}
 		/// @brief Checks if polynomial is null (no coefficients).
 		bool isNull() const noexcept { return _vecCoef.size() == 0; }
-		/// @brief Removes trailing near-zero coefficients using machine epsilon.
-		void Reduce() { Reduce(std::numeric_limits<CoefT>::epsilon() * 100); }
+		/// @brief Removes trailing near-zero coefficients using machine epsilon (of the real magnitude type).
+		void Reduce() { Reduce(Precision::RoundoffZeroThreshold); }
 		/// @brief Removes trailing coefficients smaller than eps in absolute value.
-		/// @param eps Tolerance threshold for near-zero coefficients
-		void Reduce(CoefT eps) { while (!_vecCoef.empty() && std::abs(_vecCoef.back()) < eps) _vecCoef.pop_back(); }
+		/// @param eps Tolerance threshold for near-zero coefficients (a real magnitude, also for complex coefficients)
+		void Reduce(Real eps) { while (!_vecCoef.empty() && Abs(_vecCoef.back()) < eps) _vecCoef.pop_back(); }
 		
 		/// @brief Returns leading coefficient.
 		CoefT leadingTerm() const noexcept { return _vecCoef.empty() ? CoefT(0) : _vecCoef.back(); }
@@ -261,18 +268,16 @@ namespace MML
 
 		/// @brief Checks tolerance-based equality with another polynomial.
 		/// @param b Polynomial to compare
-		/// @param eps Tolerance for coefficient comparison
+		/// @param eps Tolerance for coefficient comparison (a real magnitude, also for complex coefficients)
 		/// @return True if all coefficients are within eps of each other
-		template<typename T = CoefT>
-		typename std::enable_if<std::is_floating_point<T>::value, bool>::type
-		IsEqualTo(const Polynom& b, T eps = Defaults::DefaultTolerance) const
+		bool IsEqualTo(const Polynom& b, Real eps = Precision::DefaultTolerance) const
 		{
 			int maxSize = (int)std::max(_vecCoef.size(), b._vecCoef.size());
 			
 			for (int i = 0; i < maxSize; i++)
 			{
-				T a_coef = (i < (int)_vecCoef.size()) ? _vecCoef[i] : T(0);
-				T b_coef = (i < (int)b._vecCoef.size()) ? b._vecCoef[i] : T(0);
+				CoefT a_coef = (i < (int)_vecCoef.size()) ? _vecCoef[i] : CoefT(0);
+				CoefT b_coef = (i < (int)b._vecCoef.size()) ? b._vecCoef[i] : CoefT(0);
 				
 				if (std::abs(a_coef - b_coef) > eps)
 					return false;
@@ -338,9 +343,12 @@ namespace MML
 
 		/// @brief Polynomial multiplication.
 		/// @param b Polynomial to multiply
+		/// @note The null polynomial (no coefficients) acts as zero: null * p == null.
 		Polynom operator*(const Polynom& b) const
 		{
 			Polynom result;
+			if (_vecCoef.empty() || b._vecCoef.empty())
+				return result;   // size() + size() - 1 would underflow to a huge resize (length_error)
 
 			int n = (int)(_vecCoef.size() + b._vecCoef.size() - 1);
 			result._vecCoef.resize(n);
@@ -420,6 +428,13 @@ namespace MML
 			if (nv < 0)
 				throw DivisionByZeroError("poldiv: divide by zero polynomial");
 
+			// deg(u) < deg(v) (including the null dividend): quotient is null, remainder is u
+			if (n < nv) {
+				qout = Polynom();
+				rout = u;
+				return;
+			}
+
 			Polynom r = u;
 			Polynom q(u.degree());
 			for (k = n - nv; k >= 0; k--)
@@ -452,8 +467,14 @@ namespace MML
 		/// @brief Evaluates polynomial and its first n derivatives at point x.
 		/// @param x Evaluation point
 		/// @param pd Output vector: pd[0]=P(x), pd[1]=P'(x), ..., pd[n]=P^(n)(x)
-		void Derive(const Real x, Vector<Real>& pd)
+		void Derive(const CoefT x, Vector<CoefT>& pd) const
 		{
+			if (pd.size() == 0)
+				throw VectorDimensionError("Polynom::Derive - output vector must have at least one element", pd.size(), 1);
+			if (isNull()) {
+				for (int k = 0; k < pd.size(); k++) pd[k] = CoefT(0);
+				return;
+			}
 			int  nnd, j, i;
 			int  nc = degree();
 			int  nd = pd.size() - 1;
@@ -461,7 +482,7 @@ namespace MML
 
 			pd[0] = (*this)[nc];
 			for (j = 1; j < nd + 1; j++)
-				pd[j] = 0.0;
+				pd[j] = CoefT(0);
 
 			for (i = nc - 1; i >= 0; i--)
 			{

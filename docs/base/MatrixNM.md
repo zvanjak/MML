@@ -102,7 +102,7 @@ auto result = A * v;
 MatrixNM<double, 3, 3> A{1,2,3,4,5,6,7,8,9};
 
 // Transpose (returns new matrix with swapped dimensions)
-auto At = A.transpose();  // MatrixNM<double, 3, 3>
+auto At = A.Transposed();  // MatrixNM<double, 3, 3>
 
 // In-place transpose (only for square matrices)
 A.Transpose();  // Modifies A in place

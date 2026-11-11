@@ -90,7 +90,7 @@ namespace MML::Optimization {
          * @throws MultidimOptimizationInputError if inputs are invalid
          */
 		template<int N>
-		MultidimMinimizationResult Minimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start) {
+		MultidimOptimizationResult Minimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start) {
 			// Validate inputs
 			ValidateVectorFinite<N>(start, "ConjugateGradient::Minimize starting point");
 			ValidateMultidimTolerance(_ftol, "ConjugateGradient ftol");
@@ -98,7 +98,7 @@ namespace MML::Optimization {
 			if (_maxIter <= 0)
 				throw MultidimOptimizationInputError("ConjugateGradient: maxIter must be positive");
 			
-			const Real EPS = 1.0e-18;
+			const Real EPS = Precision::Eps;   // NR dfpmin: machine epsilon
 
 			VectorN<Real, N> p = start;
 			VectorN<Real, N> g, h, xi;
@@ -124,7 +124,7 @@ namespace MML::Optimization {
 					Vector<Real> result(N);
 					for (int j = 0; j < N; ++j)
 						result[j] = p[j];
-					return MultidimMinimizationResult(result, _fret, _iter + 1, true);
+					return MultidimOptimizationResult(result, _fret, _iter + 1, true);
 				}
 
 				fp = _fret;
@@ -134,9 +134,9 @@ namespace MML::Optimization {
 
 				// Check gradient convergence
 				Real test = 0.0;
-				Real den = std::max(std::abs(fp), REAL(1.0));
+				Real den = std::max(std::abs(fp), static_cast<MML::Real>(1.0));
 				for (int j = 0; j < N; ++j) {
-					Real temp = std::abs(xi[j]) * std::max(std::abs(p[j]), REAL(1.0)) / den;
+					Real temp = std::abs(xi[j]) * std::max(std::abs(p[j]), static_cast<MML::Real>(1.0)) / den;
 					if (temp > test)
 						test = temp;
 				}
@@ -144,7 +144,7 @@ namespace MML::Optimization {
 					Vector<Real> result(N);
 					for (int j = 0; j < N; ++j)
 						result[j] = p[j];
-					return MultidimMinimizationResult(result, _fret, _iter + 1, true);
+					return MultidimOptimizationResult(result, _fret, _iter + 1, true);
 				}
 
 				// Compute gamma (CG update coefficient)
@@ -164,7 +164,7 @@ namespace MML::Optimization {
 					Vector<Real> result(N);
 					for (int j = 0; j < N; ++j)
 						result[j] = p[j];
-					return MultidimMinimizationResult(result, _fret, _iter + 1, true);
+					return MultidimOptimizationResult(result, _fret, _iter + 1, true);
 				}
 
 				Real gam = dgg / gg;
@@ -180,7 +180,7 @@ namespace MML::Optimization {
 			Vector<Real> result(N);
 			for (int j = 0; j < N; ++j)
 				result[j] = p[j];
-			return MultidimMinimizationResult(result, _fret, _iter, false);
+			return MultidimOptimizationResult(result, _fret, _iter, false);
 		}
 	};
 
@@ -243,7 +243,7 @@ namespace MML::Optimization {
          * @throws MultidimOptimizationInputError if inputs are invalid
          */
 		template<int N>
-		MultidimMinimizationResult Minimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start) {
+		MultidimOptimizationResult Minimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start) {
 			// Validate inputs
 			ValidateVectorFinite<N>(start, "BFGS::Minimize starting point");
 			ValidateMultidimTolerance(_ftol, "BFGS ftol");
@@ -251,7 +251,7 @@ namespace MML::Optimization {
 			if (_maxIter <= 0)
 				throw MultidimOptimizationInputError("BFGS: maxIter must be positive");
 			
-			const Real EPS = 1.0e-18;
+			const Real EPS = Precision::Eps;   // NR dfpmin: machine epsilon
 			const Real STPMX = 100.0; // Maximum step size
 
 			VectorN<Real, N> p = start;
@@ -291,7 +291,7 @@ namespace MML::Optimization {
 					Vector<Real> result(N);
 					for (int j = 0; j < N; ++j)
 						result[j] = p[j];
-					return MultidimMinimizationResult(result, _fret, _iter + 1, true);
+					return MultidimOptimizationResult(result, _fret, _iter + 1, true);
 				}
 
 				// Update xi to be the actual step taken
@@ -305,9 +305,9 @@ namespace MML::Optimization {
 
 				// Check gradient convergence
 				Real test = 0.0;
-				Real den = std::max(std::abs(_fret), REAL(1.0));
+				Real den = std::max(std::abs(_fret), static_cast<MML::Real>(1.0));
 				for (int j = 0; j < N; ++j) {
-					Real temp = std::abs(g[j]) * std::max(std::abs(p[j]), REAL(1.0)) / den;
+					Real temp = std::abs(g[j]) * std::max(std::abs(p[j]), static_cast<MML::Real>(1.0)) / den;
 					if (temp > test)
 						test = temp;
 				}
@@ -315,7 +315,7 @@ namespace MML::Optimization {
 					Vector<Real> result(N);
 					for (int j = 0; j < N; ++j)
 						result[j] = p[j];
-					return MultidimMinimizationResult(result, _fret, _iter + 1, true);
+					return MultidimOptimizationResult(result, _fret, _iter + 1, true);
 				}
 
 				// Compute gradient difference
@@ -367,7 +367,7 @@ namespace MML::Optimization {
 			Vector<Real> result(N);
 			for (int j = 0; j < N; ++j)
 				result[j] = p[j];
-			return MultidimMinimizationResult(result, _fret, _iter, false);
+			return MultidimOptimizationResult(result, _fret, _iter, false);
 		}
 
 	private:
@@ -377,8 +377,8 @@ namespace MML::Optimization {
 		template<int N>
 		Real LineSearchBacktrack(const IDifferentiableScalarFunction<N>& func, VectorN<Real, N>& p, const VectorN<Real, N>& g,
 								 VectorN<Real, N>& xi, Real stpmax) {
-			const Real ALF = 1.0e-4;   // Ensures sufficient decrease
-			const Real TOLX = 1.0e-12; // Convergence criterion on x
+			const Real ALF = Precision::ArmijoSufficientDecrease;   // Ensures sufficient decrease
+			const Real TOLX = Precision::ZeroTolerance; // Convergence criterion on x
 
 			// Scale if step is too big
 			Real sum = 0.0;
@@ -409,7 +409,7 @@ namespace MML::Optimization {
 			// Compute lambda_min
 			Real test = 0.0;
 			for (int j = 0; j < N; ++j) {
-				Real temp = std::abs(xi[j]) / std::max(std::abs(p[j]), REAL(1.0));
+				Real temp = std::abs(xi[j]) / std::max(std::abs(p[j]), static_cast<MML::Real>(1.0));
 				if (temp > test)
 					test = temp;
 			}
@@ -468,7 +468,7 @@ namespace MML::Optimization {
 
 					alam2 = alam;
 					f2 = fnew;
-					alam = std::max(tmplam, REAL(0.1) * alam);
+					alam = std::max(tmplam, static_cast<MML::Real>(0.1) * alam);
 				}
 			}
 		}
@@ -489,7 +489,7 @@ namespace MML::Optimization {
 		template<int N>
 		Real LineSearchWolfe(const IDifferentiableScalarFunction<N>& func, VectorN<Real, N>& x, const VectorN<Real, N>& g,
 							 VectorN<Real, N>& d, Real stpmax) {
-			const Real c1 = 1.0e-4;    // Sufficient decrease parameter
+			const Real c1 = Precision::ArmijoSufficientDecrease;    // Sufficient decrease parameter
 			const Real c2 = 0.9;       // Curvature condition parameter (0.9 for quasi-Newton)
 			const Real alpha_max = 50.0;
 			const int max_ls_iter = 25;
@@ -616,7 +616,7 @@ namespace MML::Optimization {
 				}
 
 				// Interval too small — accept current best
-				if (std::abs(alpha_hi - alpha_lo) < 1.0e-14)
+				if (std::abs(alpha_hi - alpha_lo) < Precision::RoundoffZeroThreshold)
 					return alpha_lo;
 			}
 
@@ -709,8 +709,7 @@ namespace MML::Optimization {
          * @throws MultidimOptimizationInputError if inputs are invalid
          */
 		template<int N>
-		MultidimMinimizationResult Minimize(const IDifferentiableScalarFunction<N>& func, 
-		                                    const VectorN<Real, N>& start) {
+		MultidimOptimizationResult Minimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start) {
 			// Validate inputs
 			ValidateVectorFinite<N>(start, "LBFGS::Minimize starting point");
 			ValidateMultidimTolerance(_ftol, "LBFGS ftol");
@@ -720,7 +719,7 @@ namespace MML::Optimization {
 			if (_memorySize <= 0)
 				throw MultidimOptimizationInputError("LBFGS: memorySize must be positive");
 
-			const Real EPS = 1.0e-18;
+			const Real EPS = Precision::Eps;   // NR dfpmin: machine epsilon
 			const Real STPMX = 100.0;
 
 			// Current position and gradient
@@ -812,9 +811,9 @@ namespace MML::Optimization {
 
 				// Check gradient convergence
 				Real test = 0.0;
-				Real den = std::max(std::abs(_fret), REAL(1.0));
+				Real den = std::max(std::abs(_fret), static_cast<MML::Real>(1.0));
 				for (int j = 0; j < N; ++j) {
-					Real temp = std::abs(g[j]) * std::max(std::abs(x[j]), REAL(1.0)) / den;
+					Real temp = std::abs(g[j]) * std::max(std::abs(x[j]), static_cast<MML::Real>(1.0)) / den;
 					if (temp > test)
 						test = temp;
 				}
@@ -856,11 +855,11 @@ namespace MML::Optimization {
 	private:
 		/// @brief Create result struct from current state
 		template<int N>
-		MultidimMinimizationResult MakeResult(const VectorN<Real, N>& x, bool converged) {
+		MultidimOptimizationResult MakeResult(const VectorN<Real, N>& x, bool converged) {
 			Vector<Real> result(N);
 			for (int j = 0; j < N; ++j)
 				result[j] = x[j];
-			return MultidimMinimizationResult(result, _fret, _iter + 1, converged);
+			return MultidimOptimizationResult(result, _fret, _iter + 1, converged);
 		}
 
 		/// @brief Compute dot product of two VectorN
@@ -881,8 +880,8 @@ namespace MML::Optimization {
 		                               const VectorN<Real, N>& g,
 		                               VectorN<Real, N>& p, 
 		                               Real stpmax) {
-			const Real ALF = 1.0e-4;
-			const Real TOLX = 1.0e-12;
+			const Real ALF = Precision::ArmijoSufficientDecrease;
+			const Real TOLX = Precision::ZeroTolerance;
 
 			// Scale if step is too big
 			Real sum = 0.0;
@@ -913,7 +912,7 @@ namespace MML::Optimization {
 			// Compute lambda_min
 			Real test = 0.0;
 			for (int j = 0; j < N; ++j) {
-				Real temp = std::abs(p[j]) / std::max(std::abs(x[j]), REAL(1.0));
+				Real temp = std::abs(p[j]) / std::max(std::abs(x[j]), static_cast<MML::Real>(1.0));
 				if (temp > test)
 					test = temp;
 			}
@@ -966,7 +965,7 @@ namespace MML::Optimization {
 
 					alam2 = alam;
 					f2 = fnew;
-					alam = std::max(tmplam, REAL(0.1) * alam);
+					alam = std::max(tmplam, static_cast<MML::Real>(0.1) * alam);
 				}
 			}
 		}

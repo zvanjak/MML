@@ -37,14 +37,14 @@ namespace MML::Tests::Base::DifferentialFormTests
 		static_assert(std::is_same<typename F2::frame_type, Cartesian3>::value, "Frame tag is part of the form type");
 
 		F0 scalar;
-		scalar.Component() = REAL(2.5);
-		REQUIRE(scalar() == REAL(2.5));
+		scalar.Component() = static_cast<MML::Real>(2.5);
+		REQUIRE(scalar() == static_cast<MML::Real>(2.5));
 
 		F2 form;
-		form.Component(0, 1) = REAL(3.0);
-		form.Component(1, 0) = -REAL(3.0);
-		REQUIRE(form.Component(0, 1) == REAL(3.0));
-		REQUIRE(form.Component(1, 0) == -REAL(3.0));
+		form.Component(0, 1) = static_cast<MML::Real>(3.0);
+		form.Component(1, 0) = -static_cast<MML::Real>(3.0);
+		REQUIRE(form.Component(0, 1) == static_cast<MML::Real>(3.0));
+		REQUIRE(form.Component(1, 0) == -static_cast<MML::Real>(3.0));
 	}
 
 	TEST_CASE("DifferentialForm - Basis one-forms and covector conversion", "[DifferentialForm][DifferentialForms]")
@@ -52,14 +52,14 @@ namespace MML::Tests::Base::DifferentialFormTests
 		auto dx = BasisOneForm<0, 3, Cartesian3>();
 		auto dy = BasisOneForm<1, 3, Cartesian3>();
 		OneForm<3, Cartesian3> dz = BasisOneForm<2, 3, Cartesian3>();
-		TangentVector<3, Cartesian3> v{ REAL(4.0), REAL(5.0), REAL(6.0) };
+		TangentVector<3, Cartesian3> v{ static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0) };
 
-		REQUIRE(dx(v) == REAL(4.0));
-		REQUIRE(dy(v) == REAL(5.0));
-		REQUIRE(dz(v) == REAL(6.0));
+		REQUIRE(dx(v) == static_cast<MML::Real>(4.0));
+		REQUIRE(dy(v) == static_cast<MML::Real>(5.0));
+		REQUIRE(dz(v) == static_cast<MML::Real>(6.0));
 		static_assert(std::is_same<OneForm<3, Cartesian3>, Form1<3, Cartesian3>>::value, "OneForm is a readability alias for Form1");
 
-		Covector<3, Cartesian3> alpha{ REAL(2.0), -REAL(3.0), REAL(7.0) };
+		Covector<3, Cartesian3> alpha{ static_cast<MML::Real>(2.0), -static_cast<MML::Real>(3.0), static_cast<MML::Real>(7.0) };
 		Form1<3, Cartesian3> form = ToForm(alpha);
 		Covector<3, Cartesian3> roundTrip = ToCovector(form);
 
@@ -70,44 +70,44 @@ namespace MML::Tests::Base::DifferentialFormTests
 	TEST_CASE("DifferentialForm - Two-form evaluation is antisymmetric", "[DifferentialForm][DifferentialForms]")
 	{
 		Form2<3, Cartesian3> omega;
-		omega.Component(0, 1) = REAL(1.0);
-		omega.Component(1, 0) = -REAL(1.0);
+		omega.Component(0, 1) = static_cast<MML::Real>(1.0);
+		omega.Component(1, 0) = -static_cast<MML::Real>(1.0);
 
-		TangentVector<3, Cartesian3> a{ REAL(2.0), REAL(3.0), REAL(0.0) };
-		TangentVector<3, Cartesian3> b{ -REAL(1.0), REAL(4.0), REAL(0.0) };
+		TangentVector<3, Cartesian3> a{ static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0) };
+		TangentVector<3, Cartesian3> b{ -static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(0.0) };
 
-		REQUIRE(omega(a, b) == REAL(11.0));
-		REQUIRE(omega(b, a) == -REAL(11.0));
+		REQUIRE(omega(a, b) == static_cast<MML::Real>(11.0));
+		REQUIRE(omega(b, a) == -static_cast<MML::Real>(11.0));
 		REQUIRE(omega.IsAlternating());
 	}
 
 	TEST_CASE("DifferentialForm - Alternating helpers detect and repair raw component tables", "[DifferentialForm][DifferentialForms]")
 	{
 		Form2<3, Cartesian3> raw;
-		raw.Component(0, 1) = REAL(4.0);
-		raw.Component(1, 0) = REAL(1.0);
-		raw.Component(2, 2) = REAL(7.0);
+		raw.Component(0, 1) = static_cast<MML::Real>(4.0);
+		raw.Component(1, 0) = static_cast<MML::Real>(1.0);
+		raw.Component(2, 2) = static_cast<MML::Real>(7.0);
 
 		REQUIRE_FALSE(raw.IsAlternating());
 
 		Form2<3, Cartesian3> alternating = raw.AlternatingPart();
 		REQUIRE(alternating.IsAlternating());
-		REQUIRE(alternating.Component(0, 1) == Catch::Approx(REAL(1.5)));
-		REQUIRE(alternating.Component(1, 0) == Catch::Approx(-REAL(1.5)));
-		REQUIRE(alternating.Component(2, 2) == REAL(0.0));
+		REQUIRE(alternating.Component(0, 1) == Catch::Approx(static_cast<MML::Real>(1.5)));
+		REQUIRE(alternating.Component(1, 0) == Catch::Approx(-static_cast<MML::Real>(1.5)));
+		REQUIRE(alternating.Component(2, 2) == static_cast<MML::Real>(0.0));
 		REQUIRE(alternating.AlternatingPart().Component(0, 1) == Catch::Approx(alternating.Component(0, 1)));
 	}
 
 	TEST_CASE("DifferentialForm - SetAlternatingComponent fills signed permutations", "[DifferentialForm][DifferentialForms]")
 	{
 		Form3<3, Cartesian3> volume;
-		volume.SetAlternatingComponent(REAL(2.0), 0, 1, 2);
+		volume.SetAlternatingComponent(static_cast<MML::Real>(2.0), 0, 1, 2);
 
 		REQUIRE(volume.IsAlternating());
-		REQUIRE(volume.Component(0, 1, 2) == REAL(2.0));
-		REQUIRE(volume.Component(1, 0, 2) == -REAL(2.0));
-		REQUIRE(volume.Component(2, 1, 0) == -REAL(2.0));
-		REQUIRE(volume.Component(0, 0, 1) == REAL(0.0));
+		REQUIRE(volume.Component(0, 1, 2) == static_cast<MML::Real>(2.0));
+		REQUIRE(volume.Component(1, 0, 2) == -static_cast<MML::Real>(2.0));
+		REQUIRE(volume.Component(2, 1, 0) == -static_cast<MML::Real>(2.0));
+		REQUIRE(volume.Component(0, 0, 1) == static_cast<MML::Real>(0.0));
 	}
 
 	TEST_CASE("DifferentialForm - Wedge product of basis forms is antisymmetric", "[DifferentialForm][DifferentialForms]")
@@ -117,16 +117,16 @@ namespace MML::Tests::Base::DifferentialFormTests
 		auto dxWedgeDy = Wedge(dx, dy);
 		auto dyWedgeDx = wedge(dy, dx);
 
-		TangentVector<3, Cartesian3> a{ REAL(2.0), REAL(3.0), REAL(0.0) };
-		TangentVector<3, Cartesian3> b{ -REAL(1.0), REAL(4.0), REAL(0.0) };
+		TangentVector<3, Cartesian3> a{ static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0) };
+		TangentVector<3, Cartesian3> b{ -static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(0.0) };
 
-		REQUIRE(dxWedgeDy.Component(0, 1) == REAL(1.0));
-		REQUIRE(dxWedgeDy.Component(1, 0) == -REAL(1.0));
-		REQUIRE(dyWedgeDx.Component(0, 1) == -REAL(1.0));
+		REQUIRE(dxWedgeDy.Component(0, 1) == static_cast<MML::Real>(1.0));
+		REQUIRE(dxWedgeDy.Component(1, 0) == -static_cast<MML::Real>(1.0));
+		REQUIRE(dyWedgeDx.Component(0, 1) == -static_cast<MML::Real>(1.0));
 		REQUIRE(dxWedgeDy.IsAlternating());
 		REQUIRE(dyWedgeDx.IsAlternating());
-		REQUIRE(dxWedgeDy(a, b) == REAL(11.0));
-		REQUIRE(dyWedgeDx(a, b) == -REAL(11.0));
+		REQUIRE(dxWedgeDy(a, b) == static_cast<MML::Real>(11.0));
+		REQUIRE(dyWedgeDx(a, b) == -static_cast<MML::Real>(11.0));
 	}
 
 	TEST_CASE("DifferentialForm - Volume form evaluates determinant-style", "[DifferentialForm][DifferentialForms]")
@@ -136,14 +136,14 @@ namespace MML::Tests::Base::DifferentialFormTests
 		auto dz = BasisOneForm<2, 3, Cartesian3>();
 		VolumeForm<3, Cartesian3> volume = Wedge(Wedge(dx, dy), dz);
 
-		TangentVector<3, Cartesian3> e1{ REAL(1.0), REAL(0.0), REAL(0.0) };
-		TangentVector<3, Cartesian3> e2{ REAL(0.0), REAL(1.0), REAL(0.0) };
-		TangentVector<3, Cartesian3> e3{ REAL(0.0), REAL(0.0), REAL(1.0) };
-		TangentVector<3, Cartesian3> sum{ REAL(1.0), REAL(1.0), REAL(0.0) };
+		TangentVector<3, Cartesian3> e1{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
+		TangentVector<3, Cartesian3> e2{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0) };
+		TangentVector<3, Cartesian3> e3{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0) };
+		TangentVector<3, Cartesian3> sum{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0) };
 
-		REQUIRE(volume(e1, e2, e3) == REAL(1.0));
-		REQUIRE(volume(e2, e1, e3) == -REAL(1.0));
-		REQUIRE(volume(e1, sum, e3) == REAL(1.0));
+		REQUIRE(volume(e1, e2, e3) == static_cast<MML::Real>(1.0));
+		REQUIRE(volume(e2, e1, e3) == -static_cast<MML::Real>(1.0));
+		REQUIRE(volume(e1, sum, e3) == static_cast<MML::Real>(1.0));
 	}
 
 	TEST_CASE("DifferentialForm - Wedge degree overflow is rejected", "[DifferentialForm][DifferentialForms]")

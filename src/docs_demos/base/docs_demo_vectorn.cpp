@@ -112,13 +112,13 @@ void Demo_VectorN_Access()
     // IsNullVec
     VectorN<double, 3> zero;
     VectorN<double, 3> nonzero{0, 0.001, 0};
-    std::cout << "  VectorN<3>().isZero() = " << (zero.isZero() ? "true" : "false") << std::endl;
-    std::cout << "  {0, 0.001, 0}.isZero() = " << (nonzero.isZero() ? "true" : "false") << std::endl;
+    std::cout << "  VectorN<3>().IsZero() = " << (zero.IsZero() ? "true" : "false") << std::endl;
+    std::cout << "  {0, 0.001, 0}.IsZero() = " << (nonzero.IsZero() ? "true" : "false") << std::endl;
 
     // Clear
     VectorN<double, 3> toClear{1, 2, 3};
     std::cout << "\nBefore clear(): " << toClear << std::endl;
-    toClear.clear();
+    toClear.SetZero();
     std::cout << "After clear():  " << toClear << std::endl;
 }
 

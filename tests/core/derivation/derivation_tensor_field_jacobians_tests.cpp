@@ -26,7 +26,7 @@ class TestTensorField2_Polynomial : public ITensorField2<2>
 public:
     TestTensorField2_Polynomial() : ITensorField2<2>(2, 0) {}
 
-    Real Component(int i, int j, const VectorN<Real, 2>& pos) const override
+    Real component(int i, int j, const VectorN<Real, 2>& pos) const override
     {
         Real x = pos[0];
         Real y = pos[1];
@@ -38,13 +38,13 @@ public:
         Tensor2<2> ret(2, 0);
         for (int i = 0; i < 2; i++)
             for (int j = 0; j < 2; j++)
-                ret(i, j) = Component(i, j, pos);
+                ret(i, j) = component(i, j, pos);
         return ret;
     }
 
     Real ComponentDerivX(int i, int j, const VectorN<Real, 2>& pos) const
     {
-        if (i == 0) return REAL(0.0);
+        if (i == 0) return static_cast<MML::Real>(0.0);
         Real x = pos[0];
         Real y = pos[1];
         return i * std::pow(x, i - 1) * std::pow(y, j);
@@ -52,7 +52,7 @@ public:
 
     Real ComponentDerivY(int i, int j, const VectorN<Real, 2>& pos) const
     {
-        if (j == 0) return REAL(0.0);
+        if (j == 0) return static_cast<MML::Real>(0.0);
         Real x = pos[0];
         Real y = pos[1];
         return j * std::pow(x, i) * std::pow(y, j - 1);
@@ -65,7 +65,7 @@ class TestTensorField2_Trigonometric : public ITensorField2<3>
 public:
     TestTensorField2_Trigonometric() : ITensorField2<3>(2, 0) {}
 
-    Real Component(int i, int j, const VectorN<Real, 3>& pos) const override
+    Real component(int i, int j, const VectorN<Real, 3>& pos) const override
     {
         Real x = pos[0];
         Real y = pos[1];
@@ -78,13 +78,13 @@ public:
         Tensor2<3> ret(2, 0);
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 3; j++)
-                ret(i, j) = Component(i, j, pos);
+                ret(i, j) = component(i, j, pos);
         return ret;
     }
 
     Real ComponentDerivX(int i, int j, const VectorN<Real, 3>& pos) const
     {
-        if (i == 0) return REAL(0.0);
+        if (i == 0) return static_cast<MML::Real>(0.0);
         Real x = pos[0];
         Real y = pos[1];
         Real z = pos[2];
@@ -93,7 +93,7 @@ public:
 
     Real ComponentDerivY(int i, int j, const VectorN<Real, 3>& pos) const
     {
-        if (j == 0) return REAL(0.0);
+        if (j == 0) return static_cast<MML::Real>(0.0);
         Real x = pos[0];
         Real y = pos[1];
         Real z = pos[2];
@@ -115,7 +115,7 @@ public:
 // 2D rotation: [x', y'] = [x*cos(theta) - y*sin(theta), x*sin(theta) + y*cos(theta)]
 class TestRotationVectorFunction : public IVectorFunction<2>
 {
-    Real theta = REAL(0.5);
+    Real theta = static_cast<MML::Real>(0.5);
 public:
     VectorN<Real, 2> operator()(const VectorN<Real, 2>& x) const override
     {
@@ -152,15 +152,15 @@ public:
     MatrixNM<Real, 3, 3> AnalyticalJacobian(const VectorN<Real, 3>& pos) const
     {
         MatrixNM<Real, 3, 3> jac;
-        jac(0, 0) = REAL(2.0) * pos[0];
-        jac(0, 1) = REAL(0.0);
-        jac(0, 2) = REAL(0.0);
-        jac(1, 0) = REAL(0.0);
-        jac(1, 1) = REAL(2.0) * pos[1];
-        jac(1, 2) = REAL(0.0);
-        jac(2, 0) = REAL(0.0);
-        jac(2, 1) = REAL(0.0);
-        jac(2, 2) = REAL(2.0) * pos[2];
+        jac(0, 0) = static_cast<MML::Real>(2.0) * pos[0];
+        jac(0, 1) = static_cast<MML::Real>(0.0);
+        jac(0, 2) = static_cast<MML::Real>(0.0);
+        jac(1, 0) = static_cast<MML::Real>(0.0);
+        jac(1, 1) = static_cast<MML::Real>(2.0) * pos[1];
+        jac(1, 2) = static_cast<MML::Real>(0.0);
+        jac(2, 0) = static_cast<MML::Real>(0.0);
+        jac(2, 1) = static_cast<MML::Real>(0.0);
+        jac(2, 2) = static_cast<MML::Real>(2.0) * pos[2];
         return jac;
     }
 };
@@ -196,7 +196,7 @@ public:
 TEST_CASE("TensorField2 - NDer1Partial with polynomial tensor", "[tensor_field][NDer1]")
 {
     TestTensorField2_Polynomial tensor;
-    VectorN<Real, 2> pos{REAL(2.0), REAL(3.0)};
+    VectorN<Real, 2> pos{static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)};
 
     SECTION("Derivatives with respect to x (index 0)")
     {
@@ -228,7 +228,7 @@ TEST_CASE("TensorField2 - NDer1Partial with polynomial tensor", "[tensor_field][
 TEST_CASE("TensorField2 - NDer2Partial with trigonometric tensor", "[tensor_field][NDer2]")
 {
     TestTensorField2_Trigonometric tensor;
-    VectorN<Real, 3> pos{REAL(0.5), REAL(1.0), REAL(2.0)};
+    VectorN<Real, 3> pos{static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
 
     SECTION("Derivatives with respect to x")
     {
@@ -273,7 +273,7 @@ TEST_CASE("TensorField2 - NDer2Partial with trigonometric tensor", "[tensor_fiel
 TEST_CASE("TensorField2 - NDer4Partial with polynomial tensor", "[tensor_field][NDer4]")
 {
     TestTensorField2_Polynomial tensor;
-    VectorN<Real, 2> pos{REAL(1.5), REAL(2.5)};
+    VectorN<Real, 2> pos{static_cast<MML::Real>(1.5), static_cast<MML::Real>(2.5)};
 
     for (int i = 0; i < 2; i++)
     {
@@ -293,7 +293,7 @@ TEST_CASE("TensorField2 - NDer4Partial with polynomial tensor", "[tensor_field][
 TEST_CASE("TensorField - High accuracy verification", "[tensor_field][accuracy]")
 {
     TestTensorField2_Polynomial tensor;
-    VectorN<Real, 2> pos{REAL(2.0), REAL(3.0)};
+    VectorN<Real, 2> pos{static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)};
 
     SECTION("NDer1Partial accuracy")
     {
@@ -324,9 +324,9 @@ TEST_CASE("TensorField - High accuracy verification", "[tensor_field][accuracy]"
 TEST_CASE("Jacobian - 2D rotation matrix", "[jacobian][2d][rotation]")
 {
     TestRotationVectorFunction func;
-    VectorN<Real, 2> pos{REAL(1.0), REAL(2.0)};
+    VectorN<Real, 2> pos{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
 
-    auto numerical_jac = Derivation::calcJacobian(func, pos);
+    auto numerical_jac = Derivation::CalcJacobian(func, pos);
     auto analytical_jac = func.AnalyticalJacobian();
 
     for (int i = 0; i < 2; i++)
@@ -341,16 +341,16 @@ TEST_CASE("Jacobian - 2D rotation matrix", "[jacobian][2d][rotation]")
 TEST_CASE("Jacobian - 3D diagonal quadratic", "[jacobian][3d][quadratic]")
 {
     TestQuadraticVectorFunction func;
-    VectorN<Real, 3> pos{REAL(1.0), REAL(2.0), REAL(3.0)};
+    VectorN<Real, 3> pos{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)};
 
-    auto numerical_jac = Derivation::calcJacobian(func, pos);
+    auto numerical_jac = Derivation::CalcJacobian(func, pos);
     auto analytical_jac = func.AnalyticalJacobian(pos);
 
     SECTION("Diagonal elements are 2x, 2y, 2z")
     {
-        REQUIRE(std::abs(numerical_jac(0, 0) - REAL(2.0) * pos[0]) < TOL(1e-9, 1e-4));
-        REQUIRE(std::abs(numerical_jac(1, 1) - REAL(2.0) * pos[1]) < TOL(1e-9, 1e-4));
-        REQUIRE(std::abs(numerical_jac(2, 2) - REAL(2.0) * pos[2]) < TOL(1e-9, 1e-4));
+        REQUIRE(std::abs(numerical_jac(0, 0) - static_cast<MML::Real>(2.0) * pos[0]) < TOL(1e-9, 1e-4));
+        REQUIRE(std::abs(numerical_jac(1, 1) - static_cast<MML::Real>(2.0) * pos[1]) < TOL(1e-9, 1e-4));
+        REQUIRE(std::abs(numerical_jac(2, 2) - static_cast<MML::Real>(2.0) * pos[2]) < TOL(1e-9, 1e-4));
     }
 
     SECTION("Off-diagonal elements are zero")
@@ -380,15 +380,15 @@ TEST_CASE("Jacobian - Multiple evaluation points", "[jacobian][robustness]")
     TestQuadraticVectorFunction func;
     
     VectorN<Real, 3> test_points[] = {
-        {REAL(0.5), REAL(1.0), REAL(1.5)},
-        {REAL(1.0), REAL(2.0), REAL(3.0)},
-        {REAL(2.0), REAL(2.0), REAL(2.0)},
-        {-REAL(1.0), REAL(1.0), REAL(2.0)}
+        {static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.5)},
+        {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)},
+        {static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0)},
+        {-static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)}
     };
 
     for (const auto& pos : test_points)
     {
-        auto numerical_jac = Derivation::calcJacobian(func, pos);
+        auto numerical_jac = Derivation::CalcJacobian(func, pos);
         auto analytical_jac = func.AnalyticalJacobian(pos);
 
         for (int i = 0; i < 3; i++)
@@ -413,16 +413,16 @@ TEST_CASE("Jacobian - Identity function has identity Jacobian", "[jacobian][iden
     };
 
     IdentityFunction func;
-    VectorN<Real, 3> pos{REAL(1.0), REAL(2.0), REAL(3.0)};
+    VectorN<Real, 3> pos{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)};
 
-    auto jac = Derivation::calcJacobian(func, pos);
+    auto jac = Derivation::CalcJacobian(func, pos);
 
     for (int i = 0; i < 3; i++)
     {
         for (int j = 0; j < 3; j++)
         {
             if (i == j)
-                REQUIRE(std::abs(jac(i, j) - REAL(1.0)) < TOL(1e-10, 1e-5));
+                REQUIRE(std::abs(jac(i, j) - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
             else
                 REQUIRE(std::abs(jac(i, j)) < TOL(1e-10, 1e-5));
         }
@@ -438,42 +438,42 @@ TEST_CASE("Jacobian - Linear transformation", "[jacobian][linear]")
         VectorN<Real, 2> operator()(const VectorN<Real, 2>& x) const override
         {
             VectorN<Real, 2> result;
-            result[0] = REAL(2.0) * x[0] + REAL(3.0) * x[1];
-            result[1] = REAL(4.0) * x[0] - x[1];
+            result[0] = static_cast<MML::Real>(2.0) * x[0] + static_cast<MML::Real>(3.0) * x[1];
+            result[1] = static_cast<MML::Real>(4.0) * x[0] - x[1];
             return result;
         }
     };
 
     LinearFunction func;
-    VectorN<Real, 2> pos{REAL(1.0), REAL(2.0)};
+    VectorN<Real, 2> pos{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
 
-    auto jac = Derivation::calcJacobian(func, pos);
+    auto jac = Derivation::CalcJacobian(func, pos);
 
-    REQUIRE(std::abs(jac(0, 0) - REAL(2.0)) < TOL(1e-10, 2e-5));
-    REQUIRE(std::abs(jac(0, 1) - REAL(3.0)) < TOL(1e-10, 1e-5));
-    REQUIRE(std::abs(jac(1, 0) - REAL(4.0)) < TOL(1e-10, 1e-5));
-    REQUIRE(std::abs(jac(1, 1) - (-REAL(1.0))) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(jac(0, 0) - static_cast<MML::Real>(2.0)) < TOL(1e-10, 2e-5));
+    REQUIRE(std::abs(jac(0, 1) - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(jac(1, 0) - static_cast<MML::Real>(4.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(jac(1, 1) - (-static_cast<MML::Real>(1.0))) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("Static Jacobian - column evaluation counts", "[jacobian][static][performance]")
 {
     CountingSquareVectorFunction square;
     int squareCount = 0;
-    MatrixNM<Real, 2, 2> squareJacobian = Derivation::calcJacobian(
-        square, VectorN<Real, 2>({REAL(2.0), REAL(3.0)}), REAL(0.0), &squareCount);
+    MatrixNM<Real, 2, 2> squareJacobian = Derivation::CalcJacobian(
+        square, VectorN<Real, 2>({static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)}), static_cast<MML::Real>(0.0), &squareCount);
     REQUIRE(square.evaluations == 8);
     REQUIRE(squareCount == 8);
-    REQUIRE_THAT(squareJacobian(0, 0), WithinAbs(REAL(4.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(squareJacobian(1, 1), WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(squareJacobian(0, 0), WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(squareJacobian(1, 1), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-8, 1e-4)));
 
     CountingNonSquareVectorFunction nonSquare;
     int nonSquareCount = 0;
-    MatrixNM<Real, 3, 2> nonSquareJacobian = Derivation::calcJacobian(
-        nonSquare, VectorN<Real, 2>({REAL(2.0), REAL(3.0)}), REAL(0.0), &nonSquareCount);
+    MatrixNM<Real, 3, 2> nonSquareJacobian = Derivation::CalcJacobian(
+        nonSquare, VectorN<Real, 2>({static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)}), static_cast<MML::Real>(0.0), &nonSquareCount);
     REQUIRE(nonSquare.evaluations == 8);
     REQUIRE(nonSquareCount == 8);
-    REQUIRE_THAT(nonSquareJacobian(2, 0), WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(nonSquareJacobian(2, 1), WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(nonSquareJacobian(2, 0), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(nonSquareJacobian(2, 1), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)));
 }
 
 /********************************************************************************************************************/
@@ -493,24 +493,24 @@ TEST_CASE("Dynamic Jacobian - NDer4PartialDyn basic test", "[jacobian][dynamic][
         return result;
     };
     
-    Vector<Real> pos({REAL(2.0), REAL(3.0)});
+    Vector<Real> pos({static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
     
     // Test individual partial derivatives
     // ∂f_0/∂x_0 = 2x = 4
     Real df0_dx0 = Derivation::NDer4PartialDyn(func, 0, 0, pos);
-    REQUIRE_THAT(df0_dx0, WithinAbs(REAL(4.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(df0_dx0, WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-8, 1e-4)));
     
     // ∂f_0/∂x_1 = 1
     Real df0_dx1 = Derivation::NDer4PartialDyn(func, 0, 1, pos);
-    REQUIRE_THAT(df0_dx1, WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(df0_dx1, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)));
     
     // ∂f_1/∂x_0 = y^2 = 9
     Real df1_dx0 = Derivation::NDer4PartialDyn(func, 1, 0, pos);
-    REQUIRE_THAT(df1_dx0, WithinAbs(REAL(9.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(df1_dx0, WithinAbs(static_cast<MML::Real>(9.0), TOL(1e-8, 1e-4)));
     
     // ∂f_1/∂x_1 = 2xy = 12
     Real df1_dx1 = Derivation::NDer4PartialDyn(func, 1, 1, pos);
-    REQUIRE_THAT(df1_dx1, WithinAbs(REAL(12.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(df1_dx1, WithinAbs(static_cast<MML::Real>(12.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - NDer2PartialDyn basic test", "[jacobian][dynamic][partial][nder2]")
@@ -526,15 +526,15 @@ TEST_CASE("Dynamic Jacobian - NDer2PartialDyn basic test", "[jacobian][dynamic][
         return result;
     };
     
-    Vector<Real> pos({REAL(1.0), REAL(2.0)});
+    Vector<Real> pos({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)});
     
     // ∂f_0/∂x_0 = cos(x) = cos(1)
     Real df0_dx0 = Derivation::NDer2PartialDyn(func, 0, 0, pos);
-    REQUIRE_THAT(df0_dx0, WithinAbs(std::cos(REAL(1.0)), TOL(1e-6, 5e-4)));
+    REQUIRE_THAT(df0_dx0, WithinAbs(std::cos(static_cast<MML::Real>(1.0)), TOL(1e-6, 5e-4)));
     
     // ∂f_1/∂x_1 = -sin(y) = -sin(2)
     Real df1_dx1 = Derivation::NDer2PartialDyn(func, 1, 1, pos);
-    REQUIRE_THAT(df1_dx1, WithinAbs(-std::sin(REAL(2.0)), TOL(1e-6, 5e-4)));
+    REQUIRE_THAT(df1_dx1, WithinAbs(-std::sin(static_cast<MML::Real>(2.0)), TOL(1e-6, 5e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - calcJacobianDyn square system", "[jacobian][dynamic][full]")
@@ -551,27 +551,27 @@ TEST_CASE("Dynamic Jacobian - calcJacobianDyn square system", "[jacobian][dynami
         return result;
     };
     
-    Vector<Real> pos({REAL(2.0), REAL(3.0), REAL(4.0)});
+    Vector<Real> pos({static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)});
     
-    Matrix<Real> jac = Derivation::calcJacobianDyn(func, pos);
+    Matrix<Real> jac = Derivation::CalcJacobian(func, pos);
     
     REQUIRE(jac.rows() == 3);
     REQUIRE(jac.cols() == 3);
     
     // Row 0: [y, x, 0] = [3, 2, 0]
-    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(3.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(0, 2), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 2), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
     
     // Row 1: [0, z, y] = [0, 4, 3]
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(4.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(1, 2), WithinAbs(REAL(3.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 2), WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-8, 1e-4)));
     
     // Row 2: [z, 0, x] = [4, 0, 2]
-    REQUIRE_THAT(jac(2, 0), WithinAbs(REAL(4.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(2, 1), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(2, 2), WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(2, 0), WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(2, 1), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(2, 2), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - column evaluation count", "[jacobian][dynamic][performance]")
@@ -582,38 +582,38 @@ TEST_CASE("Dynamic Jacobian - column evaluation count", "[jacobian][dynamic][per
         return Vector<Real>({v[0] * v[0] + v[1], v[0] * v[1]});
     };
     int reportedEvaluations = 0;
-    Matrix<Real> jac = Derivation::calcJacobianDyn(
-        func, Vector<Real>({REAL(2.0), REAL(3.0)}), REAL(0.0), &reportedEvaluations);
+    Matrix<Real> jac = Derivation::CalcJacobian(
+        func, Vector<Real>({static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)}), static_cast<MML::Real>(0.0), &reportedEvaluations);
 
     REQUIRE(callbackEvaluations == 8);
     REQUIRE(reportedEvaluations == 8);
-    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(4.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(3.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - explicit and scaled automatic steps", "[jacobian][dynamic][step]")
 {
-    Vector<Real> point({REAL(1e6)});
+    Vector<Real> point({static_cast<MML::Real>(1e6)});
     std::vector<Real> explicitOffsets;
     auto explicitFunc = [&explicitOffsets](const Vector<Real>& v) {
-        explicitOffsets.push_back(std::abs(v[0] - REAL(1e6)));
+        explicitOffsets.push_back(std::abs(v[0] - static_cast<MML::Real>(1e6)));
         return Vector<Real>({v[0]});
     };
-    Derivation::calcJacobianDyn(explicitFunc, point, REAL(0.25));
+    Derivation::CalcJacobian(explicitFunc, point, static_cast<MML::Real>(0.25));
     REQUIRE(explicitOffsets.size() == 4);
     REQUIRE_THAT(*std::max_element(explicitOffsets.begin(), explicitOffsets.end()),
-        WithinAbs(REAL(0.5), TOL(1e-12, 1e-5)));
+        WithinAbs(static_cast<MML::Real>(0.5), TOL(1e-12, 1e-5)));
 
     std::vector<Real> automaticOffsets;
     auto automaticFunc = [&automaticOffsets](const Vector<Real>& v) {
-        automaticOffsets.push_back(std::abs(v[0] - REAL(1e6)));
+        automaticOffsets.push_back(std::abs(v[0] - static_cast<MML::Real>(1e6)));
         return Vector<Real>({v[0]});
     };
-    Matrix<Real> jac = Derivation::calcJacobianDyn(automaticFunc, point);
-    REQUIRE(*std::max_element(automaticOffsets.begin(), automaticOffsets.end()) > REAL(1.0));
-    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(1.0), TOL(1e-10, 1e-4)));
+    Matrix<Real> jac = Derivation::CalcJacobian(automaticFunc, point);
+    REQUIRE(*std::max_element(automaticOffsets.begin(), automaticOffsets.end()) > static_cast<MML::Real>(1.0));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - calcJacobianDyn non-square", "[jacobian][dynamic][nonsquare]")
@@ -631,24 +631,24 @@ TEST_CASE("Dynamic Jacobian - calcJacobianDyn non-square", "[jacobian][dynamic][
         return result;
     };
     
-    Vector<Real> pos({REAL(3.0), REAL(5.0)});
+    Vector<Real> pos({static_cast<MML::Real>(3.0), static_cast<MML::Real>(5.0)});
     
-    Matrix<Real> jac = Derivation::calcJacobianDyn(func, pos, 3);
+    Matrix<Real> jac = Derivation::CalcJacobian(func, pos, 3);
     
     REQUIRE(jac.rows() == 3);
     REQUIRE(jac.cols() == 2);
     
     // Row 0: [1, 1]
-    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)));
     
     // Row 1: [y, x] = [5, 3]
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(5.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(3.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-8, 1e-4)));
     
     // Row 2: [2x, 0] = [6, 0]
-    REQUIRE_THAT(jac(2, 0), WithinAbs(REAL(6.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(2, 1), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(2, 0), WithinAbs(static_cast<MML::Real>(6.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(2, 1), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - non-square count and validation", "[jacobian][dynamic][nonsquare][validation]")
@@ -657,14 +657,14 @@ TEST_CASE("Dynamic Jacobian - non-square count and validation", "[jacobian][dyna
     auto func = [](const Vector<Real>& v) {
         return Vector<Real>({v[0], v[1], v[0] + v[1]});
     };
-    Matrix<Real> jac = Derivation::calcJacobianDyn(
-        func, Vector<Real>({REAL(1.0), REAL(2.0)}), 3, REAL(0.0), &evaluations);
+    Matrix<Real> jac = Derivation::CalcJacobian(
+        func, Vector<Real>({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)}), 3, static_cast<MML::Real>(0.0), &evaluations);
     REQUIRE(jac.rows() == 3);
     REQUIRE(jac.cols() == 2);
     REQUIRE(evaluations == 8);
 
-    REQUIRE_THROWS_AS(Derivation::calcJacobianDyn(func,
-        Vector<Real>({REAL(1.0), REAL(2.0)}), 2), VectorDimensionError);
+    REQUIRE_THROWS_AS(Derivation::CalcJacobian(func,
+        Vector<Real>({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)}), 2), VectorDimensionError);
 }
 
 TEST_CASE("Dynamic Jacobian - calcJacobianDynInPlace", "[jacobian][dynamic][inplace]")
@@ -680,21 +680,21 @@ TEST_CASE("Dynamic Jacobian - calcJacobianDynInPlace", "[jacobian][dynamic][inpl
         return result;
     };
     
-    Vector<Real> pos({REAL(1.0), REAL(2.0)});
+    Vector<Real> pos({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)});
     Matrix<Real> jac;
     
-    Derivation::calcJacobianDynInPlace(func, pos, jac);
+    Derivation::CalcJacobianInPlace(func, pos, jac);
     
     REQUIRE(jac.rows() == 2);
     REQUIRE(jac.cols() == 2);
     
-    REQUIRE_THAT(jac(0, 0), WithinAbs(std::exp(REAL(1.0)), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(std::exp(REAL(2.0)), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(std::exp(static_cast<MML::Real>(1.0)), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(std::exp(static_cast<MML::Real>(2.0)), TOL(1e-8, 1e-4)));
 }
 
-TEST_CASE("Dynamic Jacobian - calcJacobianDyn2 (2nd order)", "[jacobian][dynamic][nder2]")
+TEST_CASE("Dynamic Jacobian - CalcJacobianOrder2 (2nd order)", "[jacobian][dynamic][nder2]")
 {
     TEST_PRECISION_INFO();
     
@@ -707,15 +707,15 @@ TEST_CASE("Dynamic Jacobian - calcJacobianDyn2 (2nd order)", "[jacobian][dynamic
         return result;
     };
     
-    Vector<Real> pos({REAL(3.0), REAL(4.0)});
+    Vector<Real> pos({static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)});
     
-    Matrix<Real> jac = Derivation::calcJacobianDyn2(func, pos);
+    Matrix<Real> jac = Derivation::CalcJacobianOrder2(func, pos);
     
     // 2nd order is less accurate, use looser tolerance
-    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(6.0), TOL(1e-5, 5e-4)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(8.0), TOL(1e-5, 5e-4)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(0.0), TOL(1e-5, 5e-4)));
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), TOL(1e-5, 5e-4)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(static_cast<MML::Real>(6.0), TOL(1e-5, 5e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(static_cast<MML::Real>(8.0), TOL(1e-5, 5e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-5, 5e-4)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-5, 5e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - calcJacobianODE", "[jacobian][dynamic][ode]")
@@ -729,18 +729,18 @@ TEST_CASE("Dynamic Jacobian - calcJacobianODE", "[jacobian][dynamic][ode]")
         dxdt[1] = x[0];
     };
     
-    Real t = REAL(0.0);
-    Vector<Real> x({REAL(1.0), REAL(0.0)});
+    Real t = static_cast<MML::Real>(0.0);
+    Vector<Real> x({static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)});
     
-    Matrix<Real> jac = Derivation::calcJacobianODE(derivs, t, x);
+    Matrix<Real> jac = Derivation::CalcJacobianODE(derivs, t, x);
     
     REQUIRE(jac.rows() == 2);
     REQUIRE(jac.cols() == 2);
     
-    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(-REAL(1.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - calcJacobianODE in-place", "[jacobian][dynamic][ode][inplace]")
@@ -749,18 +749,18 @@ TEST_CASE("Dynamic Jacobian - calcJacobianODE in-place", "[jacobian][dynamic][od
     
     // ODE: dx/dt = ax + by (linear system)
     // Jacobian: [[a, b], [c, d]]
-    Real a = REAL(2.0), b = REAL(-1.0), c = REAL(3.0), d = REAL(-2.0);
+    Real a = static_cast<MML::Real>(2.0), b = static_cast<MML::Real>(-1.0), c = static_cast<MML::Real>(3.0), d = static_cast<MML::Real>(-2.0);
     
     auto derivs = [a, b, c, d](Real t, const Vector<Real>& x, Vector<Real>& dxdt) {
         dxdt[0] = a * x[0] + b * x[1];
         dxdt[1] = c * x[0] + d * x[1];
     };
     
-    Real t = REAL(1.0);
-    Vector<Real> x({REAL(1.0), REAL(1.0)});
+    Real t = static_cast<MML::Real>(1.0);
+    Vector<Real> x({static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0)});
     Matrix<Real> jac;
     
-    Derivation::calcJacobianODE(derivs, t, x, jac);
+    Derivation::CalcJacobianODE(derivs, t, x, jac);
     
     REQUIRE_THAT(jac(0, 0), WithinAbs(a, TOL(1e-8, 5e-4)));
     REQUIRE_THAT(jac(0, 1), WithinAbs(b, TOL(1e-8, 5e-4)));
@@ -776,20 +776,20 @@ TEST_CASE("Dynamic Jacobian - calcJacobianMap", "[jacobian][dynamic][map]")
     // Jacobian: [[2, 0], [0, 3]]
     auto mapFunc = [](const Vector<Real>& x) -> Vector<Real> {
         Vector<Real> result(2);
-        result[0] = REAL(2.0) * x[0];
-        result[1] = REAL(3.0) * x[1];
+        result[0] = static_cast<MML::Real>(2.0) * x[0];
+        result[1] = static_cast<MML::Real>(3.0) * x[1];
         return result;
     };
     
-    Vector<Real> x({REAL(1.0), REAL(1.0)});
+    Vector<Real> x({static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0)});
     Matrix<Real> jac;
     
-    Derivation::calcJacobianMap(mapFunc, x, jac);
+    Derivation::CalcJacobianMap(mapFunc, x, jac);
     
-    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(3.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - nonlinear map (logistic-like)", "[jacobian][dynamic][map][nonlinear]")
@@ -798,26 +798,26 @@ TEST_CASE("Dynamic Jacobian - nonlinear map (logistic-like)", "[jacobian][dynami
     
     // Discrete map: x_{n+1} = [r*x*(1-x), s*y*(1-y)] (2D logistic map)
     // Jacobian: [[r*(1-2x), 0], [0, s*(1-2y)]]
-    Real r = REAL(3.5), s = REAL(2.5);
+    Real r = static_cast<MML::Real>(3.5), s = static_cast<MML::Real>(2.5);
     
     auto mapFunc = [r, s](const Vector<Real>& x) -> Vector<Real> {
         Vector<Real> result(2);
-        result[0] = r * x[0] * (REAL(1.0) - x[0]);
-        result[1] = s * x[1] * (REAL(1.0) - x[1]);
+        result[0] = r * x[0] * (static_cast<MML::Real>(1.0) - x[0]);
+        result[1] = s * x[1] * (static_cast<MML::Real>(1.0) - x[1]);
         return result;
     };
     
-    Vector<Real> x({REAL(0.3), REAL(0.6)});
+    Vector<Real> x({static_cast<MML::Real>(0.3), static_cast<MML::Real>(0.6)});
     Matrix<Real> jac;
     
-    Derivation::calcJacobianMap(mapFunc, x, jac);
+    Derivation::CalcJacobianMap(mapFunc, x, jac);
     
     // Analytical: J(0,0) = r*(1-2x) = 3.5*(1-0.6) = 1.4
     // Analytical: J(1,1) = s*(1-2y) = 2.5*(1-1.2) = -0.5
-    REQUIRE_THAT(jac(0, 0), WithinAbs(r * (REAL(1.0) - REAL(2.0) * x[0]), TOL(1e-7, 5e-4)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(s * (REAL(1.0) - REAL(2.0) * x[1]), TOL(1e-7, 5e-4)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(r * (static_cast<MML::Real>(1.0) - static_cast<MML::Real>(2.0) * x[0]), TOL(1e-7, 5e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(s * (static_cast<MML::Real>(1.0) - static_cast<MML::Real>(2.0) * x[1]), TOL(1e-7, 5e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
 }
 
 } // namespace MML::Tests::Core::DerivationTensorFieldJacobiansTests

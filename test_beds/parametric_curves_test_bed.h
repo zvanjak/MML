@@ -26,11 +26,21 @@
 #endif
 
 #include "../test_data/parametric_curves_defs.h"
+#include <array>
+#include <string>
+#include <stdexcept>
 
 using namespace MML::Curves;
 
 namespace MML::TestBeds
 {
+    template<int Dimension>
+    struct ShowcaseCurveCase {
+        const char* name;
+        const IParametricCurve<Dimension>& curve;
+        Real start, end; // Finite sampling interval, not a replacement for the curve's domain.
+    };
+
     /*******************************************************************************************************************
      * PARAMETRIC CURVES TEST BED
      * 
@@ -81,6 +91,32 @@ namespace MML::TestBeds
     class ParametricCurvesTestBed
     {
     public:
+        static const std::array<ShowcaseCurveCase<2>, 5>& getShowcaseCurves2D() {
+            static const ShowcaseCurves::LemniscateCurve lemniscate;
+            static const ShowcaseCurves::DeltoidCurve deltoid;
+            static const ShowcaseCurves::AstroidCurve astroid;
+            static const ShowcaseCurves::EpitrochoidCurve epitrochoid;
+            static const ShowcaseCurves::ButterflyCurve butterfly;
+            static const std::array<ShowcaseCurveCase<2>, 5> curves{{
+                {"LemniscateCurve", lemniscate, 0, 2 * Constants::PI},
+                {"DeltoidCurve", deltoid, 0, 2 * Constants::PI},
+                {"AstroidCurve", astroid, 0, 2 * Constants::PI},
+                {"EpitrochoidCurve", epitrochoid, 0, 2 * Constants::PI},
+                {"ButterflyCurve", butterfly, 0, 12 * Constants::PI}
+            }};
+            return curves;
+        }
+
+        static const std::array<ShowcaseCurveCase<3>, 2>& getShowcaseCurves3D() {
+            static const ShowcaseCurves::TwistedCubicCurve cubic;
+            static const ShowcaseCurves::ToroidalSpiralCurve toroidal;
+            static const std::array<ShowcaseCurveCase<3>, 2> curves{{
+                {"TwistedCubicCurve", cubic, -2, 2},
+                {"ToroidalSpiralCurve", toroidal, 0, 2 * Constants::PI}
+            }};
+            return curves;
+        }
+
         static int getNumTestCurves() { return 13; }  // Total number of test curves
         static int getNumTestCurvesArcLenParam() { return 1; }
 
@@ -125,7 +161,7 @@ namespace MML::TestBeds
             {"Helix", "{cos(t), sin(t), t}",
                 Real(0.0), Real(2.0) * Constants::PI,
                 [](Real t) { return VectorN<Real,3>{ static_cast<Real>(cos(t)), static_cast<Real>(sin(t)), t}; },
-                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-sin(t)), static_cast<Real>(cos(t)), REAL(1.0)}; },
+                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-sin(t)), static_cast<Real>(cos(t)), static_cast<MML::Real>(1.0)}; },
                 [](Real t) { return VectorN<Real,3>{static_cast<Real>(-cos(t)),static_cast<Real>(-sin(t)), 0}; },
                 [](Real t) { return (Real)0.5; },
                 [](Real t) { return (Real)0.5; }
@@ -141,7 +177,7 @@ namespace MML::TestBeds
             {"Schaums1", "{ 3*t - t*t*t, 3*t*t, 3*t + t*t*t}",
                 Real(0.0), Real(2.0) * Constants::PI,
                 [](Real t) { return VectorN<Real,3>{ 3 * t - t * t * t, 3 * t * t, 3 * t + t * t * t}; },
-                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-sin(t)), static_cast<Real>(cos(t)), REAL(1.0)}; },
+                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-sin(t)), static_cast<Real>(cos(t)), static_cast<MML::Real>(1.0)}; },
                 [](Real t) { return VectorN<Real,3>{static_cast<Real>(-cos(t)), static_cast<Real>(-sin(t)), 0}; },
                 [](Real t) { return (Real)1.0 / (3 * POW2(1 + t * t)); },
                 [](Real t) { return (Real)1.0 / (3 * POW2(1 + t * t)); }
@@ -156,9 +192,9 @@ namespace MML::TestBeds
             },
             {"Circle3DXYCurve", "{cos(t), sin(t), 0}",
                 Real(0.0), Real(2.0) * Constants::PI,
-                [](Real t) { return VectorN<Real,3>{ static_cast<Real>(cos(t)), static_cast<Real>(sin(t)), REAL(0.0)}; },
-                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-sin(t)), static_cast<Real>(cos(t)), REAL(0.0)}; },
-                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-cos(t)), static_cast<Real>(-sin(t)), REAL(0.0)}; },
+                [](Real t) { return VectorN<Real,3>{ static_cast<Real>(cos(t)), static_cast<Real>(sin(t)), static_cast<MML::Real>(0.0)}; },
+                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-sin(t)), static_cast<Real>(cos(t)), static_cast<MML::Real>(0.0)}; },
+                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-cos(t)), static_cast<Real>(-sin(t)), static_cast<MML::Real>(0.0)}; },
                 [](Real t) { return Real{1.0}; },  // curvature = 1 for unit circle
                 [](Real t) { return Real{0.0}; }   // torsion = 0 for planar curve
             },

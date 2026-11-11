@@ -32,8 +32,8 @@ namespace MML::MatrixAlg
 		const Matrix<Scalar>& combined = solver.GetDecomposition();
 		const int size = matrix.rows();
 		LUDecomposition<Scalar> result;
-		result.L.Resize(size, size);
-		result.U.Resize(size, size);
+		result.L.resize(size, size);
+		result.U.resize(size, size);
 		for (int row = 0; row < size; ++row)
 			for (int col = 0; col < size; ++col)
 			{
@@ -151,17 +151,17 @@ namespace MML::MatrixAlg
 			result.U = Detail::CompleteOrthonormalBasis(solver.getU());
 			result.V = solver.getV();
 			const auto values = solver.getW();
-			result.singularValues.Resize(minDimension);
+			result.singularValues.resize(minDimension);
 			for (int index = 0; index < minDimension; ++index)
 				result.singularValues[index] = values[index];
 		}
 		else
 		{
-			SVDecompositionSolver<Scalar> solver(matrix.transpose());
+			SVDecompositionSolver<Scalar> solver(matrix.Transposed());
 			result.U = solver.getV();
 			result.V = Detail::CompleteOrthonormalBasis(solver.getU());
 			const auto values = solver.getW();
-			result.singularValues.Resize(minDimension);
+			result.singularValues.resize(minDimension);
 			for (int index = 0; index < minDimension; ++index)
 				result.singularValues[index] = values[index];
 		}

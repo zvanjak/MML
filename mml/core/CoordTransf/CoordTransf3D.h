@@ -12,6 +12,7 @@
 #if !defined MML_COORD_TRANSF_3D_H
 #define MML_COORD_TRANSF_3D_H
 
+#include <mml/algorithms/MatrixAlg/MatrixInversion.h>
 #include <mml/MMLBase.h>
 
 #include <mml/base/Vector/VectorTypes3D.h>
@@ -452,7 +453,7 @@ namespace MML
 			}
 
 			// Compute proper matrix inverse (throws SingularMatrixError if singular)
-			_transfInverse = _transf.GetInverse();
+			_transfInverse = MatrixAlg::Inverse(_transf);
 		}
 
 		MatrixNM<Real, 3, 3> getTransfMatrix() { return _transf; }
@@ -540,7 +541,7 @@ namespace MML
 		_dual[2] = (1 / V) * VectorProduct(_base[0], _base[1]);
 
 		// Compute inverse of base matrix for alternative transformation method
-		_baseMatInv = _baseMat.GetInverse();
+		_baseMatInv = MatrixAlg::Inverse(_baseMat);
 	}		/// @brief Get oblique basis vector
 		/// @param i Index (0, 1, or 2)
 		/// @return Oblique basis vector i
@@ -644,7 +645,7 @@ namespace MML
 		void initializeMatrices()
 		{
 			// Ensure quaternion is normalized for proper rotation
-			if (!_quat.isUnit(PrecisionValues<Real>::DefaultTolerance))
+			if (!_quat.IsUnit(PrecisionValues<Real>::DefaultTolerance))
 				_quat.Normalize();
 
 			// Convert quaternion to rotation matrix
@@ -777,8 +778,14 @@ namespace MML
 		const MatrixNM<Real, 3, 3>& GetInverseMatrix() const { return _inverse; }
 
 		// Get rotation axis and angle
-		Vec3Cart GetRotationAxis() const { return _quat.GetRotationAxis(); }
-		Real GetRotationAngle() const { return _quat.GetRotationAngle(); }
+		Vec3Cart getRotationAxis() const { return _quat.getRotationAxis(); }
+		Real getRotationAngle() const { return _quat.getRotationAngle(); }
+		/// @deprecated Use getRotationAxis() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getRotationAxis()")]]
+		Vec3Cart GetRotationAxis() const { return getRotationAxis(); }
+		/// @deprecated Use getRotationAngle().
+		[[deprecated("use getRotationAngle()")]]
+		Real GetRotationAngle() const { return getRotationAngle(); }
 
 		// Composition: compose this rotation with another
 		// Returns a new transformation representing this rotation followed by other

@@ -1,4 +1,5 @@
 #include <catch2/catch_all.hpp>
+#include <cmath>
 #include "../../TestPrecision.h"
 #include "../../TestMatchers.h"
 
@@ -21,13 +22,13 @@ namespace MML::Tests::Base::Geometry3DTests
 		Point3Cartesian a(1, 1, 1);
 		Vector3Cartesian b(1, 1, 1);
 
-		REQUIRE(a.X() == REAL(1.0));
-		REQUIRE(a.Y() == REAL(1.0));
-		REQUIRE(a.Z() == REAL(1.0));
+		REQUIRE(a.X() == static_cast<MML::Real>(1.0));
+		REQUIRE(a.Y() == static_cast<MML::Real>(1.0));
+		REQUIRE(a.Z() == static_cast<MML::Real>(1.0));
 
-		REQUIRE(b.X() == REAL(1.0));
-		REQUIRE(b.Y() == REAL(1.0));
-		REQUIRE(b.Z() == REAL(1.0));
+		REQUIRE(b.X() == static_cast<MML::Real>(1.0));
+		REQUIRE(b.Y() == static_cast<MML::Real>(1.0));
+		REQUIRE(b.Z() == static_cast<MML::Real>(1.0));
 
 		// Test constructors
 		Line3D line1(Pnt3Cart(0, 0, 0), Vec3Cart(1, 0, 0));
@@ -48,11 +49,11 @@ namespace MML::Tests::Base::Geometry3DTests
 		Line3D line(Pnt3Cart(0, 0, 0), Vec3Cart(1, 0, 0));  // X-axis
 
 		// Point at t=0 is start point
-		REQUIRE(line(REAL(0.0)) == Pnt3Cart(0, 0, 0));
+		REQUIRE(line(static_cast<MML::Real>(0.0)) == Pnt3Cart(0, 0, 0));
 		// Point at t=5 is (5,0,0)
-		REQUIRE(line(REAL(5.0)) == Pnt3Cart(5, 0, 0));
+		REQUIRE(line(static_cast<MML::Real>(5.0)) == Pnt3Cart(5, 0, 0));
 		// Negative t
-		REQUIRE(line(-REAL(3.0)) == Pnt3Cart(-3, 0, 0));
+		REQUIRE(line(-static_cast<MML::Real>(3.0)) == Pnt3Cart(-3, 0, 0));
 
 		// IsPointOnLine tests
 		REQUIRE(line.IsPointOnLine(Pnt3Cart(0, 0, 0)));
@@ -95,16 +96,16 @@ namespace MML::Tests::Base::Geometry3DTests
 		Line3D xAxis(Pnt3Cart(0, 0, 0), Vec3Cart(1, 0, 0));
 
 		// Point on line
-		REQUIRE_THAT(xAxis.Dist(Pnt3Cart(5, 0, 0)), RealApprox(REAL(0.0)));
+		REQUIRE_THAT(xAxis.Dist(Pnt3Cart(5, 0, 0)), RealApprox(static_cast<MML::Real>(0.0)));
 		// Point above line
-		REQUIRE_THAT(xAxis.Dist(Pnt3Cart(0, 5, 0)), RealApprox(REAL(5.0)));
-		REQUIRE_THAT(xAxis.Dist(Pnt3Cart(10, 3, 4)), RealApprox(REAL(5.0)));
+		REQUIRE_THAT(xAxis.Dist(Pnt3Cart(0, 5, 0)), RealApprox(static_cast<MML::Real>(5.0)));
+		REQUIRE_THAT(xAxis.Dist(Pnt3Cart(10, 3, 4)), RealApprox(static_cast<MML::Real>(5.0)));
 
 		// Diagonal line
 		Line3D diagLine(Pnt3Cart(0, 0, 0), Vec3Cart(1, 1, 0));
 		// Point (1, 0, 0) to diagonal line through origin with direction (1,1,0)/sqrt(2)
-		// Distance should be 1/sqrt(2) = sqrt(2)/2 ≈ REAL(0.7071)
-		REQUIRE_THAT(diagLine.Dist(Pnt3Cart(1, 0, 0)), RealApprox(REAL(0.7071067811865476)));
+		// Distance should be 1/sqrt(2) = sqrt(2)/2 ≈ static_cast<MML::Real>(0.7071)
+		REQUIRE_THAT(diagLine.Dist(Pnt3Cart(1, 0, 0)), RealApprox(static_cast<MML::Real>(0.7071067811865476)));
 	}
 	TEST_CASE("Line3D::DistToLine", "[Line3D]")
 	{
@@ -117,15 +118,15 @@ namespace MML::Tests::Base::Geometry3DTests
 
 		// Distance between parallel lines at y=0 and y=5
 		// Note: for parallel lines, the formula gives different result
-		// REQUIRE_THAT(xAxis1.Dist(xAxis2) , RealApprox(REAL(5.0)));
+		// REQUIRE_THAT(xAxis1.Dist(xAxis2) , RealApprox(static_cast<MML::Real>(5.0)));
 
 		// Skew lines: X-axis at z=0 and Y-axis at z=3
-		REQUIRE_THAT(xAxis1.Dist(yAxis) , RealApprox(REAL(3.0)));
+		REQUIRE_THAT(xAxis1.Dist(yAxis) , RealApprox(static_cast<MML::Real>(3.0)));
 
 		// Intersecting lines have distance 0
 		Line3D xAxis(Pnt3Cart(0, 0, 0), Vec3Cart(1, 0, 0));
 		Line3D yAxisOrigin(Pnt3Cart(0, 0, 0), Vec3Cart(0, 1, 0));
-		REQUIRE_THAT(xAxis.Dist(yAxisOrigin) , RealApprox(REAL(0.0)));
+		REQUIRE_THAT(xAxis.Dist(yAxisOrigin) , RealApprox(static_cast<MML::Real>(0.0)));
 	}
 	TEST_CASE("Line3D::NearestPointOnLine", "[Line3D]")
 	{
@@ -134,15 +135,15 @@ namespace MML::Tests::Base::Geometry3DTests
 
 		// Point above X-axis
 		Pnt3Cart nearest = xAxis.NearestPointOnLine(Pnt3Cart(5, 10, 0));
-		REQUIRE_THAT(nearest.X() , RealApprox(REAL(5.0)));
-		REQUIRE_THAT(nearest.Y() , RealApprox(REAL(0.0)));
-		REQUIRE_THAT(nearest.Z() , RealApprox(REAL(0.0)));
+		REQUIRE_THAT(nearest.X() , RealApprox(static_cast<MML::Real>(5.0)));
+		REQUIRE_THAT(nearest.Y() , RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(nearest.Z() , RealApprox(static_cast<MML::Real>(0.0)));
 
 		// Point at origin should stay at origin
 		nearest = xAxis.NearestPointOnLine(Pnt3Cart(0, 5, 5));
-		REQUIRE_THAT(nearest.X() , RealApprox(REAL(0.0)));
-		REQUIRE_THAT(nearest.Y() , RealApprox(REAL(0.0)));
-		REQUIRE_THAT(nearest.Z() , RealApprox(REAL(0.0)));
+		REQUIRE_THAT(nearest.X() , RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(nearest.Y() , RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(nearest.Z() , RealApprox(static_cast<MML::Real>(0.0)));
 	}
 	TEST_CASE("Line3D::Intersection", "[Line3D]")
 	{
@@ -155,9 +156,9 @@ namespace MML::Tests::Base::Geometry3DTests
 
 		// Intersecting lines at origin
 		REQUIRE(xAxis.Intersects(yAxis, intersection));
-		REQUIRE_THAT(intersection.X() , RealApprox(REAL(0.0)));
-		REQUIRE_THAT(intersection.Y() , RealApprox(REAL(0.0)));
-		REQUIRE_THAT(intersection.Z() , RealApprox(REAL(0.0)));
+		REQUIRE_THAT(intersection.X() , RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(intersection.Y() , RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(intersection.Z() , RealApprox(static_cast<MML::Real>(0.0)));
 
 		// Parallel lines don't intersect
 		REQUIRE_FALSE(xAxis.Intersects(parallelX, intersection));
@@ -166,8 +167,8 @@ namespace MML::Tests::Base::Geometry3DTests
 		Line3D line1(Pnt3Cart(0, 0, 0), Vec3Cart(1, 1, 0));
 		Line3D line2(Pnt3Cart(4, 0, 0), Vec3Cart(-1, 1, 0));
 		REQUIRE(line1.Intersects(line2, intersection));
-		REQUIRE_THAT(intersection.X() , RealApprox(REAL(2.0)));
-		REQUIRE_THAT(intersection.Y() , RealApprox(REAL(2.0)));
+		REQUIRE_THAT(intersection.X() , RealApprox(static_cast<MML::Real>(2.0)));
+		REQUIRE_THAT(intersection.Y() , RealApprox(static_cast<MML::Real>(2.0)));
 	}
 	TEST_CASE("Line3D::PerpendicularLineThroughPoint", "[Line3D]")
 	{
@@ -197,10 +198,10 @@ namespace MML::Tests::Base::Geometry3DTests
 		REQUIRE(seg1.EndPoint() == Pnt3Cart(10, 0, 0));
 
 		// Constructor with point, direction, and parameter
-		SegmentLine3D seg2(Pnt3Cart(0, 0, 0), Vec3Cart(1, 1, 0), REAL(5.0));
+		SegmentLine3D seg2(Pnt3Cart(0, 0, 0), Vec3Cart(1, 1, 0), static_cast<MML::Real>(5.0));
 		REQUIRE(seg2.StartPoint() == Pnt3Cart(0, 0, 0));
-		REQUIRE_THAT(seg2.EndPoint().X() , RealApprox(REAL(5.0)));
-		REQUIRE_THAT(seg2.EndPoint().Y() , RealApprox(REAL(5.0)));
+		REQUIRE_THAT(seg2.EndPoint().X() , RealApprox(static_cast<MML::Real>(5.0)));
+		REQUIRE_THAT(seg2.EndPoint().Y() , RealApprox(static_cast<MML::Real>(5.0)));
 	}
 	TEST_CASE("SegmentLine3D::PointOnSegment", "[SegmentLine3D]")
 	{
@@ -208,43 +209,43 @@ namespace MML::Tests::Base::Geometry3DTests
 		SegmentLine3D seg(Pnt3Cart(0, 0, 0), Pnt3Cart(10, 0, 0));
 
 		// t=0 gives start point
-		REQUIRE(seg(REAL(0.0)) == Pnt3Cart(0, 0, 0));
+		REQUIRE(seg(static_cast<MML::Real>(0.0)) == Pnt3Cart(0, 0, 0));
 		// t=1 gives end point
-		REQUIRE(seg(REAL(1.0)) == Pnt3Cart(10, 0, 0));
-		// t=REAL(0.5) gives midpoint
-		REQUIRE_THAT(seg(REAL(0.5)).X() , RealApprox(REAL(5.0)));
-		REQUIRE_THAT(seg(REAL(0.5)).Y() , RealApprox(REAL(0.0)));
+		REQUIRE(seg(static_cast<MML::Real>(1.0)) == Pnt3Cart(10, 0, 0));
+		// t=static_cast<MML::Real>(0.5) gives midpoint
+		REQUIRE_THAT(seg(static_cast<MML::Real>(0.5)).X() , RealApprox(static_cast<MML::Real>(5.0)));
+		REQUIRE_THAT(seg(static_cast<MML::Real>(0.5)).Y() , RealApprox(static_cast<MML::Real>(0.0)));
 
 		// t < 0 or t > 1 throws
-		REQUIRE_THROWS(seg(-REAL(0.1)));
-		REQUIRE_THROWS(seg(REAL(1.1)));
+		REQUIRE_THROWS(seg(-static_cast<MML::Real>(0.1)));
+		REQUIRE_THROWS(seg(static_cast<MML::Real>(1.1)));
 	}
 	TEST_CASE("SegmentLine3D::Length", "[SegmentLine3D]")
 	{
 			TEST_PRECISION_INFO();
 		SegmentLine3D seg1(Pnt3Cart(0, 0, 0), Pnt3Cart(10, 0, 0));
-		REQUIRE_THAT(seg1.Length() , RealApprox(REAL(10.0)));
+		REQUIRE_THAT(seg1.Length() , RealApprox(static_cast<MML::Real>(10.0)));
 
 		SegmentLine3D seg2(Pnt3Cart(0, 0, 0), Pnt3Cart(3, 4, 0));
-		REQUIRE_THAT(seg2.Length() , RealApprox(REAL(5.0)));  // 3-4-5 triangle
+		REQUIRE_THAT(seg2.Length() , RealApprox(static_cast<MML::Real>(5.0)));  // 3-4-5 triangle
 
 		SegmentLine3D seg3(Pnt3Cart(1, 2, 3), Pnt3Cart(4, 6, 3));
-		REQUIRE_THAT(seg3.Length() , RealApprox(REAL(5.0)));  // 3-4-5 triangle
+		REQUIRE_THAT(seg3.Length() , RealApprox(static_cast<MML::Real>(5.0)));  // 3-4-5 triangle
 	}
 	TEST_CASE("SegmentLine3D::Direction", "[SegmentLine3D]")
 	{
 			TEST_PRECISION_INFO();
 		SegmentLine3D seg(Pnt3Cart(0, 0, 0), Pnt3Cart(10, 0, 0));
 		Vec3Cart dir = seg.Direction();
-		REQUIRE_THAT(dir.X() , RealApprox(REAL(10.0)));
-		REQUIRE_THAT(dir.Y() , RealApprox(REAL(0.0)));
-		REQUIRE_THAT(dir.Z() , RealApprox(REAL(0.0)));
+		REQUIRE_THAT(dir.X() , RealApprox(static_cast<MML::Real>(10.0)));
+		REQUIRE_THAT(dir.Y() , RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(dir.Z() , RealApprox(static_cast<MML::Real>(0.0)));
 
 		SegmentLine3D seg2(Pnt3Cart(1, 1, 1), Pnt3Cart(4, 5, 3));
 		Vec3Cart dir2 = seg2.Direction();
-		REQUIRE_THAT(dir2.X() , RealApprox(REAL(3.0)));
-		REQUIRE_THAT(dir2.Y() , RealApprox(REAL(4.0)));
-		REQUIRE_THAT(dir2.Z() , RealApprox(REAL(2.0)));
+		REQUIRE_THAT(dir2.X() , RealApprox(static_cast<MML::Real>(3.0)));
+		REQUIRE_THAT(dir2.Y() , RealApprox(static_cast<MML::Real>(4.0)));
+		REQUIRE_THAT(dir2.Z() , RealApprox(static_cast<MML::Real>(2.0)));
 	}
 
 	/*********************************************************************/
@@ -257,23 +258,23 @@ namespace MML::Tests::Base::Geometry3DTests
 
 		Plane3D plane1(a, b);
 
-		REQUIRE(a.X() == REAL(1.0));
-		REQUIRE(a.Y() == REAL(1.0));
-		REQUIRE(a.Z() == REAL(1.0));
+		REQUIRE(a.X() == static_cast<MML::Real>(1.0));
+		REQUIRE(a.Y() == static_cast<MML::Real>(1.0));
+		REQUIRE(a.Z() == static_cast<MML::Real>(1.0));
 
 		// Test standard planes
-		Plane3D xyPlane = Plane3D::GetXYPlane();
+		Plane3D xyPlane = Plane3D::XYPlane();
 		REQUIRE(xyPlane.Normal().IsEqualTo(Vec3Cart(0, 0, 1)));
 
-		Plane3D xzPlane = Plane3D::GetXZPlane();
+		Plane3D xzPlane = Plane3D::XZPlane();
 		REQUIRE(xzPlane.Normal().IsEqualTo(Vec3Cart(0, 1, 0)));
 
-		Plane3D yzPlane = Plane3D::GetYZPlane();
+		Plane3D yzPlane = Plane3D::YZPlane();
 		REQUIRE(yzPlane.Normal().IsEqualTo(Vec3Cart(1, 0, 0)));
 
 		// Constructor with three points
 		Plane3D plane3pts(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(0, 1, 0));
-		REQUIRE(plane3pts.IsPointOnPlane(Pnt3Cart(REAL(0.5), REAL(0.5), 0)));
+		REQUIRE(plane3pts.IsPointOnPlane(Pnt3Cart(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5), 0)));
 
 		// Null normal throws
 		REQUIRE_THROWS(Plane3D(Pnt3Cart(0, 0, 0), Vec3Cart(0, 0, 0)));
@@ -281,45 +282,45 @@ namespace MML::Tests::Base::Geometry3DTests
 	TEST_CASE("Plane3D::GetPointOnPlane", "[Plane3D]")
 	{
 			TEST_PRECISION_INFO();
-		Plane3D xyPlane = Plane3D::GetXYPlane();
-		Pnt3Cart pnt = xyPlane.GetPointOnPlane();
+		Plane3D xyPlane = Plane3D::XYPlane();
+		Pnt3Cart pnt = xyPlane.getPointOnPlane();
 		REQUIRE(xyPlane.IsPointOnPlane(pnt));
 
-		Plane3D xzPlane = Plane3D::GetXZPlane();
-		pnt = xzPlane.GetPointOnPlane();
+		Plane3D xzPlane = Plane3D::XZPlane();
+		pnt = xzPlane.getPointOnPlane();
 		REQUIRE(xzPlane.IsPointOnPlane(pnt));
 
 		// Custom plane
 		Plane3D customPlane(Pnt3Cart(1, 2, 3), Vec3Cart(1, 1, 1));
-		pnt = customPlane.GetPointOnPlane();
+		pnt = customPlane.getPointOnPlane();
 		REQUIRE(customPlane.IsPointOnPlane(pnt));
 	}
 	TEST_CASE("Plane3D::GetCoordAxisSegments", "[Plane3D]")
 	{
 			TEST_PRECISION_INFO();
 		// Plane x + y + z = 6 (intercepts at 6, 6, 6)
-		Plane3D plane(REAL(6.0), REAL(6.0), REAL(6.0));  // Using segment constructor
+		Plane3D plane(static_cast<MML::Real>(6.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(6.0));  // Using segment constructor
 		Real segX, segY, segZ;
-		plane.GetCoordAxisSegments(segX, segY, segZ);
-		REQUIRE_THAT(segX , RealApprox(REAL(6.0)));
-		REQUIRE_THAT(segY , RealApprox(REAL(6.0)));
-		REQUIRE_THAT(segZ , RealApprox(REAL(6.0)));
+		plane.getCoordAxisSegments(segX, segY, segZ);
+		REQUIRE_THAT(segX , RealApprox(static_cast<MML::Real>(6.0)));
+		REQUIRE_THAT(segY , RealApprox(static_cast<MML::Real>(6.0)));
+		REQUIRE_THAT(segZ , RealApprox(static_cast<MML::Real>(6.0)));
 
 	// XY plane (z=0) has infinite x,y intercepts and z=0
-	Plane3D xyPlane = Plane3D::GetXYPlane();
-	xyPlane.GetCoordAxisSegments(segX, segY, segZ);
+	Plane3D xyPlane = Plane3D::XYPlane();
+	xyPlane.getCoordAxisSegments(segX, segY, segZ);
 	REQUIRE(segX == Constants::PosInf);
 	REQUIRE(segY == Constants::PosInf);
-	REQUIRE_THAT(segZ , RealApprox(REAL(0.0)));
+	REQUIRE_THAT(segZ , RealApprox(static_cast<MML::Real>(0.0)));
 	}
 	TEST_CASE("Plane3D::IsPointOnPlane", "[Plane3D]")
 	{
 			TEST_PRECISION_INFO();
-		Plane3D xyPlane = Plane3D::GetXYPlane();
+		Plane3D xyPlane = Plane3D::XYPlane();
 
 		REQUIRE(xyPlane.IsPointOnPlane(Pnt3Cart(0, 0, 0)));
 		REQUIRE(xyPlane.IsPointOnPlane(Pnt3Cart(100, -50, 0)));
-		REQUIRE_FALSE(xyPlane.IsPointOnPlane(Pnt3Cart(0, 0, REAL(0.1))));
+		REQUIRE_FALSE(xyPlane.IsPointOnPlane(Pnt3Cart(0, 0, static_cast<MML::Real>(0.1))));
 		REQUIRE_FALSE(xyPlane.IsPointOnPlane(Pnt3Cart(5, 5, 5)));
 	}
 	TEST_CASE("Plane3D::DistToPoint", "[Plane3D]") 
@@ -328,40 +329,40 @@ namespace MML::Tests::Base::Geometry3DTests
 		Point3Cartesian a(1, 1, 1);
 		Vector3Cartesian b(1, 1, 1);
 
-		Plane3D planeXY = Plane3D::GetXYPlane();
-		Plane3D planeXZ = Plane3D::GetXZPlane();
-		Plane3D planeYZ = Plane3D::GetYZPlane();
+		Plane3D planeXY = Plane3D::XYPlane();
+		Plane3D planeXZ = Plane3D::XZPlane();
+		Plane3D planeYZ = Plane3D::YZPlane();
 
 		Point3Cartesian pnt(5, 5, 5);
 
-		REQUIRE(planeXY.DistToPoint(pnt) == REAL(5.0));
-		REQUIRE(planeXZ.DistToPoint(pnt) == REAL(5.0));
-		REQUIRE(planeYZ.DistToPoint(pnt) == REAL(5.0));
+		REQUIRE(planeXY.DistToPoint(pnt) == static_cast<MML::Real>(5.0));
+		REQUIRE(planeXZ.DistToPoint(pnt) == static_cast<MML::Real>(5.0));
+		REQUIRE(planeYZ.DistToPoint(pnt) == static_cast<MML::Real>(5.0));
 
 		// Point on plane has distance 0
-		REQUIRE(planeXY.DistToPoint(Pnt3Cart(10, 20, 0)) == REAL(0.0));
+		REQUIRE(planeXY.DistToPoint(Pnt3Cart(10, 20, 0)) == static_cast<MML::Real>(0.0));
 	}
 	TEST_CASE("Plane3D::ProjectionToPlane", "[Plane3D]")
 	{
 			TEST_PRECISION_INFO();
-		Plane3D xyPlane = Plane3D::GetXYPlane();
+		Plane3D xyPlane = Plane3D::XYPlane();
 
 		// Project point above XY plane
 		Pnt3Cart proj = xyPlane.ProjectionToPlane(Pnt3Cart(5, 5, 10));
-		REQUIRE_THAT(proj.X() , RealApprox(REAL(5.0)));
-		REQUIRE_THAT(proj.Y() , RealApprox(REAL(5.0)));
-		REQUIRE_THAT(proj.Z() , RealApprox(REAL(0.0)));
+		REQUIRE_THAT(proj.X() , RealApprox(static_cast<MML::Real>(5.0)));
+		REQUIRE_THAT(proj.Y() , RealApprox(static_cast<MML::Real>(5.0)));
+		REQUIRE_THAT(proj.Z() , RealApprox(static_cast<MML::Real>(0.0)));
 
 		// Point on plane projects to itself
 		proj = xyPlane.ProjectionToPlane(Pnt3Cart(3, 4, 0));
-		REQUIRE_THAT(proj.X() , RealApprox(REAL(3.0)));
-		REQUIRE_THAT(proj.Y() , RealApprox(REAL(4.0)));
-		REQUIRE_THAT(proj.Z() , RealApprox(REAL(0.0)));
+		REQUIRE_THAT(proj.X() , RealApprox(static_cast<MML::Real>(3.0)));
+		REQUIRE_THAT(proj.Y() , RealApprox(static_cast<MML::Real>(4.0)));
+		REQUIRE_THAT(proj.Z() , RealApprox(static_cast<MML::Real>(0.0)));
 	}
 	TEST_CASE("Plane3D::IsLineOnPlane", "[Plane3D]")
 	{
 			TEST_PRECISION_INFO();
-		Plane3D xyPlane = Plane3D::GetXYPlane();
+		Plane3D xyPlane = Plane3D::XYPlane();
 
 		Line3D lineOnPlane(Pnt3Cart(0, 0, 0), Vec3Cart(1, 1, 0));
 		Line3D lineNotOnPlane(Pnt3Cart(0, 0, 1), Vec3Cart(1, 0, 0));
@@ -374,39 +375,39 @@ namespace MML::Tests::Base::Geometry3DTests
 	TEST_CASE("Plane3D::AngleToLine", "[Plane3D]")
 	{
 			TEST_PRECISION_INFO();
-		Plane3D xyPlane = Plane3D::GetXYPlane();
+		Plane3D xyPlane = Plane3D::XYPlane();
 
 		// Line parallel to plane (angle = 0)
 		Line3D parallelLine(Pnt3Cart(0, 0, 5), Vec3Cart(1, 0, 0));
-		REQUIRE_THAT(xyPlane.AngleToLine(parallelLine) , RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(xyPlane.AngleToLine(parallelLine) , RealApprox(static_cast<MML::Real>(0.0)).margin(TOL(1e-10, 1e-5)));
 
 		// Line perpendicular to plane (angle = pi/2)
 		Line3D perpLine(Pnt3Cart(0, 0, 0), Vec3Cart(0, 0, 1));
-		REQUIRE_THAT(xyPlane.AngleToLine(perpLine) , RealApprox(Constants::PI / REAL(2.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(xyPlane.AngleToLine(perpLine) , RealApprox(Constants::PI / static_cast<MML::Real>(2.0)).margin(TOL(1e-10, 1e-5)));
 
 		// Line at 45 degrees
 		Line3D line45(Pnt3Cart(0, 0, 0), Vec3Cart(1, 0, 1));
-		REQUIRE_THAT(xyPlane.AngleToLine(line45) , RealApprox(Constants::PI / REAL(4.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(xyPlane.AngleToLine(line45) , RealApprox(Constants::PI / static_cast<MML::Real>(4.0)).margin(TOL(1e-10, 1e-5)));
 	}
 	TEST_CASE("Plane3D::IntersectionWithLine", "[Plane3D]")
 	{
 			TEST_PRECISION_INFO();
-		Plane3D xyPlane = Plane3D::GetXYPlane();
+		Plane3D xyPlane = Plane3D::XYPlane();
 		Pnt3Cart intersection;
 
 		// Line crossing at origin
 		Line3D zAxis(Pnt3Cart(0, 0, 5), Vec3Cart(0, 0, -1));
 		REQUIRE(xyPlane.IntersectionWithLine(zAxis, intersection));
-		REQUIRE_THAT(intersection.X() , RealApprox(REAL(0.0)));
-		REQUIRE_THAT(intersection.Y() , RealApprox(REAL(0.0)));
-		REQUIRE_THAT(intersection.Z() , RealApprox(REAL(0.0)));
+		REQUIRE_THAT(intersection.X() , RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(intersection.Y() , RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(intersection.Z() , RealApprox(static_cast<MML::Real>(0.0)));
 
 		// Line crossing at (3, 4, 0)
 		Line3D diagLine(Pnt3Cart(3, 4, 10), Vec3Cart(0, 0, -1));
 		REQUIRE(xyPlane.IntersectionWithLine(diagLine, intersection));
-		REQUIRE_THAT(intersection.X() , RealApprox(REAL(3.0)));
-		REQUIRE_THAT(intersection.Y() , RealApprox(REAL(4.0)));
-		REQUIRE_THAT(intersection.Z() , RealApprox(REAL(0.0)));
+		REQUIRE_THAT(intersection.X() , RealApprox(static_cast<MML::Real>(3.0)));
+		REQUIRE_THAT(intersection.Y() , RealApprox(static_cast<MML::Real>(4.0)));
+		REQUIRE_THAT(intersection.Z() , RealApprox(static_cast<MML::Real>(0.0)));
 
 		// Parallel line - no intersection
 		Line3D parallelLine(Pnt3Cart(0, 0, 5), Vec3Cart(1, 0, 0));
@@ -415,9 +416,9 @@ namespace MML::Tests::Base::Geometry3DTests
 	TEST_CASE("Plane3D::IsParallelToPlane", "[Plane3D]")
 	{
 			TEST_PRECISION_INFO();
-		Plane3D xyPlane1 = Plane3D::GetXYPlane();
+		Plane3D xyPlane1 = Plane3D::XYPlane();
 		Plane3D xyPlane2(Pnt3Cart(0, 0, 5), Vec3Cart(0, 0, 1));  // Parallel, z=5
-		Plane3D xzPlane = Plane3D::GetXZPlane();
+		Plane3D xzPlane = Plane3D::XZPlane();
 
 		REQUIRE(xyPlane1.IsParallelToPlane(xyPlane2));
 		REQUIRE_FALSE(xyPlane1.IsParallelToPlane(xzPlane));
@@ -425,9 +426,9 @@ namespace MML::Tests::Base::Geometry3DTests
 	TEST_CASE("Plane3D::IsPerpendicularToPlane", "[Plane3D]")
 	{
 			TEST_PRECISION_INFO();
-		Plane3D xyPlane = Plane3D::GetXYPlane();
-		Plane3D xzPlane = Plane3D::GetXZPlane();
-		Plane3D yzPlane = Plane3D::GetYZPlane();
+		Plane3D xyPlane = Plane3D::XYPlane();
+		Plane3D xzPlane = Plane3D::XZPlane();
+		Plane3D yzPlane = Plane3D::YZPlane();
 
 		REQUIRE(xyPlane.IsPerpendicularToPlane(xzPlane));
 		REQUIRE(xyPlane.IsPerpendicularToPlane(yzPlane));
@@ -436,34 +437,34 @@ namespace MML::Tests::Base::Geometry3DTests
 	TEST_CASE("Plane3D::AngleToPlane", "[Plane3D]")
 	{
 			TEST_PRECISION_INFO();
-		Plane3D xyPlane = Plane3D::GetXYPlane();
-		Plane3D xzPlane = Plane3D::GetXZPlane();
+		Plane3D xyPlane = Plane3D::XYPlane();
+		Plane3D xzPlane = Plane3D::XZPlane();
 
 		// Perpendicular planes - angle = pi/2
-		REQUIRE_THAT(xyPlane.AngleToPlane(xzPlane) , RealApprox(Constants::PI / REAL(2.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(xyPlane.AngleToPlane(xzPlane) , RealApprox(Constants::PI / static_cast<MML::Real>(2.0)).margin(TOL(1e-10, 1e-5)));
 
 		// Parallel planes - angle = 0
 		Plane3D xyPlane2(Pnt3Cart(0, 0, 5), Vec3Cart(0, 0, 1));
-		REQUIRE_THAT(xyPlane.AngleToPlane(xyPlane2) , RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(xyPlane.AngleToPlane(xyPlane2) , RealApprox(static_cast<MML::Real>(0.0)).margin(TOL(1e-10, 1e-5)));
 	}
 	TEST_CASE("Plane3D::DistToPlane", "[Plane3D]")
 	{
 			TEST_PRECISION_INFO();
-		Plane3D xyPlane1 = Plane3D::GetXYPlane();
+		Plane3D xyPlane1 = Plane3D::XYPlane();
 		Plane3D xyPlane2(Pnt3Cart(0, 0, 5), Vec3Cart(0, 0, 1));  // z=5
-		Plane3D xzPlane = Plane3D::GetXZPlane();
+		Plane3D xzPlane = Plane3D::XZPlane();
 
 		// Parallel planes at z=0 and z=5
-		REQUIRE_THAT(xyPlane1.DistToPlane(xyPlane2) , RealApprox(REAL(5.0)));
+		REQUIRE_THAT(xyPlane1.DistToPlane(xyPlane2) , RealApprox(static_cast<MML::Real>(5.0)));
 
 		// Non-parallel planes have distance 0 (they intersect)
-		REQUIRE_THAT(xyPlane1.DistToPlane(xzPlane) , RealApprox(REAL(0.0)));
+		REQUIRE_THAT(xyPlane1.DistToPlane(xzPlane) , RealApprox(static_cast<MML::Real>(0.0)));
 	}
 	TEST_CASE("Plane3D::IntersectionWithPlane", "[Plane3D]")
 	{
 			TEST_PRECISION_INFO();
-		Plane3D xyPlane = Plane3D::GetXYPlane();
-		Plane3D xzPlane = Plane3D::GetXZPlane();
+		Plane3D xyPlane = Plane3D::XYPlane();
+		Plane3D xzPlane = Plane3D::XZPlane();
 		Line3D intersectionLine;
 
 		// XY and XZ planes intersect along X-axis
@@ -484,12 +485,12 @@ namespace MML::Tests::Base::Geometry3DTests
 		Triangle3D tri(Pnt3Cart(0, 0, 0), Pnt3Cart(3, 0, 0), Pnt3Cart(0, 4, 0));
 
 		// 3-4-5 right triangle
-		REQUIRE_THAT(tri.A() , RealApprox(REAL(3.0)));  // side 1-2
-		REQUIRE_THAT(tri.B() , RealApprox(REAL(5.0)));  // side 2-3 (hypotenuse)
-		REQUIRE_THAT(tri.C() , RealApprox(REAL(4.0)));  // side 3-1
+		REQUIRE_THAT(tri.A() , RealApprox(static_cast<MML::Real>(3.0)));  // side 1-2
+		REQUIRE_THAT(tri.B() , RealApprox(static_cast<MML::Real>(5.0)));  // side 2-3 (hypotenuse)
+		REQUIRE_THAT(tri.C() , RealApprox(static_cast<MML::Real>(4.0)));  // side 3-1
 
-		// Area = REAL(0.5) * base * height = REAL(0.5) * 3 * 4 = 6
-		REQUIRE_THAT(tri.Area() , RealApprox(REAL(6.0)));
+		// Area = static_cast<MML::Real>(0.5) * base * height = static_cast<MML::Real>(0.5) * 3 * 4 = 6
+		REQUIRE_THAT(tri.Area() , RealApprox(static_cast<MML::Real>(6.0)));
 
 		// Plane
 		Plane3D plane = tri.getDefinedPlane();
@@ -541,9 +542,9 @@ namespace MML::Tests::Base::Geometry3DTests
 		TriangleSurface3D tri(Pnt3Cart(0, 0, 0), Pnt3Cart(4, 0, 0), Pnt3Cart(0, 3, 0));
 
 		// After point rotation (4 is longest side), check bounds
-		REQUIRE_THAT(tri.getMinU() , RealApprox(REAL(0.0)));
+		REQUIRE_THAT(tri.getMinU() , RealApprox(static_cast<MML::Real>(0.0)));
 		REQUIRE(tri.getMaxU() > 0);  // Should be positive
-		REQUIRE_THAT(tri.getMinW(REAL(0.0)) , RealApprox(REAL(0.0)));
+		REQUIRE_THAT(tri.getMinW(static_cast<MML::Real>(0.0)) , RealApprox(static_cast<MML::Real>(0.0)));
 	}
 
 
@@ -569,7 +570,7 @@ namespace MML::Tests::Base::Geometry3DTests
 		REQUIRE(tri1.IsRight(TOL(1e-10, 1e-5)));
 
 		// Clearly not a right triangle (equilateral)
-		Triangle3D tri2(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(REAL(0.5), sqrt(REAL(3.0)) / REAL(2.0), 0));
+		Triangle3D tri2(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(static_cast<MML::Real>(0.5), sqrt(static_cast<MML::Real>(3.0)) / static_cast<MML::Real>(2.0), 0));
 		REQUIRE_FALSE(tri2.IsRight());
 
 		// 3D right triangle
@@ -585,12 +586,12 @@ namespace MML::Tests::Base::Geometry3DTests
 		REQUIRE(tri1.IsIsosceles());
 
 		// Nearly isosceles (perturbation must be >1 ULP in sqrt(5) for float)
-		Triangle3D tri2(Pnt3Cart(0, 0, 0), Pnt3Cart(2, 0, 0), Pnt3Cart(REAL(1.00001), 2, 0));
+		Triangle3D tri2(Pnt3Cart(0, 0, 0), Pnt3Cart(2, 0, 0), Pnt3Cart(static_cast<MML::Real>(1.00001), 2, 0));
 		REQUIRE(tri2.IsIsosceles(1e-4));
 		REQUIRE_FALSE(tri2.IsIsosceles(TOL(1e-12, 1e-8)));
 
 		// Equilateral (also isosceles)
-		Triangle3D tri3(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(REAL(0.5), sqrt(REAL(3.0)) / REAL(2.0), 0));
+		Triangle3D tri3(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(static_cast<MML::Real>(0.5), sqrt(static_cast<MML::Real>(3.0)) / static_cast<MML::Real>(2.0), 0));
 		REQUIRE(tri3.IsIsosceles());
 
 		// Scalene (not isosceles)
@@ -602,11 +603,11 @@ namespace MML::Tests::Base::Geometry3DTests
 	{
 			TEST_PRECISION_INFO();
 		// Perfect equilateral
-		Triangle3D tri1(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(REAL(0.5), sqrt(REAL(3.0)) / REAL(2.0), 0));
+		Triangle3D tri1(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(static_cast<MML::Real>(0.5), sqrt(static_cast<MML::Real>(3.0)) / static_cast<MML::Real>(2.0), 0));
 		REQUIRE(tri1.IsEquilateral());
 
 		// Nearly equilateral (perturbation must survive float arithmetic)
-		Triangle3D tri2(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(REAL(0.5), sqrt(REAL(3.0)) / REAL(2.0) + REAL(0.00001), 0));
+		Triangle3D tri2(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(static_cast<MML::Real>(0.5), sqrt(static_cast<MML::Real>(3.0)) / static_cast<MML::Real>(2.0) + static_cast<MML::Real>(0.00001), 0));
 		REQUIRE(tri2.IsEquilateral(1e-4));
 		REQUIRE_FALSE(tri2.IsEquilateral(TOL(1e-12, 1e-8)));
 
@@ -615,7 +616,7 @@ namespace MML::Tests::Base::Geometry3DTests
 		REQUIRE_FALSE(tri3.IsEquilateral());
 
 		// 3D equilateral triangle
-		Real s = REAL(1.0) / sqrt(REAL(3.0));
+		Real s = static_cast<MML::Real>(1.0) / sqrt(static_cast<MML::Real>(3.0));
 		Triangle3D tri4(Pnt3Cart(s, s, s), Pnt3Cart(-s, -s, s), Pnt3Cart(-s, s, -s));
 		REQUIRE(tri4.IsEquilateral(TOL(1e-8, 1e-4)));
 	}
@@ -626,24 +627,24 @@ namespace MML::Tests::Base::Geometry3DTests
 		// Simple triangle in XY plane
 		Triangle3D tri1(Pnt3Cart(0, 0, 0), Pnt3Cart(3, 0, 0), Pnt3Cart(0, 3, 0));
 		Pnt3Cart centroid1 = tri1.Centroid();
-		REQUIRE_THAT(centroid1.X() , RealApprox(REAL(1.0)));
-		REQUIRE_THAT(centroid1.Y() , RealApprox(REAL(1.0)));
-		REQUIRE_THAT(centroid1.Z() , RealApprox(REAL(0.0)));
+		REQUIRE_THAT(centroid1.X() , RealApprox(static_cast<MML::Real>(1.0)));
+		REQUIRE_THAT(centroid1.Y() , RealApprox(static_cast<MML::Real>(1.0)));
+		REQUIRE_THAT(centroid1.Z() , RealApprox(static_cast<MML::Real>(0.0)));
 
 		// Triangle with all different coordinates
 		Triangle3D tri2(Pnt3Cart(1, 2, 3), Pnt3Cart(4, 5, 6), Pnt3Cart(7, 8, 9));
 		Pnt3Cart centroid2 = tri2.Centroid();
-		REQUIRE_THAT(centroid2.X() , RealApprox(REAL(4.0)));
-		REQUIRE_THAT(centroid2.Y() , RealApprox(REAL(5.0)));
-		REQUIRE_THAT(centroid2.Z() , RealApprox(REAL(6.0)));
+		REQUIRE_THAT(centroid2.X() , RealApprox(static_cast<MML::Real>(4.0)));
+		REQUIRE_THAT(centroid2.Y() , RealApprox(static_cast<MML::Real>(5.0)));
+		REQUIRE_THAT(centroid2.Z() , RealApprox(static_cast<MML::Real>(6.0)));
 
 		// Equilateral triangle centered at origin (centroid should be at origin)
-		Real s = sqrt(REAL(3.0));
-		Triangle3D tri3(Pnt3Cart(1, 0, 0), Pnt3Cart(-REAL(0.5), s / REAL(2.0), 0), Pnt3Cart(-REAL(0.5), -s / REAL(2.0), 0));
+		Real s = sqrt(static_cast<MML::Real>(3.0));
+		Triangle3D tri3(Pnt3Cart(1, 0, 0), Pnt3Cart(-static_cast<MML::Real>(0.5), s / static_cast<MML::Real>(2.0), 0), Pnt3Cart(-static_cast<MML::Real>(0.5), -s / static_cast<MML::Real>(2.0), 0));
 		Pnt3Cart centroid3 = tri3.Centroid();
-		REQUIRE_THAT(centroid3.X() , RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(centroid3.Y() , RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(centroid3.Z() , RealApprox(REAL(0.0)));
+		REQUIRE_THAT(centroid3.X() , RealApprox(static_cast<MML::Real>(0.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(centroid3.Y() , RealApprox(static_cast<MML::Real>(0.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(centroid3.Z() , RealApprox(static_cast<MML::Real>(0.0)));
 	}
 
 	TEST_CASE("SegmentLine3D::Dist to point", "[SegmentLine3D][improvements]")
@@ -653,30 +654,30 @@ namespace MML::Tests::Base::Geometry3DTests
 		SegmentLine3D seg1(Pnt3Cart(0, 0, 0), Pnt3Cart(10, 0, 0));
 
 		// Point directly above middle of segment
-		REQUIRE_THAT(seg1.Dist(Pnt3Cart(5, 5, 0)), RealApprox(REAL(5.0)));
+		REQUIRE_THAT(seg1.Dist(Pnt3Cart(5, 5, 0)), RealApprox(static_cast<MML::Real>(5.0)));
 
 		// Point at start of segment (distance = 0)
-		REQUIRE_THAT(seg1.Dist(Pnt3Cart(0, 0, 0)), RealApprox(REAL(0.0)));
+		REQUIRE_THAT(seg1.Dist(Pnt3Cart(0, 0, 0)), RealApprox(static_cast<MML::Real>(0.0)));
 
 		// Point at end of segment (distance = 0)
-		REQUIRE_THAT(seg1.Dist(Pnt3Cart(10, 0, 0)), RealApprox(REAL(0.0)));
+		REQUIRE_THAT(seg1.Dist(Pnt3Cart(10, 0, 0)), RealApprox(static_cast<MML::Real>(0.0)));
 
 		// Point beyond start (closest to start point)
-		REQUIRE_THAT(seg1.Dist(Pnt3Cart(-5, 0, 0)), RealApprox(REAL(5.0)));
+		REQUIRE_THAT(seg1.Dist(Pnt3Cart(-5, 0, 0)), RealApprox(static_cast<MML::Real>(5.0)));
 
 		// Point beyond end (closest to end point)
-		REQUIRE_THAT(seg1.Dist(Pnt3Cart(15, 0, 0)), RealApprox(REAL(5.0)));
+		REQUIRE_THAT(seg1.Dist(Pnt3Cart(15, 0, 0)), RealApprox(static_cast<MML::Real>(5.0)));
 
 		// Point perpendicular to middle, in 3D
-		REQUIRE_THAT(seg1.Dist(Pnt3Cart(5, 3, 4)), RealApprox(REAL(5.0)));
+		REQUIRE_THAT(seg1.Dist(Pnt3Cart(5, 3, 4)), RealApprox(static_cast<MML::Real>(5.0)));
 
 		// Diagonal segment
 		SegmentLine3D seg2(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 1, 1));
-		REQUIRE_THAT(seg2.Dist(Pnt3Cart(REAL(0.5), REAL(0.5), REAL(0.5))), RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));  // Point on segment
+		REQUIRE_THAT(seg2.Dist(Pnt3Cart(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5))), RealApprox(static_cast<MML::Real>(0.0)).margin(TOL(1e-10, 1e-5)));  // Point on segment
 
 		// Degenerate segment (zero length)
 		SegmentLine3D seg3(Pnt3Cart(5, 5, 5), Pnt3Cart(5, 5, 5));
-		REQUIRE_THAT(seg3.Dist(Pnt3Cart(5, 5, 8)), RealApprox(REAL(3.0)));
+		REQUIRE_THAT(seg3.Dist(Pnt3Cart(5, 5, 8)), RealApprox(static_cast<MML::Real>(3.0)));
 	}
 
 	TEST_CASE("RectSurface3D::coplanarity validation", "[RectSurface3D][improvements]")
@@ -740,12 +741,12 @@ namespace MML::Tests::Base::Geometry3DTests
 		bool result = line1.Dist(line2, dist, pnt1, pnt2);
 
 		REQUIRE(result);  // Not parallel
-		REQUIRE_THAT(dist, RealApprox(REAL(5.0)));  // Distance is z-offset
-		REQUIRE_THAT(pnt1.X(), RealApprox(REAL(5.0)));
-		REQUIRE_THAT(pnt1.Y(), RealApprox(REAL(0.0)));
-		REQUIRE_THAT(pnt1.Z(), RealApprox(REAL(0.0)));
-		REQUIRE_THAT(pnt2.X(), RealApprox(REAL(5.0)));
-		REQUIRE_THAT(pnt2.Z(), RealApprox(REAL(5.0)));
+		REQUIRE_THAT(dist, RealApprox(static_cast<MML::Real>(5.0)));  // Distance is z-offset
+		REQUIRE_THAT(pnt1.X(), RealApprox(static_cast<MML::Real>(5.0)));
+		REQUIRE_THAT(pnt1.Y(), RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(pnt1.Z(), RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(pnt2.X(), RealApprox(static_cast<MML::Real>(5.0)));
+		REQUIRE_THAT(pnt2.Z(), RealApprox(static_cast<MML::Real>(5.0)));
 
 		// Parallel lines return false
 		Line3D line3(Pnt3Cart(0, 5, 0), Vec3Cart(1, 0, 0));
@@ -777,7 +778,7 @@ namespace MML::Tests::Base::Geometry3DTests
 
 		REQUIRE(seg.StartPoint() == Pnt3Cart(1, 1, 1));
 		REQUIRE(seg.EndPoint() == Pnt3Cart(5, 5, 5));
-		REQUIRE_THAT(seg.Length(), RealApprox(sqrt(REAL(48.0))));  // sqrt(4^2 + 4^2 + 4^2)
+		REQUIRE_THAT(seg.Length(), RealApprox(sqrt(static_cast<MML::Real>(48.0))));  // sqrt(4^2 + 4^2 + 4^2)
 	}
 
 	TEST_CASE("Plane3D - Hesse normal form constructor", "[Plane3D][Constructor]")
@@ -786,26 +787,26 @@ namespace MML::Tests::Base::Geometry3DTests
 		// Create plane using direction cosines
 		// For a plane with normal (1, 0, 0) at distance 5 from origin
 		// alpha = 0, beta = pi/2, gamma = pi/2
-		Plane3D plane(REAL(0.0), Constants::PI / REAL(2.0), Constants::PI / REAL(2.0), REAL(5.0));
+		Plane3D plane(static_cast<MML::Real>(0.0), Constants::PI / static_cast<MML::Real>(2.0), Constants::PI / static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0));
 
-		REQUIRE_THAT(plane.A(), RealApprox(REAL(1.0)));
-		REQUIRE_THAT(plane.B(), RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(plane.C(), RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(plane.D(), RealApprox(-REAL(5.0)));
+		REQUIRE_THAT(plane.A(), RealApprox(static_cast<MML::Real>(1.0)));
+		REQUIRE_THAT(plane.B(), RealApprox(static_cast<MML::Real>(0.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(plane.C(), RealApprox(static_cast<MML::Real>(0.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(plane.D(), RealApprox(-static_cast<MML::Real>(5.0)));
 	}
 
 	TEST_CASE("Plane3D - Intercepts constructor", "[Plane3D][Constructor]")
 	{
 		TEST_PRECISION_INFO();
 		// Plane with intercepts at (3, 4, 6)
-		Plane3D plane(REAL(3.0), REAL(4.0), REAL(6.0));
+		Plane3D plane(static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0));
 
 		// Verify intercepts
 		Real segX, segY, segZ;
-		plane.GetCoordAxisSegments(segX, segY, segZ);
-		REQUIRE_THAT(segX, RealApprox(REAL(3.0)));
-		REQUIRE_THAT(segY, RealApprox(REAL(4.0)));
-		REQUIRE_THAT(segZ, RealApprox(REAL(6.0)));
+		plane.getCoordAxisSegments(segX, segY, segZ);
+		REQUIRE_THAT(segX, RealApprox(static_cast<MML::Real>(3.0)));
+		REQUIRE_THAT(segY, RealApprox(static_cast<MML::Real>(4.0)));
+		REQUIRE_THAT(segZ, RealApprox(static_cast<MML::Real>(6.0)));
 
 		// Verify points on plane
 		REQUIRE(plane.IsPointOnPlane(Pnt3Cart(3, 0, 0)));
@@ -817,9 +818,9 @@ namespace MML::Tests::Base::Geometry3DTests
 	{
 		TEST_PRECISION_INFO();
 		// Zero intercept should throw
-		REQUIRE_THROWS(Plane3D(REAL(0.0), REAL(4.0), REAL(6.0)));
-		REQUIRE_THROWS(Plane3D(REAL(3.0), REAL(0.0), REAL(6.0)));
-		REQUIRE_THROWS(Plane3D(REAL(3.0), REAL(4.0), REAL(0.0)));
+		REQUIRE_THROWS(Plane3D(static_cast<MML::Real>(0.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0)));
+		REQUIRE_THROWS(Plane3D(static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(6.0)));
+		REQUIRE_THROWS(Plane3D(static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(0.0)));
 	}
 
 	TEST_CASE("Plane3D - Coefficient accessors", "[Plane3D][Accessors]")
@@ -828,21 +829,21 @@ namespace MML::Tests::Base::Geometry3DTests
 		Plane3D plane(Pnt3Cart(0, 0, 0), Vec3Cart(0, 0, 1));  // XY plane
 
 		// Read accessors
-		REQUIRE_THAT(plane.A(), RealApprox(REAL(0.0)));
-		REQUIRE_THAT(plane.B(), RealApprox(REAL(0.0)));
-		REQUIRE_THAT(plane.C(), RealApprox(REAL(1.0)));
-		REQUIRE_THAT(plane.D(), RealApprox(REAL(0.0)));
+		REQUIRE_THAT(plane.A(), RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(plane.B(), RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(plane.C(), RealApprox(static_cast<MML::Real>(1.0)));
+		REQUIRE_THAT(plane.D(), RealApprox(static_cast<MML::Real>(0.0)));
 
 		// Mutable accessors
-		plane.A() = REAL(1.0);
-		plane.B() = REAL(2.0);
-		plane.C() = REAL(3.0);
-		plane.D() = REAL(-1.0);
+		plane.A() = static_cast<MML::Real>(1.0);
+		plane.B() = static_cast<MML::Real>(2.0);
+		plane.C() = static_cast<MML::Real>(3.0);
+		plane.D() = static_cast<MML::Real>(-1.0);
 
-		REQUIRE_THAT(plane.A(), RealApprox(REAL(1.0)));
-		REQUIRE_THAT(plane.B(), RealApprox(REAL(2.0)));
-		REQUIRE_THAT(plane.C(), RealApprox(REAL(3.0)));
-		REQUIRE_THAT(plane.D(), RealApprox(-REAL(1.0)));
+		REQUIRE_THAT(plane.A(), RealApprox(static_cast<MML::Real>(1.0)));
+		REQUIRE_THAT(plane.B(), RealApprox(static_cast<MML::Real>(2.0)));
+		REQUIRE_THAT(plane.C(), RealApprox(static_cast<MML::Real>(3.0)));
+		REQUIRE_THAT(plane.D(), RealApprox(-static_cast<MML::Real>(1.0)));
 	}
 
 	TEST_CASE("Triangle3D - getDefinedPlane", "[Triangle3D][Plane]")
@@ -859,9 +860,9 @@ namespace MML::Tests::Base::Geometry3DTests
 		Plane3D plane2 = tri2.getDefinedPlane();
 		// Check that normal is parallel to Y-axis (either direction)
 		Vec3Cart normal2 = plane2.Normal();
-		REQUIRE_THAT(normal2.X(), RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(normal2.Z(), RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
-		REQUIRE(std::abs(normal2.Y()) > REAL(0.99));  // Y component should be ~1 or ~-1
+		REQUIRE_THAT(normal2.X(), RealApprox(static_cast<MML::Real>(0.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(normal2.Z(), RealApprox(static_cast<MML::Real>(0.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE(std::abs(normal2.Y()) > static_cast<MML::Real>(0.99));  // Y component should be ~1 or ~-1
 
 		// Arbitrary 3D triangle
 		Triangle3D tri3(Pnt3Cart(1, 0, 0), Pnt3Cart(0, 1, 0), Pnt3Cart(0, 0, 1));
@@ -900,13 +901,13 @@ namespace MML::Tests::Base::Geometry3DTests
 		// 3-4-5 right triangle
 		Triangle3D tri1(Pnt3Cart(0, 0, 0), Pnt3Cart(3, 0, 0), Pnt3Cart(0, 4, 0));
 		Real perimeter1 = tri1.A() + tri1.B() + tri1.C();
-		REQUIRE_THAT(perimeter1, RealApprox(REAL(12.0)));
+		REQUIRE_THAT(perimeter1, RealApprox(static_cast<MML::Real>(12.0)));
 
 		// Equilateral triangle with side 2
-		Real h = sqrt(REAL(3.0));
+		Real h = sqrt(static_cast<MML::Real>(3.0));
 		Triangle3D tri2(Pnt3Cart(0, 0, 0), Pnt3Cart(2, 0, 0), Pnt3Cart(1, h, 0));
 		Real perimeter2 = tri2.A() + tri2.B() + tri2.C();
-		REQUIRE_THAT(perimeter2, RealApprox(REAL(6.0)));
+		REQUIRE_THAT(perimeter2, RealApprox(static_cast<MML::Real>(6.0)));
 	}
 
 	TEST_CASE("TriangleSurface3D - Parametric evaluation", "[TriangleSurface3D][Operator]")
@@ -916,12 +917,12 @@ namespace MML::Tests::Base::Geometry3DTests
 		TriangleSurface3D tri(Pnt3Cart(0, 0, 0), Pnt3Cart(4, 0, 0), Pnt3Cart(2, 3, 0));
 
 		// Origin should give point at (or near) origin in local coords
-		VectorN<Real, 3> p0 = tri(REAL(0.0), REAL(0.0));
-		REQUIRE_THAT(p0[2], RealApprox(REAL(0.0)));  // Z should be 0 (in XY plane)
+		VectorN<Real, 3> p0 = tri(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+		REQUIRE_THAT(p0[2], RealApprox(static_cast<MML::Real>(0.0)));  // Z should be 0 (in XY plane)
 
 		// Check that bounds are correct
-		REQUIRE(tri.getMinU() >= REAL(0.0));
-		REQUIRE(tri.getMaxU() > REAL(0.0));
+		REQUIRE(tri.getMinU() >= static_cast<MML::Real>(0.0));
+		REQUIRE(tri.getMaxU() > static_cast<MML::Real>(0.0));
 	}
 
 	TEST_CASE("TriangleSurface3D - getMaxW varies with u", "[TriangleSurface3D][Bounds]")
@@ -931,14 +932,14 @@ namespace MML::Tests::Base::Geometry3DTests
 		TriangleSurface3D tri(Pnt3Cart(0, 0, 0), Pnt3Cart(10, 0, 0), Pnt3Cart(5, 8, 0));
 
 		// At u = 0, maxW should be 0 (at the first corner)
-		REQUIRE_THAT(tri.getMaxW(REAL(0.0)), RealApprox(REAL(0.0)));
+		REQUIRE_THAT(tri.getMaxW(static_cast<MML::Real>(0.0)), RealApprox(static_cast<MML::Real>(0.0)));
 
 		// At u = maxU, maxW should be 0 (at the second corner)
-		REQUIRE_THAT(tri.getMaxW(tri.getMaxU()), RealApprox(REAL(0.0)));
+		REQUIRE_THAT(tri.getMaxW(tri.getMaxU()), RealApprox(static_cast<MML::Real>(0.0)));
 
 		// In the middle, maxW should be larger
-		Real midU = tri.getMaxU() / REAL(2.0);
-		REQUIRE(tri.getMaxW(midU) > REAL(0.0));
+		Real midU = tri.getMaxU() / static_cast<MML::Real>(2.0);
+		REQUIRE(tri.getMaxW(midU) > static_cast<MML::Real>(0.0));
 	}
 
 	TEST_CASE("RectSurface3D - Normal and center", "[RectSurface3D][Properties]")
@@ -953,9 +954,9 @@ namespace MML::Tests::Base::Geometry3DTests
 
 		// Center should be at (2, 1.5, 0)
 		Pnt3Cart center = rect.getCenter();
-		REQUIRE_THAT(center.X(), RealApprox(REAL(2.0)));
-		REQUIRE_THAT(center.Y(), RealApprox(REAL(1.5)));
-		REQUIRE_THAT(center.Z(), RealApprox(REAL(0.0)));
+		REQUIRE_THAT(center.X(), RealApprox(static_cast<MML::Real>(2.0)));
+		REQUIRE_THAT(center.Y(), RealApprox(static_cast<MML::Real>(1.5)));
+		REQUIRE_THAT(center.Z(), RealApprox(static_cast<MML::Real>(0.0)));
 	}
 
 	TEST_CASE("RectSurface3D - Area calculation", "[RectSurface3D][Area]")
@@ -963,15 +964,15 @@ namespace MML::Tests::Base::Geometry3DTests
 		TEST_PRECISION_INFO();
 		// 4x3 rectangle in XY plane
 		RectSurface3D rect1(Pnt3Cart(0, 0, 0), Pnt3Cart(4, 0, 0), Pnt3Cart(4, 3, 0), Pnt3Cart(0, 3, 0));
-		REQUIRE_THAT(rect1.getArea(), RealApprox(REAL(12.0)));
+		REQUIRE_THAT(rect1.getArea(), RealApprox(static_cast<MML::Real>(12.0)));
 
 		// 2x2 square in XZ plane
 		RectSurface3D rect2(Pnt3Cart(0, 0, 0), Pnt3Cart(2, 0, 0), Pnt3Cart(2, 0, 2), Pnt3Cart(0, 0, 2));
-		REQUIRE_THAT(rect2.getArea(), RealApprox(REAL(4.0)));
+		REQUIRE_THAT(rect2.getArea(), RealApprox(static_cast<MML::Real>(4.0)));
 
 		// 5x5 square in YZ plane
 		RectSurface3D rect3(Pnt3Cart(0, 0, 0), Pnt3Cart(0, 5, 0), Pnt3Cart(0, 5, 5), Pnt3Cart(0, 0, 5));
-		REQUIRE_THAT(rect3.getArea(), RealApprox(REAL(25.0)));
+		REQUIRE_THAT(rect3.getArea(), RealApprox(static_cast<MML::Real>(25.0)));
 	}
 
 	TEST_CASE("RectSurface3D - Parametric evaluation", "[RectSurface3D][Operator]")
@@ -981,16 +982,16 @@ namespace MML::Tests::Base::Geometry3DTests
 		RectSurface3D rect(Pnt3Cart(0, 0, 0), Pnt3Cart(4, 0, 0), Pnt3Cart(4, 6, 0), Pnt3Cart(0, 6, 0));
 
 		// Evaluate at center (0, 0) should give center point
-		VectorN<Real, 3> centerPt = rect(REAL(0.0), REAL(0.0));
-		REQUIRE_THAT(centerPt[0], RealApprox(REAL(2.0)));
-		REQUIRE_THAT(centerPt[1], RealApprox(REAL(3.0)));
-		REQUIRE_THAT(centerPt[2], RealApprox(REAL(0.0)));
+		VectorN<Real, 3> centerPt = rect(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+		REQUIRE_THAT(centerPt[0], RealApprox(static_cast<MML::Real>(2.0)));
+		REQUIRE_THAT(centerPt[1], RealApprox(static_cast<MML::Real>(3.0)));
+		REQUIRE_THAT(centerPt[2], RealApprox(static_cast<MML::Real>(0.0)));
 
 		// Check bounds
-		REQUIRE(rect.getMinU() < REAL(0.0));
-		REQUIRE(rect.getMaxU() > REAL(0.0));
-		REQUIRE(rect.getMinW() < REAL(0.0));
-		REQUIRE(rect.getMaxW() > REAL(0.0));
+		REQUIRE(rect.getMinU() < static_cast<MML::Real>(0.0));
+		REQUIRE(rect.getMaxU() > static_cast<MML::Real>(0.0));
+		REQUIRE(rect.getMinW() < static_cast<MML::Real>(0.0));
+		REQUIRE(rect.getMaxW() > static_cast<MML::Real>(0.0));
 	}
 
 	TEST_CASE("RectSurface3D - Bounds accessors", "[RectSurface3D][Bounds]")
@@ -1000,10 +1001,10 @@ namespace MML::Tests::Base::Geometry3DTests
 		RectSurface3D rect(Pnt3Cart(0, 0, 0), Pnt3Cart(10, 0, 0), Pnt3Cart(10, 8, 0), Pnt3Cart(0, 8, 0));
 
 		// Bounds should be symmetric around 0
-		REQUIRE_THAT(rect.getMinU(), RealApprox(-REAL(5.0)));
-		REQUIRE_THAT(rect.getMaxU(), RealApprox(REAL(5.0)));
-		REQUIRE_THAT(rect.getMinW(), RealApprox(-REAL(4.0)));
-		REQUIRE_THAT(rect.getMaxW(), RealApprox(REAL(4.0)));
+		REQUIRE_THAT(rect.getMinU(), RealApprox(-static_cast<MML::Real>(5.0)));
+		REQUIRE_THAT(rect.getMaxU(), RealApprox(static_cast<MML::Real>(5.0)));
+		REQUIRE_THAT(rect.getMinW(), RealApprox(-static_cast<MML::Real>(4.0)));
+		REQUIRE_THAT(rect.getMaxW(), RealApprox(static_cast<MML::Real>(4.0)));
 	}
 
 	TEST_CASE("Line3D - Parametric points", "[Line3D][Operator]")
@@ -1013,20 +1014,20 @@ namespace MML::Tests::Base::Geometry3DTests
 		Line3D line(Pnt3Cart(1, 2, 3), Vec3Cart(2, 4, 6));
 
 		// t = 0 gives start point
-		Pnt3Cart p0 = line(REAL(0.0));
+		Pnt3Cart p0 = line(static_cast<MML::Real>(0.0));
 		REQUIRE(p0 == Pnt3Cart(1, 2, 3));
 
 		// t = 1 gives point along direction (normalized)
-		Pnt3Cart p1 = line(REAL(1.0));
+		Pnt3Cart p1 = line(static_cast<MML::Real>(1.0));
 		// Direction is normalized, so p1 = (1,2,3) + 1 * normalized(2,4,6)
-		Vec3Cart dir = Vec3Cart(2, 4, 6).GetAsUnitVector();
-		REQUIRE_THAT(p1.X(), RealApprox(REAL(1.0) + dir.X()));
-		REQUIRE_THAT(p1.Y(), RealApprox(REAL(2.0) + dir.Y()));
-		REQUIRE_THAT(p1.Z(), RealApprox(REAL(3.0) + dir.Z()));
+		Vec3Cart dir = Vec3Cart(2, 4, 6).Normalized();
+		REQUIRE_THAT(p1.X(), RealApprox(static_cast<MML::Real>(1.0) + dir.X()));
+		REQUIRE_THAT(p1.Y(), RealApprox(static_cast<MML::Real>(2.0) + dir.Y()));
+		REQUIRE_THAT(p1.Z(), RealApprox(static_cast<MML::Real>(3.0) + dir.Z()));
 
 		// Negative t
-		Pnt3Cart pNeg = line(-REAL(2.0));
-		REQUIRE_THAT(pNeg.X(), RealApprox(REAL(1.0) - REAL(2.0) * dir.X()));
+		Pnt3Cart pNeg = line(-static_cast<MML::Real>(2.0));
+		REQUIRE_THAT(pNeg.X(), RealApprox(static_cast<MML::Real>(1.0) - static_cast<MML::Real>(2.0) * dir.X()));
 	}
 
 	TEST_CASE("Plane3D - Projection of various points", "[Plane3D][Projection]")
@@ -1043,9 +1044,9 @@ namespace MML::Tests::Base::Geometry3DTests
 		Pnt3Cart onPlane(1, 1, 1);
 		REQUIRE(plane.IsPointOnPlane(onPlane));
 		Pnt3Cart proj2 = plane.ProjectionToPlane(onPlane);
-		REQUIRE_THAT(proj2.X(), RealApprox(REAL(1.0)));
-		REQUIRE_THAT(proj2.Y(), RealApprox(REAL(1.0)));
-		REQUIRE_THAT(proj2.Z(), RealApprox(REAL(1.0)));
+		REQUIRE_THAT(proj2.X(), RealApprox(static_cast<MML::Real>(1.0)));
+		REQUIRE_THAT(proj2.Y(), RealApprox(static_cast<MML::Real>(1.0)));
+		REQUIRE_THAT(proj2.Z(), RealApprox(static_cast<MML::Real>(1.0)));
 
 		// Project point on normal line through origin
 		Pnt3Cart proj3 = plane.ProjectionToPlane(Pnt3Cart(2, 2, 2));
@@ -1059,7 +1060,7 @@ namespace MML::Tests::Base::Geometry3DTests
 		Triangle3D degen(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(2, 0, 0));
 
 		// Area should be 0 (or very close)
-		REQUIRE_THAT(degen.Area(), RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(degen.Area(), RealApprox(static_cast<MML::Real>(0.0)).margin(TOL(1e-10, 1e-5)));
 
 		// IsPointInside returns false for degenerate triangles
 		REQUIRE_FALSE(degen.IsPointInside(Pnt3Cart(0.5, 0, 0)));
@@ -1076,5 +1077,29 @@ namespace MML::Tests::Base::Geometry3DTests
 		// Should find intersection (lines are equal)
 		REQUIRE(line1.AreEqual(line2));
 		REQUIRE(line1.Intersects(line2, intersection));
+	}
+
+	TEST_CASE("Triangle3D - Area is finite for needle triangles and IsPointInside requires the plane", "[Triangle3D][wewi.1.13]")
+	{
+		TEST_PRECISION_INFO();
+		// Heron's formula produced NaN here: s(s-a)(s-b)(s-c) rounds to a tiny negative number
+		Triangle3D needle(Pnt3Cart(0, 0, 0), Pnt3Cart(1e8, 0, 0), Pnt3Cart(5e7, 1e-7, 0));
+		REQUIRE(std::isfinite(needle.Area()));
+		REQUIRE_THAT(needle.Area(), RealApprox(static_cast<MML::Real>(0.5) * static_cast<MML::Real>(1e8) * static_cast<MML::Real>(1e-7)).epsilon(TOL(1e-6, 1e-3)));
+
+		Triangle3D right(Pnt3Cart(0, 0, 0), Pnt3Cart(3, 0, 0), Pnt3Cart(0, 4, 0));
+		REQUIRE_THAT(right.Area(), RealApprox(static_cast<MML::Real>(6.0)).margin(TOL(1e-12, 1e-5)));
+
+		// In-plane points: inside / outside as before
+		REQUIRE(right.IsPointInside(Pnt3Cart(1, 1, 0)));
+		REQUIRE_FALSE(right.IsPointInside(Pnt3Cart(3, 3, 0)));
+		REQUIRE(right.IsPointInside(Pnt3Cart(0, 0, 0)));            // vertex
+		REQUIRE(right.IsPointInside(Pnt3Cart(1.5, 2.0, 0)));        // on the hypotenuse
+
+		// Off-plane point whose projection is inside: used to be reported inside (no plane test)
+		REQUIRE_FALSE(right.IsPointInside(Pnt3Cart(1, 1, 5)));
+		REQUIRE_FALSE(right.IsPointInside(Pnt3Cart(1, 1, -1e-3)));
+		REQUIRE(right.IsPointInside(Pnt3Cart(1, 1, 1e-12)));        // within eps of the plane
+		REQUIRE(right.IsPointInside(Pnt3Cart(1, 1, 0.5), static_cast<MML::Real>(1.0))); // explicit loose eps
 	}
 }

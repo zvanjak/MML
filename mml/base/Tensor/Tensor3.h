@@ -52,7 +52,7 @@ namespace MML
 	///     Tensor3<3> torsion(2, 1);  // 2 covariant, 1 contravariant
 	///     
 	///     // Contract indices 1 and 2 (trace over the covariant indices)
-	///     VectorN<Real, 3> contracted = torsion.Contract(1, 2);
+	///     VectorN<Real, 3> contracted = torsion.contract(1, 2);
 	/// @endcode
 	template <int N>
 	class Tensor3 : public ITensor3<N>
@@ -133,16 +133,16 @@ namespace MML
 		///////////////////////////////////////////////////////////////////////
 
 		/// @brief Returns the number of contravariant (upper) indices.
-		int   NumContravar() const override { return _numContravar; }
+		int   numContravar() const override { return _numContravar; }
 
 		/// @brief Returns the number of covariant (lower) indices.
-		int   NumCovar()     const override { return _numCovar; }
+		int   numCovar()     const override { return _numCovar; }
 
 		/// @brief Checks if index i is contravariant (upper index).
-		bool IsContravar(int i) const override { return _isContravar[i]; }
+		bool isContravar(int i) const override { return _isContravar[i]; }
 
 		/// @brief Checks if index i is covariant (lower index).
-		bool IsCovar(int i) const { return !_isContravar[i]; }
+		bool isCovar(int i) const { return !_isContravar[i]; }
 
 		/// @brief Sets the variance of index i, keeping covariant/contravariant counts in sync.
 		void setContravar(int i, bool val)
@@ -220,7 +220,7 @@ namespace MML
 		/// @return VectorN containing the contracted result (rank-1 tensor)
 		/// @throws TensorIndexError if indices are out of range or equal
 		/// @note The result inherits the variance of the remaining (non-contracted) index.
-		VectorN<Real, N> Contract(int ind1, int ind2) const override
+		VectorN<Real, N> contract(int ind1, int ind2) const override
 		{
 			if (ind1 < 0 || ind1 > 2 || ind2 < 0 || ind2 > 2)
 				throw TensorIndexError("Tensor3 Contract, index out of range [0,2]");
@@ -334,9 +334,9 @@ namespace MML
 		detail::ValidateTensorPermutation<3>(permutation);
 
 		bool resultContravar[3] = {
-			tensor.IsContravar(permutation[0]),
-			tensor.IsContravar(permutation[1]),
-			tensor.IsContravar(permutation[2])
+			tensor.isContravar(permutation[0]),
+			tensor.isContravar(permutation[1]),
+			tensor.isContravar(permutation[2])
 		};
 		int numContravar = 0;
 		for (int i = 0; i < 3; i++)

@@ -22,8 +22,8 @@ void Docs_Demo_Tensors()
 	Tensor2<3> T_contra(0, 2);  // 2 contravariant indices
 	Tensor2<3> T_covar(2, 0);   // 2 covariant indices
 	
-	std::cout << "Mixed tensor (1 covar, 1 contra): NumCovar=" << T_mixed.NumCovar() 
-	          << ", NumContravar=" << T_mixed.NumContravar() << std::endl;
+	std::cout << "Mixed tensor (1 covar, 1 contra): NumCovar=" << T_mixed.numCovar() 
+	          << ", NumContravar=" << T_mixed.numContravar() << std::endl;
 
 	// With initial values - 2D metric tensor
 	Tensor2<2> metric(2, 0, {
@@ -46,8 +46,8 @@ void Docs_Demo_Tensors()
 	std::cout << "T.at(0,1) = " << T.at(0, 1) << std::endl;
 	
 	// Index variance queries
-	std::cout << "Is index 0 contravariant? " << (T.IsContravar(0) ? "yes" : "no") << std::endl;
-	std::cout << "Is index 1 covariant? " << (T.IsCovar(1) ? "yes" : "no") << std::endl;
+	std::cout << "Is index 0 contravariant? " << (T.isContravar(0) ? "yes" : "no") << std::endl;
+	std::cout << "Is index 1 covariant? " << (T.isCovar(1) ? "yes" : "no") << std::endl;
 
 	// Tensor operations
 	std::cout << "\n*** Tensor2 Operations ***" << std::endl;
@@ -64,8 +64,8 @@ void Docs_Demo_Tensors()
 
 	// Contraction (trace for mixed tensors)
 	std::cout << "\n*** Contraction ***" << std::endl;
-	Real trace_A = A.Contract();
-	std::cout << "A.Contract() = " << trace_A << " (should be 2+3=5)" << std::endl;
+	Real trace_A = A.contract();
+	std::cout << "A.contract() = " << trace_A << " (should be 2+3=5)" << std::endl;
 
 	// Tensor evaluation on vectors
 	std::cout << "\n*** Tensor Evaluation ***" << std::endl;
@@ -80,5 +80,5 @@ void Docs_Demo_Tensors()
 	christoffel(0, 1, 1) = 0.5;
 	christoffel(1, 0, 1) = 0.5;
 	std::cout << "Christoffel symbol Gamma^0_11 = " << christoffel(0, 1, 1) << std::endl;
-	std::cout << "NumCovar=" << christoffel.NumCovar() << ", NumContravar=" << christoffel.NumContravar() << std::endl;
+	std::cout << "NumCovar=" << christoffel.numCovar() << ", NumContravar=" << christoffel.numContravar() << std::endl;
 }

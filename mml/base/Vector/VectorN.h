@@ -12,10 +12,11 @@
 #if !defined  MML_VECTORN_H
 #define MML_VECTORN_H
 
+#include <mml/base/PrintFormatting.h>
 #include <mml/MMLBase.h>
-#include <mml/base/Geometry/Geometry.h>
 
 // Standard headers - include what we use
+#include <algorithm>
 #include <cassert>
 #include <initializer_list>
 #include <iomanip>
@@ -102,7 +103,7 @@ namespace MML
 		{
 			VectorN ret;
 			Real norm = NormL2();
-			if (norm < std::numeric_limits<Real>::epsilon() * 100)
+			if (norm < Precision::RoundoffZeroThreshold)
 				throw VectorDimensionError("VectorN::Normalized - cannot normalize near-zero vector", N, 0);
 			for (int i = 0; i < N; ++i)
 				ret._val[i] = _val[i] / norm;
@@ -111,11 +112,20 @@ namespace MML
 		////////////////////////            Standard stuff             ////////////////////////
 		/// @brief Returns vector dimension.
 		int  size() const noexcept { return N; }
-		/// @brief Sets all elements to zero.
-		void clear() noexcept {
+		/// @brief Sets all elements to zero (fixed-size: keeps the dimension).
+		void SetZero() noexcept {
 			for (int i = 0; i < N; ++i)
 				_val[i] = Type{ 0 };
 		}
+		/// @brief Sets all elements to the same value.
+		void Fill(const Type& value) noexcept {
+			for (int i = 0; i < N; ++i)
+				_val[i] = value;
+		}
+		/// @deprecated Use SetZero() (CONTRACT_POLICY §11: clear() means "remove elements" and is
+		/// reserved for dynamic containers; Vector::clear() empties, VectorN::clear() zeroed).
+		[[deprecated("use SetZero()")]]
+		void clear() noexcept { SetZero(); }
 
 		///////////////////////            Accessing elements             ///////////////////////
 		/// @brief Element access (non-const).
@@ -135,7 +145,7 @@ namespace MML
 		/// @param n Index (throws if out of bounds)
 		Type& at(int n) {
 			if (n < 0 || n >= N)
-				throw VectorDimensionError("VectorN::at - index out of bounds", N, n);
+				throw VectorAccessBoundsError("VectorN::at - index out of bounds", n, size());
 			else
 				return _val[n];
 		}
@@ -143,7 +153,7 @@ namespace MML
 		/// @param n Index (throws if out of bounds)
 		const Type& at(int n) const {
 			if (n < 0 || n >= N)
-				throw VectorDimensionError("VectorN::at - index out of bounds", N, n);
+				throw VectorAccessBoundsError("VectorN::at - index out of bounds", n, size());
 			else
 				return _val[n];
 		}
@@ -173,14 +183,14 @@ namespace MML
 		/// @param a First vector
 		/// @param b Second vector
 		/// @param eps Tolerance
-		static bool AreEqual(const VectorN& a, const VectorN& b, Type eps = Defaults::VectorIsEqualTolerance)
+		static bool AreEqual(const VectorN& a, const VectorN& b, Real eps = Precision::VectorIsEqualTolerance)
 		{
 			return a.IsEqualTo(b, eps);
 		}
 		/// @brief Checks equality within tolerance.
 		/// @param b Vector to compare
-		/// @param eps Tolerance
-		bool IsEqualTo(const VectorN& b, Type eps = Defaults::VectorIsEqualTolerance) const
+		/// @param eps Tolerance (a real magnitude, also for complex element types)
+		bool IsEqualTo(const VectorN& b, Real eps = Precision::VectorIsEqualTolerance) const
 		{
 			for (int i = 0; i < N; i++)
 			{
@@ -197,7 +207,7 @@ namespace MML
 		}
 
 		/// @brief Checks if vector is exactly zero (all elements == 0).
-		bool isZero() const noexcept
+		bool IsZero() const noexcept
 		{
 			for (int i = 0; i < N; i++)
 				if (_val[i] != Real(0))
@@ -207,7 +217,7 @@ namespace MML
 		}
 
 		/// @brief Checks if all elements are near zero within tolerance.
-		bool isNearZero(Real eps = Defaults::VectorIsEqualTolerance) const noexcept
+		bool IsNearZero(Real eps = Precision::VectorIsEqualTolerance) const noexcept
 		{
 			for (int i = 0; i < N; i++)
 				if (std::abs(_val[i]) > eps)
@@ -215,6 +225,13 @@ namespace MML
 
 			return true;
 		}
+
+		/// @deprecated Use IsZero() (CONTRACT_POLICY §11: mathematical predicates are PascalCase).
+		[[deprecated("use IsZero()")]]
+		bool isZero() const noexcept { return IsZero(); }
+		/// @deprecated Use IsNearZero().
+		[[deprecated("use IsNearZero()")]]
+		bool isNearZero(Real eps = Precision::VectorIsEqualTolerance) const noexcept { return IsNearZero(eps); }
 
 		/////////////////////             Arithmetic operators             ///////////////////////
 		/// @brief Unary minus (negation).
@@ -317,18 +334,14 @@ namespace MML
 			return norm;
 		}
 		/// @brief Computes L2 norm (Euclidean norm): ||v||_2 = √(Σ|v_i|²)
-		/// @details For complex vectors, uses std::norm(z) = |z|² = real² + imag²
+		/// @details Scaled accumulation (StableNormL2Accumulator): no overflow for components up to
+		///          Real max and no underflow to 0 for tiny components; |z| is used for complex entries.
 		Real NormL2() const
 		{
-			Real norm{ 0.0 };
-			for (int i = 0; i < N; i++) {
-				if constexpr (MMLComplex<Type>) {
-					norm += std::norm((*this)[i]);  // |z|² for complex
-				} else {
-					norm += (*this)[i] * (*this)[i];  // x² for real
-				}
-			}
-			return std::sqrt(norm);
+			StableNormL2Accumulator acc;
+			for (int i = 0; i < N; i++)
+				acc.add(Abs((*this)[i]));
+			return acc.value();
 		}
 		/// @brief Computes L-infinity norm (maximum absolute value).
 		Real NormLInf() const
@@ -346,20 +359,7 @@ namespace MML
 		/// @param precision Decimal precision
 		std::ostream& Print(std::ostream& stream, int width, int precision) const
 		{
-			stream << "[";
-			bool first = true;
-			for (const Type& x : _val)
-			{
-				if (!first)
-					stream << ", ";
-				else
-					first = false;
-
-				stream << std::setw(width) << std::setprecision(precision) << x;
-			}
-			stream << "]";
-
-			return stream;
+			return PrintFormatting::Vector(stream, N, [&](int i) { return (*this)[i]; }, width, precision);
 		}
 		/// @brief Prints vector with values below threshold shown as zero.
 		/// @param stream Output stream
@@ -368,23 +368,7 @@ namespace MML
 		/// @param zeroThreshold Threshold for displaying as zero
 		std::ostream& Print(std::ostream& stream, int width, int precision, Real zeroThreshold) const
 		{
-			stream << "[";
-			bool first = true;
-			for (const Type& x : _val)
-			{
-				if (!first)
-					stream << ", ";
-				else
-					first = false;
-
-				if (Abs(x) > zeroThreshold)
-					stream << std::setw(width) << std::setprecision(precision) << x;
-				else
-					stream << std::setw(width) << std::setprecision(precision) << 0.0;
-			}
-			stream << "]";
-
-			return stream;
+			return PrintFormatting::Vector(stream, N, [&](int i) { return (*this)[i]; }, width, precision, zeroThreshold, true);
 		}
 		/// @brief Prints vector with message prefix on single line.
 		/// @param stream Output stream

@@ -32,7 +32,7 @@ TEST_CASE("Polygon2D - Construction and basic properties", "[Polygon2D][Construc
     Polygon2D triangle{
         Point2Cartesian(0, 0),
         Point2Cartesian(1, 0),
-        Point2Cartesian(REAL(0.5), 1)
+        Point2Cartesian(static_cast<MML::Real>(0.5), 1)
     };
     REQUIRE(triangle.NumVertices() == 3);
 }
@@ -47,11 +47,11 @@ TEST_CASE("Polygon2D - Vertex access", "[Polygon2D][Access]")
     };
     
     // Operator[] access
-    REQUIRE_THAT(poly[0].X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(poly[1].X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(poly[0].X(), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(poly[1].X(), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
     
     // Vertex() access
-    REQUIRE_THAT(poly.Vertex(2).Y(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(poly.Vertex(2).Y(), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
     
     // Out of range should throw
     REQUIRE_THROWS_AS(poly.Vertex(-1), std::out_of_range);
@@ -68,7 +68,7 @@ TEST_CASE("Polygon2D - AddVertex and Clear", "[Polygon2D][Modification]")
     poly.AddVertex(Point2Cartesian(1, 1));
     REQUIRE(poly.NumVertices() == 3);
     
-    poly.Clear();
+    poly.clear();
     REQUIRE(poly.NumVertices() == 0);
 }
 
@@ -82,14 +82,14 @@ TEST_CASE("Polygon2D - Edge access", "[Polygon2D][Edges]")
     
     // Edge 0: (0,0) -> (3,0)
     auto edge0 = triangle.Edge(0);
-    REQUIRE_THAT(edge0.StartPoint().X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(edge0.EndPoint().X(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(edge0.Length(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(edge0.StartPoint().X(), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(edge0.EndPoint().X(), WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(edge0.Length(), WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5)));
     
     // Edge 2: (0,4) -> (0,0) (wraps around)
     auto edge2 = triangle.Edge(2);
-    REQUIRE_THAT(edge2.StartPoint().Y(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(edge2.EndPoint().Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(edge2.StartPoint().Y(), WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(edge2.EndPoint().Y(), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Polygon2D - Perimeter", "[Polygon2D][Perimeter]")
@@ -101,7 +101,7 @@ TEST_CASE("Polygon2D - Perimeter", "[Polygon2D][Perimeter]")
         Point2Cartesian(1, 1),
         Point2Cartesian(0, 1)
     };
-    REQUIRE_THAT(square.Perimeter(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(square.Perimeter(), WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-10, 1e-5)));
     
     // 3-4-5 right triangle: perimeter = 12
     Polygon2D triangle{
@@ -109,7 +109,7 @@ TEST_CASE("Polygon2D - Perimeter", "[Polygon2D][Perimeter]")
         Point2Cartesian(3, 0),
         Point2Cartesian(0, 4)
     };
-    REQUIRE_THAT(triangle.Perimeter(), WithinAbs(REAL(12.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(triangle.Perimeter(), WithinAbs(static_cast<MML::Real>(12.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Polygon2D - Area and SignedArea", "[Polygon2D][Area]")
@@ -121,8 +121,8 @@ TEST_CASE("Polygon2D - Area and SignedArea", "[Polygon2D][Area]")
         Point2Cartesian(1, 1),
         Point2Cartesian(0, 1)
     };
-    REQUIRE_THAT(squareCCW.Area(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(squareCCW.SignedArea(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(squareCCW.Area(), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(squareCCW.SignedArea(), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
     REQUIRE(squareCCW.IsCounterClockwise());
     
     // Unit square CW: area = 1, signed area = -1
@@ -132,8 +132,8 @@ TEST_CASE("Polygon2D - Area and SignedArea", "[Polygon2D][Area]")
         Point2Cartesian(1, 1),
         Point2Cartesian(1, 0)
     };
-    REQUIRE_THAT(squareCW.Area(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(squareCW.SignedArea(), WithinAbs(-REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(squareCW.Area(), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(squareCW.SignedArea(), WithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
     REQUIRE(squareCW.IsClockwise());
     
     // 3-4-5 right triangle: area = 6
@@ -142,12 +142,12 @@ TEST_CASE("Polygon2D - Area and SignedArea", "[Polygon2D][Area]")
         Point2Cartesian(3, 0),
         Point2Cartesian(0, 4)
     };
-    REQUIRE_THAT(triangle.Area(), WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(triangle.Area(), WithinAbs(static_cast<MML::Real>(6.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Polygon2D - Centroid", "[Polygon2D][Centroid]")
 {
-    // Unit square centered at (REAL(0.5), REAL(0.5))
+    // Unit square centered at (static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5))
     Polygon2D square{
         Point2Cartesian(0, 0),
         Point2Cartesian(1, 0),
@@ -155,8 +155,8 @@ TEST_CASE("Polygon2D - Centroid", "[Polygon2D][Centroid]")
         Point2Cartesian(0, 1)
     };
     auto centroid = square.Centroid();
-    REQUIRE_THAT(centroid.X(), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(centroid.Y(), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(centroid.X(), WithinAbs(static_cast<MML::Real>(0.5), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(centroid.Y(), WithinAbs(static_cast<MML::Real>(0.5), TOL(1e-10, 1e-5)));
     
     // Triangle
     Polygon2D triangle{
@@ -165,8 +165,8 @@ TEST_CASE("Polygon2D - Centroid", "[Polygon2D][Centroid]")
         Point2Cartesian(0, 3)
     };
     auto triCentroid = triangle.Centroid();
-    REQUIRE_THAT(triCentroid.X(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(triCentroid.Y(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(triCentroid.X(), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(triCentroid.Y(), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Polygon2D - BoundingBox", "[Polygon2D][BoundingBox]")
@@ -178,17 +178,17 @@ TEST_CASE("Polygon2D - BoundingBox", "[Polygon2D][BoundingBox]")
         Point2Cartesian(-2, 0)
     };
     
-    auto bbox = poly.GetBoundingBox();
-    REQUIRE_THAT(bbox.minX, WithinAbs(-REAL(2.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(bbox.maxX, WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(bbox.minY, WithinAbs(-REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(bbox.maxY, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(bbox.Width(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(bbox.Height(), WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
+    auto bbox = poly.getBoundingBox();
+    REQUIRE_THAT(bbox.minX, WithinAbs(-static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(bbox.maxX, WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(bbox.minY, WithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(bbox.maxY, WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(bbox.Width(), WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(bbox.Height(), WithinAbs(static_cast<MML::Real>(6.0), TOL(1e-10, 1e-5)));
     
     auto center = bbox.Center();
-    REQUIRE_THAT(center.X(), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(center.Y(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(center.X(), WithinAbs(static_cast<MML::Real>(0.5), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(center.Y(), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Polygon2D - Reverse orientation", "[Polygon2D][Reverse]")
@@ -205,8 +205,8 @@ TEST_CASE("Polygon2D - Reverse orientation", "[Polygon2D][Reverse]")
     poly.Reverse();
     
     REQUIRE(poly.IsClockwise());
-    REQUIRE_THAT(poly[0].X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(poly[0].Y(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(poly[0].X(), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(poly[0].Y(), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Polygon2D - IsSimple (simple polygons)", "[Polygon2D][IsSimple]")
@@ -224,9 +224,9 @@ TEST_CASE("Polygon2D - IsSimple (simple polygons)", "[Polygon2D][IsSimple]")
     Polygon2D pentagon{
         Point2Cartesian(0, 0),
         Point2Cartesian(2, 0),
-        Point2Cartesian(REAL(2.5), REAL(1.5)),
+        Point2Cartesian(static_cast<MML::Real>(2.5), static_cast<MML::Real>(1.5)),
         Point2Cartesian(1, 2),
-        Point2Cartesian(-REAL(0.5), REAL(1.5))
+        Point2Cartesian(-static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.5))
     };
     REQUIRE(pentagon.IsSimple());
 }
@@ -258,9 +258,9 @@ TEST_CASE("Polygon2D - IsConvex", "[Polygon2D][IsConvex]")
     Polygon2D pentagon{
         Point2Cartesian(0, 0),
         Point2Cartesian(2, 0),
-        Point2Cartesian(REAL(2.5), REAL(1.5)),
-        Point2Cartesian(1, REAL(2.5)),
-        Point2Cartesian(-REAL(0.5), REAL(1.5))
+        Point2Cartesian(static_cast<MML::Real>(2.5), static_cast<MML::Real>(1.5)),
+        Point2Cartesian(1, static_cast<MML::Real>(2.5)),
+        Point2Cartesian(-static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.5))
     };
     REQUIRE(pentagon.IsConvex());
     
@@ -287,8 +287,8 @@ TEST_CASE("Polygon2D - Point containment (Contains)", "[Polygon2D][Contains]")
     
     // Inside
     REQUIRE(square.Contains(Point2Cartesian(1, 1)));
-    REQUIRE(square.Contains(Point2Cartesian(REAL(0.5), REAL(0.5))));
-    REQUIRE(square.Contains(Point2Cartesian(REAL(1.9), REAL(1.9))));
+    REQUIRE(square.Contains(Point2Cartesian(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5))));
+    REQUIRE(square.Contains(Point2Cartesian(static_cast<MML::Real>(1.9), static_cast<MML::Real>(1.9))));
     
     // Outside
     REQUIRE_FALSE(square.Contains(Point2Cartesian(-1, 1)));
@@ -313,12 +313,12 @@ TEST_CASE("Polygon2D - Point containment (non-convex)", "[Polygon2D][Contains]")
     };
     
     // Inside the L
-    REQUIRE(lShape.Contains(Point2Cartesian(REAL(0.5), REAL(0.5))));
-    REQUIRE(lShape.Contains(Point2Cartesian(REAL(1.5), REAL(0.5))));
-    REQUIRE(lShape.Contains(Point2Cartesian(REAL(0.5), REAL(1.5))));
+    REQUIRE(lShape.Contains(Point2Cartesian(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5))));
+    REQUIRE(lShape.Contains(Point2Cartesian(static_cast<MML::Real>(1.5), static_cast<MML::Real>(0.5))));
+    REQUIRE(lShape.Contains(Point2Cartesian(static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.5))));
     
     // Outside (in the "missing" corner)
-    REQUIRE_FALSE(lShape.Contains(Point2Cartesian(REAL(1.5), REAL(1.5))));
+    REQUIRE_FALSE(lShape.Contains(Point2Cartesian(static_cast<MML::Real>(1.5), static_cast<MML::Real>(1.5))));
     
     // Clearly outside
     REQUIRE_FALSE(lShape.Contains(Point2Cartesian(3, 3)));
@@ -348,7 +348,7 @@ TEST_CASE("Polygon2D - Triangularization", "[Polygon2D][Triangularization]")
     Polygon2D triangle{
         Point2Cartesian(0, 0),
         Point2Cartesian(1, 0),
-        Point2Cartesian(REAL(0.5), 1)
+        Point2Cartesian(static_cast<MML::Real>(0.5), 1)
     };
     auto triangles1 = triangle.Triangularization();
     REQUIRE(triangles1.size() == 1);
@@ -367,9 +367,9 @@ TEST_CASE("Polygon2D - Triangularization", "[Polygon2D][Triangularization]")
     Polygon2D pentagon{
         Point2Cartesian(0, 0),
         Point2Cartesian(2, 0),
-        Point2Cartesian(REAL(2.5), REAL(1.5)),
+        Point2Cartesian(static_cast<MML::Real>(2.5), static_cast<MML::Real>(1.5)),
         Point2Cartesian(1, 2),
-        Point2Cartesian(-REAL(0.5), REAL(1.5))
+        Point2Cartesian(-static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.5))
     };
     auto triangles3 = pentagon.Triangularization();
     REQUIRE(triangles3.size() == 3);
@@ -388,7 +388,7 @@ TEST_CASE("Polygon2D - Vertices and Contains", "[Polygon2D][access]")
     REQUIRE(points.size() == 3);
     
     // Contains() point-in-polygon test
-    REQUIRE(poly.Contains(Point2Cartesian(REAL(0.5), REAL(0.25))));
+    REQUIRE(poly.Contains(Point2Cartesian(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.25))));
     REQUIRE_FALSE(poly.Contains(Point2Cartesian(2, 2)));
 }
 
@@ -396,17 +396,17 @@ TEST_CASE("Polygon2D - Edge cases", "[Polygon2D][EdgeCases]")
 {
     // Empty polygon
     Polygon2D empty;
-    REQUIRE_THROWS_AS(empty.GetBoundingBox(), GeometryError);
+    REQUIRE_THROWS_AS(empty.getBoundingBox(), GeometryError);
     REQUIRE_THROWS_AS(empty.Centroid(), GeometryError);
-    REQUIRE_THAT(empty.Area(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(empty.Perimeter(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(empty.Area(), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(empty.Perimeter(), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
     
     // Single vertex
     Polygon2D singleVertex{Point2Cartesian(1, 2)};
     REQUIRE(singleVertex.NumVertices() == 1);
     auto centroid1 = singleVertex.Centroid();
-    REQUIRE_THAT(centroid1.X(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(centroid1.Y(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(centroid1.X(), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(centroid1.Y(), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
     
     // Two vertices (degenerate)
     Polygon2D twoVertices{
@@ -415,8 +415,8 @@ TEST_CASE("Polygon2D - Edge cases", "[Polygon2D][EdgeCases]")
     };
     REQUIRE(twoVertices.NumVertices() == 2);
     auto centroid2 = twoVertices.Centroid();
-    REQUIRE_THAT(centroid2.X(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(centroid2.Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(centroid2.X(), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(centroid2.Y(), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Polygon2D - Complex polygon containment", "[Polygon2D][Contains][Complex]")
@@ -424,13 +424,13 @@ TEST_CASE("Polygon2D - Complex polygon containment", "[Polygon2D][Contains][Comp
     // Star-shaped polygon (non-convex but simple)
     Polygon2D star{
         Point2Cartesian(0, 2),
-        Point2Cartesian(REAL(0.5), REAL(0.5)),
+        Point2Cartesian(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5)),
         Point2Cartesian(2, 0),
-        Point2Cartesian(REAL(0.5), -REAL(0.5)),
+        Point2Cartesian(static_cast<MML::Real>(0.5), -static_cast<MML::Real>(0.5)),
         Point2Cartesian(0, -2),
-        Point2Cartesian(-REAL(0.5), -REAL(0.5)),
+        Point2Cartesian(-static_cast<MML::Real>(0.5), -static_cast<MML::Real>(0.5)),
         Point2Cartesian(-2, 0),
-        Point2Cartesian(-REAL(0.5), REAL(0.5))
+        Point2Cartesian(-static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5))
     };
     
     // Center should be inside

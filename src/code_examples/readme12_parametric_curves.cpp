@@ -8,6 +8,7 @@
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
+#include "test_data/parametric_curves_defs.h"
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
@@ -63,11 +64,11 @@ void Readme_ParametricCurves()
     // Predefined curves
     std::cout << std::endl << "Predefined curves:" << std::endl;
     
-    Curves::LemniscateCurve lemniscate;
+    MML::TestBeds::ShowcaseCurves::LemniscateCurve lemniscate;
     auto lem_pos = lemniscate(0.5);
     std::cout << "  Lemniscate at t=0.5: " << lem_pos << std::endl;
 
-    Curves::ToroidalSpiralCurve torus(5, 2);  // (n, R) - n wraps, major radius R
+    MML::TestBeds::ShowcaseCurves::ToroidalSpiralCurve torus(5, 2);  // (n, R) - n wraps, major radius R
     auto torus_pos = torus(1.0);
     std::cout << "  Toroidal spiral at t=1: " << torus_pos << std::endl;
 

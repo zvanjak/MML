@@ -133,6 +133,8 @@ namespace MML {
 		/// @return Element value (0 if outside band).
 
 		Real operator()(int i, int j) const {
+			if (i < 0 || i >= _dim || j < 0 || j >= _dim)
+				throw MatrixAccessBoundsError("BandDiagonalMatrix::operator() const", i, j, _dim, _dim);
 			if (i > j + _m1 || j > i + _m2)
 				return 0.0;
 			else
@@ -143,11 +145,13 @@ namespace MML {
 		/// @param i Row index.
 		/// @param j Column index.
 		/// @return Reference to element.
-		/// @throws MatrixAccessBoundsError If (i,j) is outside the band.
+		/// @throws MatrixAccessBoundsError If (i,j) is outside the matrix or outside the band.
 
 		Real& operator()(int i, int j) {
-			if (i > j + _m1 || j > i + _m2)
+			if (i < 0 || i >= _dim || j < 0 || j >= _dim)
 				throw MatrixAccessBoundsError("BandDiagonalMatrix::operator()", i, j, _dim, _dim);
+			if (i > j + _m1 || j > i + _m2)
+				throw MatrixAccessBoundsError("BandDiagonalMatrix::operator() - element outside the band", i, j, _dim, _dim);
 			else
 				return _data[i][j - i + _m1];
 		}
@@ -204,12 +208,19 @@ namespace MML {
 		}
 
 		/// @brief Returns the lower bandwidth (number of subdiagonals).
-		int GetLowerBandwidth() const { return _m1; }
+		int getLowerBandwidth() const { return _m1; }
 
 		/// @brief Returns the upper bandwidth (number of superdiagonals).
-		int GetUpperBandwidth() const { return _m2; }
+		int getUpperBandwidth() const { return _m2; }
 
-		/// @brief Returns the matrix dimension.
+		/// @deprecated Use getLowerBandwidth() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getLowerBandwidth()")]]
+		int GetLowerBandwidth() const { return _m1; }
+		/// @deprecated Use getUpperBandwidth().
+		[[deprecated("use getUpperBandwidth()")]]
+		int GetUpperBandwidth() const { return _m2; }
+		/// @deprecated Use rows() (CONTRACT_POLICY §11 dimension vocabulary).
+		[[deprecated("use rows()")]]
 		int GetDimension() const { return _dim; }
 
 		/// @brief Checks if an element position is within the band.
@@ -353,10 +364,10 @@ namespace MML {
 			return max_val;
 		}
 
-		/// @brief Computes the transpose matrix.
+		/// @brief Returns the transpose (copy).
 		/// @return Transposed matrix (swaps m₁ and m₂).
 
-		BandDiagonalMatrix Transpose() const {
+		[[nodiscard]] BandDiagonalMatrix Transposed() const {
 			// For transpose, m1 and m2 are swapped
 			Matrix<Real> trans_data(_dim, _m1 + _m2 + 1);
 
@@ -373,11 +384,16 @@ namespace MML {
 			return BandDiagonalMatrix(_dim, _m2, _m1, trans_data);
 		}
 
+		/// @deprecated Use Transposed(). On Matrix/MatrixNM, Transpose() mutates in place; this copy-returning
+		/// spelling kept its meaning here (CONTRACT_POLICY §11 transition rule: no silent semantic flips).
+		[[deprecated("use Transposed() - this returns a copy")]]
+		[[nodiscard]] BandDiagonalMatrix Transpose() const { return Transposed(); }
+
 		/// @brief Checks if the matrix is symmetric within tolerance.
 		/// @param tolerance Maximum allowed difference between A[i][j] and A[j][i].
 		/// @return True if m₁ == m₂ and |A[i][j] - A[j][i]| ≤ tolerance for all i,j.
 
-		bool IsSymmetric(Real tolerance = 1e-10) const {
+		bool IsSymmetric(Real tolerance = Precision::IsMatrixSymmetricTolerance) const {
 			if (_m1 != _m2)
 				return false; // Symmetric requires equal bandwidths
 
@@ -397,7 +413,7 @@ namespace MML {
 		/// @param tolerance Maximum allowed element difference.
 		/// @return True if dimensions, bandwidth, and elements match.
 
-		bool IsEqualTo(const BandDiagonalMatrix& other, Real tolerance = Defaults::MatrixIsEqualTolerance) const {
+		bool IsEqualTo(const BandDiagonalMatrix& other, Real tolerance = Precision::MatrixIsEqualTolerance) const {
 			if (_dim != other._dim || _m1 != other._m1 || _m2 != other._m2)
 				return false;
 
@@ -411,7 +427,7 @@ namespace MML {
 
 
 		/// @brief Extracts the main diagonal as a vector.
-		Vector<Real> GetDiagonal() const {
+		Vector<Real> getDiagonal() const {
 			Vector<Real> diag(_dim);
 			for (int i = 0; i < _dim; i++)
 				diag[i] = (*this)(i, i);
@@ -423,9 +439,9 @@ namespace MML {
 		/// @return Vector of diagonal elements.
 		/// @throws IndexError If diagonal is outside the band.
 
-		Vector<Real> GetDiagonal(int k) const {
+		Vector<Real> getDiagonal(int k) const {
 			if (k > _m1 || k < -_m2)
-				throw IndexError("BandDiagonalMatrix::GetDiagonal - Diagonal outside band");
+				throw IndexError("BandDiagonalMatrix::getDiagonal - Diagonal outside band");
 
 			int diag_length;
 			int start_row, start_col;
@@ -448,6 +464,13 @@ namespace MML {
 
 			return diag;
 		}
+
+		/// @deprecated Use getDiagonal() (CONTRACT_POLICY §11: accessors are getX(); same spelling on every matrix type).
+		[[deprecated("use getDiagonal()")]]
+		Vector<Real> GetDiagonal() const { return getDiagonal(); }
+		/// @deprecated Use getDiagonal(k).
+		[[deprecated("use getDiagonal()")]]
+		Vector<Real> GetDiagonal(int k) const { return getDiagonal(k); }
 		/// /** @} */
 
 

@@ -13,6 +13,8 @@
 #define MML_CURVE_FITTING_H
 
 #include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
+#include <algorithm>
 
 #include <mml/interfaces/IFunction.h>
 #include <mml/base/Vector/Vector.h>
@@ -25,6 +27,7 @@
 #include <mml/core/OrthogonalBasis/LaguerreBasis.h>
 
 #include <functional>
+#include <type_traits>
 
 namespace MML {
 
@@ -44,7 +47,7 @@ namespace MML {
 		/// Fitted coefficients (for linear: [a, b]; for general: [c0, c1, ...])
 		Vector<Scalar> coefficients{};
 
-		/// Residual norm ||y - y_fitted||_2
+		/// Euclidean residual norm; GLS uses the covariance-weighted Mahalanobis norm.
 		Scalar residual_norm = 0.0;
 
 		/// Coefficient of determination (0 to 1, 1 = perfect fit)
@@ -53,14 +56,14 @@ namespace MML {
 		/// Mean squared error (average squared residual)
 		Scalar mean_squared_error = 0.0;
 
-		/// Adjusted R² (adjusted for number of parameters); -1 if not applicable
-		Scalar adjusted_r_squared = -1.0;
+		/// Adjusted R² (adjusted for number of parameters); NaN if not applicable
+		Scalar adjusted_r_squared = std::numeric_limits<Scalar>::quiet_NaN();
 
 		/// Effective rank of the design matrix (from SVD); -1 if not applicable
 		int effective_rank = -1;
 
-		/// Condition number of the design matrix; -1 if not applicable
-		Scalar condition_number = -1.0;
+		/// Condition number of the design matrix; NaN if not applicable
+		Scalar condition_number = std::numeric_limits<Scalar>::quiet_NaN();
 
 		/// Sum of observation weights; zero for unweighted fits
 		Scalar weight_sum = 0.0;
@@ -100,6 +103,10 @@ namespace MML {
 			catch (const SingularMatrixError& ex) {
 				return MakeEvaluationFailureResult<ResultType>(
 					AlgorithmStatus::SingularMatrix, ex.what(), algorithm_name);
+			}
+			catch (const MatrixNumericalError& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::NumericalInstability, ex.what(), algorithm_name);
 			}
 			catch (const CurveFittingError& ex) {
 				return MakeEvaluationFailureResult<ResultType>(
@@ -154,7 +161,7 @@ namespace MML {
 		// Special case: two points - exact fit
 		if (n == 2) {
 			Scalar dx = x_data[1] - x_data[0];
-			if (std::abs(dx) < std::numeric_limits<Scalar>::epsilon() * 10) {
+			if (std::abs(dx) < PrecisionValues<Scalar>::RoundoffZeroThreshold) {
 				// Vertical line - can't fit y = ax + b, use horizontal line at average y
 				a = 0.0;
 				b = (y_data[0] + y_data[1]) / 2.0;
@@ -264,7 +271,7 @@ namespace MML {
 	template<typename Scalar>
 	struct GeneralLinearFitResult {
 		Vector<Scalar> coefficients; // Fitted coefficients for each basis function
-		Scalar residual_norm;		   // ||y - A*c||_2 where A is the design matrix
+		Scalar residual_norm;		   // Euclidean norm, or covariance-weighted norm for GLS
 		Scalar r_squared;			   // Coefficient of determination (0 to 1, 1 = perfect fit)
 		Scalar mean_squared_error;   // Average squared residual
 		Scalar adjusted_r_squared;   // R² adjusted for number of parameters
@@ -509,6 +516,179 @@ namespace MML {
 			? singularValues[0] / singularValues[result.effective_rank - 1]
 			: std::numeric_limits<Scalar>::infinity();
 		return result;
+	}
+
+	namespace CurveFittingDetail {
+		template<typename Scalar>
+		GeneralLinearFitResult<Scalar> FitGeneralizedLinear(
+			const Vector<Scalar>& x, const Vector<Scalar>& y, const Matrix<Scalar>& covariance,
+			const Vector<std::function<Scalar(Scalar)>>& basis, bool statistics)
+		{
+			static_assert(std::is_floating_point_v<Scalar>, "GLS requires a real floating-point scalar");
+			const int m = x.size(), n = basis.size();
+			if (m == 0 || n == 0 || y.size() != m || m < n)
+				throw CurveFittingError("GeneralizedLinearLeastSquares: nonempty matching data and 1..m basis functions required");
+			if (covariance.rows() != m || covariance.cols() != m)
+				throw CurveFittingError("GeneralizedLinearLeastSquares: covariance must be m by m");
+			for (int j = 0; j < n; ++j)
+				if (!basis[j])
+					throw CurveFittingError("GeneralizedLinearLeastSquares: basis functions must be callable");
+			Scalar scale = 0;
+			for (int i = 0; i < m; ++i) {
+				if (!std::isfinite(x[i]) || !std::isfinite(y[i]))
+					throw CurveFittingError("GeneralizedLinearLeastSquares: observations must be finite");
+				for (int j = 0; j < m; ++j) {
+					if (!std::isfinite(covariance(i, j)))
+						throw CurveFittingError("GeneralizedLinearLeastSquares: covariance must be finite");
+					scale = std::max(scale, std::abs(covariance(i, j)));
+				}
+			}
+			if (scale == 0)
+				throw CurveFittingError("GeneralizedLinearLeastSquares: covariance must be positive definite");
+			// Normalize units before Cholesky's numerical pivot checks; do not invert covariance.
+			Matrix<Scalar> normalized(m, m);
+			for (int i = 0; i < m; ++i)
+				for (int j = 0; j <= i; ++j) {
+					const Scalar a = covariance(i, j) / scale, b = covariance(j, i) / scale;
+					if (std::abs(a - b) > PrecisionValues<Scalar>::IsMatrixSymmetricTolerance)
+						throw CurveFittingError("GeneralizedLinearLeastSquares: covariance must be symmetric");
+					normalized(i, j) = normalized(j, i) = a / 2 + b / 2;
+				}
+			const auto factor = [&]() {
+				try {
+					return CholeskySolver<Scalar>(normalized);
+				}
+				catch (const SingularMatrixError& error) {
+					throw CurveFittingError(std::string("GeneralizedLinearLeastSquares: covariance must be numerically positive definite: ") + error.what());
+				}
+			}();
+			const auto& lower = factor.L();
+			auto whiten = [&](const Vector<Scalar>& values) {
+				Vector<Scalar> transformed(m);
+				for (int i = 0; i < m; ++i) {
+					Scalar value = values[i];
+					for (int k = 0; k < i; ++k) value -= lower(i, k) * transformed[k];
+					transformed[i] = value / lower(i, i);
+					if (!std::isfinite(transformed[i]))
+						throw MatrixNumericalError("GeneralizedLinearLeastSquares: non-finite whitened value");
+				}
+				return transformed;
+			};
+			Matrix<Scalar> design(m, n), whitenedDesign(m, n);
+			for (int j = 0; j < n; ++j) {
+				Vector<Scalar> column(m);
+				for (int i = 0; i < m; ++i) {
+					column[i] = basis[j](x[i]);
+					if (!std::isfinite(column[i]))
+						throw CurveFittingError("GeneralizedLinearLeastSquares: basis values must be finite");
+					design(i, j) = column[i];
+				}
+				const auto transformed = whiten(column);
+				for (int i = 0; i < m; ++i) whitenedDesign(i, j) = transformed[i];
+			}
+			const auto whitenedY = whiten(y);
+			SVDecompositionSolver<Scalar> svd(whitenedDesign);
+			GeneralLinearFitResult<Scalar> result;
+			result.coefficients = svd.Solve(whitenedY);
+			result.num_data_points = m;
+			result.num_basis_functions = n;
+			result.effective_rank = svd.Rank();
+			const auto singular = svd.getW();
+			result.condition_number = result.effective_rank == n
+				? singular[0] / singular[n - 1] : std::numeric_limits<Scalar>::infinity();
+			Vector<Scalar> residual(m);
+			for (int i = 0; i < m; ++i) {
+				Scalar predicted = 0;
+				for (int j = 0; j < n; ++j) {
+					if (!std::isfinite(result.coefficients[j]))
+						throw MatrixNumericalError("GeneralizedLinearLeastSquares: non-finite fitted coefficient");
+					predicted += design(i, j) * result.coefficients[j];
+				}
+				residual[i] = y[i] - predicted;
+			}
+			auto norm = [](const Vector<Scalar>& values) {
+				Scalar value = 0;
+				for (int i = 0; i < values.size(); ++i) value = std::hypot(value, values[i]);
+				return value;
+			};
+			const Scalar normalizedResidualNorm = norm(whiten(residual));
+			result.residual_norm = normalizedResidualNorm / std::sqrt(scale);
+			if (!std::isfinite(result.residual_norm))
+				throw MatrixNumericalError("GeneralizedLinearLeastSquares: non-finite covariance-weighted residual norm");
+			result.r_squared = result.mean_squared_error = result.adjusted_r_squared =
+				std::numeric_limits<Scalar>::quiet_NaN();
+			if (statistics) {
+				result.mean_squared_error = (result.residual_norm / std::sqrt(Scalar(m))) *
+					(result.residual_norm / std::sqrt(Scalar(m)));
+				if (!std::isfinite(result.mean_squared_error))
+					throw MatrixNumericalError("GeneralizedLinearLeastSquares: non-finite covariance-weighted MSE");
+				if (std::all_of(y.begin(), y.end(), [&](Scalar value) { return value == y[0]; }))
+					return result;
+				const auto whitenedOnes = whiten(Vector<Scalar>(m, Scalar(1)));
+				Scalar numerator = 0, denominator = 0;
+				for (int i = 0; i < m; ++i) {
+					numerator += whitenedOnes[i] * whitenedY[i];
+					denominator += whitenedOnes[i] * whitenedOnes[i];
+				}
+				if (!std::isfinite(numerator) || !std::isfinite(denominator) || denominator <= 0)
+					throw MatrixNumericalError("GeneralizedLinearLeastSquares: non-finite generalized-mean weights");
+				const Scalar mean = numerator / denominator;
+				if (!std::isfinite(mean))
+					throw MatrixNumericalError("GeneralizedLinearLeastSquares: non-finite generalized mean");
+				Vector<Scalar> centered(m);
+				for (int i = 0; i < m; ++i) centered[i] = y[i] - mean;
+				const Scalar totalNorm = norm(whiten(centered));
+				if (!std::isfinite(totalNorm))
+					throw MatrixNumericalError("GeneralizedLinearLeastSquares: non-finite centered norm");
+				if (totalNorm > 0) {
+					const Scalar ratio = normalizedResidualNorm / totalNorm;
+					result.r_squared = 1 - ratio * ratio;
+					if (!std::isfinite(result.r_squared))
+						throw MatrixNumericalError("GeneralizedLinearLeastSquares: non-finite R-squared");
+					const int rank = result.effective_rank;
+					if (m > rank) {
+						result.adjusted_r_squared = 1 - (1 - result.r_squared) * Scalar(m - 1) / Scalar(m - rank);
+						if (!std::isfinite(result.adjusted_r_squared))
+							throw MatrixNumericalError("GeneralizedLinearLeastSquares: non-finite adjusted R-squared");
+					}
+				}
+				// Constant response has no centered variation: R-squared is undefined.
+			}
+			return result;
+		}
+
+		template<typename Scalar>
+		Vector<std::function<Scalar(Scalar)>> GeneralizedBasis(const Vector<const IRealFunction*>& basis)
+		{
+			Vector<std::function<Scalar(Scalar)>> functions(basis.size());
+			for (int j = 0; j < basis.size(); ++j) {
+				const auto* function = basis[j];
+				if (!function)
+					throw CurveFittingError("GeneralizedLinearLeastSquares: basis pointers must be non-null");
+				functions[j] = [function](Scalar x) { return static_cast<Scalar>((*function)(x)); };
+			}
+			return functions;
+		}
+	}
+
+	/// Minimize (y-Ac)^T covariance^{-1} (y-Ac) for a finite symmetric positive-definite
+	/// observation covariance. Cholesky whitening + SVD also handles rank-deficient designs.
+	/// residual_norm is the Mahalanobis norm; MSE is its square divided by observations.
+	template<typename Scalar>
+	GeneralLinearFitResult<Scalar> GeneralizedLinearLeastSquares(
+		const Vector<Scalar>& x_data, const Vector<Scalar>& y_data, const Matrix<Scalar>& covariance,
+		const Vector<std::function<Scalar(Scalar)>>& basis_functions)
+	{
+		return CurveFittingDetail::FitGeneralizedLinear(x_data, y_data, covariance, basis_functions, true);
+	}
+
+	template<typename Scalar>
+	GeneralLinearFitResult<Scalar> GeneralizedLinearLeastSquares(
+		const Vector<Scalar>& x_data, const Vector<Scalar>& y_data, const Matrix<Scalar>& covariance,
+		const Vector<const IRealFunction*>& basis_functions)
+	{
+		return GeneralizedLinearLeastSquares(x_data, y_data, covariance,
+			CurveFittingDetail::GeneralizedBasis<Scalar>(basis_functions));
 	}
 
 	// Overload using std::function for more flexible basis function specification
@@ -855,6 +1035,44 @@ namespace MML {
 				result.condition_number = fit.condition_number;
 				result.weight_sum = fit.weight_sum;
 				result.function_evaluations = x_data.size() * basis_functions.size();
+			});
+	}
+
+	/// GLS with structured status/timing. Completed denotes a direct fit, not a checked
+	/// accuracy target; estimate_error=false leaves optional goodness-of-fit fields NaN.
+	template<typename Scalar>
+	CurveFittingResult<Scalar> GeneralizedLinearFitDetailed(
+		const Vector<Scalar>& x_data, const Vector<Scalar>& y_data, const Matrix<Scalar>& covariance,
+		const Vector<std::function<Scalar(Scalar)>>& basis_functions,
+		const CurveFittingConfig& config = {})
+	{
+		return CurveFittingDetail::ExecuteCurveFittingDetailed<CurveFittingResult<Scalar>>(
+			"GeneralizedLinearLeastSquares", config, [&](CurveFittingResult<Scalar>& result) {
+				const auto fit = CurveFittingDetail::FitGeneralizedLinear(
+					x_data, y_data, covariance, basis_functions, config.estimate_error);
+				result.coefficients = fit.coefficients;
+				result.residual_norm = fit.residual_norm;
+				result.mean_squared_error = fit.mean_squared_error;
+				result.r_squared = fit.r_squared;
+				result.adjusted_r_squared = fit.adjusted_r_squared;
+				result.effective_rank = fit.effective_rank;
+				result.condition_number = fit.condition_number;
+				result.function_evaluations = x_data.size() * basis_functions.size();
+				result.status = AlgorithmStatus::Completed;
+			});
+	}
+
+	template<typename Scalar>
+	CurveFittingResult<Scalar> GeneralizedLinearFitDetailed(
+		const Vector<Scalar>& x_data, const Vector<Scalar>& y_data, const Matrix<Scalar>& covariance,
+		const Vector<const IRealFunction*>& basis_functions,
+		const CurveFittingConfig& config = {})
+	{
+		// Keep pointer validation inside the common exception-policy boundary.
+		return CurveFittingDetail::ExecuteCurveFittingDetailed<CurveFittingResult<Scalar>>(
+			"GeneralizedLinearLeastSquares", config, [&](CurveFittingResult<Scalar>& result) {
+				result = GeneralizedLinearFitDetailed(x_data, y_data, covariance,
+					CurveFittingDetail::GeneralizedBasis<Scalar>(basis_functions), config);
 			});
 	}
 

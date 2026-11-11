@@ -47,7 +47,7 @@ namespace MML
 		UnsupportedNegativeWeights
 	};
 
-	inline std::string ToString(GraphAlgorithmStatus status)
+	inline std::string to_string(GraphAlgorithmStatus status)
 	{
 		switch (status)
 		{
@@ -62,6 +62,9 @@ namespace MML
 		default:                                               return "Unknown";
 		}
 	}
+	/// @deprecated Use to_string() (CONTRACT_POLICY section 11: STL spelling).
+	[[deprecated("use to_string()")]]
+	inline std::string ToString(GraphAlgorithmStatus status) { return to_string(status); }
 
 	///////////////////////////////////////////////////////////////////////////
 	///                         RESULT STRUCTS                              ///
@@ -752,7 +755,7 @@ namespace MML
 			{
 				for (const auto& edge : edges)
 				{
-					if (std::abs(static_cast<Real>(edge.weight) - Real{1}) > Real{1e-10})
+					if (!IsNearlyEqual(static_cast<Real>(edge.weight), Real{1}, Precision::EqualityTolerance))
 						return true;
 				}
 			}

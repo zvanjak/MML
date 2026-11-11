@@ -6,6 +6,7 @@
 #include <mml/base/Vector/Vector.h>
 #include <mml/algorithms/Fourier/Fourier.h>
 #include <mml/algorithms/Fourier/FourierRealFFT.h>
+#include <mml/algorithms/Fourier/FourierSpectrum.h>
 // Spectrum.h and Convolution.h were never migrated from mml_packages - functionality not yet available in core
 // #include "Spectrum.h"
 // #include "Convolution.h"
@@ -14,6 +15,18 @@
 
 using namespace MML;
 using namespace MML::Fourier;
+
+void Docs_Demo_SpectrumUtilities()
+{
+	Vector<Complex> coefficients{Complex(3, 4), Complex(0, 2)};
+	const auto squared = MagnitudeSquared(coefficients);
+	const auto frequencies = FrequencyAxis(8, Real(80), FrequencyAxisLayout::OneSided);
+	if (!IsNearlyEqual(squared[0], Real(25)) || frequencies.size() != 5 ||
+	    !IsNearlyEqual(frequencies[4], Real(40)))
+		throw std::runtime_error("Core Fourier utility regression");
+	std::cout << "Raw squared coefficient: " << squared[0] << " (not a PSD)\n"
+	          << "One-sided frequency bins: " << frequencies << '\n';
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                    DISCRETE FOURIER TRANSFORM (DFT)                                 ///

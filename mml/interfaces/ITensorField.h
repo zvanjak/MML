@@ -26,7 +26,7 @@
  * 
  * Each field tracks its index variance (number of contravariant/covariant indices)
  * and provides both full tensor evaluation via operator() and component-wise
- * access via Component().
+ * access via component().
  * 
  * **Usage Examples:**
  * - Metric tensor fields for curved spacetime
@@ -57,7 +57,7 @@ namespace MML
 	 * Maps each position x ∈ R^N to a rank-2 tensor T_ij(x) or T^ij(x).
 	 * The most common example is the metric tensor field g_ij(x).
 	 * 
-	 * Implementations must provide the Component() method for individual
+	 * Implementations must provide the component() method for individual
 	 * component evaluation, which is often more efficient than computing
 	 * the full tensor.
 	 * 
@@ -92,8 +92,12 @@ namespace MML
 		 * @param pos Position in N-dimensional space
 		 * @return The component T_ij(pos) or T^ij(pos)
 		 */
-		virtual Real Component(int i, int j, const VectorN<Real, N>& pos) const = 0;
+		virtual Real component(int i, int j, const VectorN<Real, N>& pos) const = 0;
 
+		/// @deprecated Use component() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use component()")]]
+		Real Component(int i, int j, const VectorN<Real, N>& pos) const { return component(i, j, pos); }
 		virtual ~ITensorField2() {}
 	};
 
@@ -103,7 +107,7 @@ namespace MML
 	 * Maps each position to a rank-3 tensor field.
 	 *
 	 * @note Christoffel symbols Γ^i_jk(x) are connection coefficients, not tensors.
-	 * A Christoffel-like field should override TransformsAsTensor() to return false
+	 * A Christoffel-like field should override transformsAsTensor() to return false
 	 * so tensor-field coordinate adapters reject it instead of applying the tensor
 	 * transformation law silently.
 	 * 
@@ -122,7 +126,7 @@ namespace MML
 		int getNumContravar() const { return _numContravar; }
 		int getNumCovar() const { return _numCovar; }
 
-		virtual bool TransformsAsTensor() const { return true; }
+		virtual bool transformsAsTensor() const { return true; }
 
 		/**
 		 * @brief Evaluate a single tensor component at a position.
@@ -132,8 +136,16 @@ namespace MML
 		 * @param pos Position in N-dimensional space
 		 * @return The component value at pos
 		 */
-		virtual Real    Component(int i, int j, int k, const VectorN<Real, N>& pos) const = 0;
+		virtual Real    component(int i, int j, int k, const VectorN<Real, N>& pos) const = 0;
 
+		/// @deprecated Use component() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use component()")]]
+		Real Component(int i, int j, int k, const VectorN<Real, N>& pos) const { return component(i, j, k, pos); }
+		/// @deprecated Use transformsAsTensor() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use transformsAsTensor()")]]
+		bool TransformsAsTensor() const { return transformsAsTensor(); }
 		virtual ~ITensorField3() {}
 	};
 
@@ -168,8 +180,12 @@ namespace MML
 		 * @param pos Position in N-dimensional space
 		 * @return The component value at pos
 		 */
-		virtual Real    Component(int i, int j, int k, int l, const VectorN<Real, N>& pos) const = 0;
+		virtual Real    component(int i, int j, int k, int l, const VectorN<Real, N>& pos) const = 0;
 
+		/// @deprecated Use component() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use component()")]]
+		Real Component(int i, int j, int k, int l, const VectorN<Real, N>& pos) const { return component(i, j, k, l, pos); }
 		virtual ~ITensorField4() {}
 	};
 
@@ -205,7 +221,11 @@ namespace MML
 		 * @param pos Position in N-dimensional space
 		 * @return The component value at pos
 		 */
-		virtual Real    Component(int i, int j, int k, int l, int m, const VectorN<Real, N>& pos) const = 0;
+		virtual Real    component(int i, int j, int k, int l, int m, const VectorN<Real, N>& pos) const = 0;
+		/// @deprecated Use component() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use component()")]]
+		Real Component(int i, int j, int k, int l, int m, const VectorN<Real, N>& pos) const { return component(i, j, k, l, m, pos); }
 		virtual ~ITensorField5() {}
 	};
 }

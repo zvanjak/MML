@@ -15,7 +15,7 @@
 #include <mml/MMLExceptions.h>
 
 #include <mml/base/Vector/VectorN.h>
-#include <mml/base/Geometry/Geometry.h>
+#include <mml/base/Geometry/GeometryBase/GeometryPoints.h>
 #include <mml/base/BaseUtils.h>
 
 #include <algorithm>
@@ -75,42 +75,42 @@ namespace MML
 		}
 
 		/// @brief Converts vector to Point3Cartesian.
-		Point3Cartesian getAsPoint() const
+		Point3Cartesian ToPoint() const
 		{
 			return Point3Cartesian(val(0), val(1), val(2));
 		}
+		/// @deprecated Use ToPoint() (CONTRACT_POLICY §11: conversions are PascalCase To… nouns).
+		[[deprecated("use ToPoint()")]]
+		Point3Cartesian getAsPoint() const { return ToPoint(); }
 		
 		/// @brief Returns normalized vector (unit length).
 		/// @throws VectorDimensionError if the vector norm is near zero
 		Vector3Cartesian Normalized() const
 		{
 			Real norm = NormL2();
-			if (norm < std::numeric_limits<Real>::epsilon() * 100)
+			if (norm < Precision::RoundoffZeroThreshold)
 				throw VectorDimensionError("Vector3Cartesian::Normalized - cannot normalize near-zero vector", 3, 0);
 			return Vector3Cartesian{ (*this) / norm };
 		}
-		/// @brief Returns unit vector in this direction.
-		/// @throws VectorDimensionError if the vector norm is near zero
-		Vector3Cartesian GetAsUnitVector() const
+		/// @brief Returns normalized vector, or the zero vector when norm is near zero.
+		Vector3Cartesian NormalizedOrZero() const
 		{
 			Real norm = NormL2();
-			if (norm < std::numeric_limits<Real>::epsilon() * 100)
-				throw VectorDimensionError("Vector3Cartesian::GetAsUnitVector - cannot normalize near-zero vector", 3, 0);
+			if (norm < Precision::RoundoffZeroThreshold)
+				return Vector3Cartesian{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
 			return Vector3Cartesian{ (*this) / norm };
 		}
-		/// @brief Returns unit vector in this direction, or the zero vector when norm is near zero.
-		Vector3Cartesian GetAsUnitVectorOrZero() const
-		{
-			Real norm = NormL2();
-			if (norm < std::numeric_limits<Real>::epsilon() * 100)
-				return Vector3Cartesian{ REAL(0.0), REAL(0.0), REAL(0.0) };
-			return Vector3Cartesian{ (*this) / norm };
-		}
+		/// @deprecated Use Normalized() — identical semantics (CONTRACT_POLICY §11: one spelling per operation).
+		[[deprecated("use Normalized()")]]
+		Vector3Cartesian GetAsUnitVector() const { return Normalized(); }
+		/// @deprecated Use NormalizedOrZero().
+		[[deprecated("use NormalizedOrZero()")]]
+		Vector3Cartesian GetAsUnitVectorOrZero() const { return NormalizedOrZero(); }
 		/// @brief Returns unit vector at given position (for Cartesian, position doesn't matter).
 		/// @param pos Position (unused)
 		Vector3Cartesian GetAsUnitVectorAtPos(const Vector3Cartesian& pos) const
 		{
-			return GetAsUnitVector();
+			return Normalized();
 		}
 
 		/// @brief Scalar product (dot product) via operator*.
@@ -192,7 +192,7 @@ namespace MML
 		/// @brief Checks equality within tolerance.
 		/// @param b Vector to compare
 		/// @param absEps Absolute tolerance
-		bool IsEqualTo(const Vector3Cartesian& b, Real absEps = Defaults::Vec3CartIsEqualTolerance) const
+		bool IsEqualTo(const Vector3Cartesian& b, Real absEps = Precision::Vec3CartIsEqualTolerance) const
 		{
 			return (std::abs(X() - b.X()) < absEps) && (std::abs(Y() - b.Y()) < absEps) && (std::abs(Z() - b.Z()) < absEps);
 		}
@@ -202,22 +202,25 @@ namespace MML
 		/// @brief Point - vector operation.
 		friend Point3Cartesian operator-(const Point3Cartesian& a, const Vector3Cartesian& b) { return Point3Cartesian(a.X() - b[0], a.Y() - b[1], a.Z() - b[2]); }
 
-		/// @brief Checks if vectors are parallel.
+		/// @brief Checks if vectors are parallel (same OR opposite direction).
+		/// @details Criterion: ‖a × b‖ ≤ eps · ‖a‖ · ‖b‖, i.e. |sin θ| ≤ eps, scale-invariant and
+		/// antiparallel-inclusive (parallel lines/planes have parallel direction vectors regardless
+		/// of orientation). The zero vector has no direction and is parallel to nothing (returns false).
 		/// @param b Vector to compare
-		/// @param eps Tolerance
-		bool IsParallelTo(const Vector3Cartesian& b, Real eps = Defaults::Vec3CartIsParallelTolerance) const
+		/// @param eps Tolerance on |sin θ|
+		bool IsParallelTo(const Vector3Cartesian& b, Real eps = Precision::Vec3CartIsParallelTolerance) const
 		{
-			Real norm1 = NormL2();
-			Real norm2 = b.NormL2();
+			Real normA = NormL2();
+			Real normB = b.NormL2();
+			if (normA == Real(0) || normB == Real(0))
+				return false;
 
-			return std::abs(X() / norm1 - b.X() / norm2) < eps &&
-				std::abs(Y() / norm1 - b.Y() / norm2) < eps &&
-				std::abs(Z() / norm1 - b.Z() / norm2) < eps;
+			return VectorProduct(*this, b).NormL2() <= eps * normA * normB;
 		}
 		/// @brief Checks if vectors are perpendicular.
 		/// @param b Vector to compare
 		/// @param eps Tolerance
-		bool IsPerpendicularTo(const Vector3Cartesian& b, Real eps = Defaults::OrthogonalityTolerance) const
+		bool IsPerpendicularTo(const Vector3Cartesian& b, Real eps = Precision::OrthogonalityTolerance) const
 		{
 			if (std::abs(this->ScalarProduct(b)) < eps)
 				return true;
@@ -230,7 +233,7 @@ namespace MML
 		/// @return true if successful, false if zero vector
 		bool GetPerpendicularVectors(Vector3Cartesian& v1, Vector3Cartesian& v2) const
 		{
-			if (isZero())
+			if (IsZero())
 				return false;
 			
 			// find a vector that is not parallel to this vector
@@ -242,8 +245,8 @@ namespace MML
 			else
 				not_parallel = Vector3Cartesian(0.0, 0.0, 1.0);
 			
-			v1 = VectorProduct(*this, not_parallel).GetAsUnitVector();
-			v2 = VectorProduct(*this, v1).GetAsUnitVector();
+			v1 = VectorProduct(*this, not_parallel).Normalized();
+			v2 = VectorProduct(*this, v1).Normalized();
 			
 			return true;
 		}
@@ -398,7 +401,7 @@ namespace MML
 		/// @param absEps Absolute tolerance
 		/// @note For spherical vectors, theta ∈ [0, π] and phi ∈ [-π, π].
 		///       Phi comparison uses AnglesAreEqual() to handle wrap-around at ±π.
-		bool IsEqualTo(const Vector3Spherical& b, Real absEps = Defaults::Vec3SphIsEqualTolerance) const
+		bool IsEqualTo(const Vector3Spherical& b, Real absEps = Precision::Vec3SphIsEqualTolerance) const
 		{
 			// R and theta are straightforward comparisons
 			// Phi needs angle-aware comparison for wrap-around at ±π
@@ -604,8 +607,8 @@ namespace MML
 
 			// Step 2: Normalize in Cartesian
 			Real norm = std::sqrt(x * x + y * y + z * z);
-			if (norm == REAL(0.0))
-				return Vector3Cylindrical(REAL(0.0), REAL(0.0), REAL(0.0));
+			if (norm == static_cast<MML::Real>(0.0))
+				return Vector3Cylindrical(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
 
 			x /= norm;
 			y /= norm;

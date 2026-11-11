@@ -24,10 +24,12 @@
 #include <mml/interfaces/IODESystemDAE.h>
 #include <mml/base/AlgorithmTypes.h>
 #include <mml/core/LinAlgEqSolvers.h>
+#include <mml/algorithms/ImplicitNewtonMatrix.h>
 
 #include <algorithm>
 #include <cmath>
 #include <string>
+#include <utility>
 
 namespace MML {
 
@@ -46,7 +48,8 @@ namespace MML {
 	/// config.constraint_tol = 1e-10;
 	/// auto sol = SolveDAEBackwardEuler(system, t0, x0, y0, t_end, config);
 	struct DAESolverConfig {
-		/// Step size for fixed-step methods (default: 0.01)
+		/// Requested step size; initial magnitude for adaptive methods such as RODAS4.
+		/// BE/BDF2 retain a smaller step after Newton retries.
 		Real step_size = 0.01;
 
 		/// Maximum Newton iterations per step (default: 20)
@@ -58,17 +61,20 @@ namespace MML {
 		/// Tolerance for constraint satisfaction g(t,x,y) ≈ 0 (precision-aware default)
 		Real constraint_tol = PrecisionValues<Real>::IntegrationTolerance;
 
-		/// Maximum number of steps (default: 100000)
+		/// Maximum steps; BE/BDF2 and RODAS4 count both accepted and rejected attempts.
 		int max_steps = 100000;
 
 		/// Absolute and relative tolerances for adaptive methods
 		Real abs_tolerance = PrecisionValues<Real>::IntegrationTolerance;
-		Real rel_tolerance = PrecisionValues<Real>::IntegrationTolerance * REAL(100.0);
+		Real rel_tolerance = PrecisionValues<Real>::IntegrationTolerance * static_cast<MML::Real>(100.0);
 
-		/// Adaptive step-size bounds and controller safety factor
-		Real min_step_size = REAL(1e-8);
-		Real max_step_size = REAL(1.0);
-		Real step_safety = REAL(0.9);
+		/// Adaptive bounds; min_step_size also bounds BE/BDF2 Newton retries.
+		Real min_step_size = Precision::DAEMinStepSize;
+		Real max_step_size = static_cast<MML::Real>(1.0);
+		Real step_safety = static_cast<MML::Real>(0.9);
+
+		/// Step-local simplified Newton; false refreshes the Jacobian for every correction.
+		bool reuse_jacobian = true;
 
 		/// Factory method for high-precision configuration
 		static DAESolverConfig HighPrecision() {
@@ -99,7 +105,9 @@ namespace MML {
 		HigherIndexSuspected,
 		MaxStepsExceeded,
 		ConstraintViolation,
-		NonFiniteState
+		NonFiniteState,
+		StepSizeUnderflow,
+		ResourceLimitExceeded
 	};
 
 	/// @brief Result of DAE integration with diagnostics
@@ -116,6 +124,8 @@ namespace MML {
 		int total_steps = 0;
 		int newton_iterations = 0;		///< Total Newton iterations
 		int jacobian_evaluations = 0;	///< Number of Jacobian evaluations
+		int lu_factorizations = 0;
+		int linear_solves = 0;
 		int accepted_steps = 0;
 		int rejected_steps = 0;
 		int last_step_newton_iterations = 0;
@@ -124,11 +134,20 @@ namespace MML {
 		Real max_residual_norm = 0.0;
 		Real final_constraint_norm = 0.0;
 		Real max_constraint_violation = 0.0;  ///< Maximum |g(t,x,y)| seen
+		Real last_error_norm = 0.0;		///< RODAS4 scaled embedded error, last completed attempt
+		Real max_error_norm = 0.0;		///< RODAS4 maximum, including rejected attempts
 		DAEFailureReason failure_reason = DAEFailureReason::None;
 
 		DAESolverResult(Real t0, Real t_end, int diffDim, int algDim, int num_steps)
 			: solution(t0, t_end, diffDim, algDim, num_steps) {}
 	};
+
+	inline bool PrepareDAETrajectoryPoint(DAESolverResult& result, int index) {
+		if (detail::PrepareTrajectoryPoint(result.solution, index, result.status, result.error_message))
+			return true;
+		result.failure_reason = DAEFailureReason::ResourceLimitExceeded;
+		return false;
+	}
 
 	inline bool IsFiniteDAEVector(const Vector<Real>& values) {
 		for (int i = 0; i < values.size(); ++i)
@@ -137,8 +156,8 @@ namespace MML {
 	}
 
 	inline Real DAETimeTolerance(Real tEnd, Real stepSize) {
-		return std::max(std::abs(stepSize) * REAL(1e-10),
-			REAL(10.0) * std::numeric_limits<Real>::epsilon() * std::max(REAL(1.0), std::abs(tEnd)));
+		return std::max(std::abs(stepSize) * Precision::MinimumStepRatio,
+			static_cast<MML::Real>(10.0) * std::numeric_limits<Real>::epsilon() * std::max(static_cast<MML::Real>(1.0), std::abs(tEnd)));
 	}
 
 	inline void AssembleDAEAugmentedJacobian(const Matrix<Real>& df_dx, const Matrix<Real>& df_dy,
@@ -148,7 +167,7 @@ namespace MML {
 		const int algDim = dg_dy.rows();
 		for (int i = 0; i < diffDim; ++i) {
 			for (int j = 0; j < diffDim; ++j)
-				jacobian(i, j) = (i == j ? REAL(1.0) : REAL(0.0)) - derivativeCoefficient * df_dx(i, j);
+				jacobian(i, j) = (i == j ? static_cast<MML::Real>(1.0) : static_cast<MML::Real>(0.0)) - derivativeCoefficient * df_dx(i, j);
 			for (int j = 0; j < algDim; ++j)
 				jacobian(i, diffDim + j) = -derivativeCoefficient * df_dy(i, j);
 		}
@@ -164,6 +183,8 @@ namespace MML {
 		bool converged = false;
 		int iterations = 0;
 		int jacobian_evaluations = 0;
+		int lu_factorizations = 0;
+		int linear_solves = 0;
 		Real residual_norm = 0.0;
 		DAEFailureReason failure_reason = DAEFailureReason::None;
 		std::string message;
@@ -176,6 +197,7 @@ namespace MML {
 		DAENewtonResult result;
 		Vector<Real> residual(diffDim + algDim);
 		Matrix<Real> jacobian(diffDim + algDim, diffDim + algDim);
+		Detail::ImplicitNewtonMatrix iterationMatrix;
 
 		for (int iteration = 0; iteration < config.max_newton_iter; ++iteration) {
 			result.iterations = iteration + 1;
@@ -187,20 +209,35 @@ namespace MML {
 			}
 
 			result.residual_norm = residual.NormL2();
+			if (!std::isfinite(result.residual_norm)) {
+				result.failure_reason = DAEFailureReason::NonFiniteState;
+				result.message = "non-finite DAE residual norm";
+				return result;
+			}
 			if (result.residual_norm < config.newton_tol) {
 				result.converged = true;
 				return result;
 			}
 
-			evaluateJacobian(x, y, jacobian);
-			result.jacobian_evaluations++;
-			Vector<Real> delta = residual * REAL(-1.0);
+			Vector<Real> delta = residual * static_cast<MML::Real>(-1.0);
 			try {
-				Matrix<Real> jacobianCopy = jacobian;
-				GaussJordanSolver<Real>::SolveInPlace(jacobianCopy, delta);
+				if (iterationMatrix.NeedsRefresh(result.residual_norm, config.newton_tol,
+					config.max_newton_iter - iteration - 1, config.reuse_jacobian)) {
+					evaluateJacobian(x, y, jacobian);
+					++result.jacobian_evaluations;
+					iterationMatrix.Factor(jacobian);
+					++result.lu_factorizations;
+				}
+				delta = iterationMatrix.Solve(delta);
+				++result.linear_solves;
 			}
-			catch (const std::exception& error) {
+			catch (const SingularMatrixError& error) {
 				result.failure_reason = DAEFailureReason::SingularJacobian;
+				result.message = error.what();
+				return result;
+			}
+			catch (const MatrixNumericalError& error) {
+				result.failure_reason = DAEFailureReason::NonFiniteState;
 				result.message = error.what();
 				return result;
 			}
@@ -217,6 +254,8 @@ namespace MML {
 	inline void AccumulateDAENewtonDiagnostics(DAESolverResult& solverResult, const DAENewtonResult& newtonResult) {
 		solverResult.newton_iterations += newtonResult.iterations;
 		solverResult.jacobian_evaluations += newtonResult.jacobian_evaluations;
+		solverResult.lu_factorizations += newtonResult.lu_factorizations;
+		solverResult.linear_solves += newtonResult.linear_solves;
 		solverResult.last_step_newton_iterations = newtonResult.iterations;
 		solverResult.max_step_newton_iterations = std::max(solverResult.max_step_newton_iterations, newtonResult.iterations);
 		solverResult.final_residual_norm = newtonResult.residual_norm;
@@ -271,6 +310,117 @@ namespace MML {
 			return false;
 		}
 		return true;
+	}
+
+	inline bool ValidateDAETimeStep(Real t, Real nextTime, DAESolverResult& result,
+		const std::string& context) {
+		if (nextTime != t) return true;
+		result.status = AlgorithmStatus::Stalled;
+		result.failure_reason = DAEFailureReason::StepSizeUnderflow;
+		result.error_message = context + ": step cannot advance floating-point time";
+		return false;
+	}
+
+	namespace DAEImplicitDetail {
+		inline DAESolverResult Solve(IODESystemDAEWithJacobian& system, Real t0,
+			const Vector<Real>& x0, const Vector<Real>& y0, Real t_end,
+			const DAESolverConfig& config, bool bdf2) {
+			const std::string name = bdf2 ? "DAEBDF2" : "DAEBackwardEuler";
+			const int diffDim = system.getDiffDim(), algDim = system.getAlgDim();
+			if (!std::isfinite(t0) || !std::isfinite(t_end) || !std::isfinite(t_end - t0) ||
+				t_end == t0 || !std::isfinite(config.step_size) || config.step_size <= 0 ||
+				!std::isfinite(config.min_step_size) || config.min_step_size <= 0 ||
+				!std::isfinite(config.newton_tol) || config.newton_tol <= 0 ||
+				!std::isfinite(config.constraint_tol) || config.constraint_tol <= 0 ||
+				config.max_steps <= 0 || config.max_newton_iter <= 0 ||
+				diffDim <= 0 || algDim < 0 || x0.size() != diffDim || y0.size() != algDim)
+				throw ArgumentError(name +
+					": requires distinct finite endpoints, positive step/tolerances/budgets and matching state dimensions");
+
+			AlgorithmTimer timer;
+			DAESolverResult result(t0, t_end, diffDim, algDim, 0);
+			result.algorithm_name = name;
+			result.solution.fillValues(0, t0, x0, y0);
+			if (!ValidateDAEInitialState(system, t0, x0, y0, config, result)) {
+				result.elapsed_time_ms = timer.elapsed_ms();
+				return result;
+			}
+			const Real direction = t_end > t0 ? Real(1) : Real(-1);
+			Real t = t0, h = direction * config.step_size, previousH = 0;
+			Vector<Real> x = x0, y = y0, previous = x0;
+			Vector<Real> dxdt(diffDim), constraints(algDim);
+			Matrix<Real> df_dx(diffDim, diffDim), df_dy(diffDim, algDim);
+			Matrix<Real> dg_dx(algDim, diffDim), dg_dy(algDim, algDim);
+			while (direction * (t_end - t) > 0 && result.accepted_steps + result.rejected_steps < config.max_steps) {
+				if (!PrepareDAETrajectoryPoint(result, result.accepted_steps + 1)) break;
+				h = direction * std::min(std::abs(h), std::abs(t_end - t));
+				Real nextTime = t + h;
+				if (!ValidateDAETimeStep(t, nextTime, result, name)) break;
+				Vector<Real> history = x;
+				Real coefficient = h;
+				if (bdf2 && result.accepted_steps > 0) {
+					// Variable-step BDF2; rejected attempts must not change the accepted history.
+					Real ratio = h / previousH;
+					history += (x - previous) * (ratio * ratio / (1 + 2 * ratio));
+					coefficient *= (1 + ratio) / (1 + 2 * ratio);
+				}
+				system.diffEqs(t, x, y, dxdt);
+				Vector<Real> trialX = x + dxdt * h, trialY = y;
+				auto evaluateResidual = [&](const Vector<Real>& xx, const Vector<Real>& yy,
+					Vector<Real>& residual) {
+					system.diffEqs(nextTime, xx, yy, dxdt);
+					system.algConstraints(nextTime, xx, yy, constraints);
+					for (int i = 0; i < diffDim; ++i)
+						residual[i] = xx[i] - history[i] - coefficient * dxdt[i];
+					for (int i = 0; i < algDim; ++i)
+						residual[diffDim + i] = constraints[i];
+				};
+				auto evaluateJacobian = [&](const Vector<Real>& xx, const Vector<Real>& yy,
+					Matrix<Real>& jacobian) {
+					system.allJacobians(nextTime, xx, yy, df_dx, df_dy, dg_dx, dg_dy);
+					AssembleDAEAugmentedJacobian(df_dx, df_dy, dg_dx, dg_dy, coefficient, jacobian);
+				};
+				auto newton = SolveDAENewton(trialX, trialY, diffDim, algDim, config,
+					evaluateResidual, evaluateJacobian);
+				AccumulateDAENewtonDiagnostics(result, newton);
+				if (!newton.converged) {
+					++result.rejected_steps;
+					result.solution.incrementRejectedSteps();
+					if (newton.failure_reason == DAEFailureReason::NewtonFailure &&
+						std::abs(h) > config.min_step_size) {
+						h = direction * std::max(config.min_step_size, std::abs(h) / 2);
+						continue;
+					}
+					SetDAENewtonFailure(result, newton, name + " at t=" + std::to_string(nextTime) +
+						(newton.failure_reason == DAEFailureReason::NewtonFailure
+							? " (minimum retry step reached)" : ""));
+					break;
+				}
+				system.algConstraints(nextTime, trialX, trialY, constraints);
+				if (!ValidateAcceptedDAEState(trialX, trialY, constraints, config, result, name + " step")) {
+					++result.rejected_steps;
+					result.solution.incrementRejectedSteps();
+					break;
+				}
+				previous = x;
+				previousH = h;
+				x = std::move(trialX);
+				y = std::move(trialY);
+				t = nextTime;
+				result.solution.fillValues(++result.accepted_steps, t, x, y);
+				result.solution.incrementSuccessfulSteps();
+			}
+			result.total_steps = result.accepted_steps;
+			system.algConstraints(t, x, y, constraints);
+			result.final_constraint_norm = constraints.NormL2();
+			if (direction * (t_end - t) > 0 && result.status == AlgorithmStatus::Success) {
+				result.status = AlgorithmStatus::MaxIterationsExceeded;
+				result.failure_reason = DAEFailureReason::MaxStepsExceeded;
+				result.error_message = name + ": attempted-step budget exhausted at t=" + std::to_string(t);
+			}
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
+		}
 	}
 
 	/******************************************************************************/
@@ -343,9 +493,9 @@ namespace MML {
 				return result;
 			}
 
-			Real damping = REAL(1.0);
+			Real damping = static_cast<MML::Real>(1.0);
 			bool accepted = false;
-			while (damping >= REAL(1.0 / 1024.0)) {
+			while (damping >= static_cast<MML::Real>(1.0 / 1024.0)) {
 				Vector<Real> trial = y0 + rhs * damping;
 				Vector<Real> trialResidual(algDim);
 				system.algConstraints(t0, x0, trial, trialResidual);
@@ -354,7 +504,7 @@ namespace MML {
 					accepted = true;
 					break;
 				}
-				damping *= REAL(0.5);
+				damping *= static_cast<MML::Real>(0.5);
 				result.line_search_reductions++;
 			}
 			if (!accepted) {

@@ -24,25 +24,25 @@ namespace MML
 		// 2D vector function serialization
 		//===================================================================================
 
-		inline SerializeResult SaveVectorFunc2D(const IVectorFunction<2>& f, std::string inType, std::string title,
-		                                        Real x1_start, Real x1_end, int numPointsX1,
-		                                        Real x2_start, Real x2_end, int numPointsX2, std::string fileName)
-		{
+		inline IOResult SaveVectorFunc2D(const IVectorFunction<2>& f, std::string inType, std::string title, Real x1_start, Real x1_end,
+																		 int numPointsX1, Real x2_start, Real x2_end, int numPointsX2, std::string fileName) {
 			// Validate parameters
 			if (numPointsX1 < 2 || numPointsX2 < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPointsX1 and numPointsX2 must be >= 2"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "numPointsX1 and numPointsX2 must be >= 2"}.WithFile(fileName);
 			if (x1_start >= x1_end || x2_start >= x2_end)
-				return {false, SerializeError::INVALID_PARAMETERS, "x1_start < x1_end and x2_start < x2_end required"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "x1_start < x1_end and x2_start < x2_end required"}.WithFile(fileName);
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
-				WriteVectorFieldHeader(file, inType, title);
+				if (auto headerResult = WriteVectorFieldHeader(file, inType, title); !headerResult.success)
+					return (headerResult).WithFile(fileName);
 
 				Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
 				Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
@@ -54,37 +54,36 @@ namespace MML
 						auto val = f(VectorN<Real, 2>{x, y});
 						file << x << " " << y << " " << val[0] << " " << val[1] << std::endl;
 					}
-				file.close();
-				return {true, SerializeError::OK, "Success"};
+				return Serializer::detail::FinishFile(file, fileName, "Success");
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 
-		inline SerializeResult SaveVectorFunc2D(const IVectorFunction<2>& f, std::string inType, std::string title,
-		                                        Real x1_start, Real x1_end, int numPointsX1,
-		                                        Real x2_start, Real x2_end, int numPointsX2,
-		                                        std::string fileName, Real upper_threshold)
-		{
+		inline IOResult SaveVectorFunc2D(const IVectorFunction<2>& f, std::string inType, std::string title, Real x1_start, Real x1_end,
+																		 int numPointsX1, Real x2_start, Real x2_end, int numPointsX2, std::string fileName,
+																		 Real upper_threshold) {
 			// Validate parameters
 			if (numPointsX1 < 2 || numPointsX2 < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPointsX1 and numPointsX2 must be >= 2"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "numPointsX1 and numPointsX2 must be >= 2"}.WithFile(fileName);
 			if (x1_start >= x1_end || x2_start >= x2_end)
-				return {false, SerializeError::INVALID_PARAMETERS, "x1_start < x1_end and x2_start < x2_end required"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "x1_start < x1_end and x2_start < x2_end required"}.WithFile(fileName);
 			if (upper_threshold <= 0)
-				return {false, SerializeError::INVALID_PARAMETERS, "upper_threshold must be positive"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "upper_threshold must be positive"}.WithFile(fileName);
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
-				WriteVectorFieldHeader(file, inType, title);
+				if (auto headerResult = WriteVectorFieldHeader(file, inType, title); !headerResult.success)
+					return (headerResult).WithFile(fileName);
 
 				Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
 				Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
@@ -97,54 +96,51 @@ namespace MML
 						if (val.NormL2() < upper_threshold)
 							file << x << " " << y << " " << val[0] << " " << val[1] << std::endl;
 					}
-				file.close();
-				return {true, SerializeError::OK, "Success"};
+				return Serializer::detail::FinishFile(file, fileName, "Success");
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 
-		inline SerializeResult SaveVectorFunc2DCartesian(const IVectorFunction<2>& f, std::string title,
-		                                                 Real x1, Real x2, int numPointsX,
-		                                                 Real y1, Real y2, int numPointsY, std::string fileName)
-		{
-			return SaveVectorFunc2D(f, SerializeFormatType::VECTOR_FIELD_2D_CARTESIAN, title, x1, x2, numPointsX, y1, y2, numPointsY, fileName);
+		inline IOResult SaveVectorFunc2DCartesian(const IVectorFunction<2>& f, std::string title, Real x1, Real x2, int numPointsX, Real y1,
+																							Real y2, int numPointsY, std::string fileName) {
+			return (SaveVectorFunc2D(f, SerializeFormatType::VECTOR_FIELD_2D_CARTESIAN, title, x1, x2, numPointsX, y1, y2, numPointsY, fileName))
+				.WithFile(fileName);
 		}
 
-		inline SerializeResult SaveVectorFunc2DCartesian(const IVectorFunction<2>& f, std::string title,
-		                                                 Real x1, Real x2, int numPointsX,
-		                                                 Real y1, Real y2, int numPointsY, std::string fileName, 
-		                                                 Real upper_threshold)
-		{
-			return SaveVectorFunc2D(f, SerializeFormatType::VECTOR_FIELD_2D_CARTESIAN, title, x1, x2, numPointsX, y1, y2, numPointsY, fileName, upper_threshold);
+		inline IOResult SaveVectorFunc2DCartesian(const IVectorFunction<2>& f, std::string title, Real x1, Real x2, int numPointsX, Real y1,
+																							Real y2, int numPointsY, std::string fileName, Real upper_threshold) {
+			return (SaveVectorFunc2D(f, SerializeFormatType::VECTOR_FIELD_2D_CARTESIAN, title, x1, x2, numPointsX, y1, y2, numPointsY, fileName,
+															 upper_threshold))
+				.WithFile(fileName);
 		}
 
 		//===================================================================================
 		// 3D vector function serialization
 		//===================================================================================
 
-		inline SerializeResult SaveVectorFunc3D(const IVectorFunction<3>& f, std::string inType, std::string title,
-		                                        Real x1_start, Real x1_end, int numPointsX1, 
-		                                        Real x2_start, Real x2_end, int numPointsX2, 
-		                                        Real x3_start, Real x3_end, int numPointsX3, std::string fileName)
-		{
+		inline IOResult SaveVectorFunc3D(const IVectorFunction<3>& f, std::string inType, std::string title, Real x1_start, Real x1_end,
+																		 int numPointsX1, Real x2_start, Real x2_end, int numPointsX2, Real x3_start, Real x3_end,
+																		 int numPointsX3, std::string fileName) {
 			// Validate parameters
 			if (numPointsX1 < 2 || numPointsX2 < 2 || numPointsX3 < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "all numPoints must be >= 2"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "all numPoints must be >= 2"}.WithFile(fileName);
 			if (x1_start >= x1_end || x2_start >= x2_end || x3_start >= x3_end)
-				return {false, SerializeError::INVALID_PARAMETERS, "all start bounds must be less than end bounds"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "all start bounds must be less than end bounds"}.WithFile(fileName);
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
-				WriteVectorFieldHeader(file, inType, title);
+				if (auto headerResult = WriteVectorFieldHeader(file, inType, title); !headerResult.success)
+					return (headerResult).WithFile(fileName);
 
 				Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
 				Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
@@ -160,38 +156,36 @@ namespace MML
 							file << x << " " << y << " " << z << " " << val[0] << " " << val[1] << " " << val[2] << std::endl;
 						}
 
-				file.close();
-				return {true, SerializeError::OK, "Success"};
+				return Serializer::detail::FinishFile(file, fileName, "Success");
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 
-		inline SerializeResult SaveVectorFunc3D(const IVectorFunction<3>& f, std::string inType, std::string title, 
-		                                        Real x1_start, Real x1_end, int numPointsX1, 
-		                                        Real x2_start, Real x2_end, int numPointsX2, 
-		                                        Real x3_start, Real x3_end, int numPointsX3, 
-		                                        std::string fileName, Real upper_threshold)
-		{
+		inline IOResult SaveVectorFunc3D(const IVectorFunction<3>& f, std::string inType, std::string title, Real x1_start, Real x1_end,
+																		 int numPointsX1, Real x2_start, Real x2_end, int numPointsX2, Real x3_start, Real x3_end,
+																		 int numPointsX3, std::string fileName, Real upper_threshold) {
 			// Validate parameters
 			if (numPointsX1 < 2 || numPointsX2 < 2 || numPointsX3 < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "all numPoints must be >= 2"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "all numPoints must be >= 2"}.WithFile(fileName);
 			if (x1_start >= x1_end || x2_start >= x2_end || x3_start >= x3_end)
-				return {false, SerializeError::INVALID_PARAMETERS, "all start bounds must be less than end bounds"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "all start bounds must be less than end bounds"}.WithFile(fileName);
 			if (upper_threshold <= 0)
-				return {false, SerializeError::INVALID_PARAMETERS, "upper_threshold must be positive"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "upper_threshold must be positive"}.WithFile(fileName);
 			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
+			Serializer::detail::ApplyTextFormat(file);
 			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
+				return IOResult{false, IOError::FILE_NOT_OPENED, "Cannot open file: " + fileName, fileName}.WithFile(fileName);
 
 			try
 			{
-				WriteVectorFieldHeader(file, inType, title);
+				if (auto headerResult = WriteVectorFieldHeader(file, inType, title); !headerResult.success)
+					return (headerResult).WithFile(fileName);
 
 				Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
 				Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
@@ -209,51 +203,46 @@ namespace MML
 								file << x << " " << y << " " << z << " " << val[0] << " " << val[1] << " " << val[2] << std::endl;
 						}
 
-				file.close();
-				return {true, SerializeError::OK, "Success"};
+				return Serializer::detail::FinishFile(file, fileName, "Success");
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
+				return IOResult{false, IOError::WRITE_FAILED, std::string("Write error: ") + e.what()}.WithFile(fileName);
 			}
 		}
 
-		inline SerializeResult SaveVectorFunc3DCartesian(const IVectorFunction<3>& f, std::string title, 
-		                                                 Real x1, Real x2, int numPointsX, 
-		                                                 Real y1, Real y2, int numPointsY, 
-		                                                 Real z1, Real z2, int numPointsZ, std::string fileName)
-		{
-			return SaveVectorFunc3D(f, SerializeFormatType::VECTOR_FIELD_3D_CARTESIAN, title, x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, fileName);
+		inline IOResult SaveVectorFunc3DCartesian(const IVectorFunction<3>& f, std::string title, Real x1, Real x2, int numPointsX, Real y1,
+																							Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName) {
+			return (SaveVectorFunc3D(f, SerializeFormatType::VECTOR_FIELD_3D_CARTESIAN, title, x1, x2, numPointsX, y1, y2, numPointsY, z1, z2,
+															 numPointsZ, fileName))
+				.WithFile(fileName);
 		}
 
-		inline SerializeResult SaveVectorFunc3DCartesian(const IVectorFunction<3>& f, std::string title, 
-		                                                 Real x1, Real x2, int numPointsX, 
-		                                                 Real y1, Real y2, int numPointsY, 
-		                                                 Real z1, Real z2, int numPointsZ, std::string fileName, 
-		                                                 Real upper_threshold)
-		{
-			return SaveVectorFunc3D(f, SerializeFormatType::VECTOR_FIELD_3D_CARTESIAN, title, x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, fileName, upper_threshold);
+		inline IOResult SaveVectorFunc3DCartesian(const IVectorFunction<3>& f, std::string title, Real x1, Real x2, int numPointsX, Real y1,
+																							Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName,
+																							Real upper_threshold) {
+			return (SaveVectorFunc3D(f, SerializeFormatType::VECTOR_FIELD_3D_CARTESIAN, title, x1, x2, numPointsX, y1, y2, numPointsY, z1, z2,
+															 numPointsZ, fileName, upper_threshold))
+				.WithFile(fileName);
 		}
 
 		//===================================================================================
 		// Spherical coordinate vector field serialization
 		//===================================================================================
-		
-		inline SerializeResult SaveVectorFuncSpherical(const IVectorFunction<3>& f, std::string title, 
-		                                               Real r1, Real r2, int numPointsR, 
-		                                               Real theta1, Real theta2, int numPointsTheta, 
-		                                               Real phi1, Real phi2, int numPointsPhi, std::string fileName)
-		{
-			return SaveVectorFunc3D(f, SerializeFormatType::VECTOR_FIELD_SPHERICAL, title, r1, r2, numPointsR, theta1, theta2, numPointsTheta, phi1, phi2, numPointsPhi, fileName);
+
+		inline IOResult SaveVectorFuncSpherical(const IVectorFunction<3>& f, std::string title, Real r1, Real r2, int numPointsR, Real theta1,
+																						Real theta2, int numPointsTheta, Real phi1, Real phi2, int numPointsPhi, std::string fileName) {
+			return (SaveVectorFunc3D(f, SerializeFormatType::VECTOR_FIELD_SPHERICAL, title, r1, r2, numPointsR, theta1, theta2, numPointsTheta,
+															 phi1, phi2, numPointsPhi, fileName))
+				.WithFile(fileName);
 		}
 
-		inline SerializeResult SaveVectorFuncSpherical(const IVectorFunction<3>& f, std::string title, 
-		                                               Real r1, Real r2, int numPointsR, 
-		                                               Real theta1, Real theta2, int numPointsTheta, 
-		                                               Real phi1, Real phi2, int numPointsPhi, 
-		                                               std::string fileName, Real upper_threshold)
-		{
-			return SaveVectorFunc3D(f, SerializeFormatType::VECTOR_FIELD_SPHERICAL, title, r1, r2, numPointsR, theta1, theta2, numPointsTheta, phi1, phi2, numPointsPhi, fileName, upper_threshold);
+		inline IOResult SaveVectorFuncSpherical(const IVectorFunction<3>& f, std::string title, Real r1, Real r2, int numPointsR, Real theta1,
+																						Real theta2, int numPointsTheta, Real phi1, Real phi2, int numPointsPhi, std::string fileName,
+																						Real upper_threshold) {
+			return (SaveVectorFunc3D(f, SerializeFormatType::VECTOR_FIELD_SPHERICAL, title, r1, r2, numPointsR, theta1, theta2, numPointsTheta,
+															 phi1, phi2, numPointsPhi, fileName, upper_threshold))
+				.WithFile(fileName);
 		}
 
 	} // namespace Serializer

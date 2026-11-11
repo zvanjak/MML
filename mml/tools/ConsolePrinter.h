@@ -13,6 +13,7 @@
 #define MML_CONSOLE_PRINTER_H
 
 #include <mml/tools/CsvUtils.h>
+#include <mml/base/PrintFormatting.h>
 #include <mml/base/AlgorithmTypes.h>
 
 #include <iostream>
@@ -202,32 +203,7 @@ namespace MML {
 	///////////////////////////       RAII Stream Guard       ///////////////////////////
 
 	// RAII Stream State Guard - preserves stream state across operations
-	class StreamStateGuard {
-	private:
-		std::ostream& m_stream;
-		std::ios_base::fmtflags m_flags;
-		std::streamsize m_precision;
-		std::streamsize m_width;
-
-	public:
-		explicit StreamStateGuard(std::ostream& os)
-			: m_stream(os)
-			, m_flags(os.flags())
-			, m_precision(os.precision())
-			, m_width(os.width()) {}
-
-		~StreamStateGuard() {
-			m_stream.flags(m_flags);
-			m_stream.precision(m_precision);
-			m_stream.width(m_width);
-		}
-
-		// Non-copyable, non-movable
-		StreamStateGuard(const StreamStateGuard&) = delete;
-		StreamStateGuard& operator=(const StreamStateGuard&) = delete;
-		StreamStateGuard(StreamStateGuard&&) = delete;
-		StreamStateGuard& operator=(StreamStateGuard&&) = delete;
-	};
+	using StreamStateGuard = PrintFormatting::StreamState;
 
 	///////////////////////////       Column Format       ///////////////////////////
 
@@ -293,36 +269,15 @@ namespace MML {
 		// Helper to format a value according to this column's settings
 		template<typename T>
 		std::string formatValue(const T& value) const {
-			std::ostringstream oss;
-
-			// Apply format type
+			PrintFormatting::Notation notation = PrintFormatting::Notation::General;
 			switch (m_formatType) {
-			case FormatType::Fixed:
-				oss << std::fixed;
-				break;
-			case FormatType::Scientific:
-				oss << std::scientific;
-				break;
-			case FormatType::Hexadecimal:
-				oss << std::hex;
-				break;
-			case FormatType::Integer:
-				// No decimal formatting
-				break;
-			case FormatType::General:
-			default:
-				// Use default formatting
-				break;
+			case FormatType::Fixed: notation = PrintFormatting::Notation::Fixed; break;
+			case FormatType::Scientific: notation = PrintFormatting::Notation::Scientific; break;
+			case FormatType::Hexadecimal: notation = PrintFormatting::Notation::Hexadecimal; break;
+			case FormatType::Integer: notation = PrintFormatting::Notation::Integer; break;
+			case FormatType::General: break;
 			}
-
-			// Apply precision
-			if (m_formatType != FormatType::Integer && m_formatType != FormatType::Hexadecimal) {
-				oss << std::setprecision(m_precision);
-			}
-
-			// Output value
-			oss << value;
-			return oss.str();
+			return PrintFormatting::Text(value, m_precision, notation);
 		}
 
 		// Helper to format with alignment and width
@@ -822,7 +777,7 @@ namespace MML {
 	inline TablePrinter<std::string, std::string> MakeAlgorithmResultTable(const EvaluationResultBase& result) {
 		auto table = AlgorithmResultDisplay::makeBaseTable("Value");
 		table.addRow("Algorithm", { result.algorithm_name });
-		table.addRow("Status", { ToString(result.status) });
+		table.addRow("Status", { to_string(result.status) });
 		table.addRow("Success", { AlgorithmResultDisplay::boolString(result.IsSuccess()) });
 		table.addRow("Function evaluations", { AlgorithmResultDisplay::valueString(result.function_evaluations) });
 		table.addRow("Elapsed time ms", { AlgorithmResultDisplay::valueString(result.elapsed_time_ms) });
@@ -835,7 +790,7 @@ namespace MML {
 	inline TablePrinter<std::string, std::string> MakeAlgorithmResultTable(const IterativeResultBase& result) {
 		auto table = AlgorithmResultDisplay::makeBaseTable("Value");
 		table.addRow("Algorithm", { result.algorithm_name });
-		table.addRow("Status", { ToString(result.status) });
+		table.addRow("Status", { to_string(result.status) });
 		table.addRow("Converged", { AlgorithmResultDisplay::boolString(result.converged) });
 		table.addRow("Iterations", { AlgorithmResultDisplay::valueString(result.iterations_used) });
 		table.addRow("Achieved tolerance", { AlgorithmResultDisplay::valueString(result.achieved_tolerance) });

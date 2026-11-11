@@ -41,7 +41,7 @@ namespace Persistence
 
 	struct SaveOptions
 	{
-		int precision = 17;
+		int precision = 0; // Automatic round-trip precision; positive values explicitly override it.
 		bool include_metadata = true;
 		bool pretty_json = true;
 		bool allow_lossy = false;

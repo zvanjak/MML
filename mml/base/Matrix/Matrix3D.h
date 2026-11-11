@@ -37,7 +37,7 @@
 /// // Element access
 /// tensor[0][0][0] = 1.0;     // Bracket notation
 /// tensor(1, 2, 3) = 2.5;     // Parenthesis notation
-/// double val = tensor.At(5, 5, 5);  // Always bounds-checked
+/// double val = tensor.at(5, 5, 5);  // Always bounds-checked
 /// // Fill and apply
 /// tensor.Fill(1.0);
 /// tensor.Apply([](double x) { return x * 2.0; });
@@ -217,7 +217,10 @@ namespace MML {
 		int size() const { return _dim1 * _dim2 * _dim3; }
 
 		/// @brief Returns true if the tensor has no elements.
-		bool isEmpty() const { return _data.empty(); }
+		bool empty() const { return _data.empty(); }
+		/// @deprecated Use empty() (CONTRACT_POLICY §11: STL-shaped protocol).
+		[[deprecated("use empty()")]]
+		bool isEmpty() const { return empty(); }
 
 		/// @brief Gets pointer to raw data (for algorithms needing contiguous memory).
 		Type* data() { return _data.data(); }
@@ -233,7 +236,7 @@ namespace MML {
 		/// @brief Bracket notation access: m[i][j][k].
 		/// @param i Slice index (first dimension).
 		/// @return Pointer to slice i (allows chained [j][k] access).
-		/// @note No bounds checking (use At() for checked access).
+		/// @note No bounds checking (use at() for checked access).
 		Type** operator[](int i) { return _slices[i]; }
 
 		/// @brief Const bracket access.
@@ -268,18 +271,25 @@ namespace MML {
 		/// @param k Column index.
 		/// @return Reference to element at (i,j,k).
 		/// @throws IndexError If any index is out of bounds.
-		Type& At(int i, int j, int k) {
+		Type& at(int i, int j, int k) {
 			if (i < 0 || i >= _dim1 || j < 0 || j >= _dim2 || k < 0 || k >= _dim3)
-				throw IndexError("Matrix3D::At index out of bounds");
+				throw IndexError("Matrix3D::at index out of bounds");
 			return _data[(i * _dim2 + j) * _dim3 + k];
 		}
 
 		/// @brief Const bounds-checked access.
-		const Type& At(int i, int j, int k) const {
+		const Type& at(int i, int j, int k) const {
 			if (i < 0 || i >= _dim1 || j < 0 || j >= _dim2 || k < 0 || k >= _dim3)
-				throw IndexError("Matrix3D::At index out of bounds");
+				throw IndexError("Matrix3D::at index out of bounds");
 			return _data[(i * _dim2 + j) * _dim3 + k];
 		}
+
+		/// @deprecated Use at() (CONTRACT_POLICY §11: STL-shaped protocol is spelled as the STL spells it).
+		[[deprecated("use at()")]]
+		Type& At(int i, int j, int k) { return at(i, j, k); }
+		/// @deprecated Use at().
+		[[deprecated("use at()")]]
+		const Type& At(int i, int j, int k) const { return at(i, j, k); }
 		/// /** @} */
 
 
@@ -302,7 +312,7 @@ namespace MML {
 		/// @param d2 New second dimension.
 		/// @param d3 New third dimension.
 		/// @note If dimensions match current, does nothing.
-		void Resize(int d1, int d2, int d3) {
+		void resize(int d1, int d2, int d3) {
 			if (d1 == _dim1 && d2 == _dim2 && d3 == _dim3)
 				return;
 			if (d1 > 0 && d2 > 0 && d3 > 0) {
@@ -322,7 +332,7 @@ namespace MML {
 		/// @param d2 New second dimension.
 		/// @param d3 New third dimension.
 		/// @param initVal Value to initialize all elements.
-		void Resize(int d1, int d2, int d3, const Type& initVal) {
+		void resize(int d1, int d2, int d3, const Type& initVal) {
 			if (d1 > 0 && d2 > 0 && d3 > 0) {
 				_dim1 = d1; _dim2 = d2; _dim3 = d3;
 				_data.assign(d1 * d2 * d3, initVal);
@@ -334,6 +344,13 @@ namespace MML {
 				_slices.clear();
 			}
 		}
+
+		/// @deprecated Use resize() (CONTRACT_POLICY §11: STL-shaped protocol).
+		[[deprecated("use resize()")]]
+		void Resize(int d1, int d2, int d3) { resize(d1, d2, d3); }
+		/// @deprecated Use resize().
+		[[deprecated("use resize()")]]
+		void Resize(int d1, int d2, int d3, const Type& initVal) { resize(d1, d2, d3, initVal); }
 		/// /** @} */
 
 
@@ -441,7 +458,7 @@ namespace MML {
 		/// @{ */
 
 		/// @brief Returns brief string representation "Matrix3D[d1×d2×d3]".
-		std::string ToString() const {
+		std::string to_string() const {
 			std::ostringstream oss;
 			oss << "Matrix3D[" << _dim1 << "×" << _dim2 << "×" << _dim3 << "]";
 			return oss.str();
@@ -449,7 +466,7 @@ namespace MML {
 
 		/// @brief Returns detailed string representation with all elements.
 		/// @param precision Decimal places for floating-point output.
-		std::string ToStringFull(int precision = 4) const {
+		std::string to_string(int precision) const {
 			std::ostringstream oss;
 			oss << std::fixed << std::setprecision(precision);
 			oss << "Matrix3D[" << _dim1 << "×" << _dim2 << "×" << _dim3 << "]:\n";
@@ -467,9 +484,15 @@ namespace MML {
 			}
 			return oss.str();
 		}
+		/// @deprecated Use to_string() (CONTRACT_POLICY section 11: STL spelling).
+		[[deprecated("use to_string()")]]
+		std::string ToString() const { return to_string(); }
+		/// @deprecated Use to_string(precision).
+		[[deprecated("use to_string(precision)")]]
+		std::string ToStringFull(int precision = 4) const { return to_string(precision); }
 
 		/// @brief Stream output operator.
-		friend std::ostream& operator<<(std::ostream& os, const Matrix3D& m) { return os << m.ToString(); }
+		friend std::ostream& operator<<(std::ostream& os, const Matrix3D& m) { return os << m.to_string(); }
 		/// /** @} */
 	};
 

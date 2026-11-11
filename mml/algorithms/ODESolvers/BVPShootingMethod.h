@@ -286,17 +286,17 @@ namespace MML {
 		/// Factory: High precision configuration
 		static BVPSolverConfig HighPrecision() {
 			BVPSolverConfig cfg;
-			cfg.tolerance = Precision::BVPTolerance * Real(1e-4);
+			cfg.tolerance = Precision::RoundoffZeroThreshold;
 			cfg.max_iterations = 100;
 			cfg.num_integration_steps = 5000;
-			cfg.jacobian_delta = Precision::JacobianDelta * Real(1e-2);
+			cfg.jacobian_delta = Precision::EqualityTolerance;
 			return cfg;
 		}
 
 		/// Factory: Fast configuration
 		static BVPSolverConfig Fast() {
 			BVPSolverConfig cfg;
-			cfg.tolerance = 1e-6;
+			cfg.tolerance = Precision::LooseTolerance;
 			cfg.max_iterations = 20;
 			cfg.num_integration_steps = 200;
 			return cfg;

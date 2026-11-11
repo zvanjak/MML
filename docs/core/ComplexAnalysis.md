@@ -90,7 +90,7 @@ The result converts implicitly to `Complex` for convenience, but using the named
 using namespace MML;
 
 ComplexFunctionFromStdFunc f([](Complex z) {
-	return REAL(1.0) / z;
+	return MML::Real(1.0) / z;
 });
 
 ComplexAnalysis::CircleContour unit(Complex(0.0, 0.0), 1.0);

@@ -13,6 +13,7 @@
 #define MML_ROOTFINDING_BASE_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/base/AlgorithmTypes.h>
 #include <mml/base/Function.h>
 
@@ -34,7 +35,7 @@ namespace MML {
 		/// auto result = FindRootBrent(f, 0, 1, config);
 		struct RootFindingConfig {
 			/// Legacy absolute x tolerance. Used when x_tolerance is zero.
-			Real tolerance = 1e-10;
+			Real tolerance = Precision::EqualityTolerance;
 
 			/// Absolute tolerance for successive root estimates or bracket width.
 			Real x_tolerance = 0.0;
@@ -136,8 +137,10 @@ namespace MML {
 				return false;
 			}
 			result.converged = true;
-			result.achieved_tolerance = 0.0;
-			result.x_error = 0.0;
+			// The endpoint satisfied the f-tolerance: that residual is the achieved tolerance.
+			// No bracket was shrunk, so there is no x-error estimate (RESULT_POLICY §3).
+			result.achieved_tolerance = std::abs(result.function_value);
+			result.x_error = NoEstimate;
 			return true;
 		}
 

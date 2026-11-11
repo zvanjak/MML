@@ -52,7 +52,7 @@ namespace MML
 	///
 	///     // Create a mixed tensor T^i_j for contraction
 	///     Tensor2<3> mixed(1, 1);  // 1 covariant, 1 contravariant
-	///     Real trace = mixed.Contract();  // Sum of diagonal elements
+	///     Real trace = mixed.contract();  // Sum of diagonal elements
 	///
 	///     // Evaluate as bilinear form
 	///     VectorN<Real, 3> v1{1, 0, 0}, v2{0, 1, 0};
@@ -139,27 +139,30 @@ namespace MML
 		///////////////////////////////////////////////////////////////////////
 
 		/// @brief Returns the number of contravariant (upper) indices.
-		int  NumContravar() const override { return _numContravar; }
+		int  numContravar() const override { return _numContravar; }
 
 		/// @brief Returns the number of covariant (lower) indices.
-		int  NumCovar()     const override { return _numCovar; }
+		int  numCovar()     const override { return _numCovar; }
 
-		/// @brief Returns the underlying coefficient matrix.
-		MatrixNM<Real, N, N> GetMatrix() const {
+		/// @brief Returns the components as a matrix (copy).
+		MatrixNM<Real, N, N> ToMatrix() const {
 			MatrixNM<Real, N, N> m;
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++)
 					m[i][j] = _coeff(i, j);
 			return m;
 		}
+		/// @deprecated Use ToMatrix() (CONTRACT_POLICY section 11: conversions are To... nouns).
+		[[deprecated("use ToMatrix()")]]
+		MatrixNM<Real, N, N> GetMatrix() const { return ToMatrix(); }
 
 		/// @brief Checks if index i is contravariant (upper index).
 		/// @param i Index position (0 or 1)
-		bool IsContravar(int i) const override { return _isContravar[i]; }
+		bool isContravar(int i) const override { return _isContravar[i]; }
 
 		/// @brief Checks if index i is covariant (lower index).
 		/// @param i Index position (0 or 1)
-		bool IsCovar(int i) const			{ return !_isContravar[i]; }
+		bool isCovar(int i) const			{ return !_isContravar[i]; }
 
 		/// @brief Sets the variance of index i, keeping covariant/contravariant counts in sync.
 		void setContravar(int i, bool val)
@@ -303,7 +306,7 @@ namespace MML
 		/// @throws TensorCovarContravarNumError if tensor is not mixed (1,1)
 		/// @note Contraction is only meaningful for mixed tensors. For a (2,0) or (0,2) tensor,
 		///       you would first need to raise/lower an index using a metric tensor.
-		Real Contract() const override
+		Real contract() const override
 		{
 			if (_numContravar != 1 || _numCovar != 1)
 				throw TensorCovarContravarNumError("Tensor2 Contract, wrong number of contravariant and covariant indices", _numContravar, _numCovar);
@@ -345,8 +348,8 @@ namespace MML
 		{
 			if (_isContravar[0])
 				throw TensorCovarContravarNumError("Tensor2::RaiseFirstIndex - first index is already contravariant", _numCovar, _numContravar);
-			if (metricInverse.NumContravar() != 2)
-				throw TensorCovarContravarNumError("Tensor2::RaiseFirstIndex - metric must be fully contravariant (2,0)", metricInverse.NumCovar(), metricInverse.NumContravar());
+			if (metricInverse.numContravar() != 2)
+				throw TensorCovarContravarNumError("Tensor2::RaiseFirstIndex - metric must be fully contravariant (2,0)", metricInverse.numCovar(), metricInverse.numContravar());
 
 			Tensor2 result(_numCovar - 1, _numContravar + 1);
 			for (int i = 0; i < N; i++)
@@ -369,8 +372,8 @@ namespace MML
 		{
 			if (_isContravar[1])
 				throw TensorCovarContravarNumError("Tensor2::RaiseSecondIndex - second index is already contravariant", _numCovar, _numContravar);
-			if (metricInverse.NumContravar() != 2)
-				throw TensorCovarContravarNumError("Tensor2::RaiseSecondIndex - metric must be fully contravariant (2,0)", metricInverse.NumCovar(), metricInverse.NumContravar());
+			if (metricInverse.numContravar() != 2)
+				throw TensorCovarContravarNumError("Tensor2::RaiseSecondIndex - metric must be fully contravariant (2,0)", metricInverse.numCovar(), metricInverse.numContravar());
 
 			Tensor2 result(_numCovar - 1, _numContravar + 1);
 			for (int i = 0; i < N; i++)
@@ -393,8 +396,8 @@ namespace MML
 		{
 			if (!_isContravar[0])
 				throw TensorCovarContravarNumError("Tensor2::LowerFirstIndex - first index is already covariant", _numCovar, _numContravar);
-			if (metric.NumCovar() != 2)
-				throw TensorCovarContravarNumError("Tensor2::LowerFirstIndex - metric must be fully covariant (0,2)", metric.NumCovar(), metric.NumContravar());
+			if (metric.numCovar() != 2)
+				throw TensorCovarContravarNumError("Tensor2::LowerFirstIndex - metric must be fully covariant (0,2)", metric.numCovar(), metric.numContravar());
 
 			Tensor2 result(_numCovar + 1, _numContravar - 1);
 			for (int i = 0; i < N; i++)
@@ -417,8 +420,8 @@ namespace MML
 		{
 			if (!_isContravar[1])
 				throw TensorCovarContravarNumError("Tensor2::LowerSecondIndex - second index is already covariant", _numCovar, _numContravar);
-			if (metric.NumCovar() != 2)
-				throw TensorCovarContravarNumError("Tensor2::LowerSecondIndex - metric must be fully covariant (0,2)", metric.NumCovar(), metric.NumContravar());
+			if (metric.numCovar() != 2)
+				throw TensorCovarContravarNumError("Tensor2::LowerSecondIndex - metric must be fully covariant (0,2)", metric.numCovar(), metric.numContravar());
 
 			Tensor2 result(_numCovar + 1, _numContravar - 1);
 			for (int i = 0; i < N; i++)
@@ -473,13 +476,13 @@ namespace MML
 		if (leftIndex < 0 || leftIndex > 1 || rightIndex < 0 || rightIndex > 1)
 			throw TensorIndexError("Contract(Tensor2,Tensor2), index out of range [0,1]");
 
-		if (left.IsContravar(leftIndex) == right.IsContravar(rightIndex))
+		if (left.isContravar(leftIndex) == right.isContravar(rightIndex))
 			throw TensorCovarContravarArithmeticError("Contract(Tensor2,Tensor2), contracted indices must have opposite variance",
-				left.NumContravar(), left.NumCovar(), right.NumContravar(), right.NumCovar());
+				left.numContravar(), left.numCovar(), right.numContravar(), right.numCovar());
 
 		int leftRemaining = 1 - leftIndex;
 		int rightRemaining = 1 - rightIndex;
-		bool resultContravar[2] = { left.IsContravar(leftRemaining), right.IsContravar(rightRemaining) };
+		bool resultContravar[2] = { left.isContravar(leftRemaining), right.isContravar(rightRemaining) };
 		int numContravar = (resultContravar[0] ? 1 : 0) + (resultContravar[1] ? 1 : 0);
 		Tensor2<N> result(2 - numContravar, numContravar);
 		result.setContravar(0, resultContravar[0]);
@@ -488,7 +491,7 @@ namespace MML
 		for (int i = 0; i < N; i++)
 			for (int j = 0; j < N; j++)
 			{
-				Real sum = REAL(0.0);
+				Real sum = static_cast<MML::Real>(0.0);
 				for (int s = 0; s < N; s++)
 				{
 					int leftIdx[2];
@@ -532,17 +535,17 @@ namespace MML
 	template<int N>
 	Tensor2<N> SymmetricPart(const Tensor2<N>& tensor)
 	{
-		if (tensor.IsContravar(0) != tensor.IsContravar(1))
+		if (tensor.isContravar(0) != tensor.isContravar(1))
 			throw TensorCovarContravarArithmeticError("SymmetricPart requires both tensor indices to have the same variance",
-				tensor.NumContravar(), tensor.NumCovar(), tensor.NumContravar(), tensor.NumCovar());
+				tensor.numContravar(), tensor.numCovar(), tensor.numContravar(), tensor.numCovar());
 
-		Tensor2<N> result(tensor.NumCovar(), tensor.NumContravar());
-		result.setContravar(0, tensor.IsContravar(0));
-		result.setContravar(1, tensor.IsContravar(1));
+		Tensor2<N> result(tensor.numCovar(), tensor.numContravar());
+		result.setContravar(0, tensor.isContravar(0));
+		result.setContravar(1, tensor.isContravar(1));
 
 		for (int i = 0; i < N; i++)
 			for (int j = 0; j < N; j++)
-				result(i, j) = REAL(0.5) * (tensor(i, j) + tensor(j, i));
+				result(i, j) = static_cast<MML::Real>(0.5) * (tensor(i, j) + tensor(j, i));
 
 		return result;
 	}
@@ -552,17 +555,17 @@ namespace MML
 	template<int N>
 	Tensor2<N> AntisymmetricPart(const Tensor2<N>& tensor)
 	{
-		if (tensor.IsContravar(0) != tensor.IsContravar(1))
+		if (tensor.isContravar(0) != tensor.isContravar(1))
 			throw TensorCovarContravarArithmeticError("AntisymmetricPart requires both tensor indices to have the same variance",
-				tensor.NumContravar(), tensor.NumCovar(), tensor.NumContravar(), tensor.NumCovar());
+				tensor.numContravar(), tensor.numCovar(), tensor.numContravar(), tensor.numCovar());
 
-		Tensor2<N> result(tensor.NumCovar(), tensor.NumContravar());
-		result.setContravar(0, tensor.IsContravar(0));
-		result.setContravar(1, tensor.IsContravar(1));
+		Tensor2<N> result(tensor.numCovar(), tensor.numContravar());
+		result.setContravar(0, tensor.isContravar(0));
+		result.setContravar(1, tensor.isContravar(1));
 
 		for (int i = 0; i < N; i++)
 			for (int j = 0; j < N; j++)
-				result(i, j) = REAL(0.5) * (tensor(i, j) - tensor(j, i));
+				result(i, j) = static_cast<MML::Real>(0.5) * (tensor(i, j) - tensor(j, i));
 
 		return result;
 	}
@@ -574,7 +577,7 @@ namespace MML
 	{
 		detail::ValidateTensorPermutation<2>(permutation);
 
-		bool resultContravar[2] = { tensor.IsContravar(permutation[0]), tensor.IsContravar(permutation[1]) };
+		bool resultContravar[2] = { tensor.isContravar(permutation[0]), tensor.isContravar(permutation[1]) };
 		int numContravar = (resultContravar[0] ? 1 : 0) + (resultContravar[1] ? 1 : 0);
 		Tensor2<N> result(2 - numContravar, numContravar);
 		result.setContravar(0, resultContravar[0]);

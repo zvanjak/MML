@@ -525,9 +525,9 @@ TEST_CASE("Singularity - Negative tolerance is handled", "[Singularity][EdgeCase
 }
 
 TEST_CASE("Singularity - Very large values", "[Singularity][EdgeCases]") {
-    Real large = TOL(REAL(1e100), REAL(1e30));
+    Real large = TOL(static_cast<MML::Real>(1e100), static_cast<MML::Real>(1e30));
     REQUIRE(IsNearZero(large) == false);
-    REQUIRE(SafeDivide(large, REAL(2.0)) == Catch::Approx(double(large / REAL(2.0))));
+    REQUIRE(SafeDivide(large, static_cast<MML::Real>(2.0)) == Catch::Approx(double(large / static_cast<MML::Real>(2.0))));
 }
 
 TEST_CASE("Singularity - Denormalized numbers", "[Singularity][EdgeCases]") {

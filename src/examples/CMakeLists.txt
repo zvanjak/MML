@@ -54,16 +54,12 @@ add_executable(Example06_LorentzTransform
 )
 target_include_directories(Example06_LorentzTransform PRIVATE ${CMAKE_SOURCE_DIR})
 
-# Example 07: Electromagnetism in special relativity.
-# This example depends on MPL Electromagnetism helpers, which are not part of the
-# public MML core release.
-if(EXISTS "${CMAKE_SOURCE_DIR}/src/book/mpl/Electromagnetism/Electromagnetism.h")
-    add_executable(Example07_EMFields
-        07_EM_fields/main.cpp
-    )
-    target_include_directories(Example07_EMFields PRIVATE ${CMAKE_SOURCE_DIR})
-    target_include_directories(Example07_EMFields PRIVATE ${CMAKE_SOURCE_DIR}/src/book/mpl)
-endif()
+# Example 07: Electromagnetism in special relativity
+add_executable(Example07_EMFields
+    07_EM_fields/main.cpp
+)
+target_include_directories(Example07_EMFields PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(Example07_EMFields PRIVATE ${CMAKE_SOURCE_DIR}/src/book/mpl)
 
 # Example 08: General relativity curvature and geodesics
 add_executable(Example08_GRExamples
@@ -88,3 +84,13 @@ add_executable(Example11_VectorSpaces
     11_vector_spaces/main.cpp
 )
 target_include_directories(Example11_VectorSpaces PRIVATE ${CMAKE_SOURCE_DIR})
+
+# Example 12: Tourism dataset statistics
+add_executable(Example12_Statistics
+    12_statistics/main.cpp
+    12_statistics/TourismData.cpp
+)
+target_link_libraries(Example12_Statistics PRIVATE minimalmathlib::minimalmathlib)
+if(MSVC)
+    target_compile_options(Example12_Statistics PRIVATE /utf-8)
+endif()

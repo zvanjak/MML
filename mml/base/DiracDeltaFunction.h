@@ -13,6 +13,7 @@
 #define MML_DELTA_FUNCTION_H
 
 #include <mml/MMLBase.h>
+#include <string>
 
 #include <mml/interfaces/IFunction.h>
 
@@ -25,11 +26,16 @@ namespace MML
 	class DiracFunction : public IRealFunction
 	{
 	protected:
-		int _N;   ///< Approximation parameter (larger = sharper peak)
+		int _sharpness;   ///< Approximation parameter (larger = sharper peak)
 	public:
 		/// @brief Constructs Dirac delta approximation.
-		/// @param N Sharpness parameter (larger values give narrower peaks)
-		DiracFunction(int N) : _N(N) {}
+		/// @param N Sharpness parameter (larger values give narrower peaks); must be >= 1
+		/// @throws ArgumentError if N <= 0 (zero width / negative height is not a delta approximation)
+		DiracFunction(int N) : _sharpness(N)
+		{
+			if (N <= 0)
+				throw ArgumentError("DiracFunction: sharpness parameter N must be positive, got " + std::to_string(N));
+		}
 	};
 
 	/// @brief Step function (rectangular) approximation of Dirac delta.
@@ -47,10 +53,10 @@ namespace MML
 		/// @return N if |x| < 1/(2N), otherwise 0
 		Real operator()(const Real x) const
 		{
-			if (x < -1.0 / (2 * _N) || x > 1.0 / (2 * _N))
+			if (x < -1.0 / (2 * _sharpness) || x > 1.0 / (2 * _sharpness))
 				return 0.0;
 			else
-				return _N;
+				return _sharpness;
 		}
 	};
 
@@ -68,7 +74,7 @@ namespace MML
 		/// @brief Evaluates the Gaussian approximation.
 		/// @param x Point to evaluate
 		/// @return N/√(2π) · exp(-N²x²/2)
-		Real operator()(const Real x) const { return _N / std::sqrt(2 * Constants::PI) * std::exp(-x * x * _N * _N / 2.0); }
+		Real operator()(const Real x) const { return _sharpness / std::sqrt(2 * Constants::PI) * std::exp(-x * x * _sharpness * _sharpness / 2.0); }
 	};
 
 	/// @brief Lorentzian (Cauchy) approximation of Dirac delta.
@@ -84,7 +90,7 @@ namespace MML
 		/// @brief Evaluates the Lorentzian approximation.
 		/// @param x Point to evaluate
 		/// @return N / (π(1 + N²x²))
-		Real operator()(const Real x) const { return _N / Constants::PI / (1 + _N * _N * x * x); }
+		Real operator()(const Real x) const { return _sharpness / Constants::PI / (1 + _sharpness * _sharpness * x * x); }
 	};
 
 	/// @brief Sinc function approximation of Dirac delta.
@@ -102,9 +108,9 @@ namespace MML
 		/// @param x Point to evaluate
 		/// @return sin(Nx) / (πx), or N/π when x = 0
 		Real operator()(const Real x) const { 
-			if (std::abs(x) < 1e-15)  // Handle x ≈ 0: lim(x→0) sin(Nx)/(πx) = N/π
-				return static_cast<Real>(_N) / Constants::PI;
-			return std::sin(_N * x) / (Constants::PI * x); 
+			if (IsNearlyZero(x, Precision::StrictTolerance))  // Handle x ≈ 0: lim(x→0) sin(Nx)/(πx) = N/π
+				return static_cast<Real>(_sharpness) / Constants::PI;
+			return std::sin(_sharpness * x) / (Constants::PI * x);
 		}
 	};
 }

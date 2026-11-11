@@ -17,6 +17,7 @@
 #include <mml/base/ODESystemSolution.h>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
+#include <mml/algorithms/ODESolvers.h>
 #endif
 
 #include <iostream>
@@ -164,7 +165,7 @@ void Demo_ODESystemSolution()
         solution.setXVal(i, 0, x[0]);
         solution.setXVal(i, 1, x[1]);
     }
-    solution.setFinalSize(numPoints);
+    solution.setFinalSize(numPoints - 1);   // argument is the number of steps = points - 1
     
     std::cout << "Filled with " << numPoints << " harmonic oscillator points.\n\n";
 
@@ -226,7 +227,7 @@ void Demo_ODEWithJacobian()
     Vector<Real> dxdt(2);
     Matrix<Real> J(2, 2);
     
-    system.jacobian(0.0, x, dxdt, J);
+    system.derivsAndJacobian(0.0, x, dxdt, J);   // or system.jacobian(0.0, x, J) for J alone
     
     std::cout << "At x=[1, 0.5], Jacobian matrix:\n";
     J.Print(std::cout, 8, 3);
@@ -256,7 +257,7 @@ void Demo_SolutionInterpolation()
         solution.setTVal(i, t);
         solution.setXVal(i, 0, std::sin(t));
     }
-    solution.setFinalSize(numPoints);
+    solution.setFinalSize(numPoints - 1);   // argument is the number of steps = points - 1
     
     // Get linear interpolation
     auto linInterp = solution.getSolAsLinInterp(0);
@@ -277,6 +278,83 @@ void Demo_SolutionInterpolation()
 ///                              MAIN DEMO FUNCTION                                     ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
+///////////////////////////////////////////////////////////////////////////////////////////
+///                     Example 4: Parametrized System Study (ODE_system.md)           ///
+///////////////////////////////////////////////////////////////////////////////////////////
+
+class ParametrizedOscillator : public IODESystemParametrized
+{
+private:
+    Real _omega;  // Frequency parameter
+    Real _damping; // Damping parameter
+    
+public:
+    ParametrizedOscillator(Real omega, Real damping) 
+        : _omega(omega), _damping(damping) {}
+    
+    int getDim() const override { return 2; }
+    
+    void derivs(const Real t, const Vector<Real>& x, Vector<Real>& dxdt) const override
+    {
+        dxdt[0] = x[1];
+        dxdt[1] = -_omega*_omega*x[0] - 2.0*_damping*x[1];
+    }
+    
+    int getNumParam() const override { return 2; }
+    
+    Real getParam(int i) const override {
+        return (i == 0) ? _omega : _damping;
+    }
+    
+    void setParam(int i, Real val) override {
+        if (i == 0) _omega = val;
+        else _damping = val;
+    }
+    
+    Vector<Real> getParams() const override {
+        return Vector<Real>{_omega, _damping};
+    }
+    
+    void setParams(const Vector<Real>& params) override {
+        if (params.size() != 2)
+            throw VectorDimensionError("ParametrizedOscillator::setParams - expected 2 parameters", params.size(), 2);
+        _omega = params[0];
+        _damping = params[1];
+    }
+};
+
+void Demo_ParameterStudy()
+{
+    std::cout << "\n--- Parametrized system study (IODESystemParametrized) ---\n";
+    Vector<Real> x0{1.0, 0.0};
+    
+    // Study damping effect
+    for (Real damping = 0.0; damping <= 2.0; damping += 0.5)
+    {
+        ParametrizedOscillator system(2.0, damping);
+        
+        RungeKutta4_StepCalculator rk4;
+        ODESystemFixedStepSolver solver(system, rk4);
+        auto solution = solver.integrate(x0, 0.0, 10.0, 1000);   // h = 0.01
+        
+        // Analyze decay rate
+        auto x_t = solution.getSolAsSplineInterp(0);
+        
+        std::cout << "Damping: " << damping 
+                  << ", Final amplitude: " << std::abs(x_t(10.0)) << "\n";
+    }
+
+    // setParams rejects a wrong-sized vector (IParametrized contract, wewi.6.4)
+    ParametrizedOscillator system(2.0, 0.1);
+    try {
+        system.setParams(Vector<Real>{1.0});
+    } catch (const VectorDimensionError& e) {
+        std::cout << "setParams with 1 value: " << e.what() << "\n";
+    }
+    system.setParams(Vector<Real>{3.0, 0.2});
+    std::cout << "omega = " << system.getParam(0) << ", damping = " << system.getParam(1) << "\n";
+}
+
 void Docs_Demo_ODESystem()
 {
     std::cout << "\n" << std::string(70, '=') << "\n";
@@ -296,6 +374,7 @@ void Docs_Demo_ODESystem()
     Demo_ODESystemSolution();
     Demo_ODEWithJacobian();
     Demo_SolutionInterpolation();
+    Demo_ParameterStudy();
 
     std::cout << "\n" << std::string(70, '=') << "\n";
     std::cout << "               END OF ODE SYSTEM DEMO\n";

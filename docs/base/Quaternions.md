@@ -184,8 +184,8 @@ Vec3Cart rotated = q.Rotate(v);  // → (0, 1, 0) Y-axis
 auto q = Quaternion::FromAxisAngle(Vec3Cart(1, 0, 0), Constants::PI / 3);
 
 // Get axis and angle back
-Vec3Cart axis = q.GetRotationAxis();   // (1, 0, 0)
-Real angle = q.GetRotationAngle();     // π/3 ≈ 1.047
+Vec3Cart axis = q.getRotationAxis();   // (1, 0, 0)
+Real angle = q.getRotationAngle();     // π/3 ≈ 1.047
 
 // Or both at once
 Vec3Cart ax;

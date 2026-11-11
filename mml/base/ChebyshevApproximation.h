@@ -19,6 +19,7 @@
 #include "../base/ChebyshevPolynom.h"
 #include "AlgorithmTypes.h"
 
+#include <algorithm>
 #include <functional>
 #include <string>
 
@@ -67,7 +68,7 @@ namespace MML {
 		// 1. Sample function at Chebyshev nodes: x_k = cos(π(k+0.5)/n)
 		// 2. Compute coefficients via discrete cosine transform
 		ChebyshevApproximation(const IRealFunction& func, Real a, Real b, int n = 50)
-			: _coef(n)
+			: _coef(std::max(n, 0))
 			, _a(a)
 			, _b(b)
 			, _m(n) {
@@ -100,7 +101,7 @@ namespace MML {
 
 		// Construct from std::function for convenience (lambdas, etc.)
 		ChebyshevApproximation(std::function<Real(Real)> func, Real a, Real b, int n = 50)
-			: _coef(n)
+			: _coef(std::max(n, 0))
 			, _a(a)
 			, _b(b)
 			, _m(n) {

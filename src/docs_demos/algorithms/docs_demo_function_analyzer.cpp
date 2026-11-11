@@ -5,7 +5,12 @@
 
 #include <mml/base/Function.h>
 #include <mml/algorithms/Analyzers/FunctionsAnalyzer.h>
+#include <mml/tools/analyzers/FunctionAnalysisReports.h>
+#include <mml/algorithms/Analyzers/MatrixAnalyzer.h>
+#include <mml/tools/analyzers/MatrixAnalysisReports.h>
 #endif
+
+#include <sstream>
 
 using namespace MML;
 
@@ -23,16 +28,16 @@ void Docs_Demo_FunctionAnalyzer_Basic()
 	
 	// Simple polynomial
 	RealFunctionFromStdFunc f([](Real x) { return x * x * x - 3.0 * x + 1.0; });
-	RealFunctionAnalyzer analyzer(f, "x³ - 3x + 1");
+	RealFunctionAnalyzer analyzer(f);
 	
 	std::cout << "\n--- f(x) = x³ - 3x + 1 ---\n";
 	
 	// Point analysis
 	std::cout << "\nPoint analysis at x = 0:\n";
-	analyzer.PrintPointAnalysis(0.0);
+	AnalysisReports::PrintPointAnalysis(std::cout, analyzer.AnalyzePoint(0.0));
 	
 	std::cout << "\nPoint analysis at x = 1:\n";
-	analyzer.PrintPointAnalysis(1.0);
+	AnalysisReports::PrintPointAnalysis(std::cout, analyzer.AnalyzePoint(1.0));
 }
 
 void Docs_Demo_FunctionAnalyzer_Interval()
@@ -43,10 +48,10 @@ void Docs_Demo_FunctionAnalyzer_Interval()
 	
 	// Quadratic function
 	RealFunctionFromStdFunc f([](Real x) { return (x - 1.0) * (x - 1.0) - 4.0; });
-	RealFunctionAnalyzer analyzer(f, "(x-1)² - 4");
+	RealFunctionAnalyzer analyzer(f);
 	
 	std::cout << "\n--- f(x) = (x-1)² - 4 ---\n";
-	analyzer.PrintIntervalAnalysis(-2.0, 4.0, 20);
+	AnalysisReports::PrintIntervalAnalysis(std::cout, analyzer.AnalyzeInterval(-2.0, 4.0, 20));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -63,7 +68,7 @@ void Docs_Demo_FunctionAnalyzer_Zeros()
 	RealFunctionFromStdFunc f([](Real x) { 
 		return (x - 1.0) * (x + 2.0) * (x - 3.0);  // roots at 1, -2, 3
 	});
-	RealFunctionAnalyzer analyzer(f, "(x-1)(x+2)(x-3)");
+	RealFunctionAnalyzer analyzer(f);
 	
 	std::cout << "\n--- f(x) = (x-1)(x+2)(x-3)  (roots at -2, 1, 3) ---\n";
 	
@@ -89,7 +94,7 @@ void Docs_Demo_FunctionAnalyzer_Extrema()
 	RealFunctionFromStdFunc f([](Real x) { 
 		return std::sin(x) + 0.2 * x;  // oscillating with trend
 	});
-	RealFunctionAnalyzer analyzer(f, "sin(x) + 0.2x");
+	RealFunctionAnalyzer analyzer(f);
 	
 	std::cout << "\n--- f(x) = sin(x) + 0.2x ---\n";
 	
@@ -120,7 +125,7 @@ void Docs_Demo_FunctionAnalyzer_Inflection()
 	
 	// Cubic function (inflection at x=0)
 	RealFunctionFromStdFunc f([](Real x) { return x * x * x; });
-	RealFunctionAnalyzer analyzer(f, "x³");
+	RealFunctionAnalyzer analyzer(f);
 	
 	std::cout << "\n--- f(x) = x³  (inflection at x=0) ---\n";
 	
@@ -149,12 +154,13 @@ void Docs_Demo_FunctionAnalyzer_Discontinuities()
 	
 	// Function with jump discontinuity (floor function)
 	RealFunctionFromStdFunc f([](Real x) { return std::floor(x); });
-	RealFunctionAnalyzer analyzer(f, "floor(x)");
+	RealFunctionAnalyzer analyzer(f);
 	
 	std::cout << "\n--- f(x) = floor(x)  (jump discontinuities at integers) ---\n";
 	
 	// Find discontinuities
-	auto discs = analyzer.FindDiscontinuities(-2.5, 2.5, 100);
+	const auto continuity = analyzer.AnalyzeContinuity(-2.5, 2.5, 100);
+	const auto& discs = continuity.candidates;
 	
 	std::cout << "\nDiscontinuities found:\n";
 	for (const auto& d : discs) {
@@ -169,6 +175,7 @@ void Docs_Demo_FunctionAnalyzer_Discontinuities()
 		std::cout << "  x = " << d.x << " (" << type << "), "
 		          << "left = " << d.leftLimit << ", right = " << d.rightLimit << std::endl;
 	}
+	AnalysisReports::PrintContinuityAnalysis(std::cout, continuity, "floor(x)");
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -183,17 +190,17 @@ void Docs_Demo_FunctionAnalyzer_Monotonicity()
 	
 	// Increasing function
 	RealFunctionFromStdFunc f1([](Real x) { return std::exp(x); });
-	RealFunctionAnalyzer analyzer1(f1, "exp(x)");
+	RealFunctionAnalyzer analyzer1(f1);
 	
 	// Oscillating function
 	RealFunctionFromStdFunc f2([](Real x) { return std::sin(x); });
-	RealFunctionAnalyzer analyzer2(f2, "sin(x)");
+	RealFunctionAnalyzer analyzer2(f2);
 	
 	std::cout << "\n--- f(x) = exp(x) on [0, 5] ---\n";
-	std::cout << "Is monotonic: " << (analyzer1.isMonotonic(0.0, 5.0, 100) ? "yes" : "no") << std::endl;
+	std::cout << "Monotonic on samples: " << (analyzer1.IsMonotonicOnSamples(0.0, 5.0, 100) ? "yes" : "no") << std::endl;
 	
 	std::cout << "\n--- f(x) = sin(x) on [0, 5] ---\n";
-	std::cout << "Is monotonic: " << (analyzer2.isMonotonic(0.0, 5.0, 100) ? "yes" : "no") << std::endl;
+	std::cout << "Monotonic on samples: " << (analyzer2.IsMonotonicOnSamples(0.0, 5.0, 100) ? "yes" : "no") << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -210,15 +217,52 @@ void Docs_Demo_FunctionAnalyzer_Detailed()
 	RealFunctionFromStdFunc f([](Real x) { 
 		return x * x * x - 2.0 * x * x - x + 2.0;  // = (x-1)(x+1)(x-2)
 	});
-	RealFunctionAnalyzer analyzer(f, "x³ - 2x² - x + 2");
+	RealFunctionAnalyzer analyzer(f);
 	
 	std::cout << "\n--- f(x) = x³ - 2x² - x + 2 = (x-1)(x+1)(x-2) ---\n";
-	analyzer.PrintDetailedIntervalAnalysis(-2.0, 3.0, 10);
+	AnalysisReports::PrintDetailedIntervalAnalysis(std::cout, analyzer.AnalyzePoints(-2.0, 3.0, 10));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                         MAIN DEMO FUNCTION                                          ///
 ///////////////////////////////////////////////////////////////////////////////////////////
+
+void Docs_Demo_AnalyzerReports()
+{
+	RealFunction function(+[](Real x) { return x * x * x - 3 * x + 1; });
+	const RealFunctionAnalyzer analyzer(function);
+	const auto point = analyzer.AnalyzePoint(Real(1));
+	const auto interval = analyzer.AnalyzeInterval(Real(-2), Real(2), 100);
+	const auto details = analyzer.AnalyzePoints(Real(-2), Real(2), 20);
+	const auto continuity = analyzer.AnalyzeContinuity(Real(-2), Real(2), 100);
+	AnalysisReports::PrintPointAnalysis(std::cout, point, "x^3 - 3x + 1");
+	AnalysisReports::PrintIntervalAnalysis(std::cout, interval);
+	AnalysisReports::PrintDetailedIntervalAnalysis(std::cout, details);
+	AnalysisReports::PrintContinuityAnalysis(std::cout, continuity);
+	std::ostringstream savedReport;
+	AnalysisReports::PrintIntervalAnalysis(savedReport, interval);
+	std::cout << "Reused snapshot report size: " << savedReport.str().size() << '\n';
+	const auto sampled = analyzer.AnalyzeInterval(Real(-3), Real(3), 100, Precision::LooseTolerance);
+	AnalysisReports::PrintIntervalAnalysis(std::cout, sampled, "x^3 - 3x + 1");
+	RealFunctionFromStdFunc step([](Real x) -> Real {
+		if (x < 0) return 0;
+		if (x > 0) return 1;
+		return Real(1) / 2;
+	});
+	AnalysisReports::PrintIntervalAnalysis(
+		std::cout, RealFunctionAnalyzer(step).AnalyzeInterval(Real(-2), Real(2), 100, Precision::LooseTolerance));
+
+	RealFunction absoluteValue(+[](Real x) { return std::abs(x); });
+	AnalysisReports::PrintPointAnalysis(std::cout, RealFunctionAnalyzer(absoluteValue).AnalyzePoint(Real(0)), "|x|");
+	RealFunction lorentzian(+[](Real x) { return Real(1) / (Real(1) + x * x); });
+	AnalysisReports::PrintIntervalAnalysis(
+		std::cout, RealFunctionAnalyzer(lorentzian).AnalyzeInterval(Real(-5), Real(5), 1000), "1/(1+x^2)");
+
+	Matrix<Real> matrix(2, 2, {2, 0, 0, 3});
+	MatrixAnalyzer<Real> matrixAnalyzer(matrix);
+	const auto matrixAnalysis = matrixAnalyzer.Analyze();
+	AnalysisReports::PrintMatrixAnalysis(std::cout, matrixAnalysis, "diagonal");
+}
 
 void Docs_Demo_FunctionAnalyzer()
 {

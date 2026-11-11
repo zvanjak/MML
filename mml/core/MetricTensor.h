@@ -12,6 +12,7 @@
 #if !defined  MML_METRIC_TENSOR_H
 #define MML_METRIC_TENSOR_H
 
+#include <mml/algorithms/MatrixSingularity.h>
 #include <mml/MMLSingularityHandling.h>
 
 #include <mml/interfaces/IFunction.h>
@@ -20,10 +21,12 @@
 #include <mml/base/Matrix/MatrixNM.h>
 
 #include <mml/core/Derivation.h>
+#include <mml/core/Derivation/DerivativeProviders.h>
 #include <mml/core/Derivation/DerivationTensorField.h>
 #include <mml/core/CoordTransf/CoordTransfBase.h>
 
 #include <cmath>
+#include <typeinfo>
 
 namespace MML
 {
@@ -86,7 +89,7 @@ namespace MML
 
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++)
-					ret(i, j) = this->Component(i, j, pos);
+					ret(i, j) = this->component(i, j, pos);
 
 			return ret;
 		}
@@ -101,7 +104,7 @@ namespace MML
 			MatrixNM<Real, N, N> g_covar;
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++)
-					g_covar[i][j] = this->Component(i, j, pos);
+					g_covar[i][j] = this->component(i, j, pos);
 			return g_covar;
 		}
 
@@ -112,8 +115,14 @@ namespace MML
 		// Get the contravariant metric tensor components at a point (gⁱʲ = inverse of gᵢⱼ)
 		MatrixNM<Real, N, N> GetContravariantMetric(const VectorN<Real, N>& pos) const
 		{
-			MatrixNM<Real, N, N> g_covar = GetCovariantMetric(pos);
-			return g_covar.GetInverse();
+			return GetContravariantMetric(pos, Singularity::DEFAULT_POLICY);
+		}
+
+		/// Explicit sentinel policy for a singular metric; Clamp does not regularize it.
+		MatrixNM<Real, N, N> GetContravariantMetric(const VectorN<Real, N>& pos, SingularityPolicy policy) const {
+			Singularity::RequireMatrixPolicy(policy);
+			Singularity::RequireFiniteCoordinates<N>(pos, "Metric inversion");
+			return Singularity::InverseMatrix(GetCovariantMetric(pos), policy);
 		}
 
 		/// @brief Raise a covariant vector index: vⁱ = gⁱʲ vⱼ
@@ -202,12 +211,13 @@ namespace MML
 		/// @return Γᵢⱼₖ = gₘₖ Γᵐᵢⱼ (related to second kind via metric)
 		Real GetChristoffelSymbolFirstKind(int i, int j, int k, const VectorN<Real, N>& pos) const
 		{
+			ValidateChristoffelArguments(i, j, k, pos);
 			const MetricTensorField<N>& g = *this;
 
 			Real gamma_ijk = 0.0;
 			for (int m = 0; m < N; m++)
 			{
-				gamma_ijk += g.Component(m, k, pos) * GetChristoffelSymbolSecondKind(m, i, j, pos);
+				gamma_ijk += g.component(m, k, pos) * GetChristoffelSymbolSecondKind(m, i, j, pos);
 			}
 			return gamma_ijk;
 		}
@@ -216,13 +226,22 @@ namespace MML
 		/// @param pos Position in coordinate space
 		/// @return Γᵐᵢⱼ = ½ gᵐˡ (∂ⱼ gˡₖ + ∂ₖ gˡⱼ - ∂ˡ gⱼₖ) (connection coefficients)
 		/// @note Used in geodesic equation and covariant derivatives
-		Real GetChristoffelSymbolSecondKind(int i, int j, int k, const VectorN<Real, N>& pos) const
-		{
+		virtual Real GetChristoffelSymbolSecondKind(int i, int j, int k, const VectorN<Real, N>& pos) const {
+			ValidateChristoffelArguments(i, j, k, pos);
+			if (const auto* provider = dynamic_cast<const IMetricJetProvider<N>*>(this))
+				return ConnectionFromJet(provider->EvaluateMetricJet(pos), i, j, k);
+			return GetChristoffelSymbolSecondKindNumerical(i, j, k, pos);
+		}
+
+		/// @brief Fourth-order numerical connection reference, bypassing analytical overrides.
+		/// @note Requires covariant metric storage. Singular matrices fail during inversion.
+		Real GetChristoffelSymbolSecondKindNumerical(int i, int j, int k, const VectorN<Real, N>& pos) const {
+			ValidateChristoffelArguments(i, j, k, pos);
 			const MetricTensorField<N>& g = *this;
 
 			// Γⁱⱼₖ = ½ gⁱˡ (∂ⱼgₗₖ + ∂ₖgₗⱼ - ∂ₗgⱼₖ)
 			// Need contravariant metric gⁱˡ to raise the index
-			MatrixNM<Real, N, N> g_contravar = GetContravariantMetric(pos);
+			const auto g_contravar = GetContravariantMetric(pos);
 
 			Real gamma_ijk = 0.0;
 			for (int l = 0; l < N; l++)
@@ -233,6 +252,8 @@ namespace MML
 
 				gamma_ijk += 0.5 * g_contravar[i][l] * (coef1 + coef2 - coef3);
 			}
+			if (!std::isfinite(gamma_ijk))
+				throw DomainError("Numerical Christoffel calculation produced a non-finite coefficient");
 			return gamma_ijk;
 		}
 
@@ -277,7 +298,7 @@ namespace MML
 		/// @return Ricci tensor component R_sigma_nu
 		Real GetRicciTensor(int sigma, int nu, const VectorN<Real, N>& pos) const
 		{
-			Real value = REAL(0.0);
+			Real value = static_cast<MML::Real>(0.0);
 			for (int rho = 0; rho < N; rho++)
 				value += GetRiemannCurvatureTensor(rho, sigma, rho, nu, pos);
 			return value;
@@ -304,7 +325,7 @@ namespace MML
 		{
 			MatrixNM<Real, N, N> gContravar = GetContravariantMetric(pos);
 			Tensor2<N> ricci = GetRicciTensor(pos);
-			Real value = REAL(0.0);
+			Real value = static_cast<MML::Real>(0.0);
 
 			for (int sigma = 0; sigma < N; sigma++)
 				for (int nu = 0; nu < N; nu++)
@@ -319,7 +340,7 @@ namespace MML
 		/// @return Einstein tensor component G_mu_nu
 		Real GetEinsteinTensor(int mu, int nu, const VectorN<Real, N>& pos) const
 		{
-			return GetRicciTensor(mu, nu, pos) - REAL(0.5) * this->Component(mu, nu, pos) * GetRicciScalar(pos);
+			return GetRicciTensor(mu, nu, pos) - static_cast<MML::Real>(0.5) * this->component(mu, nu, pos) * GetRicciScalar(pos);
 		}
 
 		/// @brief Get Einstein tensor G_mu_nu at a point.
@@ -348,7 +369,7 @@ namespace MML
 			VectorN<Real, N> vec_val = func(pos);
 
 			for (int i = 0; i < N; i++) {
-				Real comp_val = Derivation::DeriveVecPartial<N>(func, i, j, pos, nullptr);
+				Real comp_val = Differential::VectorPartial<N>(func, i, j, pos);
 
 				for (int k = 0; k < N; k++)
 					comp_val += GetChristoffelSymbolSecondKind(i, k, j, pos) * vec_val[k];
@@ -361,7 +382,7 @@ namespace MML
 		Real CovariantDerivativeContravarComp(const IVectorFunction<N>& func, int i, int j, 
 																					const VectorN<Real, N>& pos) const
 		{
-			Real ret = Derivation::DeriveVecPartial<N>(func, i, j, pos, nullptr);
+			Real ret = Differential::VectorPartial<N>(func, i, j, pos);
 
 			for (int k = 0; k < N; k++)
 				ret += GetChristoffelSymbolSecondKind(i, k, j, pos) * func(pos)[k];
@@ -377,7 +398,7 @@ namespace MML
 			VectorN<Real, N> vec_val = func(pos);
 
 			for (int i = 0; i < N; i++) {
-				Real comp_val = Derivation::DeriveVecPartial<N>(func, i, j, pos, nullptr);
+				Real comp_val = Differential::VectorPartial<N>(func, i, j, pos);
 
 				for (int k = 0; k < N; k++)
 					comp_val -= GetChristoffelSymbolSecondKind(k, i, j, pos) * vec_val[k];
@@ -390,7 +411,7 @@ namespace MML
 		Real CovariantDerivativeCovarComp(const IVectorFunction<N>& func, int i, int j, 
 																			const VectorN<Real, N>& pos) const
 		{
-			Real comp_val = Derivation::DeriveVecPartial<N>(func, i, j, pos, nullptr);
+			Real comp_val = Differential::VectorPartial<N>(func, i, j, pos);
 
 			for (int k = 0; k < N; k++)
 				comp_val -= GetChristoffelSymbolSecondKind(k, i, j, pos) * func(pos)[k];
@@ -398,9 +419,53 @@ namespace MML
 			return comp_val;
 		}
 
-	private:
-		Real DeriveChristoffelSymbolSecondKind(int i, int j, int k, int derivIndex, const VectorN<Real, N>& pos) const
-		{
+	protected:
+		void ValidateChristoffelArguments(int i, int j, int k, const VectorN<Real, N>& pos) const {
+			if (i < 0 || i >= N || j < 0 || j >= N || k < 0 || k >= N)
+				throw IndexError("Christoffel index outside metric dimension");
+			if (this->getNumContravar() != 0 || this->getNumCovar() != 2)
+				throw DomainError("Christoffel symbols require covariant metric storage; use the covariant metric field");
+			for (int axis = 0; axis < N; ++axis)
+				if (!std::isfinite(pos[axis]))
+					throw DomainError("Christoffel symbols require finite coordinates");
+		}
+
+		// d(g^-1) = -g^-1 (dg) g^-1; no differentiation through matrix inversion.
+		static Real ConnectionFromJet(const MetricJet<N>& jet, int i, int j, int k, int axis = -1) {
+			if (i < 0 || i >= N || j < 0 || j >= N || k < 0 || k >= N || axis < -1 || axis >= N)
+				throw IndexError("Metric jet connection index outside dimension");
+			Singularity::RequireFiniteMatrix(jet.value, "Metric derivative provider");
+			for (int a = 0; a < N; ++a) {
+				Singularity::RequireFiniteMatrix(jet.first[a], "Metric derivative provider");
+				for (int b = 0; b < N; ++b)
+					Singularity::RequireFiniteMatrix(jet.second[a][b], "Metric derivative provider");
+			}
+			const auto inv = Singularity::InverseMatrix(jet.value, Singularity::DEFAULT_POLICY);
+			Real result = 0;
+			for (int l = 0; l < N; ++l) {
+				const Real coefficient = jet.first[j](l, k) + jet.first[k](l, j) - jet.first[l](j, k);
+				if (axis < 0) {
+					result += Real(0.5) * inv(i, l) * coefficient;
+				} else {
+					Real inverseDerivative = 0;
+					for (int a = 0; a < N; ++a)
+						for (int b = 0; b < N; ++b)
+							inverseDerivative -= inv(i, a) * jet.first[axis](a, b) * inv(b, l);
+					result += Real(0.5) * (inverseDerivative * coefficient +
+																 inv(i, l) * (jet.second[axis][j](l, k) + jet.second[axis][k](l, j) - jet.second[axis][l](j, k)));
+				}
+			}
+			if (!std::isfinite(result))
+				throw NumericalMethodError("Metric derivative provider produced a non-finite connection derivative");
+			return result;
+		}
+
+		virtual Real DeriveChristoffelSymbolSecondKind(int i, int j, int k, int derivIndex, const VectorN<Real, N>& pos) const {
+			ValidateChristoffelArguments(i, j, k, pos);
+			if (derivIndex < 0 || derivIndex >= N)
+				throw IndexError("Connection derivative index outside metric dimension");
+			if (const auto* provider = dynamic_cast<const IMetricJetProvider<N>*>(this))
+				return ConnectionFromJet(provider->EvaluateMetricJet(pos), i, j, k, derivIndex);
 			VectorN<Real, N> x = pos;
 			Real original = pos[derivIndex];
 			Real h = Derivation::ScaleStep(Derivation::NDer4_h, original);
@@ -445,7 +510,7 @@ namespace MML
 		Real IntervalSquared(const VectorN<Real, N>& displacement, const VectorN<Real, N>& pos) const
 		{
 			MatrixNM<Real, N, N> g = this->GetCovariantMetric(pos);
-			Real ds2 = REAL(0.0);
+			Real ds2 = static_cast<MML::Real>(0.0);
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++)
 					ds2 += g(i, j) * displacement[i] * displacement[j];
@@ -453,28 +518,28 @@ namespace MML
 		}
 
 		IntervalType ClassifyInterval(const VectorN<Real, N>& displacement, const VectorN<Real, N>& pos,
-			Real tolerance = REAL(1e-12)) const
+			Real tolerance = Precision::ZeroTolerance) const
 		{
 			Real ds2 = IntervalSquared(displacement, pos);
 			if (std::abs(ds2) <= tolerance)
 				return IntervalType::Null;
-			return ds2 < REAL(0.0) ? IntervalType::Timelike : IntervalType::Spacelike;
+			return ds2 < static_cast<MML::Real>(0.0) ? IntervalType::Timelike : IntervalType::Spacelike;
 		}
 
 		bool IsTimelike(const VectorN<Real, N>& displacement, const VectorN<Real, N>& pos,
-			Real tolerance = REAL(1e-12)) const
+			Real tolerance = Precision::ZeroTolerance) const
 		{
 			return ClassifyInterval(displacement, pos, tolerance) == IntervalType::Timelike;
 		}
 
 		bool IsSpacelike(const VectorN<Real, N>& displacement, const VectorN<Real, N>& pos,
-			Real tolerance = REAL(1e-12)) const
+			Real tolerance = Precision::ZeroTolerance) const
 		{
 			return ClassifyInterval(displacement, pos, tolerance) == IntervalType::Spacelike;
 		}
 
 		bool IsNull(const VectorN<Real, N>& displacement, const VectorN<Real, N>& pos,
-			Real tolerance = REAL(1e-12)) const
+			Real tolerance = Precision::ZeroTolerance) const
 		{
 			return ClassifyInterval(displacement, pos, tolerance) == IntervalType::Null;
 		}
@@ -486,7 +551,15 @@ namespace MML
 	public:
 		MetricTensorCartesian3D() : MetricTensorField<3>(0, 2) { }
 
-		Real Component(int i, int j, const VectorN<Real, 3>& pos) const
+		Real GetChristoffelSymbolSecondKind(int i, int j, int k, const VectorN<Real, 3>& pos) const override {
+			// A subclass may change the metric without supplying its own connection.
+			if (typeid(*this) != typeid(MetricTensorCartesian3D))
+				return GetChristoffelSymbolSecondKindNumerical(i, j, k, pos);
+			ValidateChristoffelArguments(i, j, k, pos);
+			return 0.0;
+		}
+
+		Real component(int i, int j, const VectorN<Real, 3>& pos) const override
 		{
 			if (i == j)
 				return 1.0;
@@ -504,7 +577,29 @@ namespace MML
 	public:
 		MetricTensorSpherical() : MetricTensorField<3>(0, 2) { }
 
-		virtual  Real Component(int i, int j, const VectorN<Real, 3>& pos) const override
+		Real GetChristoffelSymbolSecondKind(int i, int j, int k, const VectorN<Real, 3>& pos) const override {
+			if (typeid(*this) != typeid(MetricTensorSpherical))
+				return GetChristoffelSymbolSecondKindNumerical(i, j, k, pos);
+			ValidateChristoffelArguments(i, j, k, pos);
+			const Real r = pos[0], s = std::sin(pos[1]), c = std::cos(pos[1]);
+			const Real inverseR = Singularity::SafeDivide(1.0, r, SingularityPolicy::Throw, "Spherical Christoffel symbols: origin");
+			const Real cotTheta = Singularity::SafeDivide(c, s, SingularityPolicy::Throw, "Spherical Christoffel symbols: pole");
+			if (i == 0 && j == 1 && k == 1)
+				return -r;
+			if (i == 0 && j == 2 && k == 2)
+				return -r * s * s;
+			if (i == 1 && ((j == 0 && k == 1) || (j == 1 && k == 0)))
+				return inverseR;
+			if (i == 1 && j == 2 && k == 2)
+				return -s * c;
+			if (i == 2 && ((j == 0 && k == 2) || (j == 2 && k == 0)))
+				return inverseR;
+			if (i == 2 && ((j == 1 && k == 2) || (j == 2 && k == 1)))
+				return cotTheta;
+			return 0.0;
+		}
+
+		virtual  Real component(int i, int j, const VectorN<Real, 3>& pos) const override
 		{
 			if (i == 0 && j == 0)
 				return 1.0;
@@ -523,7 +618,7 @@ namespace MML
 	public:
 		MetricTensorSphericalContravar() : MetricTensorField<3>(2, 0) { }
 
-		virtual Real Component(int i, int j, const VectorN<Real, 3>& pos) const
+		virtual Real component(int i, int j, const VectorN<Real, 3>& pos) const override
 		{
 			if (i == 0 && j == 0)
 				return 1.0;
@@ -550,7 +645,19 @@ namespace MML
 	public:
 		MetricTensorCylindrical() : MetricTensorField<3>(0, 2) { }
 
-		virtual Real Component(int i, int j, const VectorN<Real, 3>& pos) const
+		Real GetChristoffelSymbolSecondKind(int i, int j, int k, const VectorN<Real, 3>& pos) const override {
+			if (typeid(*this) != typeid(MetricTensorCylindrical))
+				return GetChristoffelSymbolSecondKindNumerical(i, j, k, pos);
+			ValidateChristoffelArguments(i, j, k, pos);
+			const Real inverseRho = Singularity::SafeDivide(1.0, pos[0], SingularityPolicy::Throw, "Cylindrical Christoffel symbols: axis");
+			if (i == 0 && j == 1 && k == 1)
+				return -pos[0];
+			if (i == 1 && ((j == 0 && k == 1) || (j == 1 && k == 0)))
+				return inverseRho;
+			return 0.0;
+		}
+
+		virtual Real component(int i, int j, const VectorN<Real, 3>& pos) const override
 		{
 			if (i == 0 && j == 0)
 				return 1.0;
@@ -573,7 +680,7 @@ namespace MML
 		explicit MetricTensorFromCoordTransf(const CoordTransf<VectorFrom, VectorTo, N>& inTransf) : _coordTransf(inTransf)
 		{ }
 
-		Real Component(int i, int j, const VectorN<Real, N>& pos) const override
+		Real component(int i, int j, const VectorN<Real, N>& pos) const override
 		{
 			const auto jac = _coordTransf.jacobian(pos);
 			Real g_ij = 0.0;
@@ -590,7 +697,7 @@ namespace MML
 			for (int i = 0; i < N; ++i)
 				for (int j = 0; j < N; ++j)
 				{
-					metric(i, j) = REAL(0.0);
+					metric(i, j) = static_cast<MML::Real>(0.0);
 					for (int k = 0; k < N; ++k)
 						metric(i, j) += jac(k, i) * jac(k, j);
 				}
@@ -606,12 +713,19 @@ namespace MML
 	public:
 		MetricTensorMinkowski() : LorentzianMetric<4>(0, 2) {}
 
-		virtual Real Component(int i, int j, const VectorN<Real, 4>& pos) const override
+		Real GetChristoffelSymbolSecondKind(int i, int j, int k, const VectorN<Real, 4>& pos) const override {
+			if (typeid(*this) != typeid(MetricTensorMinkowski))
+				return GetChristoffelSymbolSecondKindNumerical(i, j, k, pos);
+			ValidateChristoffelArguments(i, j, k, pos);
+			return static_cast<MML::Real>(0.0);
+		}
+
+		virtual Real component(int i, int j, const VectorN<Real, 4>& pos) const override
 		{
 			if (i != j)
-				return REAL(0.0);
+				return static_cast<MML::Real>(0.0);
 
-			return i == 0 ? -REAL(1.0) : REAL(1.0);
+			return i == 0 ? -static_cast<MML::Real>(1.0) : static_cast<MML::Real>(1.0);
 		}
 	};
 }

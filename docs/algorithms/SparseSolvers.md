@@ -27,7 +27,7 @@ the same pair of interfaces.
 
 ## Safe solves and preconditioners
 
-`solveLower` and `solveUpper` require a square matrix, a matching right-hand
+`SolveLower` and `SolveUpper` require a square matrix, a matching right-hand
 side, and an explicit non-zero diagonal in every row. Missing or zero diagonals
 throw `SingularMatrixError`. SSOR and ILU(0) perform equivalent diagonal checks
 during setup, before an unsafe preconditioner can be applied.

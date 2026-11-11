@@ -108,7 +108,7 @@ namespace MML::Optimization
 
 		bool HasFiniteLowerBound(int index) const noexcept { return std::isfinite(_lower[index]); }
 		bool HasFiniteUpperBound(int index) const noexcept { return std::isfinite(_upper[index]); }
-		bool IsFixed(int index, Real tolerance = Defaults::VectorIsEqualTolerance) const
+		bool IsFixed(int index, Real tolerance = Precision::VectorIsEqualTolerance) const
 		{
 			return std::abs(_upper[index] - _lower[index]) <= tolerance;
 		}
@@ -147,14 +147,14 @@ namespace MML::Optimization
 				point[index] = std::clamp(point[index], _lower[index], _upper[index]);
 		}
 
-		bool IsFeasible(const Vector<Real>& point, Real tolerance = Defaults::VectorIsEqualTolerance) const
+		bool IsFeasible(const Vector<Real>& point, Real tolerance = Precision::VectorIsEqualTolerance) const
 		{
 			validateDimension(point.size(), "BoundConstraints::IsFeasible");
 			return MaxViolation(point) <= tolerance;
 		}
 
 		template<int N>
-		bool IsFeasible(const VectorN<Real, N>& point, Real tolerance = Defaults::VectorIsEqualTolerance) const
+		bool IsFeasible(const VectorN<Real, N>& point, Real tolerance = Precision::VectorIsEqualTolerance) const
 		{
 			validateDimension(N, "BoundConstraints::IsFeasible");
 			return MaxViolation(point) <= tolerance;
@@ -163,7 +163,7 @@ namespace MML::Optimization
 		Real MaxViolation(const Vector<Real>& point) const
 		{
 			validateDimension(point.size(), "BoundConstraints::MaxViolation");
-			Real violation = REAL(0.0);
+			Real violation = static_cast<MML::Real>(0.0);
 			for (int index = 0; index < point.size(); ++index) {
 				if (point[index] < _lower[index])
 					violation = std::max(violation, _lower[index] - point[index]);
@@ -177,7 +177,7 @@ namespace MML::Optimization
 		Real MaxViolation(const VectorN<Real, N>& point) const
 		{
 			validateDimension(N, "BoundConstraints::MaxViolation");
-			Real violation = REAL(0.0);
+			Real violation = static_cast<MML::Real>(0.0);
 			for (int index = 0; index < N; ++index) {
 				if (point[index] < _lower[index])
 					violation = std::max(violation, _lower[index] - point[index]);
@@ -187,50 +187,50 @@ namespace MML::Optimization
 			return violation;
 		}
 
-		bool IsLowerActive(const Vector<Real>& point, int index, Real tolerance = Defaults::VectorIsEqualTolerance) const
+		bool IsLowerActive(const Vector<Real>& point, int index, Real tolerance = Precision::VectorIsEqualTolerance) const
 		{
 			validateDimension(point.size(), "BoundConstraints::IsLowerActive");
 			return HasFiniteLowerBound(index) && std::abs(point[index] - _lower[index]) <= tolerance;
 		}
 
-		bool IsUpperActive(const Vector<Real>& point, int index, Real tolerance = Defaults::VectorIsEqualTolerance) const
+		bool IsUpperActive(const Vector<Real>& point, int index, Real tolerance = Precision::VectorIsEqualTolerance) const
 		{
 			validateDimension(point.size(), "BoundConstraints::IsUpperActive");
 			return HasFiniteUpperBound(index) && std::abs(point[index] - _upper[index]) <= tolerance;
 		}
 
-		bool IsActive(const Vector<Real>& point, int index, Real tolerance = Defaults::VectorIsEqualTolerance) const
+		bool IsActive(const Vector<Real>& point, int index, Real tolerance = Precision::VectorIsEqualTolerance) const
 		{
 			return IsLowerActive(point, index, tolerance) || IsUpperActive(point, index, tolerance);
 		}
 
-		bool IsFree(const Vector<Real>& point, int index, Real tolerance = Defaults::VectorIsEqualTolerance) const
+		bool IsFree(const Vector<Real>& point, int index, Real tolerance = Precision::VectorIsEqualTolerance) const
 		{
 			return !IsActive(point, index, tolerance);
 		}
 
 		template<int N>
-		bool IsLowerActive(const VectorN<Real, N>& point, int index, Real tolerance = Defaults::VectorIsEqualTolerance) const
+		bool IsLowerActive(const VectorN<Real, N>& point, int index, Real tolerance = Precision::VectorIsEqualTolerance) const
 		{
 			validateDimension(N, "BoundConstraints::IsLowerActive");
 			return HasFiniteLowerBound(index) && std::abs(point[index] - _lower[index]) <= tolerance;
 		}
 
 		template<int N>
-		bool IsUpperActive(const VectorN<Real, N>& point, int index, Real tolerance = Defaults::VectorIsEqualTolerance) const
+		bool IsUpperActive(const VectorN<Real, N>& point, int index, Real tolerance = Precision::VectorIsEqualTolerance) const
 		{
 			validateDimension(N, "BoundConstraints::IsUpperActive");
 			return HasFiniteUpperBound(index) && std::abs(point[index] - _upper[index]) <= tolerance;
 		}
 
 		template<int N>
-		bool IsActive(const VectorN<Real, N>& point, int index, Real tolerance = Defaults::VectorIsEqualTolerance) const
+		bool IsActive(const VectorN<Real, N>& point, int index, Real tolerance = Precision::VectorIsEqualTolerance) const
 		{
 			return IsLowerActive(point, index, tolerance) || IsUpperActive(point, index, tolerance);
 		}
 
 		template<int N>
-		bool IsFree(const VectorN<Real, N>& point, int index, Real tolerance = Defaults::VectorIsEqualTolerance) const
+		bool IsFree(const VectorN<Real, N>& point, int index, Real tolerance = Precision::VectorIsEqualTolerance) const
 		{
 			return !IsActive(point, index, tolerance);
 		}

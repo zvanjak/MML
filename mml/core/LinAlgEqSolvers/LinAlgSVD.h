@@ -13,6 +13,7 @@
 #define MML_LINEAR_ALG_SVD_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
@@ -100,7 +101,7 @@ namespace MML
 			
 			// Resize output vector if needed
 			if (x.size() != n)
-				x.Resize(n);
+				x.resize(n);
 			
 			Type tshEff = EffectiveThreshold(thresh);
 			

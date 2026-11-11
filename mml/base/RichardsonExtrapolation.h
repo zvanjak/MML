@@ -13,6 +13,7 @@
 #define MML_RICHARDSON_EXTRAPOLATION_H
 
 #include <vector>
+#include <algorithm>
 #include <cmath>
 #include <limits>
 

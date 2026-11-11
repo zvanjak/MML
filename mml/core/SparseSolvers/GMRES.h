@@ -31,6 +31,7 @@
 #define MML_CORE_SPARSE_SOLVERS_GMRES_H
 
 #include "IterativeSolverBase.h"
+#include <algorithm>
 #include <cmath>
 
 namespace MML::SparseSolvers {
@@ -50,288 +51,284 @@ public:
     
     void setRestart(int m) { restart_ = m; }
     int restart() const { return restart_; }
-    
-    // Main solve: Ax = b with initial guess x
-    // Uses left preconditioning: solve M⁻¹Ax = M⁻¹b
-    SolverResult<T> solve(
-        const SparseMatrixCSR<T>& A,
-        const std::vector<T>& b,
-        std::vector<T>& x) override 
-    {
-        SolverResult<T> result;
-        
-        // Validate input
-        if (!this->validateInput(A, b, x)) {
-            result.status = SolverStatus::InvalidInput;
-            result.message = "Matrix and vector dimensions don't match";
-            return result;
-        }
-        
-        const int n = A.rows();
-        const int m = std::min(restart_, n);  // Krylov subspace dimension
-        const T bnorm = norm2(b);
-        
-        if (config_.verbose) {
-            std::cout << "GMRES: n=" << n << ", restart=" << restart_ << ", m=" << m << "\n";
-        }
-        
-        // Handle zero RHS
-        if (bnorm < config_.absTolerance) {
-            std::fill(x.begin(), x.end(), T(0));
-            result.status = SolverStatus::Success;
-            result.iterations = 0;
-            result.residualNorm = T(0);
-            result.relativeResidual = T(0);
-            result.message = "Zero RHS";
-            return result;
-        }
-        
-        // Allocate Arnoldi vectors: V[0:m+1] vectors of size n
-        std::vector<std::vector<T>> V(m + 1, std::vector<T>(n));
-        
-        // Hessenberg matrix H[0:m+1, 0:m]
-        std::vector<std::vector<T>> H(m + 1, std::vector<T>(m, T(0)));
-        
-        // Givens rotation parameters
-        std::vector<T> cs(m);  // Cosines
-        std::vector<T> sn(m);  // Sines
-        
-        // RHS for least squares problem
-        std::vector<T> g(m + 1);
-        
-        // Solution in Krylov basis
-        std::vector<T> y(m);
-        
-        // Work vectors
-        std::vector<T> w(n);
-        std::vector<T> tmp(n);
 
-        preconditioner_->apply(b, tmp);
-        const T preconditionedBnorm = norm2(tmp);
-        
-        int totalIter = 0;
-        T rnorm = T(0);
-        
-        // Outer restart loop
-        for (int restart = 0; restart < config_.maxIterations / m + 1; ++restart) {
-            // Compute initial residual: r = b - Ax
-            std::vector<T> r = residual(A, x, b);
-            rnorm = norm2(r);
-            
-            this->reportProgress(totalIter, rnorm);
-            
-            // Check if already converged
-            if (this->checkConvergence(rnorm, bnorm)) {
-                result.status = SolverStatus::Success;
-                result.iterations = totalIter;
-                result.residualNorm = rnorm;
-                result.relativeResidual = rnorm / bnorm;
-                result.message = "Converged";
-                return result;
-            }
+	protected:
+		const char* algorithmName() const noexcept override { return "GMRES"; }
+		KrylovResult<T> solveImpl(const SparseMatrixCSR<T>& A, const Vector<T>& b, Vector<T>& x) override {
+			KrylovResult<T> result;
 
-            preconditioner_->apply(r, tmp);
-            const T preconditionedRnorm = norm2(tmp);
-            if (preconditionedRnorm == T(0)) {
-                result.status = SolverStatus::Breakdown;
-                result.iterations = totalIter;
-                result.residualNorm = rnorm;
-                result.relativeResidual = rnorm / bnorm;
-                result.message = "GMRES breakdown: preconditioned residual is zero";
-                return result;
-            }
-            
-            // v₁ = M⁻¹r / ||M⁻¹r||
-            for (int i = 0; i < n; ++i) {
-                V[0][i] = tmp[i] / preconditionedRnorm;
-            }
-            
-            // Initialize g = [||M⁻¹r||, 0, 0, ...]
-            std::fill(g.begin(), g.end(), T(0));
-            g[0] = preconditionedRnorm;
-            
-            // Reset Hessenberg matrix
-            for (auto& row : H) {
-                std::fill(row.begin(), row.end(), T(0));
-            }
-            
-            int j;
-            for (j = 0; j < m && totalIter < config_.maxIterations; ++j) {
-                ++totalIter;
-                
-                if (config_.verbose) {
-                    std::cout << "  j=" << j << ", m=" << m << "\n";
-                }
-                
-                // Arnoldi step for the left-preconditioned operator M⁻¹A
-                tmp = A * V[j];
-                preconditioner_->apply(tmp, w);
-                
-                // Modified Gram-Schmidt orthogonalization
-                for (int i = 0; i <= j; ++i) {
-                    H[i][j] = dot(w, V[i]);
-                    axpy(-H[i][j], V[i], w);
-                }
-                
-                H[j+1][j] = norm2(w);
-                
-                // Debug: Check orthogonality
-                if (config_.verbose) {
-                    T ortho = T(0);
-                    for (int i = 0; i <= j; ++i) {
-                        ortho += std::abs(dot(w, V[i]));
-                    }
-                    std::cout << "  Orthogonality check: " << ortho << "\n";
-                    std::cout << "  H[" << j+1 << "][" << j << "] = " << H[j+1][j] << "\n";
-                }
-                
-                // Check for breakdown (H[j+1][j] ≈ 0 means Krylov subspace exhausted)
-                // This is "lucky breakdown" - exact solution lies in the current subspace
-                const T breakdown_tol = std::numeric_limits<T>::epsilon() * 1000;
-                if (H[j+1][j] < breakdown_tol) {
-                    if (config_.verbose) {
-                        std::cout << "  Breakdown: H[" << j+1 << "][" << j << "] = " 
-                                  << H[j+1][j] << " < " << breakdown_tol << "\n";
-                    }
-                    
-                    // Apply previous Givens rotations to column j of H
-                    for (int i = 0; i < j; ++i) {
-                        T temp = cs[i] * H[i][j] + sn[i] * H[i+1][j];
-                        H[i+1][j] = -sn[i] * H[i][j] + cs[i] * H[i+1][j];
-                        H[i][j] = temp;
-                    }
-                    
-                    // For breakdown: H[j+1][j] is ~0, so Givens rotation for row j
-                    // is essentially identity (c=1, s=0 if H[j][j] > 0)
-                    // Just ensure H[j+1][j] is exactly 0
-                    H[j+1][j] = T(0);
-                    
-                    // Compute Givens for potentially small diagonal
-                    // This handles case where H[j][j] might also be small
-                    if (std::abs(H[j][j]) > breakdown_tol) {
-                        cs[j] = T(1);
-                        sn[j] = T(0);
-                        // g[j+1] stays 0, no update needed
-                    } else {
-                        // Both H[j][j] and H[j+1][j] are near zero - degenerate case
-                        cs[j] = T(1);
-                        sn[j] = T(0);
-                    }
-                    
-                    if (config_.verbose) {
-                        std::cout << "  Lucky breakdown: including iteration j=" << j << "\n";
-                    }
-                    ++j;  // Include this iteration
-                    break;
-                }
-                
-                // v[j+1] = w / H[j+1][j]
-                for (int i = 0; i < n; ++i) {
-                    V[j+1][i] = w[i] / H[j+1][j];
-                }
-                
-                // Apply previous Givens rotations to column j of H
-                for (int i = 0; i < j; ++i) {
-                    T temp = cs[i] * H[i][j] + sn[i] * H[i+1][j];
-                    H[i+1][j] = -sn[i] * H[i][j] + cs[i] * H[i+1][j];
-                    H[i][j] = temp;
-                }
-                
-                // Compute Givens rotation for row j
-                generateGivens(H[j][j], H[j+1][j], cs[j], sn[j]);
-                
-                // Apply Givens rotation to column j
-                H[j][j] = cs[j] * H[j][j] + sn[j] * H[j+1][j];
-                H[j+1][j] = T(0);
-                
-                // Apply Givens rotation to g
-                T temp = cs[j] * g[j] + sn[j] * g[j+1];
-                g[j+1] = -sn[j] * g[j] + cs[j] * g[j+1];
-                g[j] = temp;
-                
-                // Residual estimate
-                rnorm = std::abs(g[j+1]);
-                
-                if (config_.verbose) {
-                    std::cout << "  After Givens: g[" << j+1 << "] = " << g[j+1] << "\n";
-                }
-                
-                this->reportProgress(totalIter, rnorm);
-                
-                // Check convergence
-                if (this->checkConvergence(rnorm, preconditionedBnorm)) {
-                    if (config_.verbose) {
-                        std::cout << "  CONVERGED at j=" << j << ", rnorm=" << rnorm << "\n";
-                    }
-                    ++j;  // Include this iteration in solution
-                    break;
-                }
-            }
-            
-            if (config_.verbose) {
-                std::cout << "  Exited inner loop: j=" << j << ", totalIter=" << totalIter << "\n";
-            }
-            
-            // Solve upper triangular system Hy = g
-            if (config_.verbose) {
-                std::cout << "  H diagonal: [";
-                for (int i = 0; i < j; ++i) {
-                    std::cout << H[i][i] << (i < j-1 ? ", " : "");
-                }
-                std::cout << "]\n";
-                std::cout << "  g = [";
-                for (int i = 0; i < j; ++i) {
-                    std::cout << g[i] << (i < j-1 ? ", " : "");
-                }
-                std::cout << "]\n";
-            }
-            
-            for (int i = j - 1; i >= 0; --i) {
-                y[i] = g[i];
-                for (int k = i + 1; k < j; ++k) {
-                    y[i] -= H[i][k] * y[k];
-                }
-                if (std::abs(H[i][i]) > std::numeric_limits<T>::epsilon() * 100) {
-                    y[i] /= H[i][i];
-                }
-            }
-            
-            if (config_.verbose) {
-                std::cout << "  y = [";
-                for (int i = 0; i < j; ++i) {
-                    std::cout << y[i] << (i < j-1 ? ", " : "");
-                }
-                std::cout << "]\n";
-            }
-            
-            // Update solution: x = x + V * y
-            for (int i = 0; i < j; ++i) {
-                axpy(y[i], V[i], x);
-            }
-            
-            // Check convergence (true residual)
-            r = residual(A, x, b);
-            rnorm = norm2(r);
-            
-            if (this->checkConvergence(rnorm, bnorm)) {
-                result.status = SolverStatus::Success;
-                result.iterations = totalIter;
-                result.residualNorm = rnorm;
-                result.relativeResidual = rnorm / bnorm;
-                result.message = "Converged";
-                return result;
-            }
-        }
-        
-        // Did not converge
-        result.status = SolverStatus::MaxIterations;
-        result.iterations = totalIter;
-        result.residualNorm = rnorm;
-        result.relativeResidual = rnorm / bnorm;
-        result.message = "Maximum iterations reached";
-        return result;
-    }
-    
+			// Validate input
+			if (!this->validateInput(A, b, x) || restart_ <= 0) {
+				result.status = AlgorithmStatus::InvalidInput;
+				result.error_message = "GMRES requires matching dimensions and a positive restart size";
+				return result;
+			}
+
+			const int n = A.rows();
+			const int m = std::min(restart_, n); // Krylov subspace dimension
+			const T bnorm = norm2(b);
+
+			if (config_.verbose) {
+				std::cout << "GMRES: n=" << n << ", restart=" << restart_ << ", m=" << m << "\n";
+			}
+
+			// Handle zero RHS
+			if (bnorm == T(0) || bnorm < config_.absTolerance) {
+				std::fill(x.begin(), x.end(), T(0));
+				result.status = AlgorithmStatus::Success;
+				result.iterations_used = 0;
+				result.residualNorm = T(0);
+				result.relativeResidual = T(0);
+				result.error_message = "Zero RHS";
+				return result;
+			}
+
+			// Allocate Arnoldi vectors: V[0:m+1] vectors of size n
+			std::vector<Vector<T>> V(m + 1, Vector<T>(n));
+
+			// Hessenberg matrix H[0:m+1, 0:m]
+			std::vector<Vector<T>> H(m + 1, Vector<T>(m, T(0)));
+
+			// Givens rotation parameters
+			Vector<T> cs(m); // Cosines
+			Vector<T> sn(m); // Sines
+
+			// RHS for least squares problem
+			Vector<T> g(m + 1);
+
+			// Solution in Krylov basis
+			Vector<T> y(m);
+
+			// Work vectors
+			Vector<T> w(n);
+			Vector<T> tmp(n);
+
+			preconditioner_->apply(b, tmp);
+			const T preconditionedBnorm = norm2(tmp);
+
+			int totalIter = 0;
+			T rnorm = T(0);
+
+			// Outer restart loop
+			for (int restart = 0; restart < config_.maxIterations / m + 1; ++restart) {
+				// Compute initial residual: r = b - Ax
+				Vector<T> r = residual(A, x, b);
+				rnorm = norm2(r);
+
+				this->reportProgress(totalIter, rnorm);
+
+				// Check if already converged
+				if (this->checkConvergence(rnorm, bnorm)) {
+					result.status = AlgorithmStatus::Success;
+					result.iterations_used = totalIter;
+					result.residualNorm = rnorm;
+					result.relativeResidual = rnorm / bnorm;
+					result.error_message = "Converged";
+					return result;
+				}
+
+				preconditioner_->apply(r, tmp);
+				const T preconditionedRnorm = norm2(tmp);
+				if (preconditionedRnorm == T(0)) {
+					result.status = AlgorithmStatus::NumericalInstability;
+					result.iterations_used = totalIter;
+					result.residualNorm = rnorm;
+					result.relativeResidual = rnorm / bnorm;
+					result.error_message = "GMRES breakdown: preconditioned residual is zero";
+					return result;
+				}
+
+				// v₁ = M⁻¹r / ||M⁻¹r||
+				for (int i = 0; i < n; ++i) {
+					V[0][i] = tmp[i] / preconditionedRnorm;
+				}
+
+				// Initialize g = [||M⁻¹r||, 0, 0, ...]
+				std::fill(g.begin(), g.end(), T(0));
+				g[0] = preconditionedRnorm;
+
+				// Reset Hessenberg matrix
+				for (auto& row : H) {
+					std::fill(row.begin(), row.end(), T(0));
+				}
+
+				int j;
+				for (j = 0; j < m && totalIter < config_.maxIterations; ++j) {
+					++totalIter;
+
+					if (config_.verbose) {
+						std::cout << "  j=" << j << ", m=" << m << "\n";
+					}
+
+					// Arnoldi step for the left-preconditioned operator M⁻¹A
+					tmp = A * V[j];
+					preconditioner_->apply(tmp, w);
+
+					// Modified Gram-Schmidt orthogonalization
+					for (int i = 0; i <= j; ++i) {
+						H[i][j] = dot(w, V[i]);
+						axpy(-H[i][j], V[i], w);
+					}
+
+					H[j + 1][j] = norm2(w);
+
+					// Debug: Check orthogonality
+					if (config_.verbose) {
+						T ortho = T(0);
+						for (int i = 0; i <= j; ++i) {
+							ortho += std::abs(dot(w, V[i]));
+						}
+						std::cout << "  Orthogonality check: " << ortho << "\n";
+						std::cout << "  H[" << j + 1 << "][" << j << "] = " << H[j + 1][j] << "\n";
+					}
+
+					// Check for breakdown (H[j+1][j] ≈ 0 means Krylov subspace exhausted)
+					// This is "lucky breakdown" - exact solution lies in the current subspace
+					// Relative to the Arnoldi start norm: an absolute test would declare breakdown on any well-scaled-down system
+					const T breakdown_tol = PrecisionValues<T>::KrylovBreakdownThreshold * preconditionedRnorm;
+					if (H[j + 1][j] < breakdown_tol) {
+						if (config_.verbose) {
+							std::cout << "  Breakdown: H[" << j + 1 << "][" << j << "] = " << H[j + 1][j] << " < " << breakdown_tol << "\n";
+						}
+
+						// Apply previous Givens rotations to column j of H
+						for (int i = 0; i < j; ++i) {
+							T temp = cs[i] * H[i][j] + sn[i] * H[i + 1][j];
+							H[i + 1][j] = -sn[i] * H[i][j] + cs[i] * H[i + 1][j];
+							H[i][j] = temp;
+						}
+
+						// For breakdown: H[j+1][j] is ~0, so Givens rotation for row j
+						// is essentially identity (c=1, s=0 if H[j][j] > 0)
+						// Just ensure H[j+1][j] is exactly 0
+						H[j + 1][j] = T(0);
+
+						// Compute Givens for potentially small diagonal
+						// This handles case where H[j][j] might also be small
+						if (std::abs(H[j][j]) > breakdown_tol) {
+							cs[j] = T(1);
+							sn[j] = T(0);
+							// g[j+1] stays 0, no update needed
+						} else {
+							// Both H[j][j] and H[j+1][j] are near zero - degenerate case
+							cs[j] = T(1);
+							sn[j] = T(0);
+						}
+
+						if (config_.verbose) {
+							std::cout << "  Lucky breakdown: including iteration j=" << j << "\n";
+						}
+						++j; // Include this iteration
+						break;
+					}
+
+					// v[j+1] = w / H[j+1][j]
+					for (int i = 0; i < n; ++i) {
+						V[j + 1][i] = w[i] / H[j + 1][j];
+					}
+
+					// Apply previous Givens rotations to column j of H
+					for (int i = 0; i < j; ++i) {
+						T temp = cs[i] * H[i][j] + sn[i] * H[i + 1][j];
+						H[i + 1][j] = -sn[i] * H[i][j] + cs[i] * H[i + 1][j];
+						H[i][j] = temp;
+					}
+
+					// Compute Givens rotation for row j
+					generateGivens(H[j][j], H[j + 1][j], cs[j], sn[j]);
+
+					// Apply Givens rotation to column j
+					H[j][j] = cs[j] * H[j][j] + sn[j] * H[j + 1][j];
+					H[j + 1][j] = T(0);
+
+					// Apply Givens rotation to g
+					T temp = cs[j] * g[j] + sn[j] * g[j + 1];
+					g[j + 1] = -sn[j] * g[j] + cs[j] * g[j + 1];
+					g[j] = temp;
+
+					// Residual estimate
+					rnorm = std::abs(g[j + 1]);
+
+					if (config_.verbose) {
+						std::cout << "  After Givens: g[" << j + 1 << "] = " << g[j + 1] << "\n";
+					}
+
+					this->reportProgress(totalIter, rnorm);
+
+					// Check convergence
+					if (this->checkConvergence(rnorm, preconditionedBnorm)) {
+						if (config_.verbose) {
+							std::cout << "  CONVERGED at j=" << j << ", rnorm=" << rnorm << "\n";
+						}
+						++j; // Include this iteration in solution
+						break;
+					}
+				}
+
+				if (config_.verbose) {
+					std::cout << "  Exited inner loop: j=" << j << ", totalIter=" << totalIter << "\n";
+				}
+
+				// Solve upper triangular system Hy = g
+				if (config_.verbose) {
+					std::cout << "  H diagonal: [";
+					for (int i = 0; i < j; ++i) {
+						std::cout << H[i][i] << (i < j - 1 ? ", " : "");
+					}
+					std::cout << "]\n";
+					std::cout << "  g = [";
+					for (int i = 0; i < j; ++i) {
+						std::cout << g[i] << (i < j - 1 ? ", " : "");
+					}
+					std::cout << "]\n";
+				}
+
+				for (int i = j - 1; i >= 0; --i) {
+					y[i] = g[i];
+					for (int k = i + 1; k < j; ++k) {
+						y[i] -= H[i][k] * y[k];
+					}
+					if (std::abs(H[i][i]) > PrecisionValues<T>::RoundoffZeroThreshold * preconditionedRnorm) {
+						y[i] /= H[i][i];
+					}
+				}
+
+				if (config_.verbose) {
+					std::cout << "  y = [";
+					for (int i = 0; i < j; ++i) {
+						std::cout << y[i] << (i < j - 1 ? ", " : "");
+					}
+					std::cout << "]\n";
+				}
+
+				// Update solution: x = x + V * y
+				for (int i = 0; i < j; ++i) {
+					axpy(y[i], V[i], x);
+				}
+
+				// Check convergence (true residual)
+				r = residual(A, x, b);
+				rnorm = norm2(r);
+
+				if (this->checkConvergence(rnorm, bnorm)) {
+					result.status = AlgorithmStatus::Success;
+					result.iterations_used = totalIter;
+					result.residualNorm = rnorm;
+					result.relativeResidual = rnorm / bnorm;
+					result.error_message = "Converged";
+					return result;
+				}
+			}
+
+			// Did not converge
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
+			result.iterations_used = totalIter;
+			result.residualNorm = rnorm;
+			result.relativeResidual = rnorm / bnorm;
+			result.error_message = "Maximum iterations reached";
+			return result;
+		}
+
 private:
     // Compute Givens rotation coefficients to zero out b
     // After rotation: [c  s; -s c] * [a; b] = [r; 0] where r = sqrt(a^2 + b^2) >= 0
@@ -360,31 +357,20 @@ private:
 
 // Convenience function
 template<typename T>
-SolverResult<T> solveGMRES(
-    const SparseMatrixCSR<T>& A,
-    const std::vector<T>& b,
-    std::vector<T>& x,
-    int restart = 30,
-    const SolverConfig<T>& config = SolverConfig<T>())
-{
-    GMRES<T> solver(restart);
-    solver.setConfig(config);
-    return solver.solve(A, b, x);
+KrylovResult<T> solveGMRES(const SparseMatrixCSR<T>& A, const Vector<T>& b, Vector<T>& x, int restart = 30,
+													 const SolverConfig<T>& config = SolverConfig<T>()) {
+	GMRES<T> solver(restart);
+	solver.setConfig(config);
+	return solver.solve(A, b, x);
 }
 
 template<typename T, typename PrecType>
-SolverResult<T> solveGMRES(
-    const SparseMatrixCSR<T>& A,
-    const std::vector<T>& b,
-    std::vector<T>& x,
-    std::shared_ptr<PrecType> prec,
-    int restart = 30,
-    const SolverConfig<T>& config = SolverConfig<T>())
-{
-    GMRES<T> solver(restart);
-    solver.setConfig(config);
-    solver.setPreconditioner(prec);
-    return solver.solve(A, b, x);
+KrylovResult<T> solveGMRES(const SparseMatrixCSR<T>& A, const Vector<T>& b, Vector<T>& x, std::shared_ptr<PrecType> prec, int restart = 30,
+													 const SolverConfig<T>& config = SolverConfig<T>()) {
+	GMRES<T> solver(restart);
+	solver.setConfig(config);
+	solver.setPreconditioner(prec);
+	return solver.solve(A, b, x);
 }
 
 } // namespace MML::SparseSolvers

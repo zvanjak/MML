@@ -88,11 +88,11 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 	{
 			TEST_PRECISION_INFO();
 		Matrix<Real> A{3, 3, {
-			REAL(0.0), REAL(1.0), REAL(2.0),  // Zero diagonal!
-			REAL(1.0), REAL(4.0), REAL(1.0),
-			REAL(2.0), REAL(1.0), REAL(4.0)
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),  // Zero diagonal!
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0)
 		}};
-		Vector<Real> b{REAL(1.0), REAL(2.0), REAL(3.0)};
+		Vector<Real> b{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)};
 		
 		REQUIRE_THROWS_AS(JacobiSolver::Solve(A, b), SingularMatrixError);
 	}
@@ -100,8 +100,8 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 	TEST_CASE("Jacobi_DimensionMismatch_Throws", "[JacobiSolver][Iterative]")
 	{
 			TEST_PRECISION_INFO();
-		Matrix<Real> A{3, 3, {REAL(1.0), REAL(0.0), REAL(0.0), REAL(0.0), REAL(1.0), REAL(0.0), REAL(0.0), REAL(0.0), REAL(1.0)}};
-		Vector<Real> b{REAL(1.0), REAL(2.0)};  // Wrong size
+		Matrix<Real> A{3, 3, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)}};
+		Vector<Real> b{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};  // Wrong size
 		
 		REQUIRE_THROWS_AS(JacobiSolver::Solve(A, b), MatrixDimensionError);
 	}
@@ -171,11 +171,11 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 	{
 			TEST_PRECISION_INFO();
 		Matrix<Real> A{3, 3, {
-			REAL(4.0), REAL(1.0), REAL(2.0),
-			REAL(1.0), REAL(0.0), REAL(1.0),  // Zero diagonal!
-			REAL(2.0), REAL(1.0), REAL(4.0)
+			static_cast<MML::Real>(4.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0),  // Zero diagonal!
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0)
 		}};
-		Vector<Real> b{REAL(1.0), REAL(2.0), REAL(3.0)};
+		Vector<Real> b{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)};
 		
 		REQUIRE_THROWS_AS(GaussSeidelSolver::Solve(A, b), SingularMatrixError);
 	}
@@ -187,10 +187,10 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 	TEST_CASE("SOR_DiagDominant_4x4_Omega1", "[SORSolver][Iterative]")
 	{
 			TEST_PRECISION_INFO();
-		// With omega = REAL(1.0), SOR should be equivalent to Gauss-Seidel
+		// With omega = static_cast<MML::Real>(1.0), SOR should be equivalent to Gauss-Seidel
 		auto sys = TestBeds::diag_dominant_4x4();
 		
-		auto sor_result = SORSolver::Solve(sys._mat, sys._rhs, REAL(1.0));
+		auto sor_result = SORSolver::Solve(sys._mat, sys._rhs, static_cast<MML::Real>(1.0));
 		auto gs_result = GaussSeidelSolver::Solve(sys._mat, sys._rhs);
 		
 		REQUIRE(sor_result.converged);
@@ -203,8 +203,8 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 			TEST_PRECISION_INFO();
 		auto sys = TestBeds::diag_dominant_5x5_tridiag();
 		
-		// Use omega = REAL(1.5) (typical over-relaxation)
-		auto result = SORSolver::Solve(sys._mat, sys._rhs, REAL(1.5));
+		// Use omega = static_cast<MML::Real>(1.5) (typical over-relaxation)
+		auto result = SORSolver::Solve(sys._mat, sys._rhs, static_cast<MML::Real>(1.5));
 		
 		REQUIRE(result.converged);
 		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
@@ -215,7 +215,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 			TEST_PRECISION_INFO();
 		auto sys = TestBeds::diag_dominant_6x6_poisson2d();
 		
-		auto result = SORSolver::Solve(sys._mat, sys._rhs, REAL(1.3));
+		auto result = SORSolver::Solve(sys._mat, sys._rhs, static_cast<MML::Real>(1.3));
 		
 		REQUIRE(result.converged);
 		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
@@ -244,7 +244,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		// Under-relaxation (omega < 1) should still converge
 		auto sys = TestBeds::diag_dominant_4x4();
 		
-		auto result = SORSolver::Solve(sys._mat, sys._rhs, REAL(0.8));
+		auto result = SORSolver::Solve(sys._mat, sys._rhs, static_cast<MML::Real>(0.8));
 		
 		REQUIRE(result.converged);
 		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
@@ -255,10 +255,10 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 			TEST_PRECISION_INFO();
 		auto sys = TestBeds::diag_dominant_4x4();
 		
-		REQUIRE_THROWS_AS(SORSolver::Solve(sys._mat, sys._rhs, REAL(0.0)), NumericalMethodError);
-		REQUIRE_THROWS_AS(SORSolver::Solve(sys._mat, sys._rhs, REAL(2.0)), NumericalMethodError);
-		REQUIRE_THROWS_AS(SORSolver::Solve(sys._mat, sys._rhs, -REAL(0.5)), NumericalMethodError);
-		REQUIRE_THROWS_AS(SORSolver::Solve(sys._mat, sys._rhs, REAL(2.5)), NumericalMethodError);
+		REQUIRE_THROWS_AS(SORSolver::Solve(sys._mat, sys._rhs, static_cast<MML::Real>(0.0)), NumericalMethodError);
+		REQUIRE_THROWS_AS(SORSolver::Solve(sys._mat, sys._rhs, static_cast<MML::Real>(2.0)), NumericalMethodError);
+		REQUIRE_THROWS_AS(SORSolver::Solve(sys._mat, sys._rhs, -static_cast<MML::Real>(0.5)), NumericalMethodError);
+		REQUIRE_THROWS_AS(SORSolver::Solve(sys._mat, sys._rhs, static_cast<MML::Real>(2.5)), NumericalMethodError);
 	}
 	
 	TEST_CASE("SOR_SolveSimple", "[SORSolver][Iterative]")
@@ -266,7 +266,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 			TEST_PRECISION_INFO();
 		auto sys = TestBeds::diag_dominant_4x4();
 		
-		Vector<Real> sol = SORSolver::SolveSimple(sys._mat, sys._rhs, REAL(1.2));
+		Vector<Real> sol = SORSolver::SolveSimple(sys._mat, sys._rhs, static_cast<MML::Real>(1.2));
 		
 		REQUIRE(sol.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
@@ -278,9 +278,9 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		Real estimated_omega = SORSolver::EstimateOptimalOmega(sys._mat, sys._rhs);
 		
-		// For a 5x5 tridiagonal system, optimal omega should be around REAL(1.5)-REAL(1.7)
-		REQUIRE(estimated_omega >= REAL(1.0));
-		REQUIRE(estimated_omega < REAL(2.0));
+		// For a 5x5 tridiagonal system, optimal omega should be around static_cast<MML::Real>(1.5)-static_cast<MML::Real>(1.7)
+		REQUIRE(estimated_omega >= static_cast<MML::Real>(1.0));
+		REQUIRE(estimated_omega < static_cast<MML::Real>(2.0));
 		
 		// Verify it actually works well
 		auto result = SORSolver::Solve(sys._mat, sys._rhs, estimated_omega);
@@ -344,7 +344,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 			TEST_PRECISION_INFO();
 		// SPD matrices guarantee convergence for Gauss-Seidel
 		auto sys = TestBeds::spd_3x3();
-		Matrix<Real> fullMat = sys._mat.GetAsMatrix();
+		Matrix<Real> fullMat = sys._mat.ToFullMatrix();
 		
 		auto result = GaussSeidelSolver::Solve(fullMat, sys._rhs);
 		
@@ -356,9 +356,9 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 	{
 			TEST_PRECISION_INFO();
 		auto sys = TestBeds::spd_5x5_mass_matrix();
-		Matrix<Real> fullMat = sys._mat.GetAsMatrix();
+		Matrix<Real> fullMat = sys._mat.ToFullMatrix();
 		
-		auto result = SORSolver::Solve(fullMat, sys._rhs, REAL(1.2));
+		auto result = SORSolver::Solve(fullMat, sys._rhs, static_cast<MML::Real>(1.2));
 		
 		REQUIRE(result.converged);
 		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
@@ -379,7 +379,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		REQUIRE(result.converged == true);
 		REQUIRE(result.iterations > 0);
 		REQUIRE(result.iterations <= 1000);  // Within max iterations
-		REQUIRE(result.residual >= REAL(0.0));
+		REQUIRE(result.residual >= static_cast<MML::Real>(0.0));
 		REQUIRE(result.residual < TOL(1e-10, 1e-5));  // Within tolerance
 		REQUIRE(result.solution.size() == sys._sol.size());
 	}
@@ -415,17 +415,17 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		// Fill with diagonally dominant pattern
 		for (int i = 0; i < n; i++)
 		{
-			Real diag_sum = REAL(0.0);
+			Real diag_sum = static_cast<MML::Real>(0.0);
 			for (int j = 0; j < n; j++)
 			{
 				if (i != j)
 				{
-					A[i][j] = REAL(1.0) / (REAL(1.0) + std::abs(i - j));
+					A[i][j] = static_cast<MML::Real>(1.0) / (static_cast<MML::Real>(1.0) + std::abs(i - j));
 					diag_sum += std::abs(A[i][j]);
 				}
 			}
-			A[i][i] = diag_sum + REAL(1.0);  // Strictly diagonally dominant
-			b[i] = REAL(i + 1);
+			A[i][i] = diag_sum + static_cast<MML::Real>(1.0);  // Strictly diagonally dominant
+			b[i] = static_cast<MML::Real>(i + 1);
 		}
 		
 		auto result = JacobiSolver::Solve(A, b);
@@ -447,10 +447,10 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		for (int i = 0; i < n; i++)
 		{
-			A[i][i] = REAL(4.0);
-			if (i > 0) A[i][i-1] = REAL(-1.0);
-			if (i < n-1) A[i][i+1] = REAL(-1.0);
-			b[i] = REAL(1.0);
+			A[i][i] = static_cast<MML::Real>(4.0);
+			if (i > 0) A[i][i-1] = static_cast<MML::Real>(-1.0);
+			if (i < n-1) A[i][i+1] = static_cast<MML::Real>(-1.0);
+			b[i] = static_cast<MML::Real>(1.0);
 		}
 		
 		auto result = GaussSeidelSolver::Solve(A, b);
@@ -472,15 +472,15 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		for (int i = 0; i < n; i++)
 		{
-			A[i][i] = REAL(4.0);
-			if (i > 0) A[i][i-1] = REAL(-1.0);
-			if (i < n-1) A[i][i+1] = REAL(-1.0);
-			b[i] = REAL(1.0);
+			A[i][i] = static_cast<MML::Real>(4.0);
+			if (i > 0) A[i][i-1] = static_cast<MML::Real>(-1.0);
+			if (i < n-1) A[i][i+1] = static_cast<MML::Real>(-1.0);
+			b[i] = static_cast<MML::Real>(1.0);
 		}
 		
 		// Use omega slightly above 1 (mild over-relaxation)
 		// The "optimal omega" formula is for specific Poisson BCs and may not apply here
-		auto sor_result = SORSolver::Solve(A, b, REAL(1.2));
+		auto sor_result = SORSolver::Solve(A, b, static_cast<MML::Real>(1.2));
 		
 		REQUIRE(sor_result.converged);
 		
@@ -517,7 +517,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		Matrix<Real> A(3, 5);  // Non-square
 		Vector<Real> b(3);
 		
-		REQUIRE_THROWS_AS(SORSolver::Solve(A, b, REAL(1.2)), MatrixDimensionError);
+		REQUIRE_THROWS_AS(SORSolver::Solve(A, b, static_cast<MML::Real>(1.2)), MatrixDimensionError);
 	}
 
 	TEST_CASE("GaussSeidel_SolveSimple_Throws_OnNonConvergence", "[GaussSeidelSolver][Iterative]")
@@ -527,7 +527,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		// Very tight tolerance with very few iterations - should not converge
 		REQUIRE_THROWS_AS(
-			GaussSeidelSolver::SolveSimple(sys._mat, sys._rhs, REAL(1e-20), 3),
+			GaussSeidelSolver::SolveSimple(sys._mat, sys._rhs, static_cast<MML::Real>(1e-20), 3),
 			std::runtime_error
 		);
 	}
@@ -539,7 +539,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		// Very tight tolerance with very few iterations - should not converge
 		REQUIRE_THROWS_AS(
-			SORSolver::SolveSimple(sys._mat, sys._rhs, REAL(1.2), REAL(1e-20), 3),
+			SORSolver::SolveSimple(sys._mat, sys._rhs, static_cast<MML::Real>(1.2), static_cast<MML::Real>(1e-20), 3),
 			std::runtime_error
 		);
 	}
@@ -551,7 +551,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto sys = TestBeds::diag_dominant_4x4();
 		Vector<Real> zero_b(sys._rhs.size());
 		for (int i = 0; i < zero_b.size(); i++)
-			zero_b[i] = REAL(0.0);
+			zero_b[i] = static_cast<MML::Real>(0.0);
 		
 		auto result = JacobiSolver::Solve(sys._mat, zero_b);
 		
@@ -570,7 +570,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		// Start with a "close" initial guess
 		Vector<Real> close_guess = sys._sol;
 		for (int i = 0; i < close_guess.size(); i++)
-			close_guess[i] *= REAL(1.1);  // 10% off
+			close_guess[i] *= static_cast<MML::Real>(1.1);  // 10% off
 		
 		// With close guess, should converge faster than from zero
 		auto result_close = JacobiSolver::Solve(sys._mat, sys._rhs, close_guess);
@@ -607,29 +607,29 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 	TEST_CASE("Jacobi_near_zero_diagonal_throws", "[JacobiSolver][Iterative]")
 	{
 		// Matrix with a near-zero diagonal element should be caught
-		Matrix<Real> A(3, 3, { REAL(10.0), REAL(1.0), REAL(0.0),
-		                       REAL(1.0),  REAL(1e-300), REAL(1.0),
-		                       REAL(0.0),  REAL(1.0), REAL(10.0) });
-		Vector<Real> b{REAL(1.0), REAL(2.0), REAL(3.0)};
+		Matrix<Real> A(3, 3, { static_cast<MML::Real>(10.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+		                       static_cast<MML::Real>(1.0),  static_cast<MML::Real>(1e-300), static_cast<MML::Real>(1.0),
+		                       static_cast<MML::Real>(0.0),  static_cast<MML::Real>(1.0), static_cast<MML::Real>(10.0) });
+		Vector<Real> b{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)};
 		REQUIRE_THROWS_AS(JacobiSolver::Solve(A, b), SingularMatrixError);
 	}
 
 	TEST_CASE("GaussSeidel_near_zero_diagonal_throws", "[GaussSeidelSolver][Iterative]")
 	{
-		Matrix<Real> A(3, 3, { REAL(10.0), REAL(1.0), REAL(0.0),
-		                       REAL(1.0),  REAL(1e-300), REAL(1.0),
-		                       REAL(0.0),  REAL(1.0), REAL(10.0) });
-		Vector<Real> b{REAL(1.0), REAL(2.0), REAL(3.0)};
+		Matrix<Real> A(3, 3, { static_cast<MML::Real>(10.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+		                       static_cast<MML::Real>(1.0),  static_cast<MML::Real>(1e-300), static_cast<MML::Real>(1.0),
+		                       static_cast<MML::Real>(0.0),  static_cast<MML::Real>(1.0), static_cast<MML::Real>(10.0) });
+		Vector<Real> b{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)};
 		REQUIRE_THROWS_AS(GaussSeidelSolver::Solve(A, b), SingularMatrixError);
 	}
 
 	TEST_CASE("SOR_near_zero_diagonal_throws", "[SORSolver][Iterative]")
 	{
-		Matrix<Real> A(3, 3, { REAL(10.0), REAL(1.0), REAL(0.0),
-		                       REAL(1.0),  REAL(1e-300), REAL(1.0),
-		                       REAL(0.0),  REAL(1.0), REAL(10.0) });
-		Vector<Real> b{REAL(1.0), REAL(2.0), REAL(3.0)};
-		REQUIRE_THROWS_AS(SORSolver::Solve(A, b, REAL(1.0)), SingularMatrixError);
+		Matrix<Real> A(3, 3, { static_cast<MML::Real>(10.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+		                       static_cast<MML::Real>(1.0),  static_cast<MML::Real>(1e-300), static_cast<MML::Real>(1.0),
+		                       static_cast<MML::Real>(0.0),  static_cast<MML::Real>(1.0), static_cast<MML::Real>(10.0) });
+		Vector<Real> b{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)};
+		REQUIRE_THROWS_AS(SORSolver::Solve(A, b, static_cast<MML::Real>(1.0)), SingularMatrixError);
 	}
 
 } // namespace MML::Tests::Core::IterativeLinearSolversTests

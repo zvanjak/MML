@@ -9,7 +9,7 @@
 ///               - Automatic cell subdivision where error exceeds tolerance          ///
 ///               - Gauss-Kronrod embedded rules for reliable error bounds            ///
 ///                                                                                   ///
-///  Usage:       auto r = IntegrateAdaptive3D(f, x1, x2, y1, y2, z1, z2, 1e-8);      ///
+///  Usage:       auto r = IntegrateAdaptive3DCore(f, x1, x2, y1, y2, z1, z2, 1e-8);      ///
 ///               if (r.converged) std::cout << r.value << " ± " << r.error_estimate; ///
 ///                                                                                   ///
 ///  Algorithm:   1. Apply GK rule to entire domain → estimate + error                ///
@@ -51,32 +51,29 @@ namespace Integration
 ///
 /// @par Example:
 /// @code
-/// auto result = IntegrateAdaptive3D(f, 0, 1, 0, 1, 0, 1, 1e-8);
+/// auto result = IntegrateAdaptive3DCore(f, 0, 1, 0, 1, 0, 1, 1e-8);
 /// if (result.converged) {
 ///     std::cout << "Integral = " << result.value 
 ///               << " ± " << result.error_estimate << "\n";
 ///     std::cout << "Subdivided " << result.cells_subdivided << " cells\n";
 /// }
 /// @endcode
-struct AdaptiveResult3D
+struct AdaptiveResult3D : public IntegrationResult
 {
-    Real value;               ///< Integral estimate (sum over all cells)
-    Real error_estimate;      ///< Accumulated error bound from all cells
-    int function_evaluations; ///< Total number of f(x,y,z) evaluations
-    int cells_subdivided;     ///< Number of octree cell subdivisions performed
-    int max_depth_reached;    ///< Maximum subdivision depth reached
-    bool converged;           ///< True if total error < requested tolerance
+    // value, error_estimate, function_evaluations, converged, status come from IntegrationResult
+    int cells_subdivided = 0;     ///< Number of octree cell subdivisions performed
+    int max_depth_reached = 0;    ///< Maximum subdivision depth reached
 
     /// @brief Default constructor
     AdaptiveResult3D(Real val = 0.0, Real err = 0.0, int evals = 0, 
                      int cells = 0, int depth = 0, bool conv = false)
-        : value(val)
-        , error_estimate(err)
-        , function_evaluations(evals)
+        : IntegrationResult(val, err, depth, conv, /*error_estimated*/ true)
         , cells_subdivided(cells)
         , max_depth_reached(depth)
-        , converged(conv) 
-    {}
+    {
+        function_evaluations = evals;
+        algorithm_name = "IntegrateAdaptive3D";
+    }
 
     /// @brief Combine two results (for accumulating from child cells)
     AdaptiveResult3D& operator+=(const AdaptiveResult3D& other) {
@@ -85,7 +82,9 @@ struct AdaptiveResult3D
         function_evaluations += other.function_evaluations;
         cells_subdivided += other.cells_subdivided;
         max_depth_reached = std::max(max_depth_reached, other.max_depth_reached);
+        iterations = max_depth_reached;
         converged = converged && other.converged;
+        status = converged ? AlgorithmStatus::Success : AlgorithmStatus::MaxIterationsExceeded;
         return *this;
     }
 
@@ -263,7 +262,7 @@ static AdaptiveResult3D IntegrateAdaptive3D_Recursive(
 {
     // Integrate this cell using tensor product GK15 with proper error estimation
     auto cell_result = Detail::IntegrateCell3D_TensorGK15(f, x1, x2, y1, y2, z1, z2);
-    evals_remaining -= cell_result.function_evals;
+    evals_remaining -= cell_result.function_evaluations;
 
     Real cell_volume = (x2 - x1) * (y2 - y1) * (z2 - z1);
     Real volume_fraction = cell_volume / total_volume;
@@ -275,7 +274,7 @@ static AdaptiveResult3D IntegrateAdaptive3D_Recursive(
     if (cell_result.error_estimate <= cell_tol || depth >= max_depth || evals_remaining <= 0) {
         bool conv = (cell_result.error_estimate <= cell_tol);
         return AdaptiveResult3D(cell_result.value, cell_result.error_estimate,
-                                 cell_result.function_evals, 0, depth, conv);
+                                 cell_result.function_evaluations, 0, depth, conv);
     }
 
     // Subdivide into 8 octants
@@ -326,14 +325,14 @@ static AdaptiveResult3D IntegrateAdaptive3D_Recursive(
 /// @par Example:
 /// @code
 /// // Integrate 1 over unit cube = 1.0
-/// auto result = IntegrateAdaptive3D(
+/// auto result = IntegrateAdaptive3DCore(
 ///     [](Real x, Real y, Real z) { return 1.0; },
 ///     0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1e-10
 /// );
 /// std::cout << result.value << " (should be 1.0)\n";
 /// 
 /// // Sphere indicator function: volume of unit sphere = 4π/3
-/// auto sphere = IntegrateAdaptive3D(
+/// auto sphere = IntegrateAdaptive3DCore(
 ///     [](Real x, Real y, Real z) { 
 ///         return (x*x + y*y + z*z <= 1.0) ? 1.0 : 0.0; 
 ///     },
@@ -342,7 +341,7 @@ static AdaptiveResult3D IntegrateAdaptive3D_Recursive(
 /// std::cout << "Sphere volume: " << sphere.value << " (4π/3 ≈ 4.189)\n";
 /// @endcode
 template<typename Func>
-static AdaptiveResult3D IntegrateAdaptive3D(
+static AdaptiveResult3D IntegrateAdaptive3DCore(
     Func f,
     Real x1, Real x2,
     Real y1, Real y2,
@@ -368,6 +367,28 @@ static AdaptiveResult3D IntegrateAdaptive3D(
     );
 }
 
+/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+template<typename Func>
+static auto IntegrateAdaptive3DDetailed(Func f, Real x1, Real x2, Real y1, Real y2, Real z1, Real z2, Real tolerance, int max_depth = 15, int max_evals = 10000000)
+{
+	auto r = IntegrateAdaptive3DCore(f, x1, x2, y1, y2, z1, z2, tolerance, max_depth, max_evals);
+	r.algorithm_name = "IntegrateAdaptive3D";
+	return r;
+}
+
+template<typename Func>
+static Real IntegrateAdaptive3D(
+    Func f,
+    Real x1, Real x2,
+    Real y1, Real y2,
+    Real z1, Real z2,
+    Real tolerance = PrecisionValues<Real>::IntegrationTolerance,
+    int max_depth = 15,
+    int max_evals = 10000000)
+{
+	return IntegrateAdaptive3DCore(f, x1, x2, y1, y2, z1, z2, tolerance, max_depth, max_evals).ValueOrThrow("IntegrateAdaptive3D");
+}
+
 /// @brief Adaptive 3D integration with configuration object
 /// 
 /// Provides full control over integration parameters including
@@ -386,10 +407,10 @@ static AdaptiveResult3D IntegrateAdaptive3D(
 ///       .maxDepth(10)
 ///       .maxEvaluations(5000000);
 ///
-/// auto result = IntegrateAdaptive3D(f, 0, 1, 0, 1, 0, 1, config);
+/// auto result = IntegrateAdaptive3DCore(f, 0, 1, 0, 1, 0, 1, config);
 /// @endcode
 template<typename Func>
-static AdaptiveResult3D IntegrateAdaptive3D(
+static AdaptiveResult3D IntegrateAdaptive3DCore(
     Func f,
     Real x1, Real x2,
     Real y1, Real y2,
@@ -413,13 +434,24 @@ static AdaptiveResult3D IntegrateAdaptive3D(
     );
 }
 
+template<typename Func>
+static Real IntegrateAdaptive3D(
+    Func f,
+    Real x1, Real x2,
+    Real y1, Real y2,
+    Real z1, Real z2,
+    const AdaptiveConfig3D& config)
+{
+	return IntegrateAdaptive3DCore(f, x1, x2, y1, y2, z1, z2, config).ValueOrThrow("IntegrateAdaptive3D");
+}
+
 /**************************************************************************/
 /*****       Detailed API - Adaptive 3D Integration                   *****/
 /**************************************************************************/
 
 /// Adaptive 3D integration with simple parameters and full diagnostics
 template<typename Func>
-static IntegrationDetailedResult IntegrateAdaptive3DDetailed(
+static AdaptiveResult3D IntegrateAdaptive3DDetailed(
     Func f,
     Real x1, Real x2,
     Real y1, Real y2,
@@ -429,24 +461,19 @@ static IntegrationDetailedResult IntegrateAdaptive3DDetailed(
     int max_depth = 15,
     int max_evals = 10000000)
 {
-    return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+    return IntegrationDetail::ExecuteIntegrationDetailed<AdaptiveResult3D>(
         "IntegrateAdaptive3D", config,
-        [&](IntegrationDetailedResult& result) {
-            auto r = IntegrateAdaptive3D(f, x1, x2, y1, y2, z1, z2, tolerance, max_depth, max_evals);
-            result.value = r.value;
-            result.error_estimate = r.error_estimate;
-            result.function_evaluations = r.function_evaluations;
-            result.converged = r.converged;
-            if (!r.converged) {
-                result.status = AlgorithmStatus::MaxIterationsExceeded;
-                result.error_message = "IntegrateAdaptive3D did not converge";
-            }
+        [&](AdaptiveResult3D& result) {
+            auto r = IntegrateAdaptive3DCore(f, x1, x2, y1, y2, z1, z2, tolerance, max_depth, max_evals);
+            IntegrationDetail::Adopt(result, r, "IntegrateAdaptive3D");
+            result.cells_subdivided = r.cells_subdivided;
+            result.max_depth_reached = r.max_depth_reached;
         });
 }
 
 /// Adaptive 3D integration with config object and full diagnostics
 template<typename Func>
-static IntegrationDetailedResult IntegrateAdaptive3DDetailed(
+static AdaptiveResult3D IntegrateAdaptive3DDetailed(
     Func f,
     Real x1, Real x2,
     Real y1, Real y2,
@@ -454,18 +481,13 @@ static IntegrationDetailedResult IntegrateAdaptive3DDetailed(
     const AdaptiveConfig3D& adaptive_config,
     const IntegrationConfig& config = {})
 {
-    return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+    return IntegrationDetail::ExecuteIntegrationDetailed<AdaptiveResult3D>(
         "IntegrateAdaptive3D", config,
-        [&](IntegrationDetailedResult& result) {
-            auto r = IntegrateAdaptive3D(f, x1, x2, y1, y2, z1, z2, adaptive_config);
-            result.value = r.value;
-            result.error_estimate = r.error_estimate;
-            result.function_evaluations = r.function_evaluations;
-            result.converged = r.converged;
-            if (!r.converged) {
-                result.status = AlgorithmStatus::MaxIterationsExceeded;
-                result.error_message = "IntegrateAdaptive3D did not converge";
-            }
+        [&](AdaptiveResult3D& result) {
+            auto r = IntegrateAdaptive3DCore(f, x1, x2, y1, y2, z1, z2, adaptive_config);
+            IntegrationDetail::Adopt(result, r, "IntegrateAdaptive3D");
+            result.cells_subdivided = r.cells_subdivided;
+            result.max_depth_reached = r.max_depth_reached;
         });
 }
 

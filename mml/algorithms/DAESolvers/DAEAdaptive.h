@@ -6,25 +6,27 @@
 #define MML_DAE_ADAPTIVE_H
 
 #include "DAESolverBase.h"
+#include <algorithm>
 
 namespace MML {
 
 	inline DAESolverResult SolveDAEBackwardEulerAdaptive(IODESystemDAEWithJacobian& system,
 		Real t0, const Vector<Real>& x0, const Vector<Real>& y0, Real t_end,
 		const DAESolverConfig& config = DAESolverConfig()) {
-		if (t_end <= t0)
-			throw ArgumentError("SolveDAEBackwardEulerAdaptive: t_end must be greater than t0 (reverse-time integration is not supported)");
-		if (config.step_size <= 0)
+		if (!std::isfinite(t_end - t0) || t_end == t0)
+			throw ArgumentError("SolveDAEBackwardEulerAdaptive: requires distinct finite endpoints");
+		if (!std::isfinite(config.step_size) || config.step_size <= 0)
 			throw ArgumentError("SolveDAEBackwardEulerAdaptive: config.step_size must be positive");
 
 		AlgorithmTimer timer;
 		const int diffDim = system.getDiffDim();
 		const int algDim = system.getAlgDim();
-		DAESolverResult result(t0, t_end, diffDim, algDim, 128);
+		DAESolverResult result(t0, t_end, diffDim, algDim, 0);
 		result.algorithm_name = "DAEBackwardEulerAdaptive";
 		Vector<Real> x = x0, y = y0, constraints(algDim);
 		Real t = t0;
-		Real h = std::clamp(config.step_size, config.min_step_size, config.max_step_size);
+		const Real direction = t_end > t0 ? Real(1) : Real(-1);
+		Real h = direction * std::clamp(config.step_size, config.min_step_size, config.max_step_size);
 		result.solution.fillValues(0, t, x, y);
 		system.algConstraints(t, x, y, constraints);
 		result.final_constraint_norm = constraints.NormL2();
@@ -69,14 +71,16 @@ namespace MML {
 		};
 
 		int savedStep = 1;
-		while (t < t_end && result.accepted_steps + result.rejected_steps < config.max_steps) {
-			h = std::min(h, t_end - t);
+		while (direction * (t_end - t) > 0 && result.accepted_steps + result.rejected_steps < config.max_steps) {
+			if (!PrepareDAETrajectoryPoint(result, savedStep)) break;
+			h = direction * std::min(std::abs(h), std::abs(t_end - t));
+			if (!ValidateDAETimeStep(t, t + h, result, "Adaptive Backward Euler")) break;
 			Vector<Real> fullX, fullY, halfX, halfY, acceptedX, acceptedY;
 			DAENewtonResult full = takeStep(t, x, y, h, fullX, fullY);
-			DAENewtonResult firstHalf = takeStep(t, x, y, h * REAL(0.5), halfX, halfY);
+			DAENewtonResult firstHalf = takeStep(t, x, y, h * static_cast<MML::Real>(0.5), halfX, halfY);
 			DAENewtonResult secondHalf;
 			if (firstHalf.converged)
-				secondHalf = takeStep(t + h * REAL(0.5), halfX, halfY, h * REAL(0.5), acceptedX, acceptedY);
+				secondHalf = takeStep(t + h * static_cast<MML::Real>(0.5), halfX, halfY, h * static_cast<MML::Real>(0.5), acceptedX, acceptedY);
 			AccumulateDAENewtonDiagnostics(result, full);
 			AccumulateDAENewtonDiagnostics(result, firstHalf);
 			if (firstHalf.converged) AccumulateDAENewtonDiagnostics(result, secondHalf);
@@ -84,7 +88,7 @@ namespace MML {
 			if (!full.converged || !firstHalf.converged || !secondHalf.converged) {
 				result.rejected_steps++;
 				result.solution.incrementRejectedSteps();
-				if (h <= config.min_step_size) {
+				if (std::abs(h) <= config.min_step_size) {
 					const DAENewtonResult& failure = !full.converged ? full : (!firstHalf.converged ? firstHalf : secondHalf);
 					result.failure_reason = failure.failure_reason;
 					result.status = failure.failure_reason == DAEFailureReason::SingularJacobian
@@ -92,11 +96,11 @@ namespace MML {
 					result.error_message = failure.message;
 					break;
 				}
-				h = std::max(config.min_step_size, h * REAL(0.5));
+				h = direction * std::max(config.min_step_size, std::abs(h) * static_cast<MML::Real>(0.5));
 				continue;
 			}
 
-			Real errorRatio = REAL(0.0);
+			Real errorRatio = static_cast<MML::Real>(0.0);
 			for (int i = 0; i < diffDim; ++i) {
 				Real scale = config.abs_tolerance + config.rel_tolerance * std::max(std::abs(acceptedX[i]), std::abs(x[i]));
 				errorRatio = std::max(errorRatio, std::abs(acceptedX[i] - fullX[i]) / scale);
@@ -106,11 +110,11 @@ namespace MML {
 				errorRatio = std::max(errorRatio, std::abs(acceptedY[i] - fullY[i]) / scale);
 			}
 
-			if (errorRatio > REAL(1.0) && h > config.min_step_size) {
+			if (errorRatio > static_cast<MML::Real>(1.0) && std::abs(h) > config.min_step_size) {
 				result.rejected_steps++;
 				result.solution.incrementRejectedSteps();
-				Real factor = std::max(REAL(0.2), config.step_safety / std::sqrt(errorRatio));
-				h = std::max(config.min_step_size, h * factor);
+				Real factor = std::max(static_cast<MML::Real>(0.2), config.step_safety / std::sqrt(errorRatio));
+				h = direction * std::max(config.min_step_size, std::abs(h) * factor);
 				continue;
 			}
 
@@ -123,14 +127,15 @@ namespace MML {
 			result.solution.fillValues(savedStep++, t, x, y);
 			result.solution.incrementSuccessfulSteps();
 			result.accepted_steps++;
-			Real factor = errorRatio > REAL(0.0)
-				? std::clamp(config.step_safety / std::sqrt(errorRatio), REAL(0.5), REAL(2.0)) : REAL(2.0);
-			h = std::clamp(h * factor, config.min_step_size, config.max_step_size);
+			Real factor = errorRatio > static_cast<MML::Real>(0.0)
+				? std::clamp(config.step_safety / std::sqrt(errorRatio), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)) : static_cast<MML::Real>(2.0);
+			h = direction * std::clamp(std::abs(h) * factor, config.min_step_size, config.max_step_size);
 		}
 
-		result.solution.setFinalSize(savedStep - 1);
+		if (result.status != AlgorithmStatus::ResourceLimitExceeded)
+			result.solution.setFinalSize(savedStep - 1);
 		result.total_steps = result.accepted_steps;
-		if (t < t_end && result.status == AlgorithmStatus::Success) {
+		if (direction * (t_end - t) > 0 && result.status == AlgorithmStatus::Success) {
 			result.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.failure_reason = DAEFailureReason::MaxStepsExceeded;
 			result.error_message = "Maximum adaptive DAE step count reached";

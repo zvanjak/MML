@@ -13,6 +13,7 @@
 #define MML_LINEAR_ALG_QR_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
@@ -33,7 +34,7 @@ namespace MML
 
 		int _m;              // number of rows
 		int _n;              // number of columns
-		Matrix<Type> _QR;    // Combined QR storage: R in upper triangle, Householder vectors in lower
+		Matrix<Type> _qr;    // Combined QR storage: R in upper triangle, Householder vectors in lower
 		Vector<RealType> _beta; // Householder coefficients
 		Vector<Type> _d;     // Diagonal of R (stored separately)
 		bool _sing;          // Singularity flag
@@ -59,7 +60,7 @@ namespace MML
 		/// @param a Input matrix (m×n with m≥n)
 		/// @throws MatrixDimensionError if m<n
 		/// @note Stores R in upper triangle of QR, Householder vectors in lower triangle
-		QRSolver(const Matrix<Type>& a) : _m(a.rows()), _n(a.cols()), _QR(a), _beta(_n), _d(_n), _sing(false), _num_reflections(0)
+		QRSolver(const Matrix<Type>& a) : _m(a.rows()), _n(a.cols()), _qr(a), _beta(_n), _d(_n), _sing(false), _num_reflections(0)
 		{
 			if (_m < _n)
 				throw MatrixDimensionError("QRSolver: Matrix must have m >= n (rows >= columns)", _m, _n, _m, _n);
@@ -72,7 +73,7 @@ namespace MML
 			{
 				RealType scale = 0.0;
 				for (int i = k; i < _m; i++)
-					scale = std::max(scale, std::abs(_QR[i][k]));
+					scale = std::max(scale, std::abs(_qr[i][k]));
 
 				if (scale <= std::numeric_limits<RealType>::epsilon())
 				{
@@ -85,16 +86,16 @@ namespace MML
 					RealType normSquared = 0.0;
 					for (int i = k; i < _m; i++)
 					{
-						_QR[i][k] /= scale;
-						normSquared += std::norm(_QR[i][k]);
+						_qr[i][k] /= scale;
+						normSquared += std::norm(_qr[i][k]);
 					}
 					const RealType norm = std::sqrt(normSquared);
-					const RealType leadingMagnitude = std::abs(_QR[k][k]);
+					const RealType leadingMagnitude = std::abs(_qr[k][k]);
 					const Type phase = leadingMagnitude > RealType{0}
-						? _QR[k][k] / Type{leadingMagnitude}
+						? _qr[k][k] / Type{leadingMagnitude}
 						: Type{1};
 					const Type alpha = -phase * Type{norm};
-					_QR[k][k] -= alpha;
+					_qr[k][k] -= alpha;
 					_beta[k] = RealType{1} / (norm * (norm + leadingMagnitude));
 					_d[k] = Type{scale} * alpha;
 					_num_reflections++;
@@ -103,10 +104,10 @@ namespace MML
 					{
 						Type projection = Type{0};
 						for (int i = k; i < _m; i++)
-							projection += Conjugate(_QR[i][k]) * _QR[i][j];
+							projection += Conjugate(_qr[i][k]) * _qr[i][j];
 						projection *= _beta[k];
 						for (int i = k; i < _m; i++)
-							_QR[i][j] -= _QR[i][k] * projection;
+							_qr[i][j] -= _qr[i][k] * projection;
 					}
 				}
 			}
@@ -114,7 +115,7 @@ namespace MML
 			// For square matrices, handle the last diagonal element separately
 			if (_m == _n)
 			{
-				_d[_n - 1] = _QR[_n - 1][_n - 1];
+				_d[_n - 1] = _qr[_n - 1][_n - 1];
 				// Use norm-scaled threshold instead of exact zero
 				RealType norm_a = 0.0;
 				for (int ii = 0; ii < _m; ii++)
@@ -165,7 +166,7 @@ namespace MML
 			QAdjointMultiply(b, qtb);
 
 			// Back-substitution on R (using only first n elements of qtb)
-			x.Resize(_n);
+			x.resize(_n);
 			for (int i = 0; i < _n; i++)
 				x[i] = qtb[i];
 
@@ -188,7 +189,7 @@ namespace MML
 			if (_sing)
 				throw SingularMatrixError("QRSolver::RSolve - Singular matrix");
 
-			x.Resize(_n);
+			x.resize(_n);
 			for (int i = 0; i < _n; i++)
 				x[i] = b[i];
 
@@ -197,7 +198,7 @@ namespace MML
 			{
 				Type sum = x[i];
 				for (int j = i + 1; j < _n; j++)
-					sum -= _QR[i][j] * x[j];
+					sum -= _qr[i][j] * x[j];
 				x[i] = sum / _d[i];
 			}
 		}
@@ -209,7 +210,7 @@ namespace MML
 			if (b.size() != static_cast<size_t>(_m))
 				throw VectorDimensionError("QRSolver::QAdjointMultiply - Vector size mismatch", _m, b.size());
 
-			qtb.Resize(_m);
+			qtb.resize(_m);
 			for (int i = 0; i < _m; i++)
 				qtb[i] = b[i];
 
@@ -221,10 +222,10 @@ namespace MML
 				{
 					Type projection = Type{0};
 					for (int i = k; i < _m; i++)
-						projection += Conjugate(_QR[i][k]) * qtb[i];
+						projection += Conjugate(_qr[i][k]) * qtb[i];
 					projection *= _beta[k];
 					for (int i = k; i < _m; i++)
-						qtb[i] -= _QR[i][k] * projection;
+						qtb[i] -= _qr[i][k] * projection;
 				}
 			}
 		}
@@ -242,7 +243,7 @@ namespace MML
 			if (b.size() != static_cast<size_t>(_m))
 				throw VectorDimensionError("QRSolver::QMultiply - Vector size mismatch", _m, b.size());
 
-			qb.Resize(_m);
+			qb.resize(_m);
 			for (int i = 0; i < _m; i++)
 				qb[i] = b[i];
 
@@ -254,10 +255,10 @@ namespace MML
 				{
 					Type projection = Type{0};
 					for (int i = k; i < _m; i++)
-						projection += Conjugate(_QR[i][k]) * qb[i];
+						projection += Conjugate(_qr[i][k]) * qb[i];
 					projection *= _beta[k];
 					for (int i = k; i < _m; i++)
-						qb[i] -= _QR[i][k] * projection;
+						qb[i] -= _qr[i][k] * projection;
 				}
 			}
 		}
@@ -271,7 +272,7 @@ namespace MML
 				for (int j = 0; j < _n; j++)
 				{
 					if (j >= i)
-						R[i][j] = (i == j) ? _d[i] : _QR[i][j];
+						R[i][j] = (i == j) ? _d[i] : _qr[i][j];
 					else
 						R[i][j] = 0.0;
 				}
@@ -298,10 +299,10 @@ namespace MML
 					{
 						Type projection = Type{0};
 						for (int i = k; i < _m; i++)
-							projection += Conjugate(_QR[i][k]) * Q[i][j];
+							projection += Conjugate(_qr[i][k]) * Q[i][j];
 						projection *= _beta[k];
 						for (int i = k; i < _m; i++)
-							Q[i][j] -= _QR[i][k] * projection;
+							Q[i][j] -= _qr[i][k] * projection;
 					}
 				}
 			}
@@ -340,7 +341,7 @@ namespace MML
 			if (_sing)
 				throw SingularMatrixError("QRSolver::inverse - Cannot invert singular matrix");
 
-			ainv.Resize(_n, _n);
+			ainv.resize(_n, _n);
 			Vector<Type> ei(_n), col(_n);
 
 			// Solve A * ainv[,j] = e_j for each column of the inverse

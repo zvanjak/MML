@@ -68,7 +68,7 @@ namespace MML
 		using PQEntry = std::pair<Real, size_t>;
 		std::priority_queue<PQEntry, std::vector<PQEntry>, std::greater<PQEntry>> pq;
 
-		pq.push({REAL(0.0), start});
+		pq.push({static_cast<MML::Real>(0.0), start});
 
 		while (!pq.empty())
 		{
@@ -151,7 +151,7 @@ namespace MML
 
 		using PQEntry = std::pair<Real, size_t>;
 		std::priority_queue<PQEntry, std::vector<PQEntry>, std::greater<PQEntry>> pq;
-		pq.push({REAL(0.0), start});
+		pq.push({static_cast<MML::Real>(0.0), start});
 
 		while (!pq.empty())
 		{
@@ -592,7 +592,7 @@ namespace MML
 
 			using PQEntry = std::pair<Real, size_t>;
 			std::priority_queue<PQEntry, std::vector<PQEntry>, std::greater<PQEntry>> pq;
-			pq.push({REAL(0.0), source});
+			pq.push({static_cast<MML::Real>(0.0), source});
 
 			while (!pq.empty())
 			{

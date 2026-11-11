@@ -7,6 +7,8 @@
  * Cross-platform: works on Windows, Linux, and macOS.
  */
 
+#include "VisualizationResult.h"
+
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
@@ -58,7 +60,7 @@ void Show_Particle_Visualizer_3D_Examples()
                                        std::filesystem::copy_options::overwrite_existing);
             
             // Now visualize using the Visualizer class
-            Visualizer::VisualizeParticleSimulation3D(dataFile);
+            Examples::ReportVisualizationResult(Visualizer::VisualizeParticleSimulation3D(dataFile), "VisualizeParticleSimulation3D");
             
         } catch (const std::exception& e) {
             std::cerr << "Error copying file: " << e.what() << "\n";

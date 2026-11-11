@@ -37,14 +37,14 @@ namespace MML {
 
 		static EigenSolverConfig HighPrecision() {
 			EigenSolverConfig config;
-			config.tolerance = 1e-14;
+			config.tolerance = Precision::RoundoffZeroThreshold;
 			config.max_iterations = 500;
 			return config;
 		}
 
 		static EigenSolverConfig Fast() {
 			EigenSolverConfig config;
-			config.tolerance = 1e-6;
+			config.tolerance = Precision::LooseTolerance;
 			config.max_iterations = 50;
 			return config;
 		}

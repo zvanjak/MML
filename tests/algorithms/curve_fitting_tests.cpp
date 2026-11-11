@@ -22,9 +22,9 @@ TEST_CASE("LinearLeastSquares - Exact fit through two points", "[CurveFitting][L
     Real a, b;
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
-    REQUIRE_THAT(a, WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(b, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(a, WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(b, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(residual, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LinearLeastSquares - Horizontal line (zero slope)", "[CurveFitting][LinearLeastSquares]")
@@ -35,9 +35,9 @@ TEST_CASE("LinearLeastSquares - Horizontal line (zero slope)", "[CurveFitting][L
     Real a, b;
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
-    REQUIRE_THAT(a, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(b, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(a, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(b, WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(residual, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LinearLeastSquares - Exact linear data y = 2x + 3", "[CurveFitting][LinearLeastSquares]")
@@ -48,9 +48,9 @@ TEST_CASE("LinearLeastSquares - Exact linear data y = 2x + 3", "[CurveFitting][L
     Real a, b;
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
-    REQUIRE_THAT(a, WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(b, WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(a, WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(b, WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(residual, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LinearLeastSquares - Noisy data approximation", "[CurveFitting][LinearLeastSquares]")
@@ -63,8 +63,8 @@ TEST_CASE("LinearLeastSquares - Noisy data approximation", "[CurveFitting][Linea
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
     // Should be close to true values but not exact due to noise
-    REQUIRE_THAT(a, WithinAbs(REAL(0.5), REAL(0.15)));   // Within 30% of true value
-    REQUIRE_THAT(b, WithinAbs(REAL(2.0), REAL(0.3)));
+    REQUIRE_THAT(a, WithinAbs(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.15)));   // Within 30% of true value
+    REQUIRE_THAT(b, WithinAbs(static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.3)));
     REQUIRE(residual > 0.0);  // Should have non-zero residual
     REQUIRE(residual < 1.0);  // But should be small
 }
@@ -80,15 +80,15 @@ TEST_CASE("LinearLeastSquares - Textbook example", "[CurveFitting][LinearLeastSq
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
     // Expected: a ≈ 2.0, b ≈ -1.0
-    REQUIRE_THAT(a, WithinAbs(REAL(2.0), REAL(0.1)));
-    REQUIRE_THAT(b, WithinAbs(REAL(-1.0), REAL(0.2)));
+    REQUIRE_THAT(a, WithinAbs(static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.1)));
+    REQUIRE_THAT(b, WithinAbs(static_cast<MML::Real>(-1.0), static_cast<MML::Real>(0.2)));
     
     // Verify predictions are reasonable
     Real y_pred_0 = a * 0.0 + b;
     Real y_pred_4 = a * 4.0 + b;
     
-    REQUIRE_THAT(y_pred_0, WithinAbs(REAL(-1.0), REAL(0.5)));
-    REQUIRE_THAT(y_pred_4, WithinAbs(REAL(7.0), REAL(0.5)));
+    REQUIRE_THAT(y_pred_0, WithinAbs(static_cast<MML::Real>(-1.0), static_cast<MML::Real>(0.5)));
+    REQUIRE_THAT(y_pred_4, WithinAbs(static_cast<MML::Real>(7.0), static_cast<MML::Real>(0.5)));
 }
 
 TEST_CASE("LinearLeastSquares - Negative slope", "[CurveFitting][LinearLeastSquares]")
@@ -100,9 +100,9 @@ TEST_CASE("LinearLeastSquares - Negative slope", "[CurveFitting][LinearLeastSqua
     Real a, b;
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
-    REQUIRE_THAT(a, WithinAbs(REAL(-3.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(b, WithinAbs(REAL(10.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(a, WithinAbs(static_cast<MML::Real>(-3.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(b, WithinAbs(static_cast<MML::Real>(10.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(residual, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LinearLeastSquares - Large dataset", "[CurveFitting][LinearLeastSquares]")
@@ -119,9 +119,9 @@ TEST_CASE("LinearLeastSquares - Large dataset", "[CurveFitting][LinearLeastSquar
     Real a, b;
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
-    REQUIRE_THAT(a, WithinAbs(REAL(1.5), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(b, WithinAbs(REAL(-2.5), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(a, WithinAbs(static_cast<MML::Real>(1.5), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(b, WithinAbs(static_cast<MML::Real>(-2.5), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(residual, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("LinearLeastSquares - Single point (degenerate case)", "[CurveFitting][LinearLeastSquares]")
@@ -133,9 +133,9 @@ TEST_CASE("LinearLeastSquares - Single point (degenerate case)", "[CurveFitting]
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
     // Should return horizontal line through the point
-    REQUIRE_THAT(a, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(b, WithinAbs(REAL(7.2), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(a, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(b, WithinAbs(static_cast<MML::Real>(7.2), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(residual, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LinearLeastSquares - Error handling: empty data", "[CurveFitting][LinearLeastSquares]")
@@ -174,8 +174,8 @@ TEST_CASE("LinearLeastSquares - Vertical points (nearly singular)", "[CurveFitti
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
     // Should return horizontal line at average y
-    REQUIRE_THAT(a, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(b, WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));  // (1 + 5) / 2
+    REQUIRE_THAT(a, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(b, WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5)));  // (1 + 5) / 2
     // residual = sqrt((1-3)^2 + (5-3)^2) = sqrt(4 + 4) = sqrt(8) = 2.828...
     REQUIRE_THAT(residual, WithinAbs(std::sqrt(8.0), TOL(1e-10, 1e-5)));
 }
@@ -189,11 +189,11 @@ TEST_CASE("LinearLeastSquaresDetailed - Perfect fit R^2 = 1", "[CurveFitting][Li
     
     auto result = LinearLeastSquaresDetailed(x_data, y_data);
     
-    REQUIRE_THAT(result.a, WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(result.b, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(result.mean_squared_error, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.a, WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.b, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.residual_norm, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.r_squared, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.mean_squared_error, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LinearLeastSquaresDetailed - Noisy data R^2 < 1", "[CurveFitting][LinearLeastSquaresDetailed]")
@@ -203,7 +203,7 @@ TEST_CASE("LinearLeastSquaresDetailed - Noisy data R^2 < 1", "[CurveFitting][Lin
     
     auto result = LinearLeastSquaresDetailed(x_data, y_data);
     
-    REQUIRE_THAT(result.a, WithinAbs(REAL(2.0), REAL(0.15)));
+    REQUIRE_THAT(result.a, WithinAbs(static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.15)));
     REQUIRE(result.r_squared > 0.95);  // Should be very good fit
     REQUIRE(result.r_squared < 1.0);   // But not perfect
     REQUIRE(result.mean_squared_error > 0.0);
@@ -217,9 +217,9 @@ TEST_CASE("LinearLeastSquaresDetailed - Constant y values R^2 handling", "[Curve
     
     auto result = LinearLeastSquaresDetailed(x_data, y_data);
     
-    REQUIRE_THAT(result.a, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(result.b, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));  // Perfect fit to horizontal line
+    REQUIRE_THAT(result.a, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.b, WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.r_squared, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));  // Perfect fit to horizontal line
 }
 
 TEST_CASE("LinearLeastSquaresDetailed - Poor fit example", "[CurveFitting][LinearLeastSquaresDetailed]")
@@ -243,7 +243,7 @@ TEST_CASE("LinearLeastSquaresDetailed - Poor fit example", "[CurveFitting][Linea
 // Simple helper classes for basis functions
 class ConstantFunction : public IRealFunction {
 public:
-    Real operator()(Real) const override { return REAL(1.0); }
+    Real operator()(Real) const override { return static_cast<MML::Real>(1.0); }
 };
 
 class LinearFunction : public IRealFunction {
@@ -288,9 +288,9 @@ TEST_CASE("GeneralLinearLeastSquares - Constant function fit", "[CurveFitting][G
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     REQUIRE(result.coefficients.size() == 1);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.residual_norm, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.r_squared, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("GeneralLinearLeastSquares - Linear fit with IRealFunction", "[CurveFitting][GeneralLLS]")
@@ -306,10 +306,10 @@ TEST_CASE("GeneralLinearLeastSquares - Linear fit with IRealFunction", "[CurveFi
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     REQUIRE(result.coefficients.size() == 2);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));  // constant term
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));  // linear term
-    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5)));  // constant term
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));  // linear term
+    REQUIRE_THAT(result.residual_norm, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.r_squared, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("GeneralLinearLeastSquares - Quadratic fit", "[CurveFitting][GeneralLLS]")
@@ -326,10 +326,10 @@ TEST_CASE("GeneralLinearLeastSquares - Quadratic fit", "[CurveFitting][GeneralLL
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     REQUIRE(result.coefficients.size() == 3);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(1.0), TOL(1e-9, 1e-4)));   // constant
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(-2.0), TOL(1e-9, 1e-4)));  // linear
-    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(1.0), TOL(1e-9, 1e-4)));   // quadratic
-    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-9, 1e-4)));   // constant
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(static_cast<MML::Real>(-2.0), TOL(1e-9, 1e-4)));  // linear
+    REQUIRE_THAT(result.coefficients[2], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-9, 1e-4)));   // quadratic
+    REQUIRE_THAT(result.residual_norm, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 1e-4)));
 }
 
 TEST_CASE("GeneralLinearLeastSquares - Cubic fit with overdetermined system", "[CurveFitting][GeneralLLS]")
@@ -347,23 +347,23 @@ TEST_CASE("GeneralLinearLeastSquares - Cubic fit with overdetermined system", "[
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     REQUIRE(result.coefficients.size() == 4);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));   // constant = 0
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(-1.0), TOL(1e-9, 1e-4)));  // x term = -1
-    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));   // x^2 term = 0
-    REQUIRE_THAT(result.coefficients[3], WithinAbs(REAL(1.0), TOL(1e-9, 1e-4)));   // x^3 term = 1
-    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 1e-4)));   // constant = 0
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(static_cast<MML::Real>(-1.0), TOL(1e-9, 1e-4)));  // x term = -1
+    REQUIRE_THAT(result.coefficients[2], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 1e-4)));   // x^2 term = 0
+    REQUIRE_THAT(result.coefficients[3], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-9, 1e-4)));   // x^3 term = 1
+    REQUIRE_THAT(result.residual_norm, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 1e-4)));
 }
 
 TEST_CASE("GeneralLinearLeastSquares - Trigonometric fit", "[CurveFitting][GeneralLLS]")
 {
     // y = 2 + 3*sin(x) - cos(x)
-    const Real PI = REAL(3.14159265358979323846);
+    const Real PI = static_cast<MML::Real>(3.14159265358979323846);
     Vector<Real> x_data(20);
     Vector<Real> y_data(20);
     
     for (int i = 0; i < 20; i++) {
-        x_data[i] = -PI + i * (REAL(2) * PI / REAL(19.0));
-        y_data[i] = REAL(2.0) + REAL(3.0) * std::sin(x_data[i]) - std::cos(x_data[i]);
+        x_data[i] = -PI + i * (static_cast<MML::Real>(2) * PI / static_cast<MML::Real>(19.0));
+        y_data[i] = static_cast<MML::Real>(2.0) + static_cast<MML::Real>(3.0) * std::sin(x_data[i]) - std::cos(x_data[i]);
     }
     
     ConstantFunction f0;
@@ -374,10 +374,10 @@ TEST_CASE("GeneralLinearLeastSquares - Trigonometric fit", "[CurveFitting][Gener
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     REQUIRE(result.coefficients.size() == 3);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));   // constant
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(3.0), TOL(1e-9, 1e-4)));   // sin term
-    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(-1.0), TOL(1e-9, 1e-4)));  // cos term
-    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-9, 1e-4)));   // constant
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-9, 1e-4)));   // sin term
+    REQUIRE_THAT(result.coefficients[2], WithinAbs(static_cast<MML::Real>(-1.0), TOL(1e-9, 1e-4)));  // cos term
+    REQUIRE_THAT(result.r_squared, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("GeneralLinearLeastSquares - Lambda basis functions", "[CurveFitting][GeneralLLS]")
@@ -397,9 +397,9 @@ TEST_CASE("GeneralLinearLeastSquares - Lambda basis functions", "[CurveFitting][
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     REQUIRE(result.coefficients.size() == 2);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(3.0), TOL(1e-8, 1e-4)));  // exp term
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));  // linear term
-    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-8, 1e-4)));  // exp term
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-8, 1e-4)));  // linear term
+    REQUIRE_THAT(result.r_squared, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("GeneralLinearLeastSquares - Noisy data", "[CurveFitting][GeneralLLS]")
@@ -409,7 +409,7 @@ TEST_CASE("GeneralLinearLeastSquares - Noisy data", "[CurveFitting][GeneralLLS]"
     Vector<Real> y_data({4.1, 1.2, -0.1, 0.9, 4.2, 8.8, 16.1});  // x^2 + small noise
     
     Vector<std::function<Real(Real)>> basis({
-        [](Real) -> Real { return REAL(1.0); },
+        [](Real) -> Real { return static_cast<MML::Real>(1.0); },
         [](Real x) -> Real { return x; },
         [](Real x) -> Real { return x * x; }
     });
@@ -417,9 +417,9 @@ TEST_CASE("GeneralLinearLeastSquares - Noisy data", "[CurveFitting][GeneralLLS]"
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     REQUIRE(result.coefficients.size() == 3);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(0.0), REAL(0.5)));  // constant ≈ 0
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(0.0), REAL(0.5)));  // linear ≈ 0
-    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(1.0), REAL(0.2)));  // quadratic ≈ 1
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.5)));  // constant ≈ 0
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.5)));  // linear ≈ 0
+    REQUIRE_THAT(result.coefficients[2], WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.2)));  // quadratic ≈ 1
     REQUIRE(result.r_squared > 0.99);  // Good fit despite noise
     REQUIRE(result.residual_norm > 0.0);  // Non-zero due to noise
 }
@@ -430,7 +430,7 @@ TEST_CASE("GeneralLinearLeastSquares - Statistics validation", "[CurveFitting][G
     Vector<Real> y_data({1.0, 2.0, 3.0, 4.0, 5.0});  // y = x + 1
     
     Vector<std::function<Real(Real)>> basis({
-        [](Real) -> Real { return REAL(1.0); },
+        [](Real) -> Real { return static_cast<MML::Real>(1.0); },
         [](Real x) -> Real { return x; }
     });
     
@@ -457,9 +457,9 @@ TEST_CASE("GeneralLinearLeastSquares - Evaluate fitted function", "[CurveFitting
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     // Verify coefficients
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(3.0), TOL(1e-9, 1e-4)));
-    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(-1.0), TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(result.coefficients[2], WithinAbs(static_cast<MML::Real>(-1.0), TOL(1e-9, 1e-4)));
     
     // Test evaluate function at data points
     for (int i = 0; i < 5; i++) {
@@ -468,7 +468,7 @@ TEST_CASE("GeneralLinearLeastSquares - Evaluate fitted function", "[CurveFitting
     }
     
     // Test at a new point x = 2.5: y = 2 + 3*2.5 - 2.5^2 = 2 + 7.5 - 6.25 = 3.25
-    REQUIRE_THAT(result.evaluate(2.5, basis), WithinAbs(REAL(3.25), TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(result.evaluate(2.5, basis), WithinAbs(static_cast<MML::Real>(3.25), TOL(1e-9, 1e-4)));
 }
 
 
@@ -484,7 +484,7 @@ TEST_CASE("PolynomialFit - Degree 0 (constant)", "[CurveFitting][PolynomialFit]"
     auto result = PolynomialFit(x_data, y_data, 0);
     
     REQUIRE(result.coefficients.size() == 1);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(10.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(static_cast<MML::Real>(10.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("PolynomialFit - Degree 1 (linear)", "[CurveFitting][PolynomialFit]")
@@ -496,8 +496,8 @@ TEST_CASE("PolynomialFit - Degree 1 (linear)", "[CurveFitting][PolynomialFit]")
     auto result = PolynomialFit(x_data, y_data, 1);
     
     REQUIRE(result.coefficients.size() == 2);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));  // c_0
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));  // c_1
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));  // c_0
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5)));  // c_1
 }
 
 TEST_CASE("PolynomialFit - Degree 2 (quadratic)", "[CurveFitting][PolynomialFit]")
@@ -509,9 +509,9 @@ TEST_CASE("PolynomialFit - Degree 2 (quadratic)", "[CurveFitting][PolynomialFit]
     auto result = PolynomialFit(x_data, y_data, 2);
     
     REQUIRE(result.coefficients.size() == 3);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(1.0), TOL(1e-9, 1e-4)));   // constant
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(-2.0), TOL(1e-9, 1e-4)));  // x
-    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(3.0), TOL(1e-9, 1e-4)));   // x^2
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-9, 1e-4)));   // constant
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(static_cast<MML::Real>(-2.0), TOL(1e-9, 1e-4)));  // x
+    REQUIRE_THAT(result.coefficients[2], WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-9, 1e-4)));   // x^2
 }
 
 TEST_CASE("PolynomialFit - High degree fitting", "[CurveFitting][PolynomialFit]")
@@ -528,11 +528,11 @@ TEST_CASE("PolynomialFit - High degree fitting", "[CurveFitting][PolynomialFit]"
     auto result = PolynomialFit(x_data, y_data, 4);
     
     REQUIRE(result.coefficients.size() == 5);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));   // constant
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(-1.0), TOL(1e-8, 1e-4)));  // x
-    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));   // x^2
-    REQUIRE_THAT(result.coefficients[3], WithinAbs(REAL(-2.0), TOL(1e-8, 1e-4)));  // x^3
-    REQUIRE_THAT(result.coefficients[4], WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));   // x^4
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)));   // constant
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(static_cast<MML::Real>(-1.0), TOL(1e-8, 1e-4)));  // x
+    REQUIRE_THAT(result.coefficients[2], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)));   // x^2
+    REQUIRE_THAT(result.coefficients[3], WithinAbs(static_cast<MML::Real>(-2.0), TOL(1e-8, 1e-4)));  // x^3
+    REQUIRE_THAT(result.coefficients[4], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)));   // x^4
 }
 
 TEST_CASE("PolynomialFit - Interpolation (degree = n-1)", "[CurveFitting][PolynomialFit]")
@@ -544,8 +544,8 @@ TEST_CASE("PolynomialFit - Interpolation (degree = n-1)", "[CurveFitting][Polyno
     auto result = PolynomialFit(x_data, y_data, 3);
     
     // Should pass through all points exactly
-    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.residual_norm, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.r_squared, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 }
 
 
@@ -557,28 +557,28 @@ TEST_CASE("EvaluatePolynomial - Constant polynomial", "[CurveFitting][EvaluatePo
 {
     Vector<Real> coeffs({5.0});  // p(x) = 5
     
-    REQUIRE_THAT(EvaluatePolynomial(REAL(0.0), coeffs), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(EvaluatePolynomial(REAL(10.0), coeffs), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(EvaluatePolynomial(REAL(-100.0), coeffs), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(static_cast<MML::Real>(0.0), coeffs), WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(static_cast<MML::Real>(10.0), coeffs), WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(static_cast<MML::Real>(-100.0), coeffs), WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("EvaluatePolynomial - Linear polynomial", "[CurveFitting][EvaluatePolynomial]")
 {
     Vector<Real> coeffs({2.0, 3.0});  // p(x) = 2 + 3x
     
-    REQUIRE_THAT(EvaluatePolynomial(REAL(0.0), coeffs), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(EvaluatePolynomial(REAL(1.0), coeffs), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(EvaluatePolynomial(REAL(2.0), coeffs), WithinAbs(REAL(8.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(static_cast<MML::Real>(0.0), coeffs), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(static_cast<MML::Real>(1.0), coeffs), WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(static_cast<MML::Real>(2.0), coeffs), WithinAbs(static_cast<MML::Real>(8.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("EvaluatePolynomial - Quadratic polynomial", "[CurveFitting][EvaluatePolynomial]")
 {
     Vector<Real> coeffs({1.0, -2.0, 1.0});  // p(x) = 1 - 2x + x^2 = (x-1)^2
     
-    REQUIRE_THAT(EvaluatePolynomial(REAL(0.0), coeffs), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(EvaluatePolynomial(REAL(1.0), coeffs), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));  // Root
-    REQUIRE_THAT(EvaluatePolynomial(REAL(2.0), coeffs), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(EvaluatePolynomial(REAL(3.0), coeffs), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(static_cast<MML::Real>(0.0), coeffs), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(static_cast<MML::Real>(1.0), coeffs), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));  // Root
+    REQUIRE_THAT(EvaluatePolynomial(static_cast<MML::Real>(2.0), coeffs), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(static_cast<MML::Real>(3.0), coeffs), WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("EvaluatePolynomial - Higher order (Horner's method stability)", "[CurveFitting][EvaluatePolynomial]")
@@ -596,7 +596,7 @@ TEST_CASE("EvaluatePolynomial - Empty coefficients", "[CurveFitting][EvaluatePol
 {
     Vector<Real> coeffs;
     
-    REQUIRE_THAT(EvaluatePolynomial(REAL(5.0), coeffs), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(static_cast<MML::Real>(5.0), coeffs), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 }
 
 
@@ -610,7 +610,7 @@ TEST_CASE("GeneralLinearLeastSquares - Error: empty data", "[CurveFitting][Gener
     Vector<Real> y_data;
     
     Vector<std::function<Real(Real)>> basis({
-        [](Real) -> Real { return REAL(1.0); }
+        [](Real) -> Real { return static_cast<MML::Real>(1.0); }
     });
     
     REQUIRE_THROWS_AS(GeneralLinearLeastSquares(x_data, y_data, basis), std::invalid_argument);
@@ -632,7 +632,7 @@ TEST_CASE("GeneralLinearLeastSquares - Error: size mismatch", "[CurveFitting][Ge
     Vector<Real> y_data({1.0, 2.0});  // Different size
     
     Vector<std::function<Real(Real)>> basis({
-        [](Real) -> Real { return REAL(1.0); }
+        [](Real) -> Real { return static_cast<MML::Real>(1.0); }
     });
     
     REQUIRE_THROWS_AS(GeneralLinearLeastSquares(x_data, y_data, basis), std::invalid_argument);
@@ -644,7 +644,7 @@ TEST_CASE("GeneralLinearLeastSquares - Error: more basis functions than data poi
     Vector<Real> y_data({1.0, 4.0});
     
     Vector<std::function<Real(Real)>> basis({
-        [](Real) -> Real { return REAL(1.0); },
+        [](Real) -> Real { return static_cast<MML::Real>(1.0); },
         [](Real x) -> Real { return x; },
         [](Real x) -> Real { return x * x; }  // 3 basis functions!
     });
@@ -814,21 +814,21 @@ TEST_CASE("WeightedGeneralLinearLeastSquares downweights heteroscedastic outlier
     Vector<Real> y({1.0, 3.0, 5.0, 7.0, 30.0});
     Vector<Real> weights({1.0, 1.0, 1.0, 1.0, 0.001});
     Vector<std::function<Real(Real)>> basis({
-        [](Real) { return REAL(1.0); },
+        [](Real) { return static_cast<MML::Real>(1.0); },
         [](Real value) { return value; }
     });
 
     auto unweighted = GeneralLinearLeastSquares(x, y, basis);
     auto weighted = WeightedGeneralLinearLeastSquares(x, y, weights, basis);
-    Real unweightedError = std::abs(unweighted.coefficients[0] - REAL(1.0))
-        + std::abs(unweighted.coefficients[1] - REAL(2.0));
-    Real weightedError = std::abs(weighted.coefficients[0] - REAL(1.0))
-        + std::abs(weighted.coefficients[1] - REAL(2.0));
+    Real unweightedError = std::abs(unweighted.coefficients[0] - static_cast<MML::Real>(1.0))
+        + std::abs(unweighted.coefficients[1] - static_cast<MML::Real>(2.0));
+    Real weightedError = std::abs(weighted.coefficients[0] - static_cast<MML::Real>(1.0))
+        + std::abs(weighted.coefficients[1] - static_cast<MML::Real>(2.0));
 
-    REQUIRE(weightedError < unweightedError * REAL(0.02));
-    REQUIRE_THAT(weighted.coefficients[0], Catch::Matchers::WithinAbs(REAL(1.0), REAL(0.02)));
-    REQUIRE_THAT(weighted.coefficients[1], Catch::Matchers::WithinAbs(REAL(2.0), REAL(0.02)));
-    REQUIRE_THAT(weighted.weight_sum, Catch::Matchers::WithinAbs(REAL(4.001), TOL(1e-12, 1e-5)));
+    REQUIRE(weightedError < unweightedError * static_cast<MML::Real>(0.02));
+    REQUIRE_THAT(weighted.coefficients[0], Catch::Matchers::WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.02)));
+    REQUIRE_THAT(weighted.coefficients[1], Catch::Matchers::WithinAbs(static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.02)));
+    REQUIRE_THAT(weighted.weight_sum, Catch::Matchers::WithinAbs(static_cast<MML::Real>(4.001), TOL(1e-12, 1e-5)));
 }
 
 TEST_CASE("WeightedPolynomialFit recovers exact quadratic", "[CurveFitting][Weighted]")
@@ -837,13 +837,13 @@ TEST_CASE("WeightedPolynomialFit recovers exact quadratic", "[CurveFitting][Weig
     Vector<Real> y(5);
     Vector<Real> weights({0.5, 2.0, 1.0, 3.0, 0.25});
     for (int i = 0; i < x.size(); ++i)
-        y[i] = REAL(3.0) - REAL(2.0) * x[i] + REAL(0.5) * x[i] * x[i];
+        y[i] = static_cast<MML::Real>(3.0) - static_cast<MML::Real>(2.0) * x[i] + static_cast<MML::Real>(0.5) * x[i] * x[i];
 
     auto result = WeightedPolynomialFit(x, y, weights, 2);
-    REQUIRE_THAT(result.coefficients[0], Catch::Matchers::WithinAbs(REAL(3.0), TOL(1e-10, 1e-4)));
-    REQUIRE_THAT(result.coefficients[1], Catch::Matchers::WithinAbs(-REAL(2.0), TOL(1e-10, 1e-4)));
-    REQUIRE_THAT(result.coefficients[2], Catch::Matchers::WithinAbs(REAL(0.5), TOL(1e-10, 1e-4)));
-    REQUIRE_THAT(result.r_squared, Catch::Matchers::WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.coefficients[0], Catch::Matchers::WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-4)));
+    REQUIRE_THAT(result.coefficients[1], Catch::Matchers::WithinAbs(-static_cast<MML::Real>(2.0), TOL(1e-10, 1e-4)));
+    REQUIRE_THAT(result.coefficients[2], Catch::Matchers::WithinAbs(static_cast<MML::Real>(0.5), TOL(1e-10, 1e-4)));
+    REQUIRE_THAT(result.r_squared, Catch::Matchers::WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("WeightedGeneralLinearFitDetailed reports diagnostics", "[CurveFitting][Weighted][Detailed]")
@@ -852,7 +852,7 @@ TEST_CASE("WeightedGeneralLinearFitDetailed reports diagnostics", "[CurveFitting
     Vector<Real> y({1.0, 3.0, 5.0, 7.0});
     Vector<Real> weights({1.0, 2.0, 3.0, 4.0});
     Vector<std::function<Real(Real)>> basis({
-        [](Real) { return REAL(1.0); },
+        [](Real) { return static_cast<MML::Real>(1.0); },
         [](Real value) { return value; }
     });
 
@@ -860,8 +860,8 @@ TEST_CASE("WeightedGeneralLinearFitDetailed reports diagnostics", "[CurveFitting
     REQUIRE(result.IsSuccess());
     REQUIRE(result.algorithm_name == "WeightedGeneralLinearLeastSquares");
     REQUIRE(result.function_evaluations == 8);
-    REQUIRE_THAT(result.weight_sum, Catch::Matchers::WithinAbs(REAL(10.0), TOL(1e-12, 1e-5)));
-    REQUIRE_THAT(result.r_squared, Catch::Matchers::WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.weight_sum, Catch::Matchers::WithinAbs(static_cast<MML::Real>(10.0), TOL(1e-12, 1e-5)));
+    REQUIRE_THAT(result.r_squared, Catch::Matchers::WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("WeightedGeneralLinearFitDetailed rejects invalid weights", "[CurveFitting][Weighted][Detailed]")
@@ -870,7 +870,7 @@ TEST_CASE("WeightedGeneralLinearFitDetailed rejects invalid weights", "[CurveFit
     Vector<Real> y({1.0, 3.0, 5.0});
     Vector<Real> weights({1.0, 0.0, 1.0});
     Vector<std::function<Real(Real)>> basis({
-        [](Real) { return REAL(1.0); },
+        [](Real) { return static_cast<MML::Real>(1.0); },
         [](Real value) { return value; }
     });
     CurveFittingConfig config;
@@ -885,16 +885,16 @@ TEST_CASE("Ridge least squares shrinks ill-conditioned coefficients", "[CurveFit
     Vector<Real> x({-1.0, -0.5, 0.0, 0.5, 1.0});
     Vector<Real> y({-1.0, -0.5, 0.0, 0.5, 1.0});
     Vector<std::function<Real(Real)>> basis({
-        [](Real) { return REAL(1.0); },
+        [](Real) { return static_cast<MML::Real>(1.0); },
         [](Real value) { return value; },
-        [](Real value) { return value + REAL(1e-8) * value * value; }
+        [](Real value) { return value + static_cast<MML::Real>(1e-8) * value * value; }
     });
-    auto unregularized = RidgeGeneralLinearLeastSquares(x, y, basis, REAL(0.0));
-    auto regularized = RidgeGeneralLinearLeastSquares(x, y, basis, REAL(0.1));
+    auto unregularized = RidgeGeneralLinearLeastSquares(x, y, basis, static_cast<MML::Real>(0.0));
+    auto regularized = RidgeGeneralLinearLeastSquares(x, y, basis, static_cast<MML::Real>(0.1));
     REQUIRE(regularized.coefficient_norm < unregularized.coefficient_norm);
-    REQUIRE_THAT(regularized.regularization_parameter, WithinAbs(REAL(0.1), TOL(1e-12, 1e-5)));
-    REQUIRE(regularized.residual_norm < REAL(0.2));
-    REQUIRE_THROWS_AS(RidgeGeneralLinearLeastSquares(x, y, basis, REAL(-1.0)), CurveFittingError);
+    REQUIRE_THAT(regularized.regularization_parameter, WithinAbs(static_cast<MML::Real>(0.1), TOL(1e-12, 1e-5)));
+    REQUIRE(regularized.residual_norm < static_cast<MML::Real>(0.2));
+    REQUIRE_THROWS_AS(RidgeGeneralLinearLeastSquares(x, y, basis, static_cast<MML::Real>(-1.0)), CurveFittingError);
 }
 
 TEST_CASE("Tikhonov least squares supports coefficient-specific penalties", "[CurveFitting][Regularized]")
@@ -902,14 +902,14 @@ TEST_CASE("Tikhonov least squares supports coefficient-specific penalties", "[Cu
     Vector<Real> x({-1.0, 0.0, 1.0, 2.0});
     Vector<Real> y({-1.0, 1.0, 3.0, 5.0});
     Vector<std::function<Real(Real)>> basis({
-        [](Real) { return REAL(1.0); },
+        [](Real) { return static_cast<MML::Real>(1.0); },
         [](Real value) { return value; }
     });
     Vector<Real> penalty({0.0, 2.0});
     auto result = TikhonovGeneralLinearLeastSquares(x, y, basis, penalty);
-    REQUIRE(std::abs(result.coefficients[1]) < REAL(2.0));
-    REQUIRE(result.coefficient_norm > REAL(0.0));
-    REQUIRE_THAT(result.regularization_parameter, WithinAbs(REAL(4.0), TOL(1e-12, 1e-5)));
+    REQUIRE(std::abs(result.coefficients[1]) < static_cast<MML::Real>(2.0));
+    REQUIRE(result.coefficient_norm > static_cast<MML::Real>(0.0));
+    REQUIRE_THAT(result.regularization_parameter, WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-12, 1e-5)));
 }
 
 TEST_CASE("Orthogonal polynomial basis factories recover exact coefficients", "[CurveFitting][OrthogonalBasis]")
@@ -918,11 +918,11 @@ TEST_CASE("Orthogonal polynomial basis factories recover exact coefficients", "[
                           const Vector<Real>& x) {
         Vector<Real> y(x.size());
         for (int i = 0; i < x.size(); ++i)
-            y[i] = REAL(1.5) * basis[0](x[i]) - REAL(0.75) * basis[1](x[i]) + REAL(0.25) * basis[2](x[i]);
+            y[i] = static_cast<MML::Real>(1.5) * basis[0](x[i]) - static_cast<MML::Real>(0.75) * basis[1](x[i]) + static_cast<MML::Real>(0.25) * basis[2](x[i]);
         auto result = GeneralLinearLeastSquares(x, y, basis);
-        REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(1.5), TOL(1e-9, 1e-4)));
-        REQUIRE_THAT(result.coefficients[1], WithinAbs(-REAL(0.75), TOL(1e-9, 1e-4)));
-        REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(0.25), TOL(1e-9, 1e-4)));
+        REQUIRE_THAT(result.coefficients[0], WithinAbs(static_cast<MML::Real>(1.5), TOL(1e-9, 1e-4)));
+        REQUIRE_THAT(result.coefficients[1], WithinAbs(-static_cast<MML::Real>(0.75), TOL(1e-9, 1e-4)));
+        REQUIRE_THAT(result.coefficients[2], WithinAbs(static_cast<MML::Real>(0.25), TOL(1e-9, 1e-4)));
     };
 
     Vector<Real> symmetric_points({-1.0, -0.5, 0.0, 0.5, 1.0});

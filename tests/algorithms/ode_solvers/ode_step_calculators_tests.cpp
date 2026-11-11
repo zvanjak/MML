@@ -30,7 +30,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 		void derivs(const Real /*t*/, const Vector<Real>& x, Vector<Real>& dxdt) const override
 		{
 			dxdt[0] = x[1];       // dx/dt = v
-			dxdt[1] = REAL(0.0);  // dv/dt = 0
+			dxdt[1] = static_cast<MML::Real>(0.0);  // dv/dt = 0
 		}
 	};
 
@@ -107,7 +107,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 	{
 		Real _g;
 	public:
-		FallingBody(Real g = REAL(9.81)) : _g(g) {}
+		FallingBody(Real g = static_cast<MML::Real>(9.81)) : _g(g) {}
 		int getDim() const override { return 2; }
 
 		void derivs(const Real /*t*/, const Vector<Real>& x, Vector<Real>& dxdt) const override
@@ -144,12 +144,12 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 			TEST_PRECISION_INFO();
 
 			FreeParticle1D sys;
-			const Real t = REAL(1.23);
-			const Real h = REAL(0.1);
+			const Real t = static_cast<MML::Real>(1.23);
+			const Real h = static_cast<MML::Real>(0.1);
 
 			Vector<Real> x_start(2);
-			x_start[0] = REAL(1.25);
-			x_start[1] = REAL(-0.5);
+			x_start[0] = static_cast<MML::Real>(1.25);
+			x_start[1] = static_cast<MML::Real>(-0.5);
 
 			Vector<Real> dxdt(2);
 			sys.derivs(t, x_start, dxdt);
@@ -166,7 +166,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 				REQUIRE(std::isfinite(x_out[i]));
 				REQUIRE(std::isfinite(x_err[i]));
 				REQUIRE_THAT(x_out[i], Catch::Matchers::WithinAbs(expected[i], TOL(1e-12, 1e-5)));
-				REQUIRE_THAT(x_err[i], Catch::Matchers::WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+				REQUIRE_THAT(x_err[i], Catch::Matchers::WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-12, 1e-5)));
 			}
 		}
 	}
@@ -179,9 +179,9 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 			TEST_PRECISION_INFO();
 
 			ExponentialDecay sys;
-			Real t = REAL(0.0);
-			Real h = REAL(0.01);
-			Real y0 = REAL(1.0);
+			Real t = static_cast<MML::Real>(0.0);
+			Real h = static_cast<MML::Real>(0.01);
+			Real y0 = static_cast<MML::Real>(1.0);
 
 			Vector<Real> y(1);
 			y[0] = y0;
@@ -198,7 +198,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 				t += h;
 			}
 
-			Real expected = y0 * std::exp(-REAL(1.0));
+			Real expected = y0 * std::exp(-static_cast<MML::Real>(1.0));
 			REQUIRE_THAT(y[0], Catch::Matchers::WithinRel(expected, expectedTol));
 		}
 	}
@@ -211,12 +211,12 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 			TEST_PRECISION_INFO();
 
 			SimpleHarmonicOscillator sys;
-			Real t = REAL(0.0);
-			Real h = REAL(0.01);
+			Real t = static_cast<MML::Real>(0.0);
+			Real h = static_cast<MML::Real>(0.01);
 
 			Vector<Real> x(2);
-			x[0] = REAL(1.0);  // x(0) = 1
-			x[1] = REAL(0.0);  // v(0) = 0, so A=1, φ=0
+			x[0] = static_cast<MML::Real>(1.0);  // x(0) = 1
+			x[1] = static_cast<MML::Real>(0.0);  // v(0) = 0, so A=1, φ=0
 
 			Vector<Real> dxdt(2);
 			Vector<Real> x_out(2);
@@ -234,8 +234,8 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 			// After one period, should return to initial conditions
 			// Velocity tolerance is larger because it accumulates phase error differently
-			REQUIRE_THAT(x[0], Catch::Matchers::WithinRel(REAL(1.0), expectedTol));
-			REQUIRE_THAT(x[1], Catch::Matchers::WithinAbs(REAL(0.0), REAL(10.0) * expectedTol));
+			REQUIRE_THAT(x[0], Catch::Matchers::WithinRel(static_cast<MML::Real>(1.0), expectedTol));
+			REQUIRE_THAT(x[1], Catch::Matchers::WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(10.0) * expectedTol));
 		}
 	}
 
@@ -247,18 +247,18 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 			TEST_PRECISION_INFO();
 
 			PolynomialODE sys;
-			Real t = REAL(0.0);
-			Real h = REAL(0.01);
+			Real t = static_cast<MML::Real>(0.0);
+			Real h = static_cast<MML::Real>(0.01);
 
 			Vector<Real> y(1);
-			y[0] = REAL(0.0);  // y(0) = 0
+			y[0] = static_cast<MML::Real>(0.0);  // y(0) = 0
 
 			Vector<Real> dydt(1);
 			Vector<Real> y_out(1);
 			Vector<Real> y_err(1);
 
 			// Integrate to t=1.0
-			int steps = std::lround(REAL(1.0) / h);
+			int steps = std::lround(static_cast<MML::Real>(1.0) / h);
 			for (int step = 0; step < steps; ++step)
 			{
 				sys.derivs(t, y, dydt);
@@ -268,7 +268,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 			}
 
 			// y(1) = 1^3/3 = 1/3
-			Real expected = REAL(1.0) / REAL(3.0);
+			Real expected = static_cast<MML::Real>(1.0) / static_cast<MML::Real>(3.0);
 			REQUIRE_THAT(y[0], Catch::Matchers::WithinRel(expected, expectedTol));
 		}
 	}
@@ -280,21 +280,21 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 		{
 			TEST_PRECISION_INFO();
 
-			Real g = REAL(10.0);  // Simple gravity for easy calculation
+			Real g = static_cast<MML::Real>(10.0);  // Simple gravity for easy calculation
 			FallingBody sys(g);
-			Real t = REAL(0.0);
-			Real h = REAL(0.001);  // Small step for accuracy
+			Real t = static_cast<MML::Real>(0.0);
+			Real h = static_cast<MML::Real>(0.001);  // Small step for accuracy
 
 			Vector<Real> x(2);
-			x[0] = REAL(100.0);  // x0 = 100
-			x[1] = REAL(0.0);    // v0 = 0
+			x[0] = static_cast<MML::Real>(100.0);  // x0 = 100
+			x[1] = static_cast<MML::Real>(0.0);    // v0 = 0
 
 			Vector<Real> dxdt(2);
 			Vector<Real> x_out(2);
 			Vector<Real> x_err(2);
 
 			// Integrate for 1 second
-			int steps = std::lround(REAL(1.0) / h);
+			int steps = std::lround(static_cast<MML::Real>(1.0) / h);
 			for (int step = 0; step < steps; ++step)
 			{
 				sys.derivs(t, x, dxdt);
@@ -305,8 +305,8 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 			// x(1) = 100 + 0*1 - 0.5*10*1^2 = 100 - 5 = 95
 			// v(1) = 0 - 10*1 = -10
-			REQUIRE_THAT(x[0], Catch::Matchers::WithinRel(REAL(95.0), expectedTol));
-			REQUIRE_THAT(x[1], Catch::Matchers::WithinRel(REAL(-10.0), expectedTol));
+			REQUIRE_THAT(x[0], Catch::Matchers::WithinRel(static_cast<MML::Real>(95.0), expectedTol));
+			REQUIRE_THAT(x[1], Catch::Matchers::WithinRel(static_cast<MML::Real>(-10.0), expectedTol));
 		}
 	}
 
@@ -321,17 +321,17 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("Euler step calculator - exponential decay", "[ODE][stepcalc][Euler]")
 	{
-		TestExponentialDecay(StepCalculators::EulerStepCalc, "Euler", REAL(0.01)); // 1% tolerance (1st order)
+		TestExponentialDecay(StepCalculators::EulerStepCalc, "Euler", static_cast<MML::Real>(0.01)); // 1% tolerance (1st order)
 	}
 
 	TEST_CASE("Euler step calculator - polynomial", "[ODE][stepcalc][Euler]")
 	{
-		TestPolynomialODE(StepCalculators::EulerStepCalc, "Euler", REAL(0.05)); // 5% tolerance (1st order, accumulated)
+		TestPolynomialODE(StepCalculators::EulerStepCalc, "Euler", static_cast<MML::Real>(0.05)); // 5% tolerance (1st order, accumulated)
 	}
 
 	TEST_CASE("Euler step calculator - falling body", "[ODE][stepcalc][Euler]")
 	{
-		TestFallingBody(StepCalculators::EulerStepCalc, "Euler", REAL(0.001));
+		TestFallingBody(StepCalculators::EulerStepCalc, "Euler", static_cast<MML::Real>(0.001));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -345,7 +345,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("Euler-Cromer step calculator - exponential decay", "[ODE][stepcalc][EulerCromer]")
 	{
-		TestExponentialDecay(StepCalculators::EulerCromerStepCalc, "Euler-Cromer", REAL(0.001)); // Better than Euler
+		TestExponentialDecay(StepCalculators::EulerCromerStepCalc, "Euler-Cromer", static_cast<MML::Real>(0.001)); // Better than Euler
 	}
 
 	TEST_CASE("Euler-Cromer step calculator - provides error estimate", "[ODE][stepcalc][EulerCromer]")
@@ -354,16 +354,16 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 		ExponentialDecay sys;
 		Vector<Real> y(1);
-		y[0] = REAL(1.0);
+		y[0] = static_cast<MML::Real>(1.0);
 		Vector<Real> dydt(1);
 		Vector<Real> y_out(1);
 		Vector<Real> y_err(1);
 
-		sys.derivs(REAL(0.0), y, dydt);
-		StepCalculators::EulerCromerStepCalc.calcStep(sys, REAL(0.0), y, dydt, REAL(0.1), y_out, y_err);
+		sys.derivs(static_cast<MML::Real>(0.0), y, dydt);
+		StepCalculators::EulerCromerStepCalc.calcStep(sys, static_cast<MML::Real>(0.0), y, dydt, static_cast<MML::Real>(0.1), y_out, y_err);
 
 		// Euler-Cromer should provide non-zero error estimate
-		REQUIRE(std::abs(y_err[0]) > REAL(0.0));
+		REQUIRE(std::abs(y_err[0]) > static_cast<MML::Real>(0.0));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -380,23 +380,23 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 		TEST_PRECISION_INFO();
 
 		SimpleHarmonicOscillator sys;
-		Real t = REAL(0.0);
-		Real h = REAL(0.01);
+		Real t = static_cast<MML::Real>(0.0);
+		Real h = static_cast<MML::Real>(0.01);
 
 		Vector<Real> x(2);
-		x[0] = REAL(1.0);
-		x[1] = REAL(0.0);
+		x[0] = static_cast<MML::Real>(1.0);
+		x[1] = static_cast<MML::Real>(0.0);
 
 		Vector<Real> dxdt(2);
 		Vector<Real> x_out(2);
 		Vector<Real> x_err(2);
 
 		// Initial energy: E = 0.5*(v^2 + x^2) = 0.5*(0 + 1) = 0.5
-		Real E0 = REAL(0.5) * (x[0] * x[0] + x[1] * x[1]);
+		Real E0 = static_cast<MML::Real>(0.5) * (x[0] * x[0] + x[1] * x[1]);
 
 		// Integrate for many periods
 		int steps = static_cast<int>(10.0 * 2.0 * Constants::PI / h);
-		Real maxEnergyDeviation = REAL(0.0);
+		Real maxEnergyDeviation = static_cast<MML::Real>(0.0);
 
 		for (int step = 0; step < steps; ++step)
 		{
@@ -405,12 +405,12 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 			x = x_out;
 			t += h;
 
-			Real E = REAL(0.5) * (x[0] * x[0] + x[1] * x[1]);
+			Real E = static_cast<MML::Real>(0.5) * (x[0] * x[0] + x[1] * x[1]);
 			maxEnergyDeviation = std::max(maxEnergyDeviation, std::abs(E - E0));
 		}
 
 		// Symplectic integrators conserve energy well
-		REQUIRE(maxEnergyDeviation < REAL(0.01));
+		REQUIRE(maxEnergyDeviation < static_cast<MML::Real>(0.01));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -427,21 +427,21 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 		TEST_PRECISION_INFO();
 
 		SimpleHarmonicOscillator sys;
-		Real t = REAL(0.0);
-		Real h = REAL(0.01);
+		Real t = static_cast<MML::Real>(0.0);
+		Real h = static_cast<MML::Real>(0.01);
 
 		Vector<Real> x(2);
-		x[0] = REAL(1.0);
-		x[1] = REAL(0.0);
+		x[0] = static_cast<MML::Real>(1.0);
+		x[1] = static_cast<MML::Real>(0.0);
 
 		Vector<Real> dxdt(2);
 		Vector<Real> x_out(2);
 		Vector<Real> x_err(2);
 
-		Real E0 = REAL(0.5) * (x[0] * x[0] + x[1] * x[1]);
+		Real E0 = static_cast<MML::Real>(0.5) * (x[0] * x[0] + x[1] * x[1]);
 
 		int steps = static_cast<int>(10.0 * 2.0 * Constants::PI / h);
-		Real maxEnergyDeviation = REAL(0.0);
+		Real maxEnergyDeviation = static_cast<MML::Real>(0.0);
 
 		for (int step = 0; step < steps; ++step)
 		{
@@ -450,19 +450,19 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 			x = x_out;
 			t += h;
 
-			Real E = REAL(0.5) * (x[0] * x[0] + x[1] * x[1]);
+			Real E = static_cast<MML::Real>(0.5) * (x[0] * x[0] + x[1] * x[1]);
 			maxEnergyDeviation = std::max(maxEnergyDeviation, std::abs(E - E0));
 		}
 
-		REQUIRE(maxEnergyDeviation < REAL(0.01));
+		REQUIRE(maxEnergyDeviation < static_cast<MML::Real>(0.01));
 	}
 
 	TEST_CASE("Leapfrog and Velocity Verlet are equivalent for position-only acceleration", "[ODE][stepcalc][VelocityVerlet][Leapfrog]")
 	{
 		SimpleHarmonicOscillator sys;
-		const Real t = REAL(0.37);
-		const Real h = REAL(0.125);
-		Vector<Real> x{ REAL(1.25), REAL(-0.75) };
+		const Real t = static_cast<MML::Real>(0.37);
+		const Real h = static_cast<MML::Real>(0.125);
+		Vector<Real> x{ static_cast<MML::Real>(1.25), static_cast<MML::Real>(-0.75) };
 		Vector<Real> dxdt(2);
 		Vector<Real> verletOut(2), verletErr(2), leapfrogOut(2), leapfrogErr(2);
 		sys.derivs(t, x, dxdt);
@@ -477,38 +477,38 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 	TEST_CASE("Velocity Verlet rejects odd-dimensional states", "[ODE][stepcalc][VelocityVerlet][Leapfrog]")
 	{
 		ExponentialDecay oddDimensionalSystem;
-		Vector<Real> x{ REAL(1.0) };
+		Vector<Real> x{ static_cast<MML::Real>(1.0) };
 		Vector<Real> dxdt(1), xOut(1), xErr(1);
-		oddDimensionalSystem.derivs(REAL(0.0), x, dxdt);
+		oddDimensionalSystem.derivs(static_cast<MML::Real>(0.0), x, dxdt);
 
 		REQUIRE_THROWS_AS(StepCalculators::VelocityVerletStepCalc.calcStep(
-			oddDimensionalSystem, REAL(0.0), x, dxdt, REAL(0.1), xOut, xErr), ODESolverError);
+			oddDimensionalSystem, static_cast<MML::Real>(0.0), x, dxdt, static_cast<MML::Real>(0.1), xOut, xErr), ODESolverError);
 		REQUIRE_THROWS_AS(StepCalculators::LeapfrogStepCalc.calcStep(
-			oddDimensionalSystem, REAL(0.0), x, dxdt, REAL(0.1), xOut, xErr), ODESolverError);
+			oddDimensionalSystem, static_cast<MML::Real>(0.0), x, dxdt, static_cast<MML::Real>(0.1), xOut, xErr), ODESolverError);
 	}
 
 	TEST_CASE("Velocity-dependent acceleration is outside the Verlet contract", "[ODE][stepcalc][VelocityVerlet][contract]")
 	{
-		const Real drag = REAL(0.5);
-		const Real h = REAL(0.1);
+		const Real drag = static_cast<MML::Real>(0.5);
+		const Real h = static_cast<MML::Real>(0.1);
 		LinearDragParticle sys(drag);
-		Vector<Real> x{ REAL(0.0), REAL(2.0) };
+		Vector<Real> x{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) };
 		Vector<Real> dxdt(2), xOut(2), xErr(2);
-		sys.derivs(REAL(0.0), x, dxdt);
+		sys.derivs(static_cast<MML::Real>(0.0), x, dxdt);
 
 		StepCalculators::VelocityVerletStepCalc.calcStep(
-			sys, REAL(0.0), x, dxdt, h, xOut, xErr);
+			sys, static_cast<MML::Real>(0.0), x, dxdt, h, xOut, xErr);
 
-		const Real velocityHalfStep = x[1] + REAL(0.5) * h * dxdt[1];
-		const Real velocityVerletVelocity = x[1] + REAL(0.5) * h
+		const Real velocityHalfStep = x[1] + static_cast<MML::Real>(0.5) * h * dxdt[1];
+		const Real velocityVerletVelocity = x[1] + static_cast<MML::Real>(0.5) * h
 			* (dxdt[1] - drag * x[1]);
 		const Real kickDriftKickVelocity = velocityHalfStep
-			- REAL(0.5) * h * drag * velocityHalfStep;
+			- static_cast<MML::Real>(0.5) * h * drag * velocityHalfStep;
 
 		// For a(v), evaluating the final force at v_n or v_{n+1/2} gives different maps.
 		// Neither map is covered by this calculator's symplectic or accuracy guarantees.
 		REQUIRE_THAT(xOut[1], Catch::Matchers::WithinAbs(velocityVerletVelocity, TOL(1e-12, 1e-5)));
-		REQUIRE(std::abs(xOut[1] - kickDriftKickVelocity) > REAL(1e-6));
+		REQUIRE(std::abs(xOut[1] - kickDriftKickVelocity) > static_cast<MML::Real>(1e-6));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -522,12 +522,12 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("Midpoint step calculator - exponential decay", "[ODE][stepcalc][Midpoint]")
 	{
-		TestExponentialDecay(StepCalculators::MidpointStepCalc, "Midpoint", REAL(0.0001)); // 2nd order
+		TestExponentialDecay(StepCalculators::MidpointStepCalc, "Midpoint", static_cast<MML::Real>(0.0001)); // 2nd order
 	}
 
 	TEST_CASE("Midpoint step calculator - polynomial", "[ODE][stepcalc][Midpoint]")
 	{
-		TestPolynomialODE(StepCalculators::MidpointStepCalc, "Midpoint", REAL(0.0001));
+		TestPolynomialODE(StepCalculators::MidpointStepCalc, "Midpoint", static_cast<MML::Real>(0.0001));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -541,12 +541,12 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("RK4 step calculator - exponential decay", "[ODE][stepcalc][RK4]")
 	{
-		TestExponentialDecay(StepCalculators::RK4_Basic, "RK4", REAL(1e-6)); // 4th order - very accurate
+		TestExponentialDecay(StepCalculators::RK4_Basic, "RK4", static_cast<MML::Real>(1e-6)); // 4th order - very accurate
 	}
 
 	TEST_CASE("RK4 step calculator - harmonic oscillator", "[ODE][stepcalc][RK4]")
 	{
-		TestHarmonicOscillator(StepCalculators::RK4_Basic, "RK4", REAL(1e-2)); // Accumulated over 628 steps
+		TestHarmonicOscillator(StepCalculators::RK4_Basic, "RK4", static_cast<MML::Real>(1e-2)); // Accumulated over 628 steps
 	}
 
 	TEST_CASE("RK4 step calculator - polynomial", "[ODE][stepcalc][RK4]")
@@ -575,7 +575,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("RK5 Cash-Karp step calculator - harmonic oscillator", "[ODE][stepcalc][RK5CashKarp]")
 	{
-		TestHarmonicOscillator(StepCalculators::RK5_CashKarp, "RK5-CashKarp", REAL(1e-2)); // Accumulated over 628 steps
+		TestHarmonicOscillator(StepCalculators::RK5_CashKarp, "RK5-CashKarp", static_cast<MML::Real>(1e-2)); // Accumulated over 628 steps
 	}
 
 	TEST_CASE("RK5 Cash-Karp step calculator - provides error estimate", "[ODE][stepcalc][RK5CashKarp]")
@@ -584,18 +584,18 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 		ExponentialDecay sys;
 		Vector<Real> y(1);
-		y[0] = REAL(1.0);
+		y[0] = static_cast<MML::Real>(1.0);
 		Vector<Real> dydt(1);
 		Vector<Real> y_out(1);
 		Vector<Real> y_err(1);
 
-		sys.derivs(REAL(0.0), y, dydt);
-		StepCalculators::RK5_CashKarp.calcStep(sys, REAL(0.0), y, dydt, REAL(0.1), y_out, y_err);
+		sys.derivs(static_cast<MML::Real>(0.0), y, dydt);
+		StepCalculators::RK5_CashKarp.calcStep(sys, static_cast<MML::Real>(0.0), y, dydt, static_cast<MML::Real>(0.1), y_out, y_err);
 
 		// Should provide non-zero error estimate
-		REQUIRE(std::abs(y_err[0]) > REAL(0.0));
+		REQUIRE(std::abs(y_err[0]) > static_cast<MML::Real>(0.0));
 		// Error estimate should be O(h^5) so relatively small
-		REQUIRE(std::abs(y_err[0]) < REAL(1e-4));
+		REQUIRE(std::abs(y_err[0]) < static_cast<MML::Real>(1e-4));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -614,7 +614,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("Dormand-Prince 5 step calculator - harmonic oscillator", "[ODE][stepcalc][DormandPrince5]")
 	{
-		TestHarmonicOscillator(StepCalculators::DormandPrince5StepCalc, "DormandPrince5", REAL(1e-2)); // Accumulated over 628 steps
+		TestHarmonicOscillator(StepCalculators::DormandPrince5StepCalc, "DormandPrince5", static_cast<MML::Real>(1e-2)); // Accumulated over 628 steps
 	}
 
 	TEST_CASE("Dormand-Prince 5 step calculator - provides error estimate", "[ODE][stepcalc][DormandPrince5]")
@@ -623,17 +623,17 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 		SimpleHarmonicOscillator sys;
 		Vector<Real> x(2);
-		x[0] = REAL(1.0);
-		x[1] = REAL(0.0);
+		x[0] = static_cast<MML::Real>(1.0);
+		x[1] = static_cast<MML::Real>(0.0);
 		Vector<Real> dxdt(2);
 		Vector<Real> x_out(2);
 		Vector<Real> x_err(2);
 
-		sys.derivs(REAL(0.0), x, dxdt);
-		StepCalculators::DormandPrince5StepCalc.calcStep(sys, REAL(0.0), x, dxdt, REAL(0.1), x_out, x_err);
+		sys.derivs(static_cast<MML::Real>(0.0), x, dxdt);
+		StepCalculators::DormandPrince5StepCalc.calcStep(sys, static_cast<MML::Real>(0.0), x, dxdt, static_cast<MML::Real>(0.1), x_out, x_err);
 
 		// Should provide non-zero error estimate
-		REQUIRE((std::abs(x_err[0]) > REAL(0.0) || std::abs(x_err[1]) > REAL(0.0)));
+		REQUIRE((std::abs(x_err[0]) > static_cast<MML::Real>(0.0) || std::abs(x_err[1]) > static_cast<MML::Real>(0.0)));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -652,7 +652,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("Dormand-Prince 8 step calculator - harmonic oscillator", "[ODE][stepcalc][DormandPrince8]")
 	{
-		TestHarmonicOscillator(StepCalculators::DormandPrince8StepCalc, "DormandPrince8", REAL(1e-2)); // Accumulated over 628 steps
+		TestHarmonicOscillator(StepCalculators::DormandPrince8StepCalc, "DormandPrince8", static_cast<MML::Real>(1e-2)); // Accumulated over 628 steps
 	}
 
 	TEST_CASE("Dormand-Prince 8 step calculator - polynomial", "[ODE][stepcalc][DormandPrince8]")
@@ -666,16 +666,16 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 		ExponentialDecay sys;
 		Vector<Real> y(1);
-		y[0] = REAL(1.0);
+		y[0] = static_cast<MML::Real>(1.0);
 		Vector<Real> dydt(1);
 		Vector<Real> y_out(1);
 		Vector<Real> y_err(1);
 
-		sys.derivs(REAL(0.0), y, dydt);
-		StepCalculators::DormandPrince8StepCalc.calcStep(sys, REAL(0.0), y, dydt, REAL(0.1), y_out, y_err);
+		sys.derivs(static_cast<MML::Real>(0.0), y, dydt);
+		StepCalculators::DormandPrince8StepCalc.calcStep(sys, static_cast<MML::Real>(0.0), y, dydt, static_cast<MML::Real>(0.1), y_out, y_err);
 
 		// Should provide non-zero error estimate
-		REQUIRE(std::abs(y_err[0]) > REAL(0.0));
+		REQUIRE(std::abs(y_err[0]) > static_cast<MML::Real>(0.0));
 		// Error should be very small for 8th order
 		REQUIRE(std::abs(y_err[0]) < TOL(1e-8, 1e-4));
 	}
@@ -689,9 +689,9 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 		TEST_PRECISION_INFO();
 
 		ExponentialDecay sys;
-		Real t0 = REAL(0.0);
-		Real y0 = REAL(1.0);
-		Real h = REAL(0.1);
+		Real t0 = static_cast<MML::Real>(0.0);
+		Real y0 = static_cast<MML::Real>(1.0);
+		Real h = static_cast<MML::Real>(0.1);
 
 		// Expected solution at t=h
 		Real exact = y0 * std::exp(-h);

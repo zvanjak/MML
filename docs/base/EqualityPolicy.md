@@ -31,16 +31,16 @@ All MML types use `IsEqualTo()` for tolerance-based comparison:
 ```cpp
 // Vectors
 Vector3Cartesian v1, v2;
-v1.IsEqualTo(v2);                              // Uses Defaults::Vec3CartIsEqualTolerance
+v1.IsEqualTo(v2);                              // Uses Precision::Vec3CartIsEqualTolerance
 v1.IsEqualTo(v2, 1e-12);                       // Custom tolerance
 
 // Points  
 Point3Cartesian p1, p2;
-p1.IsEqualTo(p2);                              // Uses Defaults::Pnt3CartIsEqualTolerance
+p1.IsEqualTo(p2);                              // Uses Precision::Pnt3CartIsEqualTolerance
 
 // Matrices
 Matrix<Real> m1, m2;
-m1.IsEqualTo(m2);                              // Uses Defaults::MatrixIsEqualTolerance
+m1.IsEqualTo(m2);                              // Uses Precision::MatrixIsEqualTolerance
 Matrix<Real>::AreEqual(m1, m2, 1e-15);         // Static helper with custom tolerance
 ```
 
@@ -60,19 +60,19 @@ Access via `Defaults::` namespace:
 #include <mml/MMLBase.h>
 
 // Equality tolerances
-Defaults::MatrixIsEqualTolerance       // Matrix element comparison
-Defaults::VectorIsEqualTolerance       // Vector element comparison
-Defaults::Pnt3CartIsEqualTolerance     // 3D point distance comparison
+Precision::MatrixIsEqualTolerance       // Matrix element comparison
+Precision::VectorIsEqualTolerance       // Vector element comparison
+Precision::Pnt3CartIsEqualTolerance     // 3D point distance comparison
 
 // Geometry tolerances
-Defaults::Line3DIsParallelTolerance    // Line parallelism
-Defaults::Plane3DIsPointOnPlaneTolerance
+Precision::Line3DIsParallelTolerance    // Line parallelism
+Precision::Plane3DIsPointOnPlaneTolerance
 
 // New tolerances (v1.1)
-Defaults::AngleIsEqualTolerance        // Angle wrap-aware comparison
-Defaults::ShapePropertyTolerance       // IsRight, IsSquare, IsEquilateral, etc.
-Defaults::OrthogonalityTolerance       // Perpendicularity checks
-Defaults::DefaultTolerance             // General-purpose tolerance
+Precision::AngleIsEqualTolerance        // Angle wrap-aware comparison
+Precision::ShapePropertyTolerance       // IsRight, IsSquare, IsEquilateral, etc.
+Precision::OrthogonalityTolerance       // Perpendicularity checks
+Precision::DefaultTolerance             // General-purpose tolerance
 ```
 
 ---
@@ -101,11 +101,11 @@ v1.IsEqualTo(v2, 1e-3);  // true - phi comparison is angle-aware
 
 ## Shape Property Tolerances
 
-Geometric shape classification methods use `Defaults::ShapePropertyTolerance`:
+Geometric shape classification methods use `Precision::ShapePropertyTolerance`:
 
 ```cpp
 Triangle t(3, 4, 5);
-t.IsRight();                    // Uses Defaults::ShapePropertyTolerance
+t.IsRight();                    // Uses Precision::ShapePropertyTolerance
 t.IsRight(1e-12);               // Custom tolerance
 
 Rectangle r(5.0, 5.00000001);
@@ -159,7 +159,7 @@ If updating code from older MML versions:
 | Old Pattern | New Pattern |
 |-------------|-------------|
 | `a.IsEqual(b)` | `a.IsEqualTo(b)` |
-| `eps = 1e-10` | `eps = Defaults::ShapePropertyTolerance` |
+| `eps = 1e-10` | `eps = Precision::ShapePropertyTolerance` |
 | `std::abs(angle1 - angle2) < eps` | `AnglesAreEqual(angle1, angle2, eps)` |
 
 ---

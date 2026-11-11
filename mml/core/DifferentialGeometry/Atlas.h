@@ -158,12 +158,12 @@ namespace MML::DifferentialGeometry
 			Real u = point[0];
 			Real v = point[1];
 			Real radiusSquared = u * u + v * v;
-			Real denominator = REAL(1.0) + radiusSquared;
+			Real denominator = static_cast<MML::Real>(1.0) + radiusSquared;
 			Real z = _pole == Pole::North
-				? (REAL(1.0) - radiusSquared) / denominator
-				: (-REAL(1.0) + radiusSquared) / denominator;
+				? (static_cast<MML::Real>(1.0) - radiusSquared) / denominator
+				: (-static_cast<MML::Real>(1.0) + radiusSquared) / denominator;
 
-			return Point<Real, 3, Cartesian3>{ REAL(2.0) * u / denominator, REAL(2.0) * v / denominator, z };
+			return Point<Real, 3, Cartesian3>{ static_cast<MML::Real>(2.0) * u / denominator, static_cast<MML::Real>(2.0) * v / denominator, z };
 		}
 
 		MatrixNM<Real, 3, 2> jacobian(const Point<Real, 2, Parameter2>& point) const override
@@ -171,15 +171,15 @@ namespace MML::DifferentialGeometry
 			Real u = point[0];
 			Real v = point[1];
 			Real radiusSquared = u * u + v * v;
-			Real denominator = REAL(1.0) + radiusSquared;
+			Real denominator = static_cast<MML::Real>(1.0) + radiusSquared;
 			Real denominatorSquared = denominator * denominator;
-			Real zSign = _pole == Pole::North ? -REAL(4.0) : REAL(4.0);
+			Real zSign = _pole == Pole::North ? -static_cast<MML::Real>(4.0) : static_cast<MML::Real>(4.0);
 
 			MatrixNM<Real, 3, 2> jac;
-			jac(0, 0) = REAL(2.0) * (REAL(1.0) - u * u + v * v) / denominatorSquared;
-			jac(0, 1) = -REAL(4.0) * u * v / denominatorSquared;
-			jac(1, 0) = -REAL(4.0) * u * v / denominatorSquared;
-			jac(1, 1) = REAL(2.0) * (REAL(1.0) + u * u - v * v) / denominatorSquared;
+			jac(0, 0) = static_cast<MML::Real>(2.0) * (static_cast<MML::Real>(1.0) - u * u + v * v) / denominatorSquared;
+			jac(0, 1) = -static_cast<MML::Real>(4.0) * u * v / denominatorSquared;
+			jac(1, 0) = -static_cast<MML::Real>(4.0) * u * v / denominatorSquared;
+			jac(1, 1) = static_cast<MML::Real>(2.0) * (static_cast<MML::Real>(1.0) + u * u - v * v) / denominatorSquared;
 			jac(2, 0) = zSign * u / denominatorSquared;
 			jac(2, 1) = zSign * v / denominatorSquared;
 			return jac;
@@ -207,9 +207,9 @@ namespace MML::DifferentialGeometry
 		auto south = std::make_shared<UnitSphereStereographicChart>(UnitSphereStereographicChart::Pole::South);
 
 		int northId = atlas.AddChart("north", north, IsFiniteStereographicPoint,
-			[](const Point<Real, 3, Cartesian3>& point) { return point[2] >= REAL(0.0); });
+			[](const Point<Real, 3, Cartesian3>& point) { return point[2] >= static_cast<MML::Real>(0.0); });
 		int southId = atlas.AddChart("south", south, IsFiniteStereographicPoint,
-			[](const Point<Real, 3, Cartesian3>& point) { return point[2] < REAL(0.0); });
+			[](const Point<Real, 3, Cartesian3>& point) { return point[2] < static_cast<MML::Real>(0.0); });
 
 		atlas.AddTransition(northId, southId, StereographicSphereTransition);
 		atlas.AddTransition(southId, northId, StereographicSphereTransition);

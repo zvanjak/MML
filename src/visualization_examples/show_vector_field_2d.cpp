@@ -6,6 +6,8 @@
  * Cross-platform: works on Windows, Linux, and macOS.
  */
 
+#include "VisualizationResult.h"
+
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
@@ -26,9 +28,9 @@ void Show_Vector_Field_2D_Examples()
     VectorFunction<2> constantFlow{[](const VectorN<Real, 2>& v) {
         return VectorN<Real, 2>{1.0, 0.5};
     }};
-    Visualizer::VisualizeVectorField2DCartesian(constantFlow, "Constant Flow",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeVectorField2DCartesian(constantFlow, "Constant Flow",
                                                 -5.0, 5.0, 15, -5.0, 5.0, 15,
-                                                "viz_vector2d_constant.mml");
+                                                "viz_vector2d_constant.mml"), "VisualizeVectorField2DCartesian");
 
     // Example 2: Radial field (source/sink)
     std::cout << "2. Radial field (source): F(x,y) = (x, y) / r\n";
@@ -37,9 +39,9 @@ void Show_Vector_Field_2D_Examples()
         if (r < 0.1) r = 0.1;  // Avoid division by zero
         return VectorN<Real, 2>{v[0]/r, v[1]/r};
     }};
-    Visualizer::VisualizeVectorField2DCartesian(radialField, "Radial Source Field",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeVectorField2DCartesian(radialField, "Radial Source Field",
                                                 -5.0, 5.0, 15, -5.0, 5.0, 15,
-                                                "viz_vector2d_radial.mml");
+                                                "viz_vector2d_radial.mml"), "VisualizeVectorField2DCartesian");
 
     // Example 3: Rotational field (vortex)
     std::cout << "3. Rotational field (vortex): F(x,y) = (-y, x) / r\n";
@@ -48,18 +50,18 @@ void Show_Vector_Field_2D_Examples()
         if (r < 0.1) r = 0.1;
         return VectorN<Real, 2>{-v[1]/r, v[0]/r};
     }};
-    Visualizer::VisualizeVectorField2DCartesian(vortexField, "Vortex Field",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeVectorField2DCartesian(vortexField, "Vortex Field",
                                                 -5.0, 5.0, 15, -5.0, 5.0, 15,
-                                                "viz_vector2d_vortex.mml");
+                                                "viz_vector2d_vortex.mml"), "VisualizeVectorField2DCartesian");
 
     // Example 4: Saddle point field
     std::cout << "4. Saddle point: F(x,y) = (x, -y)\n";
     VectorFunction<2> saddleField{[](const VectorN<Real, 2>& v) {
         return VectorN<Real, 2>{v[0], -v[1]};
     }};
-    Visualizer::VisualizeVectorField2DCartesian(saddleField, "Saddle Point Field",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeVectorField2DCartesian(saddleField, "Saddle Point Field",
                                                 -5.0, 5.0, 15, -5.0, 5.0, 15,
-                                                "viz_vector2d_saddle.mml");
+                                                "viz_vector2d_saddle.mml"), "VisualizeVectorField2DCartesian");
 
     // Example 5: Dipole field (two opposite charges)
     std::cout << "5. Dipole field: two opposite charges at (-2,0) and (2,0)\n";
@@ -82,18 +84,18 @@ void Show_Vector_Field_2D_Examples()
         
         return VectorN<Real, 2>{Ex, Ey};
     }};
-    Visualizer::VisualizeVectorField2DCartesian(dipoleField, "Electric Dipole Field",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeVectorField2DCartesian(dipoleField, "Electric Dipole Field",
                                                 -6.0, 6.0, 20, -4.0, 4.0, 15,
-                                                "viz_vector2d_dipole.mml");
+                                                "viz_vector2d_dipole.mml"), "VisualizeVectorField2DCartesian");
 
     // Example 6: Shear flow
     std::cout << "6. Shear flow: F(x,y) = (y, 0)\n";
     VectorFunction<2> shearFlow{[](const VectorN<Real, 2>& v) {
         return VectorN<Real, 2>{v[1], 0.0};
     }};
-    Visualizer::VisualizeVectorField2DCartesian(shearFlow, "Shear Flow",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeVectorField2DCartesian(shearFlow, "Shear Flow",
                                                 -5.0, 5.0, 15, -5.0, 5.0, 15,
-                                                "viz_vector2d_shear.mml");
+                                                "viz_vector2d_shear.mml"), "VisualizeVectorField2DCartesian");
 
     // Example 7: Double vortex
     std::cout << "7. Double vortex: two counter-rotating vortices\n";
@@ -115,9 +117,9 @@ void Show_Vector_Field_2D_Examples()
         
         return VectorN<Real, 2>{Vx, Vy};
     }};
-    Visualizer::VisualizeVectorField2DCartesian(doubleVortex, "Double Vortex",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeVectorField2DCartesian(doubleVortex, "Double Vortex",
                                                 -6.0, 6.0, 20, -4.0, 4.0, 15,
-                                                "viz_vector2d_double_vortex.mml");
+                                                "viz_vector2d_double_vortex.mml"), "VisualizeVectorField2DCartesian");
 
     std::cout << "\n2D vector field visualization examples complete!\n";
 }

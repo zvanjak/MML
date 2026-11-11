@@ -17,15 +17,15 @@ namespace MML::Tests::Algorithms::NonlinearSystemSolverTests {
 
 	RootFinding::DynamicSystemFunction CircleLineSystem() {
 		return [](const Vector<Real>& point) {
-			return Vector<Real>({point[0] * point[0] + point[1] * point[1] - REAL(1.0),
+			return Vector<Real>({point[0] * point[0] + point[1] * point[1] - static_cast<MML::Real>(1.0),
 				point[0] - point[1]});
 		};
 	}
 
 	RootFinding::DynamicJacobianFunction CircleLineJacobian() {
 		return [](const Vector<Real>& point) {
-			return Matrix<Real>(2, 2, {REAL(2.0) * point[0], REAL(2.0) * point[1],
-				REAL(1.0), -REAL(1.0)});
+			return Matrix<Real>(2, 2, {static_cast<MML::Real>(2.0) * point[0], static_cast<MML::Real>(2.0) * point[1],
+				static_cast<MML::Real>(1.0), -static_cast<MML::Real>(1.0)});
 		};
 	}
 
@@ -36,9 +36,9 @@ namespace MML::Tests::Algorithms::NonlinearSystemSolverTests {
 		config.step_tolerance = TOL(1e-13, 1e-6);
 		config.store_trace = true;
 		auto result = RootFinding::SolveNonlinearSystemNewton(
-			CircleLineSystem(), CircleLineJacobian(), Vector<Real>({REAL(0.8), REAL(0.4)}), config);
+			CircleLineSystem(), CircleLineJacobian(), Vector<Real>({static_cast<MML::Real>(0.8), static_cast<MML::Real>(0.4)}), config);
 
-		const Real expected = REAL(1.0) / std::sqrt(REAL(2.0));
+		const Real expected = static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(2.0));
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "NonlinearNewtonAnalyticalJacobian");
 		REQUIRE_THAT(result.solution[0], WithinAbs(expected, TOL(1e-10, 1e-4)));
@@ -59,7 +59,7 @@ namespace MML::Tests::Algorithms::NonlinearSystemSolverTests {
 		RootFinding::NonlinearSystemConfig config;
 		config.residual_tolerance = TOL(1e-10, 1e-4);
 		auto result = RootFinding::SolveNonlinearSystemNewton(
-			CircleLineSystem(), Vector<Real>({REAL(0.8), REAL(0.4)}), config);
+			CircleLineSystem(), Vector<Real>({static_cast<MML::Real>(0.8), static_cast<MML::Real>(0.4)}), config);
 
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "NonlinearNewtonNumericalJacobian");
@@ -71,19 +71,19 @@ namespace MML::Tests::Algorithms::NonlinearSystemSolverTests {
 	TEST_CASE("Nonlinear Newton supports fixed-size callables and Jacobians",
 		"[RootFinding][NonlinearSystem][Static][AnalyticalJacobian]") {
 		auto function = [](const VectorN<Real, 2>& point) {
-			return VectorN<Real, 2>({point[0] * point[0] + point[1] * point[1] - REAL(1.0),
+			return VectorN<Real, 2>({point[0] * point[0] + point[1] * point[1] - static_cast<MML::Real>(1.0),
 				point[0] - point[1]});
 		};
 		auto jacobian = [](const VectorN<Real, 2>& point) {
-			return MatrixNM<Real, 2, 2>({REAL(2.0) * point[0], REAL(2.0) * point[1],
-				REAL(1.0), -REAL(1.0)});
+			return MatrixNM<Real, 2, 2>({static_cast<MML::Real>(2.0) * point[0], static_cast<MML::Real>(2.0) * point[1],
+				static_cast<MML::Real>(1.0), -static_cast<MML::Real>(1.0)});
 		};
 		RootFinding::NonlinearSystemConfig config;
 		config.store_trace = true;
 		auto result = RootFinding::SolveNonlinearSystemNewton<2>(
-			function, jacobian, VectorN<Real, 2>({REAL(0.8), REAL(0.4)}), config);
+			function, jacobian, VectorN<Real, 2>({static_cast<MML::Real>(0.8), static_cast<MML::Real>(0.4)}), config);
 
-		const Real expected = REAL(1.0) / std::sqrt(REAL(2.0));
+		const Real expected = static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(2.0));
 		REQUIRE(result.IsSuccess());
 		REQUIRE_THAT(result.solution[0], WithinAbs(expected, TOL(1e-9, 1e-4)));
 		REQUIRE_THAT(result.solution[1], WithinAbs(expected, TOL(1e-9, 1e-4)));
@@ -93,7 +93,7 @@ namespace MML::Tests::Algorithms::NonlinearSystemSolverTests {
 	class StaticCircleLineSystem : public IVectorFunction<2> {
 	public:
 		VectorN<Real, 2> operator()(const VectorN<Real, 2>& point) const override {
-			return {point[0] * point[0] + point[1] * point[1] - REAL(1.0),
+			return {point[0] * point[0] + point[1] * point[1] - static_cast<MML::Real>(1.0),
 				point[0] - point[1]};
 		}
 	};
@@ -103,7 +103,7 @@ namespace MML::Tests::Algorithms::NonlinearSystemSolverTests {
 		StaticCircleLineSystem function;
 		RootFinding::NonlinearSystemConfig config;
 		auto result = RootFinding::SolveNonlinearSystemNewton<2>(
-			function, VectorN<Real, 2>({REAL(0.8), REAL(0.4)}), config);
+			function, VectorN<Real, 2>({static_cast<MML::Real>(0.8), static_cast<MML::Real>(0.4)}), config);
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.jacobian_evaluations == result.iterations_used);
 		REQUIRE(result.residual_norm <= config.residual_tolerance);
@@ -111,7 +111,7 @@ namespace MML::Tests::Algorithms::NonlinearSystemSolverTests {
 
 	TEST_CASE("Nonlinear Newton accepts an exact initial root",
 		"[RootFinding][NonlinearSystem][InitialRoot]") {
-		const Real expected = REAL(1.0) / std::sqrt(REAL(2.0));
+		const Real expected = static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(2.0));
 		auto result = RootFinding::SolveNonlinearSystemNewton(
 			CircleLineSystem(), Vector<Real>({expected, expected}));
 		REQUIRE(result.IsSuccess());
@@ -127,64 +127,64 @@ namespace MML::Tests::Algorithms::NonlinearSystemSolverTests {
 			return Vector<Real>({std::atan(point[0])});
 		};
 		RootFinding::DynamicJacobianFunction jacobian = [](const Vector<Real>& point) {
-			return Matrix<Real>(1, 1, {REAL(1.0) / (REAL(1.0) + point[0] * point[0])});
+			return Matrix<Real>(1, 1, {static_cast<MML::Real>(1.0) / (static_cast<MML::Real>(1.0) + point[0] * point[0])});
 		};
 		RootFinding::NonlinearSystemConfig config;
 		config.store_trace = true;
 		config.max_iterations = 40;
-		config.minimum_damping = REAL(1e-8);
+		config.minimum_damping = static_cast<MML::Real>(1e-8);
 		auto result = RootFinding::SolveNonlinearSystemNewton(
-			function, jacobian, Vector<Real>({REAL(10.0)}), config);
+			function, jacobian, Vector<Real>({static_cast<MML::Real>(10.0)}), config);
 
 		REQUIRE(result.IsSuccess());
-		REQUIRE_THAT(result.solution[0], WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(result.solution[0], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 1e-4)));
 		REQUIRE(std::any_of(result.trace.begin(), result.trace.end(),
-			[](const auto& entry) { return entry.damping < REAL(1.0); }));
+			[](const auto& entry) { return entry.damping < static_cast<MML::Real>(1.0); }));
 	}
 
 	TEST_CASE("Nonlinear Newton reports structured failures",
 		"[RootFinding][NonlinearSystem][Validation]") {
 		RootFinding::NonlinearSystemConfig invalid;
-		invalid.residual_tolerance = -REAL(1.0);
+		invalid.residual_tolerance = -static_cast<MML::Real>(1.0);
 		auto invalidResult = RootFinding::SolveNonlinearSystemNewton(
-			CircleLineSystem(), Vector<Real>({REAL(0.8), REAL(0.4)}), invalid);
+			CircleLineSystem(), Vector<Real>({static_cast<MML::Real>(0.8), static_cast<MML::Real>(0.4)}), invalid);
 		REQUIRE_FALSE(invalidResult.IsSuccess());
 		REQUIRE(invalidResult.status == AlgorithmStatus::InvalidInput);
 
 		RootFinding::DynamicSystemFunction empty;
 		auto emptyResult = RootFinding::SolveNonlinearSystemNewton(
-			empty, Vector<Real>({REAL(0.0)}));
+			empty, Vector<Real>({static_cast<MML::Real>(0.0)}));
 		REQUIRE(emptyResult.status == AlgorithmStatus::InvalidInput);
 
 		RootFinding::DynamicSystemFunction wrongDimension = [](const Vector<Real>&) {
-			return Vector<Real>({REAL(1.0)});
+			return Vector<Real>({static_cast<MML::Real>(1.0)});
 		};
 		auto dimensionResult = RootFinding::SolveNonlinearSystemNewton(
-			wrongDimension, Vector<Real>({REAL(0.0), REAL(0.0)}));
+			wrongDimension, Vector<Real>({static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)}));
 		REQUIRE(dimensionResult.status == AlgorithmStatus::InvalidInput);
 
 		RootFinding::DynamicSystemFunction nonFinite = [](const Vector<Real>& point) {
 			return Vector<Real>({std::numeric_limits<Real>::infinity(), point[1]});
 		};
 		auto nonFiniteResult = RootFinding::SolveNonlinearSystemNewton(
-			nonFinite, Vector<Real>({REAL(0.0), REAL(0.0)}));
+			nonFinite, Vector<Real>({static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)}));
 		REQUIRE(nonFiniteResult.status == AlgorithmStatus::NumericalInstability);
 
 		RootFinding::DynamicJacobianFunction wrongJacobian = [](const Vector<Real>&) {
-			return Matrix<Real>(1, 1, {REAL(1.0)});
+			return Matrix<Real>(1, 1, {static_cast<MML::Real>(1.0)});
 		};
 		auto jacobianResult = RootFinding::SolveNonlinearSystemNewton(
-			CircleLineSystem(), wrongJacobian, Vector<Real>({REAL(0.8), REAL(0.4)}));
+			CircleLineSystem(), wrongJacobian, Vector<Real>({static_cast<MML::Real>(0.8), static_cast<MML::Real>(0.4)}));
 		REQUIRE(jacobianResult.status == AlgorithmStatus::InvalidInput);
 
 		RootFinding::DynamicSystemFunction singular = [](const Vector<Real>& point) {
-			return Vector<Real>({point[0] * point[0] + REAL(1.0), point[1]});
+			return Vector<Real>({point[0] * point[0] + static_cast<MML::Real>(1.0), point[1]});
 		};
 		RootFinding::DynamicJacobianFunction singularJacobian = [](const Vector<Real>& point) {
-			return Matrix<Real>(2, 2, {REAL(2.0) * point[0], REAL(0.0), REAL(0.0), REAL(1.0)});
+			return Matrix<Real>(2, 2, {static_cast<MML::Real>(2.0) * point[0], static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)});
 		};
 		auto singularResult = RootFinding::SolveNonlinearSystemNewton(
-			singular, singularJacobian, Vector<Real>({REAL(0.0), REAL(1.0)}));
+			singular, singularJacobian, Vector<Real>({static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)}));
 		REQUIRE_FALSE(singularResult.IsSuccess());
 		REQUIRE(singularResult.status == AlgorithmStatus::SingularMatrix);
 		REQUIRE_FALSE(singularResult.error_message.empty());
@@ -196,7 +196,7 @@ namespace MML::Tests::Algorithms::NonlinearSystemSolverTests {
 		config.max_iterations = 1;
 		config.residual_tolerance = TOL(1e-15, 1e-6);
 		auto result = RootFinding::SolveNonlinearSystemNewton(
-			CircleLineSystem(), CircleLineJacobian(), Vector<Real>({REAL(0.8), REAL(0.4)}), config);
+			CircleLineSystem(), CircleLineJacobian(), Vector<Real>({static_cast<MML::Real>(0.8), static_cast<MML::Real>(0.4)}), config);
 		REQUIRE_FALSE(result.IsSuccess());
 		REQUIRE(result.status == AlgorithmStatus::MaxIterationsExceeded);
 		REQUIRE(result.iterations_used == 1);

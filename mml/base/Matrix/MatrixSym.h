@@ -71,6 +71,7 @@
 #if !defined MML_MATRIX_SYM_H
 #define MML_MATRIX_SYM_H
 
+#include <mml/base/PrintFormatting.h>
 #include <mml/MMLBase.h>
 #include <mml/base/Matrix/MatrixPrintFormat.h>
 
@@ -234,7 +235,8 @@ namespace MML
 		/// @{ */
 
 
-		/// @brief Returns matrix dimension (rows = cols = Dim()).
+		/// @deprecated Use rows() (CONTRACT_POLICY §11 dimension vocabulary: rows()/cols() on every matrix type).
+		[[deprecated("use rows()")]]
 		int Dim() const noexcept { return _dim; }
 
 		/// @brief Returns number of rows (preferred API).
@@ -258,7 +260,7 @@ namespace MML
 
 		/// @brief Resizes the matrix, destroying existing data.
 		/// @param newDim New matrix dimension.
-		void Resize(int newDim) {
+		void resize(int newDim) {
 			if (newDim == _dim)
 				return;
 
@@ -276,9 +278,9 @@ namespace MML
 		/// @brief Resizes the matrix with optional data preservation.
 		/// @param newDim New matrix dimension.
 		/// @param preserveData If true, preserves overlapping elements.
-		void Resize(int newDim, bool preserveData) {
+		void resize(int newDim, bool preserveData) {
 			if (!preserveData || _dim == 0) {
-				Resize(newDim);
+				resize(newDim);
 				return;
 			}
 
@@ -310,17 +312,31 @@ namespace MML
 			_data = std::move(newData);
 		}
 
+		/// @deprecated Use resize() (CONTRACT_POLICY §11: STL-shaped protocol).
+		[[deprecated("use resize()")]]
+		void Resize(int newDim) { resize(newDim); }
+		/// @deprecated Use resize().
+		[[deprecated("use resize()")]]
+		void Resize(int newDim, bool preserveData) { resize(newDim, preserveData); }
+
 		/// @brief Sets all elements to zero.
-		void SetToZero() noexcept { std::fill(_data.begin(), _data.end(), Type{0}); }
+		void SetZero() noexcept { std::fill(_data.begin(), _data.end(), Type{0}); }
 
 		/// @brief Sets all elements to a specified value.
-		void SetToValue(Type val) noexcept { std::fill(_data.begin(), _data.end(), val); }
+		void Fill(const Type& val) noexcept { std::fill(_data.begin(), _data.end(), val); }
+
+		/// @deprecated Use SetZero() (CONTRACT_POLICY §11 reset vocabulary).
+		[[deprecated("use SetZero()")]]
+		void SetToZero() noexcept { SetZero(); }
+		/// @deprecated Use Fill(v).
+		[[deprecated("use Fill()")]]
+		void SetToValue(Type val) noexcept { Fill(val); }
 
 		/// @brief Tolerance-based equality comparison.
 		/// @param b Matrix to compare with.
 		/// @param eps Maximum allowed element difference.
 		/// @return True if dimensions match and all elements are within tolerance.
-		bool IsEqualTo(const MatrixSym& b, Real eps = Defaults::MatrixIsEqualTolerance) const {
+		bool IsEqualTo(const MatrixSym& b, Real eps = Precision::MatrixIsEqualTolerance) const {
 			if (_dim != b._dim)
 				return false;
 
@@ -332,13 +348,13 @@ namespace MML
 		}
 
 		/// @brief Static helper for tolerance-based comparison.
-		static bool AreEqual(const MatrixSym& a, const MatrixSym& b, Real eps = Defaults::MatrixIsEqualTolerance) {
+		static bool AreEqual(const MatrixSym& a, const MatrixSym& b, Real eps = Precision::MatrixIsEqualTolerance) {
 			return a.IsEqualTo(b, eps);
 		}
 
 		/// @brief Converts to full Matrix representation.
 		/// @return n×n Matrix with symmetric values filled in.
-		Matrix<Type> GetAsMatrix() const {
+		Matrix<Type> ToFullMatrix() const {
 			if (_dim == 0)
 				return Matrix<Type>();
 
@@ -350,6 +366,10 @@ namespace MML
 			}
 			return ret;
 		}
+
+		/// @deprecated Use ToFullMatrix() (same spelling as BandDiagonalMatrix/TridiagonalMatrix; CONTRACT_POLICY §11 conversions).
+		[[deprecated("use ToFullMatrix()")]]
+		Matrix<Type> GetAsMatrix() const { return ToFullMatrix(); }
 
 		/// @brief Creates symmetric matrix from lower triangular part of a matrix.
 		/// @param m Source matrix (must be square).
@@ -430,7 +450,7 @@ namespace MML
 		/// @brief Creates diagonal matrix from vector.
 		/// @param diag Vector of diagonal elements.
 		/// @return dim×dim diagonal matrix where dim = diag.size().
-		static MatrixSym GetDiagonalMatrix(const Vector<Type>& diag) {
+		static MatrixSym Diagonal(const Vector<Type>& diag) {
 			int dim = static_cast<int>(diag.size());
 			MatrixSym ret(dim); // Initializes to zero
 			for (int i = 0; i < dim; ++i) {
@@ -438,6 +458,10 @@ namespace MML
 			}
 			return ret;
 		}
+
+		/// @deprecated Use Diagonal(v) (same spelling as Matrix::Diagonal; CONTRACT_POLICY §11 factories).
+		[[deprecated("use Diagonal()")]]
+		static MatrixSym GetDiagonalMatrix(const Vector<Type>& diag) { return Diagonal(diag); }
 
 		/// @brief Extracts a row as a vector.
 		/// @param rowInd Row index (0-based).
@@ -770,19 +794,6 @@ namespace MML
 			return ret;
 		}
 
-		/// @brief Computes the inverse of the matrix.
-		/// @return Inverse as a general Matrix (inverse of symmetric is symmetric, but returned as Matrix).
-		/// @throws MatrixDimensionError If matrix is empty.
-		/// @throws SingularMatrixError If matrix is singular.
-		/// @note Converts to Matrix, inverts, and returns result.
-		Matrix<Type> GetInverse() const {
-			if (_dim == 0)
-				throw MatrixDimensionError("MatrixSym::GetInverse - cannot invert empty matrix", 0, 0, -1, -1);
-
-			Matrix<Type> a = GetAsMatrix();
-			a.Invert();
-			return a;
-		}
 
 		/// @brief Converts matrix to formatted string.
 		/// @param width Field width for each element (default 10).
@@ -799,50 +810,7 @@ namespace MML
 		/// @param fmt MatrixPrintFormat specifying width, precision, brackets, etc.
 		/// @see MatrixPrintFormat For format options.
 		void Print(std::ostream& stream, const MatrixPrintFormat& fmt = MatrixPrintFormat::Default()) const {
-			if (fmt.showHeader) {
-				stream << "Rows: " << _dim << " Cols: " << _dim << " (Symmetric)" << std::endl;
-			}
-
-			std::ios_base::fmtflags oldFlags = stream.flags();
-			if (fmt.scientific)
-				stream << std::scientific;
-			else if (fmt.fixed)
-				stream << std::fixed;
-
-			// Compact mode for small matrices
-			if (fmt.compactMode && _dim <= 3) {
-				if (fmt.showBrackets)
-					stream << "[";
-				for (int i = 0; i < _dim; ++i) {
-					if (i > 0)
-						stream << "; ";
-					for (int j = 0; j < _dim; ++j) {
-						if (j > 0)
-							stream << fmt.delimiter;
-						stream << std::setw(fmt.width) << std::setprecision(fmt.precision) << (*this)(i, j);
-					}
-				}
-				if (fmt.showBrackets)
-					stream << "]";
-				stream << std::endl;
-			} else {
-				// Normal multi-line mode
-				for (int i = 0; i < _dim; ++i) {
-					if (fmt.showBrackets)
-						stream << "[ ";
-					for (int j = 0; j < _dim; ++j) {
-						stream << std::setw(fmt.width) << std::setprecision(fmt.precision) << (*this)(i, j);
-						if (j < _dim - 1)
-							stream << fmt.delimiter;
-					}
-					if (fmt.showBrackets)
-						stream << " ]";
-					if (i < _dim - 1)
-						stream << std::endl;
-				}
-			}
-
-			stream.flags(oldFlags);
+			PrintFormatting::Matrix(stream, rows(), cols(), [&](int i, int j) { return (*this)(i, j); }, fmt, " (Symmetric)");
 		}
 
 		/// @brief Print with explicit width and precision.

@@ -82,10 +82,16 @@ namespace MML
 
 		/** @brief Set all parameters from a vector.
 		 *  Default implementation loops over setParam().
+		 *  @throws VectorDimensionError if params.size() != getNumParam(). Silent truncation /
+		 *          partial assignment was removed (MinimalMathLibrary-wewi.6.4): a wrong-sized
+		 *          parameter vector is a programming error, never a request to set a prefix.
 		 */
 		virtual void setParams(const Vector<Real>& params)
 		{
-			for (int i = 0; i < std::min(getNumParam(), static_cast<int>(params.size())); ++i)
+			const int n = getNumParam();
+			if (params.size() != n)
+				throw VectorDimensionError("IParametrized::setParams - parameter vector size must equal getNumParam()", params.size(), n);
+			for (int i = 0; i < n; ++i)
 				setParam(i, params[i]);
 		}
 	};

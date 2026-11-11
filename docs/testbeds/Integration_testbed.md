@@ -266,7 +266,7 @@ TestIntegral poly = getPolynomialIntegral();
 IntegrandWrapper f = makeIntegrand(poly);
 
 // Using Simpson's rule
-IntegrationResult result = IntegrateSimpson(f, poly.a, poly.b, 1e-10);
+IntegrationResult result = IntegrateSimpsonDetailed(f, poly.a, poly.b, 1e-10);
 
 std::cout << "Computed: " << result.value << "\n";
 std::cout << "Expected: " << poly.exactResult << "\n";
@@ -289,16 +289,16 @@ IntegrandWrapper f = makeIntegrand(test);
 Real tol = 1e-8;
 
 // Trapezoidal rule
-IntegrationResult trapResult = IntegrateTrap(f, test.a, test.b, tol);
+IntegrationResult trapResult = IntegrateTrapDetailed(f, test.a, test.b, tol);
 
 // Simpson's rule  
-IntegrationResult simpResult = IntegrateSimpson(f, test.a, test.b, tol);
+IntegrationResult simpResult = IntegrateSimpsonDetailed(f, test.a, test.b, tol);
 
 // Romberg extrapolation
-IntegrationResult rombResult = IntegrateRomberg(f, test.a, test.b, tol);
+IntegrationResult rombResult = IntegrateRombergDetailed(f, test.a, test.b, tol);
 
 // 10-point Gauss-Legendre (no tolerance parameter)
-IntegrationResult gaussResult = IntegrateGauss10(f, test.a, test.b);
+IntegrationResult gaussResult = IntegrateGauss10Detailed(f, test.a, test.b);
 
 std::cout << "Method        Value          Iterations  Error Est\n";
 std::cout << "Trapezoidal   " << trapResult.value  << "  " 
@@ -324,7 +324,7 @@ auto tests = getSmoothIntegrals();
 
 for (const auto& test : tests) {
     IntegrandWrapper f = makeIntegrand(test);
-    IntegrationResult result = IntegrateRomberg(f, test.a, test.b, test.suggestedTolerance);
+    IntegrationResult result = IntegrateRombergDetailed(f, test.a, test.b, test.suggestedTolerance);
     
     bool passed = checkResult(result.value, test.exactResult, test.suggestedTolerance);
     
@@ -351,7 +351,7 @@ for (const auto& test : oscillatory) {
     IntegrandWrapper f = makeIntegrand(test);
     
     // Romberg works better for oscillatory functions
-    IntegrationResult result = IntegrateRomberg(f, test.a, test.b, 1e-8);
+    IntegrationResult result = IntegrateRombergDetailed(f, test.a, test.b, 1e-8);
     
     if (!result.converged) {
         std::cerr << "Warning: " << test.name << " did not converge!\n";
@@ -382,14 +382,14 @@ using namespace MML::TestBeds;
 // Example: ∫[0,∞) x·exp(-x) dx = 1
 // Gauss-Laguerre integrates f(x)·e^(-x), so we supply f(x) = x
 RealFunctionFromStdFunc f([](Real x) { return x; });
-IntegrationResult result = IntegrateGaussLaguerre(f, 20, 0.0);
+IntegrationResult result = IntegrateGaussLaguerreDetailed(f, 20, 0.0);
 std::cout << "∫x·e^(-x) = " << result.value << " (exact: 1)\n";
 
 // For doubly-infinite ∫(-∞,∞) f(x)·exp(-x²) dx, use Gauss-Hermite
 // Example: ∫ e^(-x²) dx = √π
 // Gauss-Hermite has weight e^(-x²) built in, so f(x) = 1
 RealFunctionFromStdFunc g([](Real x) { return 1.0; });
-IntegrationResult result2 = IntegrateGaussHermite(g, 20);
+IntegrationResult result2 = IntegrateGaussHermiteDetailed(g, 20);
 std::cout << "∫e^(-x²) = " << result2.value << " (exact: " << std::sqrt(Constants::PI) << ")\n";
 ```
 
@@ -426,10 +426,10 @@ TestIntegral test = getArctanIntegral();
 IntegrandWrapper f = makeIntegrand(test);
 
 // Explicitly specify integration method
-IntegrationResult r1 = Integrate(f, test.a, test.b, TRAP, 1e-8);
-IntegrationResult r2 = Integrate(f, test.a, test.b, SIMPSON, 1e-8);
-IntegrationResult r3 = Integrate(f, test.a, test.b, ROMBERG, 1e-10);
-IntegrationResult r4 = Integrate(f, test.a, test.b, GAUSS10);  // No tolerance
+IntegrationResult r1 = IntegrateDetailed(f, test.a, test.b, TRAP, 1e-8);
+IntegrationResult r2 = IntegrateDetailed(f, test.a, test.b, SIMPSON, 1e-8);
+IntegrationResult r3 = IntegrateDetailed(f, test.a, test.b, ROMBERG, 1e-10);
+IntegrationResult r4 = IntegrateDetailed(f, test.a, test.b, GAUSS10);  // No tolerance
 
 std::cout << "TRAP:    " << r1.value << " (iter=" << r1.iterations << ")\n";
 std::cout << "SIMPSON: " << r2.value << " (iter=" << r2.iterations << ")\n";

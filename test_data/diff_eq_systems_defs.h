@@ -344,20 +344,20 @@ namespace MML::TestBeds
     class LogisticGrowthODE : public IODESystem
     {
         Real _r;  // growth rate
-        Real _K;  // carrying capacity
+        Real _carryingCapacity;  // carrying capacity
     public:
-        LogisticGrowthODE(Real r = 1.0, Real K = 10.0) : _r(r), _K(K) {}
+        LogisticGrowthODE(Real r = 1.0, Real K = 10.0) : _r(r), _carryingCapacity(K) {}
         
         int getDim() const override { return 1; }
         void derivs(const Real t, const Vector<Real>& y, Vector<Real>& dydt) const override
         {
-            dydt[0] = _r * y[0] * (1.0 - y[0] / _K);
+            dydt[0] = _r * y[0] * (1.0 - y[0] / _carryingCapacity);
         }
         
         Vector<Real> getSolution(const Vector<Real>& y0, Real t) const
         {
-            Real ratio = (_K - y0[0]) / y0[0];
-            return Vector<Real>{ static_cast<Real>(_K / (1.0 + ratio * std::exp(-_r * t))) };
+            Real ratio = (_carryingCapacity - y0[0]) / y0[0];
+            return Vector<Real>{ static_cast<Real>(_carryingCapacity / (1.0 + ratio * std::exp(-_r * t))) };
         }
     };
 
@@ -653,9 +653,10 @@ namespace MML::TestBeds
             stiff_sys1_derivs(t, x, dydx);
         }
 
-        void jacobian(const Real t, const Vector<Real>& x, Vector<Real>& dxdt, Matrix<Real>& dydx) const override
+        void jacobian(Real t, const Vector<Real>& x, Matrix<Real>& dydx) const override
         {
-            stiff_sys1_jac(t, x, dxdt, dydx);
+            Vector<Real> dfdt(x.size());   // NR jacobn's third argument is df/dt (zero for this autonomous system), not dy/dt
+            stiff_sys1_jac(t, x, dfdt, dydx);
         }
     };
 }

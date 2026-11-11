@@ -83,7 +83,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 
 		Real flux = SurfaceIntegration::SurfaceIntegral(field, square, 1e-6);
 		
-		REQUIRE_THAT(flux, WithinAbs(REAL(1.0), REAL(1e-5)));
+		REQUIRE_THAT(flux, WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5)));
 	}
 
 	TEST_CASE("SurfaceIntegration::ConstantField_ThroughTriangle", "[flux][basic]")
@@ -91,8 +91,8 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 			TEST_PRECISION_INFO();
 		// Constant field F = (1, 0, 0) through triangle in YZ plane
 		// Triangle: (0,0,0), (0,1,0), (0,0,1)
-		// Area = REAL(0.5), Normal = (1, 0, 0)
-		// Expected flux: 1 * REAL(0.5) = REAL(0.5)
+		// Area = static_cast<MML::Real>(0.5), Normal = (1, 0, 0)
+		// Expected flux: 1 * static_cast<MML::Real>(0.5) = static_cast<MML::Real>(0.5)
 		
 		ConstantVectorField field(1, 0, 0);
 
@@ -104,7 +104,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 
 		Real flux = SurfaceIntegration::SurfaceIntegral(field, triangle, 1e-6);
 		
-		REQUIRE_THAT(flux, WithinAbs(REAL(0.5), REAL(1e-5)));
+		REQUIRE_THAT(flux, WithinAbs(static_cast<MML::Real>(0.5), static_cast<MML::Real>(1e-5)));
 	}
 
 	TEST_CASE("SurfaceIntegration::LinearField_ThroughSquare", "[flux]")
@@ -112,7 +112,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 			TEST_PRECISION_INFO();
 		// Linear field F = (x, y, z) through unit square z=1
 		// Square: (0,0,1), (1,0,1), (1,1,1), (0,1,1)
-		// At center (REAL(0.5), REAL(0.5), 1): F = (REAL(0.5), REAL(0.5), 1)
+		// At center (static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5), 1): F = (static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5), 1)
 		// Normal = (0, 0, 1), F·n = 1
 		// Flux ≈ 1 * 1 = 1
 		
@@ -127,7 +127,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 
 		Real flux = SurfaceIntegration::SurfaceIntegral(field, square, 1e-6);
 		
-		REQUIRE_THAT(flux, WithinAbs(REAL(1.0), REAL(1e-4)));
+		REQUIRE_THAT(flux, WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-4)));
 	}
 
 	/*********************************************************************/
@@ -143,12 +143,12 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		ConstantVectorField field(1, 2, 3);
 
 		// Unit cube: 6 faces
-		Cube3D cube(REAL(1.0), Point3Cartesian(0, 0, 0));
+		Cube3D cube(static_cast<MML::Real>(1.0), Point3Cartesian(0, 0, 0));
 
 		Real flux = SurfaceIntegration::SurfaceIntegral(field, cube, 1e-6);
 		
 		// Should be zero (within numerical precision)
-		REQUIRE_THAT(flux, WithinAbs(REAL(0.0), REAL(1e-4)));
+		REQUIRE_THAT(flux, WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-4)));
 	}
 
 	TEST_CASE("SurfaceIntegration::RadialField_ThroughCube", "[flux][gauss]")
@@ -163,11 +163,11 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		RadialVectorField field;
 
 		// Cube with side 2, centered at (1,1,1) - volume = 8
-		Cube3D cube(REAL(2.0), Point3Cartesian(1, 1, 1));
+		Cube3D cube(static_cast<MML::Real>(2.0), Point3Cartesian(1, 1, 1));
 
 		Real flux = SurfaceIntegration::SurfaceIntegral(field, cube, 1e-6);
 		
-		REQUIRE_THAT(flux, WithinRel(REAL(24.0), REAL(1e-3)));
+		REQUIRE_THAT(flux, WithinRel(static_cast<MML::Real>(24.0), static_cast<MML::Real>(1e-3)));
 	}
 
 	/*********************************************************************/
@@ -200,9 +200,9 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		Real fluxDown = SurfaceIntegration::SurfaceIntegral(vectorField, squareDown, 1e-6);
 
 		// Fluxes should be opposite
-		REQUIRE_THAT(fluxUp + fluxDown, WithinAbs(REAL(0.0), REAL(1e-5)));
-		REQUIRE_THAT(fluxUp, WithinAbs(REAL(1.0), REAL(1e-5)));
-		REQUIRE_THAT(fluxDown, WithinAbs(-REAL(1.0), REAL(1e-5)));
+		REQUIRE_THAT(fluxUp + fluxDown, WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-5)));
+		REQUIRE_THAT(fluxUp, WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5)));
+		REQUIRE_THAT(fluxDown, WithinAbs(-static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5)));
 	}
 
 	/*********************************************************************/
@@ -247,13 +247,13 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 			Point3Cartesian(0, 0, 1)
 		));
 
-		Real totalFlux = REAL(0.0);
+		Real totalFlux = static_cast<MML::Real>(0.0);
 		for (const auto& face : faces) {
 			totalFlux += SurfaceIntegration::SurfaceIntegral(field, face, 1e-6);
 		}
 
 		// Constant field has zero divergence, so total flux should be ~0
-		REQUIRE_THAT(totalFlux, WithinAbs(REAL(0.0), REAL(0.1)));
+		REQUIRE_THAT(totalFlux, WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.1)));
 	}
 
 	/*********************************************************************/
@@ -275,7 +275,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		);
 
 		// Low precision
-		Real fluxLow = SurfaceIntegration::SurfaceIntegral(field, square, REAL(0.1), 2);
+		Real fluxLow = SurfaceIntegration::SurfaceIntegral(field, square, static_cast<MML::Real>(0.1), 2);
 		
 		// High precision
 		Real fluxHigh = SurfaceIntegration::SurfaceIntegral(field, square, TOL(1e-8, 1e-4), 6);
@@ -283,7 +283,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		// They should be different (refinement matters)
 		// And high precision should be close to analytical value
 		// For F_z = z² at z=1: F_z = 1, so flux ≈ 1 * 1 = 1
-		REQUIRE_THAT(fluxHigh, WithinRel(REAL(1.0), REAL(1e-3)));
+		REQUIRE_THAT(fluxHigh, WithinRel(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-3)));
 	}
 
 	/*********************************************************************/
@@ -305,7 +305,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 
 		Real flux = SurfaceIntegration::SurfaceIntegral(vectorField, degenerateTriangle, 1e-6);
 		
-		REQUIRE_THAT(flux, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(flux, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("SurfaceIntegration::ParallelField_NoFlux", "[flux][perpendicular]")
@@ -328,7 +328,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		Real flux = SurfaceIntegration::SurfaceIntegral(tangentField, square, 1e-6);
 		
 		// Field · normal = (1, 1, 0) · (0, 0, 1) = 0
-		REQUIRE_THAT(flux, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(flux, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -377,7 +377,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 	public:
 		VectorN<Real, 3> operator()(const VectorN<Real, 3>& pos) const override
 		{
-			return VectorN<Real, 3>({REAL(sin(pos[0])), REAL(sin(pos[1])), REAL(sin(pos[2]))});
+			return VectorN<Real, 3>({static_cast<MML::Real>(sin(pos[0])), static_cast<MML::Real>(sin(pos[1])), static_cast<MML::Real>(sin(pos[2]))});
 		}
 
 		Vector3Cartesian operator()(const Vector3Cartesian& pos) const
@@ -396,15 +396,15 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		
 		InverseSquareField field;
 
-		// Small cube centered at (2, 2, 2), side length REAL(0.5)
-		Cube3D cube(REAL(0.5), Point3Cartesian(2, 2, 2));
+		// Small cube centered at (2, 2, 2), side length static_cast<MML::Real>(0.5)
+		Cube3D cube(static_cast<MML::Real>(0.5), Point3Cartesian(2, 2, 2));
 
 		Real flux = SurfaceIntegration::SurfaceIntegral(field, cube, 1e-5);
 		
 		// Flux should be small and positive (pointing outward from origin)
 		// Actual value depends on solid angle subtended by cube
-		REQUIRE(flux > REAL(0.0));
-		REQUIRE(flux < REAL(0.1)); // Small solid angle
+		REQUIRE(flux > static_cast<MML::Real>(0.0));
+		REQUIRE(flux < static_cast<MML::Real>(0.1)); // Small solid angle
 	}
 
 	TEST_CASE("SurfaceIntegration::RotationalField_ThroughSquare", "[flux][rotational]")
@@ -427,7 +427,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		
 		// F = (-y, x, 0), normal = (0, 0, 1)
 		// F · n = 0 everywhere
-		REQUIRE_THAT(flux, WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(flux, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("SurfaceIntegration::SinusoidalField_ThroughSquare", "[flux][sinusoidal]")
@@ -448,10 +448,10 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 
 		Real flux = SurfaceIntegration::SurfaceIntegral(field, square, 1e-6);
 		
-		// F_z = sin(z), at z=1: sin(1) ≈ REAL(0.8414709848)
-		// Flux = sin(1) * area = sin(1) * π² ≈ REAL(8.289)
-		Real expected = sin(REAL(1.0)) * Constants::PI * Constants::PI;
-		REQUIRE_THAT(flux, WithinRel(expected, REAL(1e-3)));
+		// F_z = sin(z), at z=1: sin(1) ≈ static_cast<MML::Real>(0.8414709848)
+		// Flux = sin(1) * area = sin(1) * π² ≈ static_cast<MML::Real>(8.289)
+		Real expected = sin(static_cast<MML::Real>(1.0)) * Constants::PI * Constants::PI;
+		REQUIRE_THAT(flux, WithinRel(expected, static_cast<MML::Real>(1e-3)));
 	}
 
 	TEST_CASE("SurfaceIntegration::QuadraticField_ThroughCube", "[flux][quadratic]")
@@ -465,12 +465,12 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		
 		QuadraticVectorField field;
 
-		Cube3D cube(REAL(1.0), Point3Cartesian(REAL(0.5), REAL(0.5), REAL(0.5))); // Unit cube at origin
+		Cube3D cube(static_cast<MML::Real>(1.0), Point3Cartesian(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5))); // Unit cube at origin
 
 		Real flux = SurfaceIntegration::SurfaceIntegral(field, cube, 1e-5);
 		
 		// By divergence theorem, flux = 3
-		REQUIRE_THAT(flux, WithinRel(REAL(3.0), REAL(5e-2)));
+		REQUIRE_THAT(flux, WithinRel(static_cast<MML::Real>(3.0), static_cast<MML::Real>(5e-2)));
 	}
 
 	/*********************************************************************/
@@ -498,10 +498,10 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 
 		// Flux of constant field F=(1,2,3) through XY unit square:
 		// Flux = F · n * Area = (1,2,3) · (0,0,1) * 1 = 3
-		Real expected = REAL(3.0);
-		REQUIRE_THAT(flux1, WithinAbs(expected, REAL(1e-1)));
-		REQUIRE_THAT(flux2, WithinAbs(expected, REAL(1e-3)));
-		REQUIRE_THAT(flux3, WithinAbs(expected, REAL(1e-5)));
+		Real expected = static_cast<MML::Real>(3.0);
+		REQUIRE_THAT(flux1, WithinAbs(expected, static_cast<MML::Real>(1e-1)));
+		REQUIRE_THAT(flux2, WithinAbs(expected, static_cast<MML::Real>(1e-3)));
+		REQUIRE_THAT(flux3, WithinAbs(expected, static_cast<MML::Real>(1e-5)));
 	}
 
 	TEST_CASE("SurfaceIntegration::VerySmallSurface", "[flux][precision][small]")
@@ -543,7 +543,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		Real flux = SurfaceIntegration::SurfaceIntegral(field, largeSquare, 1e-3);
 		
 		// Expected flux = 2 * 1000² = 2,000,000
-		REQUIRE_THAT(flux, WithinRel(REAL(2e6), REAL(1e-4)));
+		REQUIRE_THAT(flux, WithinRel(static_cast<MML::Real>(2e6), static_cast<MML::Real>(1e-4)));
 	}
 
 	TEST_CASE("SurfaceIntegration::HighAspectRatioSurface", "[flux][precision][aspect-ratio]")
@@ -553,18 +553,18 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		
 		ConstantVectorField field(0, 0, 1);
 
-		// Rectangle: 100 × REAL(0.01) at z=0
+		// Rectangle: 100 × static_cast<MML::Real>(0.01) at z=0
 		RectSurface3D rectangle(
 			Point3Cartesian(0, 0, 0),
 			Point3Cartesian(100, 0, 0),
-			Point3Cartesian(100, REAL(0.01), 0),
-			Point3Cartesian(0, REAL(0.01), 0)
+			Point3Cartesian(100, static_cast<MML::Real>(0.01), 0),
+			Point3Cartesian(0, static_cast<MML::Real>(0.01), 0)
 		);
 
 		Real flux = SurfaceIntegration::SurfaceIntegral(field, rectangle, 1e-6);
 		
-		// Expected flux = 1 * (100 * REAL(0.01)) = 1
-		REQUIRE_THAT(flux, WithinRel(REAL(1.0), REAL(1e-3)));
+		// Expected flux = 1 * (100 * static_cast<MML::Real>(0.01)) = 1
+		REQUIRE_THAT(flux, WithinRel(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-3)));
 	}
 
 	TEST_CASE("SurfaceIntegration::NearlyDegenerateTriangle", "[flux][precision][edge]")
@@ -574,18 +574,18 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		
 		ConstantVectorField field(1, 1, 1);
 
-		// Nearly collinear points: (0,0,0), (1,0,0), (REAL(1.001), REAL(0.001), 0)
+		// Nearly collinear points: (0,0,0), (1,0,0), (static_cast<MML::Real>(1.001), static_cast<MML::Real>(0.001), 0)
 		// This forms a very thin triangle
 		Triangle3D nearlyDegenerate(
 			Point3Cartesian(0, 0, 0),
 			Point3Cartesian(1, 0, 0),
-			Point3Cartesian(REAL(1.001), REAL(0.001), 0)
+			Point3Cartesian(static_cast<MML::Real>(1.001), static_cast<MML::Real>(0.001), 0)
 		);
 
 		Real flux = SurfaceIntegration::SurfaceIntegral(field, nearlyDegenerate, TOL(1e-8, 1e-4));
 		
 		// Flux should be very small but not exactly zero
-		// Area ≈ REAL(0.5) * |base × height| ≈ REAL(0.5) * 1 * REAL(0.001) = REAL(0.0005)
+		// Area ≈ static_cast<MML::Real>(0.5) * |base × height| ≈ static_cast<MML::Real>(0.5) * 1 * static_cast<MML::Real>(0.001) = static_cast<MML::Real>(0.0005)
 		REQUIRE(fabs(flux) < 1e-2);
 	}
 
@@ -598,16 +598,16 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		// Linear field F = (x, y, z) centered at origin
 		// div(F) = 1 + 1 + 1 = 3
 		// For cube with volume V: flux = 3V
-		// Cube side=1 centered at (REAL(0.5), REAL(0.5), REAL(0.5)): volume = 1
+		// Cube side=1 centered at (static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5)): volume = 1
 		
 		RadialVectorField field;
 
-		Cube3D cube(REAL(1.0), Point3Cartesian(REAL(0.5), REAL(0.5), REAL(0.5)));
+		Cube3D cube(static_cast<MML::Real>(1.0), Point3Cartesian(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5)));
 
 		Real flux = SurfaceIntegration::SurfaceIntegral(field, cube, 1e-5);
 		
 		// div(F) = 3, volume = 1, expected flux = 3
-		REQUIRE_THAT(flux, WithinRel(REAL(3.0), REAL(1e-2)));
+		REQUIRE_THAT(flux, WithinRel(static_cast<MML::Real>(3.0), static_cast<MML::Real>(1e-2)));
 	}
 
 	TEST_CASE("SurfaceIntegration::DivergenceTheorem_QuadraticField_SmallCube", "[flux][gauss][divergence]")
@@ -615,19 +615,19 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 			TEST_PRECISION_INFO();
 		// Quadratic field F = (x², y², z²)
 		// div(F) = 2x + 2y + 2z
-		// For small cube centered at (REAL(0.1), REAL(0.1), REAL(0.1)) with side REAL(0.2)
-		// Volume = REAL(0.008)
-		// Average divergence ≈ 2(REAL(0.1) + REAL(0.1) + REAL(0.1)) = REAL(0.6)
-		// Expected flux ≈ REAL(0.6) * REAL(0.008) = REAL(0.0048)
+		// For small cube centered at (static_cast<MML::Real>(0.1), static_cast<MML::Real>(0.1), static_cast<MML::Real>(0.1)) with side static_cast<MML::Real>(0.2)
+		// Volume = static_cast<MML::Real>(0.008)
+		// Average divergence ≈ 2(static_cast<MML::Real>(0.1) + static_cast<MML::Real>(0.1) + static_cast<MML::Real>(0.1)) = static_cast<MML::Real>(0.6)
+		// Expected flux ≈ static_cast<MML::Real>(0.6) * static_cast<MML::Real>(0.008) = static_cast<MML::Real>(0.0048)
 		
 		QuadraticVectorField field;
 
-		Cube3D cube(REAL(0.2), Point3Cartesian(REAL(0.1), REAL(0.1), REAL(0.1)));
+		Cube3D cube(static_cast<MML::Real>(0.2), Point3Cartesian(static_cast<MML::Real>(0.1), static_cast<MML::Real>(0.1), static_cast<MML::Real>(0.1)));
 
 		Real flux = SurfaceIntegration::SurfaceIntegral(field, cube, 1e-6);
 		
-		// By divergence theorem, flux ≈ REAL(0.0048)
-		REQUIRE_THAT(flux, WithinRel(REAL(0.0048), REAL(0.1)));
+		// By divergence theorem, flux ≈ static_cast<MML::Real>(0.0048)
+		REQUIRE_THAT(flux, WithinRel(static_cast<MML::Real>(0.0048), static_cast<MML::Real>(0.1)));
 	}
 
 	/*********************************************************************/
@@ -688,7 +688,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 			Point3Cartesian(1, 0, 0)
 		));
 
-		Real totalFlux = REAL(0.0);
+		Real totalFlux = static_cast<MML::Real>(0.0);
 		for (const auto& face : faces) {
 			totalFlux += SurfaceIntegration::SurfaceIntegral(field, face, 1e-5);
 		}
@@ -697,9 +697,9 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		// Octahedron with vertices at (±1,0,0), (0,±1,0), (0,0,±1)
 		// Volume = 4/3 (two pyramids, each with square base area = 2 and height = 1)
 		// Expected flux = div(F) * V = 3 * (4/3) = 4
-		Real octVolume = REAL(4.0) / REAL(3.0);
-		Real expected = REAL(3.0) * octVolume;  // = REAL(4.0)
-		REQUIRE_THAT(totalFlux, WithinRel(expected, REAL(0.15)));
+		Real octVolume = static_cast<MML::Real>(4.0) / static_cast<MML::Real>(3.0);
+		Real expected = static_cast<MML::Real>(3.0) * octVolume;  // = static_cast<MML::Real>(4.0)
+		REQUIRE_THAT(totalFlux, WithinRel(expected, static_cast<MML::Real>(0.15)));
 	}
 
 	TEST_CASE("SurfaceIntegration::MixedSurfaces_CubeAndTriangles", "[flux][composite][mixed]")
@@ -735,9 +735,9 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		               SurfaceIntegration::SurfaceIntegral(field, tri2, 1e-6);
 
 		// Both should give same result: 5 * 1 = 5
-		REQUIRE_THAT(fluxRect, WithinRel(REAL(5.0), REAL(1e-4)));
-		REQUIRE_THAT(fluxTri, WithinRel(REAL(5.0), REAL(1e-4)));
-		REQUIRE_THAT(fluxRect - fluxTri, WithinAbs(REAL(0.0), REAL(1e-3)));
+		REQUIRE_THAT(fluxRect, WithinRel(static_cast<MML::Real>(5.0), static_cast<MML::Real>(1e-4)));
+		REQUIRE_THAT(fluxTri, WithinRel(static_cast<MML::Real>(5.0), static_cast<MML::Real>(1e-4)));
+		REQUIRE_THAT(fluxRect - fluxTri, WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-3)));
 	}
 
 /*********************************************************************/
@@ -749,7 +749,7 @@ TEST_CASE("SurfaceIntegration::Parametric_Sphere_RadialField", "[flux][parametri
 // Radial field F = (x, y, z) pointing outward from origin
 // For unit sphere, F  n = R everywhere
 // Expected flux =  R dS = 4pR * R = 4pR
-// For R=1: flux = 4p  REAL(12.566)
+// For R=1: flux = 4p  static_cast<MML::Real>(12.566)
 
 class RadialField : public IVectorFunction<3>
 {
@@ -761,7 +761,7 @@ return pos;  // Radial field pointing outward
 };
 
 RadialField field;
-Sphere sphere(REAL(1.0));
+Sphere sphere(static_cast<MML::Real>(1.0));
 
 Real flux = SurfaceIntegration::SurfaceIntegral(
 field, sphere,
@@ -771,8 +771,8 @@ sphere.getMinW(), sphere.getMaxW(),
 );
 
 // Expected: 4pR4 = 4p for R=1
-Real expected = REAL(4.0) * Constants::PI;
-REQUIRE_THAT(flux, WithinRel(expected, REAL(0.05)));  // 5% tolerance
+Real expected = static_cast<MML::Real>(4.0) * Constants::PI;
+REQUIRE_THAT(flux, WithinRel(expected, static_cast<MML::Real>(0.05)));  // 5% tolerance
 }
 
 TEST_CASE("SurfaceIntegration::Parametric_Plane_ConstantField", "[flux][parametric][plane]")
@@ -797,6 +797,6 @@ plane.getMinW(), plane.getMaxW(),
 );
 
 // Area = 1, Fn = 1, so flux = 1
-REQUIRE_THAT(flux, WithinRel(REAL(1.0), REAL(1e-3)));
+REQUIRE_THAT(flux, WithinRel(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-3)));
 }
 }

@@ -15,7 +15,7 @@ The Core layer provides operations on Base layer types, implementing calculus, c
 - **Coordinate transforms**: See [Coordinate_transformations.md](Coordinate_transformations.md) for covariant/contravariant transforms, Jacobians, and predefined mappings.
 - **Metric tensors**: See [Metric_tensor.md](Metric_tensor.md) for Cartesian/Spherical/Cylindrical metrics and building metrics from transforms.
 - **Typed differential forms**: See [Typed_differential_forms.md](Typed_differential_forms.md) for tangent vectors, covectors, forms, Hodge star, typed fields, and coordinate maps.
-- **Function spaces**: See [Function_spaces.md](Function_spaces.md) to choose between real/scalar/vector/tensor/parametric abstractions.
+- **Function interfaces and bases**: See [Function_spaces.md](Function_spaces.md) for core primitives and the relocated finite FunctionSpaces extension.
 - **Fields**: See [Fields.md](Fields.md) for common field examples used across docs.
 - **Curves and surfaces**: See [Curves_and_surfaces.md](Curves_and_surfaces.md) and [Interpolated_functions.md](Interpolated_functions.md) for geometry and visualization.
 
@@ -27,7 +27,7 @@ The Core layer provides operations on Base layer types, implementing calculus, c
 - **Coordinates + metrics**: Transformations and metric tensors, including covariant/contravariant handling in [Coordinate_transformations.md](Coordinate_transformations.md) and [Metric_tensor.md](Metric_tensor.md).
 - **Typed forms**: Semantic tangent/covector/form APIs, metric musical operations, Hodge star, and coordinate map pull-backs in [Typed_differential_forms.md](Typed_differential_forms.md).
 - **ODE systems**: Interfaces, Jacobians, and helpers to couple with solvers in [ODE_system.md](ODE_system.md).
-- **Function abstractions**: Real/scalar/vector/tensor/parametric spaces overview in [Function_spaces.md](Function_spaces.md).
+- **Function abstractions**: Core interfaces remain here; finite FunctionSpaces and collocation BVP are documented as an extension in [Function_spaces.md](Function_spaces.md).
 - **Geometry primitives**: Parametric curves and surfaces with visualization notes in [Curves_and_surfaces.md](Curves_and_surfaces.md).
 - **Interpolation support**: Practical guidance for sampling and visualization in [Interpolated_functions.md](Interpolated_functions.md).
 
@@ -351,7 +351,7 @@ VectorFunction<2> polarToCart([](const VectorN<Real, 2>& v) {
 VectorN<Real, 2> point{2.0, Constants::PI/4};  // (r, θ) = (2, π/4)
 
 // Compute Jacobian (uses O(h⁴) accuracy internally)
-MatrixNM<Real, 2, 2> J = Derivation::calcJacobian<2>(polarToCart, point);
+MatrixNM<Real, 2, 2> J = Derivation::CalcJacobian<2>(polarToCart, point);
 // J = [∂x/∂r  ∂x/∂θ]   [cos(θ)  -r*sin(θ)]
 //     [∂y/∂r  ∂y/∂θ] = [sin(θ)   r*cos(θ)]
 
@@ -364,7 +364,7 @@ VectorFunctionNM<2, 3> surfaceParam([](const VectorN<Real, 2>& v) {
     return VectorN<Real, 3>{u*std::cos(w), u*std::sin(w), u*u};
 });
 
-MatrixNM<Real, 3, 2> J_surf = Derivation::calcJacobian<2, 3>(surfaceParam, point);
+MatrixNM<Real, 3, 2> J_surf = Derivation::CalcJacobian<2, 3>(surfaceParam, point);
 ```
 
 #### Alternative: Using Partial Derivatives
@@ -429,7 +429,7 @@ auto result_romb = IntegrateRomberg(f, a, b, 1e-10);  // Custom tolerance
 auto result_gauss = IntegrateGauss10(f, a, b);
 
 // Generic interface with method selection
-auto result = Integrate(f, a, b, SIMPSON, 1e-8);
+auto result = IntegrateDetailed(f, a, b, SIMPSON, 1e-8);
 
 // Check convergence
 if (!result.converged) {
@@ -448,7 +448,7 @@ RealFunction arcLen([](Real x) {
     return std::sqrt(1 + dy_dx*dy_dx);
 });
 
-auto result = IntegrateSimpson(arcLen, 0.0, 1.0);
+auto result = IntegrateSimpsonDetailed(arcLen, 0.0, 1.0);
 Real length = result.value;
 ```
 
@@ -474,7 +474,7 @@ Real y_lower(Real x) { return 0.0; }
 Real y_upper(Real x) { return 1.0 - x; }  // Triangle region
 
 // ∫∫ f(x,y) dx dy with specified method
-auto result = Integrate2D(f, SIMPSON, 0.0, 1.0, y_lower, y_upper);
+auto result = Integrate2DDetailed(f, SIMPSON, 0.0, 1.0, y_lower, y_upper);
 
 if (result.converged) {
     Real volume = result.value;
@@ -500,7 +500,7 @@ Real z_lo(Real x, Real y) { return 0.0; }
 Real z_hi(Real x, Real y) { return 1.0; }
 
 // Triple integral over cuboid [0,1]³
-auto result = Integrate3D(f, 0.0, 1.0, y_lo, y_hi, z_lo, z_hi);
+auto result = Integrate3DDetailed(f, 0.0, 1.0, y_lo, y_hi, z_lo, z_hi);
 Real volume = result.value;
 ```
 
@@ -808,9 +808,12 @@ Real gamma = 1.0 / std::sqrt(1.0 - v*v/(c*c));
 
 #### Built-in Curve Types
 
-2D Curves: `Circle2DCurve`, `LogSpiralCurve`, `LemniscateCurve`, `DeltoidCurve`, `AstroidCurve`, `EllipseCurve`, `CardioidCurve`
+2D core curves: `Circle2DCurve`, `LogSpiralCurve`, `ArchimedeanSpiralCurve` and `Circle2DCurvePolar`.
 
-3D Curves: `LineCurve`, `HelixCurve`, `CircleCurve3D`, `TorusKnotCurve`
+3D core curves: `LineCurve`, `HelixCurve`, axis-aligned circles and `Circle3DCurve`.
+
+Showcase types (including lemniscate, butterfly and toroidal spiral) are shared development
+fixtures, not core API; see [curve/surface test beds](../testbeds/ParametricCurvesSurfaces_testbed.md).
 
 #### Curve Properties (methods on curve objects)
 
@@ -1351,7 +1354,7 @@ Matrix<Real> A = /* ... */;
 RealFunction f = /* ... */;
 
 // Apply core operations
-IntegrationResult result = IntegrateSimpson(f, 0.0, 1.0);
+IntegrationResult result = IntegrateSimpsonDetailed(f, 0.0, 1.0);
 
 LUSolver<Real> lu(A);
 Vector<Real> x = lu.Solve(v);
@@ -1388,7 +1391,7 @@ try {
 }
 
 // Check IntegrationResult for convergence
-IntegrationResult result = IntegrateRomberg(f, a, b);
+IntegrationResult result = IntegrateRombergDetailed(f, a, b);
 if (!result.converged) {
     std::cerr << "Integration did not converge after " 
               << result.iterations << " iterations\n";

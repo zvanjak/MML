@@ -69,15 +69,15 @@ namespace MML::Systems
 	{
 	public:
 		static LyapunovResult<Real> Compute(IDynamicalSystem& system, const Vector<Real>& initialState,
-			Real totalTime, Real orthonormalizationInterval = REAL(1.0), Real initialStep = REAL(0.01))
+			Real totalTime, Real orthonormalizationInterval = static_cast<MML::Real>(1.0), Real initialStep = static_cast<MML::Real>(0.01))
 		{
 			const int dimension = system.getDim();
 			LyapunovResult<Real> result;
-			result.exponents.Resize(dimension);
+			result.exponents.resize(dimension);
 			Vector<Real> state = initialState;
 			Matrix<Real> frame = Matrix<Real>::Identity(dimension);
-			Vector<Real> sums(dimension, REAL(0.0));
-			Real time = REAL(0.0);
+			Vector<Real> sums(dimension, static_cast<MML::Real>(0.0));
+			Real time = static_cast<MML::Real>(0.0);
 			int orthonormalizations = 0;
 
 			while (time < totalTime) {
@@ -96,7 +96,7 @@ namespace MML::Systems
 				result.exponents[index] = sorted[index];
 
 			result.maxExponent = result.exponents[0];
-			result.sum = REAL(0.0);
+			result.sum = static_cast<MML::Real>(0.0);
 			for (int index = 0; index < dimension; ++index)
 				result.sum += result.exponents[index];
 			result.isChaotic = result.maxExponent > Precision::LyapunovChaosThreshold;
@@ -155,14 +155,14 @@ namespace MML::Systems
 					vector[row] = frame(row, column);
 
 				for (int previous = 0; previous < column; ++previous) {
-					Real dot = REAL(0.0);
+					Real dot = static_cast<MML::Real>(0.0);
 					for (int row = 0; row < dimension; ++row)
 						dot += vector[row] * frame(row, previous);
 					for (int row = 0; row < dimension; ++row)
 						vector[row] -= dot * frame(row, previous);
 				}
 
-				Real norm = REAL(0.0);
+				Real norm = static_cast<MML::Real>(0.0);
 				for (int row = 0; row < dimension; ++row)
 					norm += vector[row] * vector[row];
 				norm = std::sqrt(norm);
@@ -173,7 +173,7 @@ namespace MML::Systems
 				}
 				else {
 					for (int row = 0; row < dimension; ++row)
-						frame(row, column) = row == column ? REAL(1.0) : REAL(0.0);
+						frame(row, column) = row == column ? static_cast<MML::Real>(1.0) : static_cast<MML::Real>(0.0);
 				}
 			}
 		}
@@ -182,8 +182,8 @@ namespace MML::Systems
 		{
 			const int dimension = exponents.size();
 			if (dimension == 0)
-				return REAL(0.0);
-			Real cumulative = REAL(0.0);
+				return static_cast<MML::Real>(0.0);
+			Real cumulative = static_cast<MML::Real>(0.0);
 			int index = 0;
 			for (int current = 0; current < dimension; ++current) {
 				cumulative += exponents[current];
@@ -195,8 +195,8 @@ namespace MML::Systems
 			if (index == dimension)
 				return static_cast<Real>(dimension);
 			if (index == 0)
-				return REAL(0.0);
-			Real partialSum = REAL(0.0);
+				return static_cast<MML::Real>(0.0);
+			Real partialSum = static_cast<MML::Real>(0.0);
 			for (int current = 0; current < index; ++current)
 				partialSum += exponents[current];
 			return index + partialSum / std::abs(exponents[index]);
@@ -210,8 +210,8 @@ namespace MML::Systems
 	};
 
 	inline LyapunovAnalysisResult<Real> ComputeLyapunovDetailed(IDynamicalSystem& system,
-		const Vector<Real>& initialState, Real totalTime, Real orthonormalizationInterval = REAL(1.0),
-		Real initialStep = REAL(0.01), const DynSysConfig& config = {})
+		const Vector<Real>& initialState, Real totalTime, Real orthonormalizationInterval = static_cast<MML::Real>(1.0),
+		Real initialStep = static_cast<MML::Real>(0.01), const DynSysConfig& config = {})
 	{
 		return DynSysDetail::ExecuteDynSysDetailed<LyapunovAnalysisResult<Real>>(
 			"LyapunovAnalyzer", config, [&](LyapunovAnalysisResult<Real>& result) {

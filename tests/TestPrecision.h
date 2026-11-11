@@ -242,11 +242,11 @@ inline std::string GetPrecisionInfo() {
 
 /// @brief Per-precision tolerance: explicit double and float values, no auto-scaling
 /// Usage: TOL(1e-10, 1e-4) returns 1e-10 for double, 1e-4 for float
-#define TOL(DOUBLE_VAL, FLOAT_VAL) MML::Testing::Tol(REAL(DOUBLE_VAL), REAL(FLOAT_VAL))
+#define TOL(DOUBLE_VAL, FLOAT_VAL) MML::Testing::Tol(static_cast<MML::Real>(DOUBLE_VAL), static_cast<MML::Real>(FLOAT_VAL))
 
 /// @brief Per-precision tolerance with all three precision levels specified
 #define TOL3(DOUBLE_VAL, FLOAT_VAL, LDOUBLE_VAL) \
-    MML::Testing::Tol(REAL(DOUBLE_VAL), REAL(FLOAT_VAL), REAL(LDOUBLE_VAL))
+    MML::Testing::Tol(static_cast<MML::Real>(DOUBLE_VAL), static_cast<MML::Real>(FLOAT_VAL), static_cast<MML::Real>(LDOUBLE_VAL))
 
 /// @brief Print precision info once per test suite (useful for debugging)
 #define TEST_PRECISION_INFO() \
@@ -257,7 +257,7 @@ inline std::string GetPrecisionInfo() {
 // Long Double Support for Catch2 WithinRel Matcher
 // ============================================================================
 // Catch2 only provides WithinRel overloads for double and float.
-// When Real = long double, calls like WithinRel(REAL(1.0), REAL(1e-5)) are
+// When Real = long double, calls like WithinRel(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5)) are
 // ambiguous. We add explicit long double overloads that cast to double.
 // On MSVC, long double == double so this is lossless. On GCC/Linux (80-bit
 // extended), the cast loses some precision, but since we're comparing with

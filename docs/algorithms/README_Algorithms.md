@@ -536,7 +536,7 @@ RealFunctionFromStdFunc f([](Real x) { return (x-2)*(x-2) + 1; });
 MinimumBracket bracket = Minimization::BracketMinimum(f, 0.0, 1.0);
 
 // Then refine with golden section or Brent
-MinimizationResult result = Minimization::GoldenSectionSearch(f, bracket);
+Minimization1DResult result = Minimization::GoldenSectionSearch(f, bracket);
 std::cout << "x_min = " << result.xmin << ", f_min = " << result.fmin << std::endl;
 // x_min ≈ 2.0, f_min ≈ 1.0
 ```
@@ -547,7 +547,7 @@ std::cout << "x_min = " << result.xmin << ", f_min = " << result.fmin << std::en
 
 ```cpp
 // Convenience function: bracket + minimize in one call
-MinimizationResult result = Minimization::GoldenSectionSearch(f, 0.0, 10.0, 1e-6);
+Minimization1DResult result = Minimization::GoldenSectionSearch(f, 0.0, 10.0, 1e-6);
 Real x_min = result.xmin;
 Real f_min = result.fmin;
 ```
@@ -563,9 +563,9 @@ Real f_min = result.fmin;
 **Algorithm**: Combines golden section with parabolic interpolation.
 
 ```cpp
-MinimizationResult result = Minimization::BrentMinimize(f, bracket, 1e-6);
+Minimization1DResult result = Minimization::BrentMinimize(f, bracket, 1e-6);
 // Or with auto-bracketing:
-MinimizationResult result = Minimization::BrentMinimize(f, 0.0, 10.0, 1e-6);
+Minimization1DResult result = Minimization::BrentMinimize(f, 0.0, 10.0, 1e-6);
 ```
 
 **Properties**:
@@ -592,7 +592,7 @@ ScalarFunction<2> f([](const VectorN<Real, 2>& v) {
 });
 
 VectorN<Real, 2> x0{1.0, 1.0};
-MultidimMinimizationResult result = PowellMinimize(f, x0, 1e-6);
+MultidimOptimizationResult result = PowellMinimize(f, x0, 1e-6);
 // result.xmin ≈ [0, 0]
 ```
 
@@ -608,9 +608,9 @@ MultidimMinimizationResult result = PowellMinimize(f, x0, 1e-6);
 
 ```cpp
 ConjugateGradient cg(1e-8, 1e-8, 200, ConjugateGradient::Method::PolakRibiere);
-MultidimMinimizationResult result = cg.Minimize(f, x0);
+MultidimOptimizationResult result = cg.Minimize(f, x0);
 // Or use convenience function:
-MultidimMinimizationResult result = ConjugateGradientMinimize(f, x0, 1e-6);
+MultidimOptimizationResult result = ConjugateGradientMinimize(f, x0, 1e-6);
 // Converges in ≤ n iterations for quadratic f (n = dimension)
 ```
 
@@ -634,9 +634,9 @@ MultidimMinimizationResult result = ConjugateGradientMinimize(f, x0, 1e-6);
 
 ```cpp
 BFGS bfgs(1e-8, 1e-8, 200);
-MultidimMinimizationResult result = bfgs.Minimize(f, x0);
+MultidimOptimizationResult result = bfgs.Minimize(f, x0);
 // Or use convenience function:
-MultidimMinimizationResult result = BFGSMinimize(f, x0, 1e-6);
+MultidimOptimizationResult result = BFGSMinimize(f, x0, 1e-6);
 ```
 
 **Properties**:
@@ -686,7 +686,7 @@ lp.SetObjective({3.0, 2.0}, LPObjective::Maximize);
 lp.AddConstraint({1.0, 1.0}, LPConstraintType::LessEqual, 4.0);
 lp.AddConstraint({2.0, 1.0}, LPConstraintType::LessEqual, 5.0);
 
-LPResult result = SolveLP(lp);
+LinearProgrammingResult result = SolveLP(lp);
 // result.x ~= [1, 3], result.objectiveValue ~= 9
 ```
 
@@ -713,7 +713,9 @@ for that package layer.
 
 ## Function Analysis
 
-**File**: `mml/algorithms/FunctionsAnalyzer.h`
+**Numerical header**: `mml/algorithms/Analyzers/FunctionsAnalyzer.h`
+
+**Optional reporting header**: `mml/tools/analyzers/FunctionAnalysisReports.h`
 
 **Purpose**: Analyze properties of functions.
 
@@ -774,22 +776,23 @@ Vector<Real> inflections = analyzer.GetInflectionPoints(-5.0, 5.0, 1e-6);
 ```cpp
 // Analyze function properties at a specific point
 Real x = 1.0;
-bool defined = analyzer.isDefinedAtPoint(x);
-bool continuous = analyzer.isContinuousAtPoint(x, 1e-6);
-bool derivDefined = analyzer.isDerivativeDefinedAtPoint(x, 1e-6);
-bool isLocalOpt = analyzer.isLocalOptimum(x, 1e-6);
-bool isInflection = analyzer.isInflectionPoint(x, 1e-6);
+bool defined = analyzer.IsDefinedAtPoint(x);
+bool continuous = analyzer.IsContinuousAtPoint(x, 1e-6);
+bool derivDefined = analyzer.IsDerivativeDefinedAtPoint(x, 1e-6);
+bool isLocalOpt = analyzer.IsLocalOptimum(x, 1e-6);
+bool isInflection = analyzer.IsInflectionPoint(x, 1e-6);
 
-// Print comprehensive analysis
-analyzer.PrintPointAnalysis(x);
+// Optional tools-side presentation of a computed snapshot
+#include <mml/tools/analyzers/FunctionAnalysisReports.h>
+AnalysisReports::PrintPointAnalysis(std::cout, analyzer.AnalyzePoint(x));
 ```
 
 ### Interval Analysis
 
 ```cpp
 // Analyze function over an interval
-analyzer.PrintIntervalAnalysis(-5.0, 5.0, 100);
-// Prints: defined regions, continuity, critical points, inflections
+AnalysisReports::PrintIntervalAnalysis(std::cout, analyzer.AnalyzeInterval(-5.0, 5.0, 100));
+// Reports sampled values and numerical probes, not a proof over the interval
 ```
 
 ---
@@ -1179,7 +1182,7 @@ Run algorithm tests:
 ```powershell
 & .\build\tests\Debug\MML_Tests.exe '[RootFinding]'
 & .\build\tests\Debug\MML_Tests.exe '[interpolation],[chebyshev],[CurveFitting]'
-& .\build\tests\Debug\MML_Tests.exe '[DAE],[BDF2],[BDF4],[RODAS],[Radau]'
+& .\build\tests\Debug\MML_Tests.exe '[DAE],[BDF2],[BDF4],[linearly-implicit],[Radau]'
 ```
 
 ---

@@ -1,8 +1,13 @@
 # VectorN\<T, N\> - Fixed-Size Vector
 
-**File**: `mml/base/VectorN.h`
+**File**: `mml/base/Vector/VectorN.h`
 
 Fixed-size vector with compile-time dimensions for optimal performance. Template parameters: `T` = element type, `N` = dimension.
+
+This header is independent of geometry. Include `mml/base/Geometry/Geometry.h`
+explicitly when using geometry types, or the focused `GeometryBase/GeometryPoints.h`
+header when only points are needed. Coordinate-vector headers include their own
+point dependencies; `VectorN` does not supply them transitively.
 
 ## Runnable Examples
 

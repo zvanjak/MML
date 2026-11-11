@@ -14,9 +14,11 @@
 #include <mml/MMLBase.h>
 #include <mml/MMLExceptions.h>
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <string>
+#include <utility>
 
 namespace MML
 {
@@ -48,6 +50,108 @@ namespace MML
 
 		/// Default behavior when a singular operation is encountered.
 		static constexpr SingularityPolicy DEFAULT_POLICY = SingularityPolicy::Throw;
+
+		inline void RequireMatrixPolicy(SingularityPolicy policy) {
+			switch (policy) {
+			case SingularityPolicy::Throw:
+			case SingularityPolicy::ReturnNaN:
+			case SingularityPolicy::ReturnInf:
+			case SingularityPolicy::ReturnZero:
+			case SingularityPolicy::Clamp:
+				return;
+			default:
+				throw ArgumentError("Unknown matrix singularity policy");
+			}
+		}
+
+		template<int N, class TVector>
+		void RequireFiniteCoordinates(const TVector& pos, const char* context) {
+			for (int i = 0; i < N; ++i)
+				if (!std::isfinite(pos[i]))
+					throw DomainError(std::string(context) + ": nonfinite coordinates");
+		}
+
+		template<class TMatrix>
+		void RequireFiniteMatrix(const TMatrix& matrix, const char* context) {
+			for (int i = 0; i < matrix.rows(); ++i)
+				for (int j = 0; j < matrix.cols(); ++j)
+					if (!std::isfinite(matrix(i, j)))
+						throw DomainError(std::string(context) + ": nonfinite matrix");
+		}
+
+		/// Explicit sentinel for a singular fixed-size real matrix, never an inverse.
+		/// Clamp cannot select a unique inverse and must not silently regularize geometry.
+		template<class TMatrix>
+		TMatrix MatrixAtSingularity(SingularityPolicy policy, const char* context) {
+			Real value;
+			switch (policy) {
+			case SingularityPolicy::Throw:
+				throw SingularMatrixError(context);
+			case SingularityPolicy::Clamp:
+				throw DomainError(std::string(context) + ": Clamp cannot define a singular matrix inverse");
+			case SingularityPolicy::ReturnNaN:
+				value = std::numeric_limits<Real>::quiet_NaN();
+				break;
+			case SingularityPolicy::ReturnInf:
+				value = std::numeric_limits<Real>::infinity();
+				break;
+			case SingularityPolicy::ReturnZero:
+				value = 0;
+				break;
+			default:
+				throw ArgumentError("Unknown matrix singularity policy");
+			}
+			TMatrix result;
+			for (int i = 0; i < result.rows(); ++i)
+				for (int j = 0; j < result.cols(); ++j)
+					result(i, j) = value;
+			return result;
+		}
+
+
+
+		/// Log absolute determinant via scaled partial-pivot elimination.
+		/// Uses the LU determinant identity (Numerical Recipes, chapter 2).
+		/// Avoids determinant underflow/overflow; pivot cutoff matches MatrixNM's norm-scaled rule.
+		template<class TMatrix>
+		Real LogAbsDeterminant(const TMatrix& matrix) {
+			RequireFiniteMatrix(matrix, "Metric determinant");
+			const int n = matrix.rows();
+			if (n != matrix.cols() || n == 0)
+				throw ArgumentError("LogAbsDeterminant requires a nonempty square matrix");
+			Real scale = 0;
+			for (int i = 0; i < n; ++i)
+				for (int j = 0; j < n; ++j)
+					scale = std::max(scale, std::abs(matrix(i, j)));
+			if (scale == 0)
+				throw SingularMatrixError("Metric determinant: zero matrix");
+			auto work = matrix;
+			for (int i = 0; i < n; ++i)
+				for (int j = 0; j < n; ++j)
+					work(i, j) /= scale;
+			Real result = n * std::log(scale);
+			const Real cutoff = Precision::Eps * n;
+			for (int col = 0; col < n; ++col) {
+				int pivot = col;
+				for (int row = col + 1; row < n; ++row)
+					if (std::abs(work(row, col)) > std::abs(work(pivot, col)))
+						pivot = row;
+				if (!(std::abs(work(pivot, col)) > cutoff))
+					throw SingularMatrixError("Metric determinant: rank-deficient or numerically singular matrix");
+				if (pivot != col)
+					for (int j = col; j < n; ++j)
+						std::swap(work(col, j), work(pivot, j));
+				result += std::log(std::abs(work(col, col)));
+				for (int row = col + 1; row < n; ++row) {
+					const Real factor = work(row, col) / work(col, col);
+					for (int j = col + 1; j < n; ++j)
+						work(row, j) -= factor * work(col, j);
+				}
+			}
+			if (!std::isfinite(result))
+				throw NumericalMethodError("Metric log determinant is nonfinite");
+			return result;
+		}
 
 		inline bool IsNearZero(Real value, Real tol = DEFAULT_SINGULARITY_TOL) {
 			return std::abs(value) < tol;

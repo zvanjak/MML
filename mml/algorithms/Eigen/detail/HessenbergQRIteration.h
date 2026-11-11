@@ -207,7 +207,7 @@ namespace MML::detail {
 	/// @param maxIter Maximum iterations
 	/// @param tol Convergence tolerance for subdiagonal
 	/// @return Number of iterations performed
-	inline int MultipleQRSteps(Matrix<Real>& H, int maxIter = 30, Real tol = 1e-10) {
+	inline int MultipleQRSteps(Matrix<Real>& H, int maxIter = 30, Real tol = Precision::EigenSolverConvergenceTolerance) {
 		int n = H.rows();
 		if (n <= 1)
 			return 0;
@@ -272,8 +272,11 @@ namespace MML::detail {
 	/// @param iLo Starting index of active submatrix (usually 0)
 	/// @param iHi Ending index of active submatrix (usually n-1)
 	/// @param accumulateQ If true, accumulates Q for eigenvector computation
+	/// @param shiftTrace   Optional explicit σ₁+σ₂ (exceptional shifts); default: trace of bottom 2x2
+	/// @param shiftProduct Optional explicit σ₁σ₂ (exceptional shifts); default: det of bottom 2x2
 	/// @return DoubleShiftResult with updated H and Q
-	inline DoubleShiftResult FrancisDoubleShift(const Matrix<Real>& H, int iLo, int iHi, bool accumulateQ = true) {
+	inline DoubleShiftResult FrancisDoubleShift(const Matrix<Real>& H, int iLo, int iHi, bool accumulateQ = true,
+												const Real* shiftTrace = nullptr, const Real* shiftProduct = nullptr) {
 		int n = H.rows();
 		DoubleShiftResult result(n);
 		result.H = H;
@@ -305,8 +308,8 @@ namespace MML::detail {
 
 		// For implicit double shift: compute first column of
 		// M = H² - sH + pI where s = σ₁+σ₂ (trace) and p = σ₁σ₂ (det)
-		Real s = h11 + h22;				// trace of 2x2 = sum of shifts
-		Real p = h11 * h22 - h12 * h21; // det of 2x2 = product of shifts
+		Real s = shiftTrace ? *shiftTrace : h11 + h22;					 // sum of shifts
+		Real p = shiftProduct ? *shiftProduct : h11 * h22 - h12 * h21; // product of shifts
 
 		// First column of M = (H - σ₁I)(H - σ₂I):
 		// M[0,0] = H[0,0]² + H[0,1]*H[1,0] - s*H[0,0] + p
@@ -444,13 +447,13 @@ namespace MML::detail {
 
 	/// Apply multiple double-shift QR iterations for complex eigenvalue convergence.
 	/// Returns number of iterations used.
-	inline int MultipleDoubleShiftSteps(Matrix<Real>& H, int iLo, int iHi, int maxIter = 30, Real tol = 1e-10) {
+	inline int MultipleDoubleShiftSteps(Matrix<Real>& H, int iLo, int iHi, int maxIter = 30, Real tol = Precision::EigenSolverConvergenceTolerance) {
 		for (int iter = 0; iter < maxIter; iter++) {
 			// Check for deflation at bottom
 			Real off = std::abs(H(iHi, iHi - 1));
 			Real diag = std::abs(H(iHi - 1, iHi - 1)) + std::abs(H(iHi, iHi));
 
-			if (off < tol * std::max(diag, REAL(1.0)) || off < PrecisionValues<Real>::DivisionSafetyThreshold) {
+			if (off < tol * std::max(diag, static_cast<MML::Real>(1.0)) || off < PrecisionValues<Real>::DivisionSafetyThreshold) {
 				H(iHi, iHi - 1) = 0.0;
 				return iter + 1;
 			}
@@ -459,7 +462,7 @@ namespace MML::detail {
 			if (iHi >= iLo + 2) {
 				Real off2 = std::abs(H(iHi - 1, iHi - 2));
 				Real diag2 = std::abs(H(iHi - 2, iHi - 2)) + std::abs(H(iHi - 1, iHi - 1));
-				if (off2 < tol * std::max(diag2, REAL(1.0)) || off2 < PrecisionValues<Real>::DivisionSafetyThreshold) {
+				if (off2 < tol * std::max(diag2, static_cast<MML::Real>(1.0)) || off2 < PrecisionValues<Real>::DivisionSafetyThreshold) {
 					H(iHi - 1, iHi - 2) = 0.0;
 					return iter + 1;
 				}

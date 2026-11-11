@@ -44,7 +44,7 @@ public:
     explicit LinearProgram(int numVars, const std::string& name = "") 
         : _numVars(numVars)
         , _name(name) {
-        _c.Resize(numVars);
+        _c.resize(numVars);
         _variables.resize(numVars);
         for (int i = 0; i < numVars; ++i) {
             _variables[i] = LPVariable("x" + std::to_string(i + 1));
@@ -128,7 +128,7 @@ public:
         }
         if (_numVars == 0) {
             _numVars = coeffs.size();
-            _c.Resize(_numVars);
+            _c.resize(_numVars);
             _variables.resize(_numVars);
             for (int i = 0; i < _numVars; ++i) {
                 _variables[i] = LPVariable("x" + std::to_string(i + 1));
@@ -156,7 +156,7 @@ public:
         if (i < 0 || i >= _numVars) {
             throw LinearProgrammingError("Variable index out of range");
         }
-        if (lb != REAL(0.0) || ub != std::numeric_limits<Real>::infinity()) {
+        if (lb != static_cast<MML::Real>(0.0) || ub != std::numeric_limits<Real>::infinity()) {
             throw LinearProgrammingError("Finite/free variable bounds are not transformed by the core LP solver; add them as explicit constraints");
         }
         _variables[i].lowerBound = lb;
@@ -239,8 +239,8 @@ public:
         
         // Build standard form matrix
         A_std = Matrix<Real>(_numConstraints, totalVars);
-        b_std.Resize(_numConstraints);
-        c_std.Resize(totalVars);
+        b_std.resize(_numConstraints);
+        c_std.resize(totalVars);
         artificialIndices.clear();
         
         // Copy original objective (negate if maximizing)
@@ -356,7 +356,7 @@ public:
     //---------------------------------------------------------------------------------
     
     /// @brief Print problem in readable format
-    std::string ToString() const {
+    std::string to_string() const {
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(4);
         
@@ -368,10 +368,10 @@ public:
         oss << (_objective == LPObjective::Minimize ? "Minimize: " : "Maximize: ");
         bool first = true;
         for (int j = 0; j < _numVars; ++j) {
-            if (std::abs(_c[j]) > 1e-10) {
+            if (std::abs(_c[j]) > Precision::EqualityTolerance) {
                 if (!first && _c[j] > 0) oss << "+ ";
                 if (_c[j] < 0) oss << "- ";
-                if (std::abs(std::abs(_c[j]) - 1.0) > 1e-10) {
+                if (std::abs(std::abs(_c[j]) - 1.0) > Precision::EqualityTolerance) {
                     oss << std::abs(_c[j]) << "*";
                 }
                 oss << _variables[j].name << " ";
@@ -390,10 +390,10 @@ public:
             
             first = true;
             for (int j = 0; j < _numVars; ++j) {
-                if (std::abs(con.coefficients[j]) > 1e-10) {
+                if (std::abs(con.coefficients[j]) > Precision::EqualityTolerance) {
                     if (!first && con.coefficients[j] > 0) oss << "+ ";
                     if (con.coefficients[j] < 0) oss << "- ";
-                    if (std::abs(std::abs(con.coefficients[j]) - 1.0) > 1e-10) {
+                    if (std::abs(std::abs(con.coefficients[j]) - 1.0) > Precision::EqualityTolerance) {
                         oss << std::abs(con.coefficients[j]) << "*";
                     }
                     oss << _variables[j].name << " ";
@@ -431,6 +431,9 @@ public:
         
         return oss.str();
     }
+    /// @deprecated Use to_string() (CONTRACT_POLICY section 11: STL spelling).
+    [[deprecated("use to_string()")]]
+    std::string ToString() const { return to_string(); }
     
     /// @brief Validate problem consistency
     bool Validate(std::string& errorMsg) const {

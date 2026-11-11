@@ -62,7 +62,7 @@ namespace MML::MatrixAlg
 	{
 		if (A.rows() == 0)
 			throw MatrixDimensionError("ClassifyDefiniteness - matrix must be non-empty", 0, 0, -1, -1);
-		if (!std::isfinite(tol) || tol < REAL(0.0))
+		if (!std::isfinite(tol) || tol < static_cast<MML::Real>(0.0))
 			throw DomainError("ClassifyDefiniteness tolerance must be finite and nonnegative");
 
 		auto result = SymmMatEigenSolverJacobi::Solve(A, tol);
@@ -92,10 +92,10 @@ namespace MML::MatrixAlg
 			Matrix<Complex> hermitian(n, n);
 			for (int row = 0; row < n; ++row)
 			{
-				hermitian(row, row) = Complex{A(row, row).real(), REAL(0.0)};
+				hermitian(row, row) = Complex{A(row, row).real(), static_cast<MML::Real>(0.0)};
 				for (int col = row + 1; col < n; ++col)
 				{
-					const Complex value = REAL(0.5) * (A(row, col) + std::conj(A(col, row)));
+					const Complex value = static_cast<MML::Real>(0.5) * (A(row, col) + std::conj(A(col, row)));
 					hermitian(row, col) = value;
 					hermitian(col, row) = std::conj(value);
 				}
@@ -112,7 +112,7 @@ namespace MML::MatrixAlg
 			MatrixSym<Real> symmetric(n);
 			for (int row = 0; row < n; ++row)
 				for (int col = row; col < n; ++col)
-					symmetric(row, col) = REAL(0.5) * (A(row, col) + A(col, row));
+					symmetric(row, col) = static_cast<MML::Real>(0.5) * (A(row, col) + A(col, row));
 			return ClassifyDefiniteness(symmetric, tol);
 		}
 	}

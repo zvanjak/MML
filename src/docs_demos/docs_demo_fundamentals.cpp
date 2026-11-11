@@ -67,7 +67,7 @@ namespace
 		RootFinding::RootFindingConfig config;
 		config.tolerance      = 1e-14;
 		config.max_iterations = 200;
-		auto result = RootFinding::FindRootBrent(f1, 0.0, 2.0, config);
+		auto result = RootFinding::FindRootBrentDetailed(f1, 0.0, 2.0, config);
 
 		if (result.converged) {
 			out << "  [4] sqrt(2) = " << result.root
@@ -76,7 +76,7 @@ namespace
 			    << ", f(root): " << result.function_value
 			    << ", f-evals: " << result.function_evaluations << ")\n";
 		} else {
-			out << "  [4] FAILED: status = " << ToString(result.status)
+			out << "  [4] FAILED: status = " << to_string(result.status)
 			    << ", " << result.error_message << "\n";
 		}
 		out << "  [4] simple overload agrees: " << simpleRoot << "\n";
@@ -85,8 +85,8 @@ namespace
 	void Fundamentals_Section5_Contracts(std::ostream& out)
 	{
 		Vector<Real> v({ 1e-14, -1e-14, 0.0 });
-		bool exact = v.isZero();          // false - exact query
-		bool near  = v.isNearZero();      // true  - tolerance query (Defaults-scaled)
+		bool exact = v.IsZero();          // false - exact query
+		bool near  = v.IsNearZero();      // true  - tolerance query (Defaults-scaled)
 
 		out << "  [5] isZero: " << std::boolalpha << exact
 		    << ", isNearZero: " << near << "\n";

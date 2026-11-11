@@ -148,7 +148,7 @@ namespace MML::SparseMatrix
         /// @brief Add 1D Laplacian stencil [1, -2, 1] / h^2 for interior node
         void addLaplacian1D(int row, int i, T h_squared_inv) {
             if (i > 0) addEntry(row, i - 1, h_squared_inv);
-            addEntry(row, i, -2 * h_squared_inv);
+            addEntry(row, i, T(-2) * h_squared_inv);
             if (i < cols_ - 1) addEntry(row, i + 1, h_squared_inv);
         }
         
@@ -165,7 +165,7 @@ namespace MML::SparseMatrix
             }
             int idx = i + j * nx;
             // Center
-            addEntry(row, idx, -4 * h_squared_inv);
+            addEntry(row, idx, T(-4) * h_squared_inv);
             // Left
             if (i > 0) addEntry(row, idx - 1, h_squared_inv);
             // Right

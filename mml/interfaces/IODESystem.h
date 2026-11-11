@@ -97,7 +97,7 @@ namespace MML
 	};
 
 	/**
-	 * @brief ODE system with analytic Jacobian matrix.
+	 * @brief ODE system with a Jacobian matrix.
 	 * 
 	 * Extends IODESystem to provide the Jacobian matrix ∂f/∂x, which is
 	 * required by implicit integration methods (e.g., backward Euler,
@@ -107,22 +107,48 @@ namespace MML
 	 * @f[
 	 *   J_{ij} = \frac{\partial f_i}{\partial x_j}
 	 * @f]
-	 * 
+	 *
+	 * **The one Jacobian contract** (MinimalMathLibrary-wewi.6.1): implementers override
+	 * `jacobian(t, x, J)` - the Jacobian alone. The combined "derivatives + Jacobian" form that
+	 * stiff steppers want is `derivsAndJacobian(t, x, dxdt, J)`, virtual with a default that
+	 * calls `derivs()` and `jacobian()`; override it only when both come out of one evaluation.
+	 * `IDynamicalSystem` shares this interface (and supplies a finite-difference default), so
+	 * every dynamical system can be handed to the stiff solvers unchanged.
+	 *
 	 * @note Providing an analytic Jacobian improves both accuracy and
 	 *       performance compared to numerical differentiation.
 	 */
-	class IODESystemWithJacobian : public IODESystem
+	class IODESystemWithJacobian : public virtual IODESystem
 	{
 	public:
 		/**
-		 * @brief Compute derivatives and Jacobian matrix simultaneously.
-		 * 
+		 * @brief Compute the Jacobian matrix J_ij = ∂f_i/∂x_j at (t, x).
 		 * @param t Current time
 		 * @param x Current state vector
-		 * @param[out] dxdt Output derivative vector
-		 * @param[out] dydx Output Jacobian matrix (getDim() × getDim())
+		 * @param[out] J Output Jacobian matrix (getDim() × getDim()); implementations may Resize it
 		 */
-		virtual void jacobian(const Real t, const Vector<Real>& x, Vector<Real>& dxdt, Matrix<Real>& dydx) const = 0;
+		virtual void jacobian(Real t, const Vector<Real>& x, Matrix<Real>& J) const = 0;
+
+		/**
+		 * @brief Compute derivatives and Jacobian matrix together (what implicit steppers need).
+		 * Default: derivs(t, x, dxdt) followed by jacobian(t, x, J). Override when one evaluation
+		 * yields both (e.g. a wrapped Numerical-Recipes style `jacobn(t, x, dxdt, J)` callback).
+		 */
+		virtual void derivsAndJacobian(Real t, const Vector<Real>& x, Vector<Real>& dxdt, Matrix<Real>& J) const
+		{
+			derivs(t, x, dxdt);
+			jacobian(t, x, J);
+		}
+
+		/// @brief True if jacobian() is analytic (default); IDynamicalSystem's finite-difference default returns false.
+		virtual bool hasAnalyticalJacobian() const { return true; }
+
+		/// @deprecated Old four-argument spelling; forwards to derivsAndJacobian(). Not virtual - do not override.
+		[[deprecated("use derivsAndJacobian(t, x, dxdt, J) or jacobian(t, x, J)")]]
+		void jacobian(Real t, const Vector<Real>& x, Vector<Real>& dxdt, Matrix<Real>& J) const
+		{
+			derivsAndJacobian(t, x, dxdt, J);
+		}
 	};
 
 	/**
@@ -138,7 +164,7 @@ namespace MML
 	 * @f]
 	 * where c and k are parameters.
 	 */
-	class IODESystemParametrized : public IODESystem, public IParametrized
+	class IODESystemParametrized : public virtual IODESystem, public IParametrized
 	{
 	public:
 		virtual ~IODESystemParametrized() = default;

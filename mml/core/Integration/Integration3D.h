@@ -6,7 +6,7 @@
 ///               Variable limits: ∭_V f(x,y,z) dx dy dz                              ///
 ///               where V = [x1,x2] × [y1(x),y2(x)] × [z1(x,y),z2(x,y)]               ///
 ///                                                                                   ///
-///  Usage:       auto r = Integrate3D(f, GAUSS10, x1, x2, y1, y2, z1, z2);           ///
+///  Usage:       auto r = Integrate3DDetailed(f, GAUSS10, x1, x2, y1, y2, z1, z2);           ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
 ///  License:     MIT License (see LICENSE.md)                                         ///
@@ -18,7 +18,6 @@
 #include <mml/MMLBase.h>
 
 #include <mml/interfaces/IFunction.h>
-
 
 namespace MML
 {
@@ -63,23 +62,23 @@ namespace MML
 			switch (_integrMethod)
 			{
 				case SIMPSON:
-					return IntegrateSimpson(_fInnermost, 
+					return IntegrateSimpsonCore(_fInnermost, 
 											_zRangeLow(_fInnermost._currX, y), 
 											_zRangeUpp(_fInnermost._currX, y)).value;
 				case ROMBERG:
-					return IntegrateRomberg(_fInnermost, 
+					return IntegrateRombergCore(_fInnermost, 
 											_zRangeLow(_fInnermost._currX, y), 
 											_zRangeUpp(_fInnermost._currX, y)).value;
 				case GAUSS10:
-					return IntegrateGauss10(_fInnermost, 
+					return IntegrateGauss10Core(_fInnermost, 
 											_zRangeLow(_fInnermost._currX, y), 
 											_zRangeUpp(_fInnermost._currX, y)).value;
 				case GAUSS10KRONROD21:
-					return IntegrateGK21(_fInnermost, 
+					return IntegrateGK21Core(_fInnermost, 
 											_zRangeLow(_fInnermost._currX, y), 
 											_zRangeUpp(_fInnermost._currX, y)).value;
 				default:  // TRAP
-					return IntegrateTrap(_fInnermost, 
+					return IntegrateTrapCore(_fInnermost, 
 										 _zRangeLow(_fInnermost._currX, y), 
 										 _zRangeUpp(_fInnermost._currX, y)).value;
 			}
@@ -111,15 +110,15 @@ namespace MML
 			switch (_integrMethod)
 			{
 				case SIMPSON:
-					return IntegrateSimpson(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
+					return IntegrateSimpsonCore(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
 				case ROMBERG:
-					return IntegrateRomberg(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
+					return IntegrateRombergCore(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
 				case GAUSS10:
-					return IntegrateGauss10(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
+					return IntegrateGauss10Core(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
 				case GAUSS10KRONROD21:
-					return IntegrateGK21(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
+					return IntegrateGK21Core(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
 				default:  // TRAP
-					return IntegrateTrap(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
+					return IntegrateTrapCore(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
 			}
 		}
 	};
@@ -131,7 +130,7 @@ namespace MML
 	/// @param y1,y2 Functions: y ∈ [y1(x), y2(x)]
 	/// @param z1,z2 Functions: z ∈ [z1(x,y), z2(x,y)]
 	/// @return IntegrationResult with value, error_estimate, iterations, converged
-	static IntegrationResult Integrate3D(const IScalarFunction<3>& func, 
+	static IntegrationResult Integrate3DCore(const IScalarFunction<3>& func, 
 										 IntegrationMethod method,
 										 const Real x1, const Real x2, 
 										 Real y1(Real), Real y2(Real),
@@ -142,26 +141,43 @@ namespace MML
 		switch (method)
 		{
 			case SIMPSON:
-				return IntegrateSimpson(f1, x1, x2);
+				return IntegrateSimpsonCore(f1, x1, x2);
 			case ROMBERG:
-				return IntegrateRomberg(f1, x1, x2);
+				return IntegrateRombergCore(f1, x1, x2);
 			case GAUSS10:
-				return IntegrateGauss10(f1, x1, x2);
+				return IntegrateGauss10Core(f1, x1, x2);
 			case GAUSS10KRONROD21:
-				return IntegrateGK21(f1, x1, x2);
+				return IntegrateGK21Core(f1, x1, x2);
 			default:  // TRAP
-				return IntegrateTrap(f1, x1, x2);
+				return IntegrateTrapCore(f1, x1, x2);
 		}
 	}
 
-	/// @brief Triple integral with default GAUSS10 method
-	/// @note Convenience overload - uses GAUSS10 for speed
-	static IntegrationResult Integrate3D(const IScalarFunction<3>& func, 
+	static Real Integrate3D(const IScalarFunction<3>& func, 
+										 IntegrationMethod method,
 										 const Real x1, const Real x2, 
 										 Real y1(Real), Real y2(Real),
 										 Real z1(Real, Real), Real z2(Real, Real))
 	{
-		return Integrate3D(func, GAUSS10, x1, x2, y1, y2, z1, z2);
+		return Integrate3DCore(func, method, x1, x2, y1, y2, z1, z2).ValueOrThrow("Integrate3D");
+	}
+
+	/// @brief Triple integral with default GAUSS10 method
+	/// @note Convenience overload - uses GAUSS10 for speed
+	static IntegrationResult Integrate3DCore(const IScalarFunction<3>& func, 
+										 const Real x1, const Real x2, 
+										 Real y1(Real), Real y2(Real),
+										 Real z1(Real, Real), Real z2(Real, Real))
+	{
+		return Integrate3DCore(func, GAUSS10, x1, x2, y1, y2, z1, z2);
+	}
+
+	static Real Integrate3D(const IScalarFunction<3>& func, 
+										 const Real x1, const Real x2, 
+										 Real y1(Real), Real y2(Real),
+										 Real z1(Real, Real), Real z2(Real, Real))
+	{
+		return Integrate3DCore(func, x1, x2, y1, y2, z1, z2).ValueOrThrow("Integrate3D");
 	}
 
 	/******************************************************************************/
@@ -179,7 +195,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"Integrate3D", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = Integrate3D(func, method, x1, x2, y1, y2, z1, z2);
+				auto r = Integrate3DCore(func, method, x1, x2, y1, y2, z1, z2);
 				IntegrationDetail::PopulateFromSimple(result, r, "Integrate3D");
 			});
 	}

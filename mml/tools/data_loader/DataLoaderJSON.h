@@ -41,7 +41,8 @@ namespace MML {
 						if (!value.number_text.empty())
 							return value.number_text;
 						std::ostringstream text;
-						text << std::setprecision(std::numeric_limits<double>::max_digits10) << value.number_value;
+						TextIO::ApplyClassicFormat(text, std::numeric_limits<double>::max_digits10);
+						text << value.number_value;
 						return text.str();
 					}
 					case Persistence::JsonValueType::String:
@@ -172,21 +173,12 @@ namespace MML {
 		/// @param filename Path to JSON file
 		/// @return Loaded dataset
 		/// @throws DataError on file/parse errors
+		inline IOResult LoadJSONSafe(const std::string& filename, Dataset& output);
 		inline Dataset LoadJSON(const std::string& filename) {
-			std::ifstream file(filename);
-			if (!file.is_open())
-				throw DataError("LoadJSON: Cannot open file '" + filename + "'");
-
-			std::stringstream buffer;
-			buffer << file.rdbuf();
-			std::string content = buffer.str();
-
-			// Remove BOM if present
-			content = RemoveBOM(content);
-
-			Dataset dataset = Detail::ParseDatasetJson(content);
-			dataset.name = filename;
-
+			Dataset dataset;
+			const auto result = LoadJSONSafe(filename, dataset);
+			if (!result)
+				throw DataError(result.message);
 			return dataset;
 		}
 
@@ -196,20 +188,39 @@ namespace MML {
 		/// @details This function returns errors instead of throwing exceptions.
 		/// Use this for better error composition and when exceptions are not desired.
 		/// Use LoadJSON() when exception-based error handling is preferred.
-		inline LoadResult LoadJSONSafe(const std::string& filename) {
+		inline IOResult LoadJSONSafe(const std::string& filename, Dataset& output) {
+			std::ifstream file(filename, std::ios::binary);
+			if (!file.is_open())
+				return SerializeFailure(IOError::FILE_NOT_OPENED, "Cannot open JSON dataset").WithFile(filename);
+			std::stringstream buffer;
+			buffer << file.rdbuf();
+			if (file.bad() || buffer.bad())
+				return InputResult(file, SerializeFailure(IOError::READ_FAILED, "JSON dataset read failed"), filename);
+			const std::string content = buffer.str();
+			const std::string cleanContent = RemoveBOM(content);
+			auto parsed = Persistence::ParseJson(cleanContent);
+			if (!parsed.result) {
+				if (parsed.result.offset >= 0)
+					parsed.result.offset += static_cast<std::int64_t>(content.size() - cleanContent.size());
+				return parsed.result.WithFile(filename);
+			}
 			try {
-				Dataset dataset = LoadJSON(filename);
-				return LoadResult::Success(dataset);
+				Dataset dataset = Detail::DatasetFromJson(parsed.value);
+				dataset.name = filename;
+				output = std::move(dataset);
+				return IOResult::Success(filename);
+			} catch (const DataError& error) {
+				return SerializeFailure(IOError::SCHEMA_MISMATCH, error.what()).WithFile(filename);
 			}
-			catch (const DataError& e) {
-				return LoadResult::Failure(std::string("JSON load failed: ") + e.what());
-			}
-			catch (const std::exception& e) {
-				return LoadResult::Failure(std::string("Unexpected error: ") + e.what());
-			}
-			catch (...) {
-				return LoadResult::Failure("Unknown error occurred during JSON loading");
-			}
+		}
+
+		inline IOResult LoadJSON(const std::string& filename, Dataset& output) { return LoadJSONSafe(filename, output); }
+
+		[[deprecated("use the IOResult overload with Dataset&")]]
+		inline LegacyDatasetResult LoadJSONSafe(const std::string& filename) {
+			Dataset dataset;
+			auto result = LoadJSONSafe(filename, dataset);
+			return LegacyDatasetResult::From(std::move(result), std::move(dataset));
 		}
 
 		/// @brief Load dataset from JSON string content

@@ -13,6 +13,79 @@ The Parametric Curves & Surfaces Test Beds provide comprehensive test infrastruc
 
 ---
 
+## Shared Showcase Definitions (Not Core API)
+
+The visual/pedagogical catalog formerly bundled in `mml/core/Curves.h` and
+`Surfaces.h` now lives in the existing `test_data` definition headers:
+
+| Header | Namespace | Moved types |
+|--------|-----------|-------------|
+| `test_data/parametric_curves_defs.h` | `MML::TestBeds::ShowcaseCurves` | `LemniscateCurve`, `DeltoidCurve`, `AstroidCurve`, `EpitrochoidCurve`, `ButterflyCurve`, `TwistedCubicCurve`, `ToroidalSpiralCurve` |
+| `test_data/parametric_surfaces_defs.h` | `MML::TestBeds::ShowcaseSurfaces` | `MonkeySaddle`, `MobiusStrip`, `Helicoid`, `EnneperSurface`, `KleinBottle`, `DiniSurface` |
+
+These are shared development fixtures, not package-tier code or demo-local classes.
+Tests, visualization examples, and docs demos include the same definitions. They
+retain their geometry base classes, constructor parameters/defaults, parameter
+domains and numerical behavior. There are no old-namespace aliases or forwarding
+definitions in core or in its generated single headers.
+
+```cpp
+#include <test_data/parametric_curves_defs.h>
+#include <test_data/parametric_surfaces_defs.h>
+
+MML::TestBeds::ShowcaseCurves::ButterflyCurve butterfly(2);
+MML::TestBeds::ShowcaseSurfaces::EnneperSurface enneper(2);
+std::cout << butterfly(Real(0)) << '\n';
+std::cout << enneper(Real(1), Real(1)) << '\n';
+```
+
+Use the repository root as an include directory when opting into fixtures.
+The same explicit fixture includes work with modular MML or `MML_USE_SINGLE_HEADER`;
+fixtures are not installed as part of the core API.
+
+### Test-Bed Access
+
+The existing analytic test catalogs remain unchanged (13 curves, 18 surfaces).
+Additional typed showcase catalogs expose the moved classes without changing those
+counts or replacing existing function pointers:
+
+```cpp
+#include <test_beds/parametric_curves_test_bed.h>
+#include <test_beds/parametric_surfaces_test_bed.h>
+
+const auto& planar = MML::TestBeds::ParametricCurvesTestBed::getShowcaseCurves2D();
+const auto& spatial = MML::TestBeds::ParametricCurvesTestBed::getShowcaseCurves3D();
+const auto& surfaces = MML::TestBeds::ParametricSurfaceTestBed::getShowcaseSurfaces();
+```
+
+There are five planar curves, two spatial curves and six surfaces. Each entry has
+a name and a const reference to a static-lifetime curve/surface. Curve entries
+provide finite `start`/`end` sampling intervals, not replacements for their original
+domains (several curves intentionally have infinite bounds). Surface bounds come
+from the surface object. Construction is lazy, following the existing test beds'
+construct-on-first-use pattern.
+
+### Different Parameterizations Are Not Interchangeable
+
+The older scalar function fixtures remain distinct:
+
+- `TestBeds::MobiusStrip(u,v)` uses half-width `v/2`; the moved unscaled class
+  matches it at `(u,2*v)`, not `(u,v)`.
+- `TestBeds::Helicoid(angle,radius)` reverses the moved class's `(radius,angle)`.
+- The old Klein function and moved Klein class are different immersions.
+- The old Dini function uses twist `0.2` and a clamped logarithm; the moved default
+  class uses twist `0.15` and its original unclamped expression/domain.
+
+They are deliberately not substituted for one another during this relocation.
+The moved Enneper and twisted-cubic positions agree with their existing function
+fixtures; tests cross-check those correspondences.
+
+Runnable counterpart: [docs_demo_showcase_geometry.cpp](../../src/docs_demos/core/docs_demo_showcase_geometry.cpp).
+Build `MML_DocsApp` and run `--showcase-geometry` to sample every typed entry without
+opening a GUI.
+
+---
+
 ## Part 1: Parametric Curves Test Bed
 
 ### Core Files
@@ -506,4 +579,3 @@ For a parametric surface **r**(u,v):
 - [curves_tests.cpp](../../tests/core/curves_tests.cpp) - Curve unit tests
 - [surfaces_tests.cpp](../../tests/core/surfaces_tests.cpp) - Surface unit tests
 - [parametric_curve_analyzer_tests.cpp](../../tests/algorithms/parametric_curve_analyzer_tests.cpp) - Curve analysis tests
-

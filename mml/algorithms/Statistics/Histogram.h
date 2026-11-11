@@ -12,6 +12,8 @@
 #define MML_STATISTICS_HISTOGRAM_H
 
 #include <mml/algorithms/Statistics.h>
+#include <mml/MMLExceptions.h>
+#include <algorithm>
 
 #include <map>
 
@@ -42,7 +44,7 @@ namespace MML
 						throw StatisticsError("Histogram bin count exceeds the supported integer range");
 
 					double nearestInteger = std::round(value);
-					double tolerance = 32.0 * std::numeric_limits<double>::epsilon()
+					double tolerance = PrecisionValues<double>::RoundoffZeroThreshold
 						* std::max(1.0, std::abs(value));
 					if (std::abs(value - nearestInteger) <= tolerance)
 						value = nearestInteger;
@@ -74,7 +76,7 @@ namespace MML
 				{
 					Vector<Real> centers(numBins);
 					for (int i = 0; i < numBins; ++i)
-						centers[i] = binEdges[i] + (binEdges[i + 1] - binEdges[i]) / REAL(2.0);
+						centers[i] = binEdges[i] + (binEdges[i + 1] - binEdges[i]) / static_cast<MML::Real>(2.0);
 					return centers;
 				}
 
@@ -172,16 +174,16 @@ namespace MML
 			{
 				Detail::ValidateBinningData(data, "ScottBinWidth");
 				if (data.size() == 1)
-					return REAL(1.0);
+					return static_cast<MML::Real>(1.0);
 
 				Real stdDev = SampleStdDev(data);
 				if (!std::isfinite(stdDev))
 					throw StatisticsError("ScottBinWidth produced a non-finite standard deviation");
 				if (stdDev <= Constants::Eps)
-					return REAL(1.0);
+					return static_cast<MML::Real>(1.0);
 
 				Real sampleScale = static_cast<Real>(std::pow(static_cast<double>(data.size()), -1.0 / 3.0));
-				return REAL(3.49) * stdDev * sampleScale;
+				return static_cast<MML::Real>(3.49) * stdDev * sampleScale;
 			}
 
 			/// Freedman-Diaconis rule: 2 * IQR * n^(-1/3).
@@ -189,7 +191,7 @@ namespace MML
 			{
 				Detail::ValidateBinningData(data, "FreedmanDiaconisBinWidth");
 				if (data.size() == 1)
-					return REAL(1.0);
+					return static_cast<MML::Real>(1.0);
 
 				Real iqr = IQR(data);
 				if (!std::isfinite(iqr))
@@ -198,7 +200,7 @@ namespace MML
 					return ScottBinWidth(data);
 
 				Real sampleScale = static_cast<Real>(std::pow(static_cast<double>(data.size()), -1.0 / 3.0));
-				return REAL(2.0) * iqr * sampleScale;
+				return static_cast<MML::Real>(2.0) * iqr * sampleScale;
 			}
 
 			inline int GetBinCount(const Vector<Real>& data, BinningMethod method)
@@ -259,8 +261,8 @@ namespace MML
 					throw StatisticsError("ComputeHistogram: Data range overflow");
 
 				if (range < Constants::Eps) {
-					Real lowerEdge = minValue - REAL(0.5);
-					Real upperEdge = minValue + REAL(0.5);
+					Real lowerEdge = minValue - static_cast<MML::Real>(0.5);
+					Real upperEdge = minValue + static_cast<MML::Real>(0.5);
 					if (!(lowerEdge < minValue))
 						lowerEdge = std::nextafter(minValue, -std::numeric_limits<Real>::infinity());
 					if (!(upperEdge > minValue))
@@ -275,8 +277,8 @@ namespace MML
 					HistogramResult result;
 					result.binEdges = Vector<Real>({lowerEdge, upperEdge});
 					result.counts = Vector<int>({data.size()});
-					result.frequencies = Vector<Real>({REAL(1.0)});
-					result.density = Vector<Real>({REAL(1.0) / (upperEdge - lowerEdge)});
+					result.frequencies = Vector<Real>({static_cast<MML::Real>(1.0)});
+					result.density = Vector<Real>({static_cast<MML::Real>(1.0) / (upperEdge - lowerEdge)});
 					result.binWidth = upperEdge - lowerEdge;
 					result.numBins = 1;
 					result.totalCount = data.size();
@@ -596,7 +598,7 @@ namespace MML
 				Real logMax = std::log10(maxVal);
 				Real logWidth = (logMax - logMin) / numBins;
 				for (int i = 0; i <= numBins; ++i)
-					edges[i] = std::pow(REAL(10.0), logMin + i * logWidth);
+					edges[i] = std::pow(static_cast<MML::Real>(10.0), logMin + i * logWidth);
 				return edges;
 			}
 

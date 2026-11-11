@@ -68,7 +68,7 @@ void Readme_DynamicalSystems()
                   << std::setprecision(4) << fp.location[0] << ", " 
                   << fp.location[1] << ", " 
                   << fp.location[2] << ")" << std::endl;
-        std::cout << "    Type: " << ToString(fp.type) << std::endl;
+        std::cout << "    Type: " << to_string(fp.type) << std::endl;
         std::cout << "    Stable: " << (fp.isStable ? "yes" : "NO (unstable)") << std::endl;
         std::cout << "    Eigenvalues: ";
         for (const auto& ev : fp.eigenvalues)

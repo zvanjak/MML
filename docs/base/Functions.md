@@ -139,7 +139,7 @@ public:
 template<int N>
 class ITensorField2 : public IFunction<Tensor2<N>, const VectorN<Real, N>&> {
 public:
-    virtual Real Component(int i, int j, const VectorN<Real, N>& pos) const = 0;
+    virtual Real component(int i, int j, const VectorN<Real, N>& pos) const = 0;
     int getNumContravar() const;
     int getNumCovar() const;
 };
@@ -362,7 +362,7 @@ ParametricCurve<3> helix(0, 2*Constants::PI,
 );
 
 // Generate trace points
-auto trace = helix.GetTrace(0.0, 2*Constants::PI, 100);
+auto trace = helix.getTrace(0.0, 2*Constants::PI, 100);
 
 // trace is std::vector<VectorN<Real,3>> with 100 points
 ```

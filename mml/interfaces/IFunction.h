@@ -57,12 +57,12 @@ namespace MML
 	 * @brief Generic function interface template.
 	 * 
 	 * Base template for all function types in MML. Defines a callable
-	 * interface mapping from _ArgType to _RetType.
+	 * interface mapping from ArgType to RetType.
 	 * 
-	 * @tparam _RetType Return type of the function
-	 * @tparam _ArgType Argument type of the function
+	 * @tparam RetType Return type of the function
+	 * @tparam ArgType Argument type of the function
 	 */
-	template<typename _RetType, typename _ArgType>
+	template<typename RetType, typename ArgType>
 	class IFunction
 	{
 	public:
@@ -71,7 +71,7 @@ namespace MML
 		 * @param arg The input argument
 		 * @return The function value at the argument
 		 */
-		virtual _RetType operator()(_ArgType) const = 0;
+		virtual RetType operator()(ArgType) const = 0;
 
 		virtual ~IFunction() {}
 	};
@@ -108,19 +108,22 @@ namespace MML
 		 * @param[out] outX Vector of x coordinates
 		 * @param[out] outY Vector of corresponding y = f(x) values
 		 */
-		void GetValues(Real x1, Real x2, int numPnt, Vector<Real>& outX, Vector<Real>& outY) const
+		void getValues(Real x1, Real x2, int numPnt, Vector<Real>& outX, Vector<Real>& outY) const
 		{
 			if (numPnt < 2)
 				throw ArgumentError("GetValues: numPnt must be >= 2");
 
-			outX.Resize(numPnt);
-			outY.Resize(numPnt);
+			outX.resize(numPnt);
+			outY.resize(numPnt);
 
 			for (int i = 0; i < numPnt; i++) {
 				outX[i] = x1 + i * (x2 - x1) / (numPnt - 1);
 				outY[i] = (*this)(outX[i]);
 			}
 		}
+		/// @deprecated Use getValues() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel).
+		[[deprecated("use getValues()")]]
+		void GetValues(Real x1, Real x2, int numPnt, Vector<Real>& outX, Vector<Real>& outY) const { getValues(x1, x2, numPnt, outX, outY); }
 
 		virtual ~IRealFunction() {}
 	};
@@ -357,7 +360,7 @@ namespace MML
 		 * @param numPoints Number of sample points
 		 * @return Vector of points on the curve
 		 */
-		std::vector<VectorN<Real, N>> GetTrace(Real t1, Real t2, int numPoints) const
+		std::vector<VectorN<Real, N>> getTrace(Real t1, Real t2, int numPoints) const
 		{
 			std::vector<VectorN<Real, N>> ret;
 			if (numPoints <= 0)
@@ -380,6 +383,9 @@ namespace MML
 			}
 			return ret;
 		}
+		/// @deprecated Use getTrace() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel).
+		[[deprecated("use getTrace()")]]
+		std::vector<VectorN<Real, N>> GetTrace(Real t1, Real t2, int numPoints) const { return getTrace(t1, t2, numPoints); }
 
 		virtual ~IParametricCurve() {}
 	};

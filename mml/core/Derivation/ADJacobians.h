@@ -35,7 +35,7 @@ namespace MML::AD
     }
 
     template<typename F, typename T = Real>
-    Matrix<T> jacobianForwardAD(F&& func, const std::vector<T>& point)
+    Matrix<T> CalcJacobianForwardAD(F&& func, const std::vector<T>& point)
     {
         const size_t n = point.size();
 
@@ -62,13 +62,13 @@ namespace MML::AD
     }
 
     template<typename F, typename T = Real>
-    Matrix<T> jacobianForwardAD(F&& func, const Vector<T>& point)
+    Matrix<T> CalcJacobianForwardAD(F&& func, const Vector<T>& point)
     {
-        return jacobianForwardAD(std::forward<F>(func), Detail::ToStdVector(point));
+        return CalcJacobianForwardAD(std::forward<F>(func), Detail::ToStdVector(point));
     }
 
     template<typename F>
-    Matrix<Real> jacobianReverseAD(F&& func, const std::vector<Real>& point)
+    Matrix<Real> CalcJacobianReverseAD(F&& func, const std::vector<Real>& point)
     {
         const size_t n = point.size();
 
@@ -101,13 +101,13 @@ namespace MML::AD
     }
 
     template<typename F>
-    Matrix<Real> jacobianReverseAD(F&& func, const Vector<Real>& point)
+    Matrix<Real> CalcJacobianReverseAD(F&& func, const Vector<Real>& point)
     {
-        return jacobianReverseAD(std::forward<F>(func), Detail::ToStdVector(point));
+        return CalcJacobianReverseAD(std::forward<F>(func), Detail::ToStdVector(point));
     }
 
     template<typename F, typename T = Real>
-    Matrix<T> hessianForwardAD(F&& func, const std::vector<T>& point)
+    Matrix<T> CalcHessianForwardAD(F&& func, const std::vector<T>& point)
     {
         using Dual2 = Dual<Dual<T>>;
         const size_t n = point.size();
@@ -138,10 +138,29 @@ namespace MML::AD
     }
 
     template<typename F, typename T = Real>
-    Matrix<T> hessianForwardAD(F&& func, const Vector<T>& point)
+    Matrix<T> CalcHessianForwardAD(F&& func, const Vector<T>& point)
     {
-        return hessianForwardAD(std::forward<F>(func), Detail::ToStdVector(point));
+        return CalcHessianForwardAD(std::forward<F>(func), Detail::ToStdVector(point));
     }
+    // ---- Deprecated 2.0 spellings (CONTRACT_POLICY section 11: algorithms are Verb[Object][Method]) ----
+    template<typename F, typename T = Real>
+    [[deprecated("use CalcJacobianForwardAD()")]]
+    Matrix<T> jacobianForwardAD(F&& func, const std::vector<T>& point) { return CalcJacobianForwardAD(std::forward<F>(func), point); }
+    template<typename F, typename T = Real>
+    [[deprecated("use CalcJacobianForwardAD()")]]
+    Matrix<T> jacobianForwardAD(F&& func, const Vector<T>& point) { return CalcJacobianForwardAD(std::forward<F>(func), point); }
+    template<typename F>
+    [[deprecated("use CalcJacobianReverseAD()")]]
+    Matrix<Real> jacobianReverseAD(F&& func, const std::vector<Real>& point) { return CalcJacobianReverseAD(std::forward<F>(func), point); }
+    template<typename F>
+    [[deprecated("use CalcJacobianReverseAD()")]]
+    Matrix<Real> jacobianReverseAD(F&& func, const Vector<Real>& point) { return CalcJacobianReverseAD(std::forward<F>(func), point); }
+    template<typename F, typename T = Real>
+    [[deprecated("use CalcHessianForwardAD()")]]
+    Matrix<T> hessianForwardAD(F&& func, const std::vector<T>& point) { return CalcHessianForwardAD(std::forward<F>(func), point); }
+    template<typename F, typename T = Real>
+    [[deprecated("use CalcHessianForwardAD()")]]
+    Matrix<T> hessianForwardAD(F&& func, const Vector<T>& point) { return CalcHessianForwardAD(std::forward<F>(func), point); }
 }
 
 #endif // MML_DERIVATION_AD_JACOBIANS_H

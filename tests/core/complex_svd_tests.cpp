@@ -27,7 +27,7 @@ namespace MML::Tests::Core::ComplexSVDTests
 	{
 		Matrix<Complex> result(rows, cols);
 		for (int index = 0; index < singularValues.size(); ++index)
-			result(index, index) = Complex{singularValues[index], REAL(0.0)};
+			result(index, index) = Complex{singularValues[index], static_cast<MML::Real>(0.0)};
 		return result;
 	}
 
@@ -96,7 +96,7 @@ namespace MML::Tests::Core::ComplexSVDTests
 		REQUIRE(MatrixAlg::FrobeniusNorm(rankOne * spaces.nullSpace) < TOL(1e-8, 1e-4));
 		REQUIRE(MatrixAlg::FrobeniusNorm(Adjoint(rankOne) * spaces.leftNullSpace) < TOL(1e-8, 1e-4));
 
-		const Real invSqrt2 = REAL(1.0) / std::sqrt(REAL(2.0));
+		const Real invSqrt2 = static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(2.0));
 		const Matrix<Complex> repeated{2, 2, {
 			Complex{invSqrt2, 0.0}, Complex{0.0, invSqrt2},
 			Complex{0.0, invSqrt2}, Complex{invSqrt2, 0.0}
@@ -124,7 +124,7 @@ namespace MML::Tests::Core::ComplexSVDTests
 			Complex{-1.0, 0.5}, Complex{3.0, 1.0}
 		}};
 		const auto baseline = MatrixAlg::SVDDecompose(matrix);
-		const Real scale = std::sqrt(std::numeric_limits<Real>::max()) * REAL(0.01);
+		const Real scale = std::sqrt(std::numeric_limits<Real>::max()) * static_cast<MML::Real>(0.01);
 		const auto scaled = MatrixAlg::SVDDecompose(matrix * Complex{scale, 0.0});
 		for (int index = 0; index < baseline.singularValues.size(); ++index)
 			REQUIRE(std::abs(scaled.singularValues[index] / scale - baseline.singularValues[index]) < TOL(1e-8, 1e-4));

@@ -23,7 +23,7 @@ namespace MML::Tests::Core::DerivationVectorFunctionTests {
 /**
  * COMPREHENSIVE TEST SUITE: Vector Function Derivatives
  * 
- * Part of Epic 2 (MinimalMathLibrary-ao0) - Task REAL(2.3) (MinimalMathLibrary-nao)
+ * Part of Epic 2 (MinimalMathLibrary-ao0) - Task static_cast<MML::Real>(2.3) (MinimalMathLibrary-nao)
  * 
  * PURPOSE:
  * Verify ALL numerical derivative formulas for vector functions:
@@ -81,7 +81,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("VectorFunction - NDer1Partial (Forward Difference)", "[vector_function][nder1][partial]")
     {
         auto func = GetTestFunction()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         // Test all 9 Jacobian matrix elements
         MatrixNM<Real, 3, 3> J_analytical = GetAnalyticalJacobian(point);
@@ -94,7 +94,7 @@ namespace   // Anonymous namespace for test helpers
                 Real analytical = J_analytical(func_comp, deriv_var);
                 
                 INFO("Component " << func_comp << ", derivative w.r.t. x[" << deriv_var << "]");
-                REQUIRE_THAT(numerical, WithinAbs(analytical, REAL(1e-4)));  // Forward difference less accurate
+                REQUIRE_THAT(numerical, WithinAbs(analytical, static_cast<MML::Real>(1e-4)));  // Forward difference less accurate
             }
         }
     }
@@ -102,7 +102,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("VectorFunction - NDer2Partial (Central Difference)", "[vector_function][nder2][partial]")
     {
         auto func = GetTestFunction()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         MatrixNM<Real, 3, 3> J_analytical = GetAnalyticalJacobian(point);
         
@@ -122,7 +122,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("VectorFunction - NDer4Partial (4th Order)", "[vector_function][nder4][partial]")
     {
         auto func = GetTestFunction()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         MatrixNM<Real, 3, 3> J_analytical = GetAnalyticalJacobian(point);
         
@@ -142,7 +142,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("VectorFunction - NDer6Partial (6th Order)", "[vector_function][nder6][partial]")
     {
         auto func = GetTestFunction()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         MatrixNM<Real, 3, 3> J_analytical = GetAnalyticalJacobian(point);
         
@@ -162,7 +162,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("VectorFunction - NDer8Partial (8th Order)", "[vector_function][nder8][partial]")
     {
         auto func = GetTestFunction()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         MatrixNM<Real, 3, 3> J_analytical = GetAnalyticalJacobian(point);
         
@@ -187,7 +187,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("VectorFunction - NDer1PartialByAll (Row of Jacobian)", "[vector_function][nder1][partial_by_all]")
     {
         auto func = GetTestFunction()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         MatrixNM<Real, 3, 3> J_analytical = GetAnalyticalJacobian(point);
         
@@ -206,7 +206,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("VectorFunction - NDer2PartialByAll (Row of Jacobian)", "[vector_function][nder2][partial_by_all]")
     {
         auto func = GetTestFunction()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         MatrixNM<Real, 3, 3> J_analytical = GetAnalyticalJacobian(point);
         
@@ -216,16 +216,16 @@ namespace   // Anonymous namespace for test helpers
             VectorN<Real, 3> gradient_numerical = NDer2PartialByAll(func, func_comp, point);
             
             INFO("Testing gradient of component " << func_comp);
-            REQUIRE_THAT(gradient_numerical[0], WithinAbs(J_analytical(func_comp, REAL(0)), TOL(1e-6, 1e-3)));
-            REQUIRE_THAT(gradient_numerical[1], WithinAbs(J_analytical(func_comp, REAL(1)), TOL(1e-6, 1e-3)));
-            REQUIRE_THAT(gradient_numerical[2], WithinAbs(J_analytical(func_comp, REAL(2)), TOL(1e-6, 1e-3)));
+            REQUIRE_THAT(gradient_numerical[0], WithinAbs(J_analytical(func_comp, static_cast<MML::Real>(0)), TOL(1e-6, 1e-3)));
+            REQUIRE_THAT(gradient_numerical[1], WithinAbs(J_analytical(func_comp, static_cast<MML::Real>(1)), TOL(1e-6, 1e-3)));
+            REQUIRE_THAT(gradient_numerical[2], WithinAbs(J_analytical(func_comp, static_cast<MML::Real>(2)), TOL(1e-6, 1e-3)));
         }
     }
     
     TEST_CASE("VectorFunction - NDer4PartialByAll (Row of Jacobian)", "[vector_function][nder4][partial_by_all]")
     {
         auto func = GetTestFunction()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         MatrixNM<Real, 3, 3> J_analytical = GetAnalyticalJacobian(point);
         
@@ -234,9 +234,9 @@ namespace   // Anonymous namespace for test helpers
             VectorN<Real, 3> gradient_numerical = NDer4PartialByAll(func, func_comp, point);
             
             INFO("Testing gradient of component " << func_comp);
-            REQUIRE_THAT(gradient_numerical[0], WithinAbs(J_analytical(func_comp, REAL(0)), TOL(1e-8, 1e-4)));
-            REQUIRE_THAT(gradient_numerical[1], WithinAbs(J_analytical(func_comp, REAL(1)), TOL(1e-8, 1e-4)));
-            REQUIRE_THAT(gradient_numerical[2], WithinAbs(J_analytical(func_comp, REAL(2)), TOL(1e-8, 1e-4)));
+            REQUIRE_THAT(gradient_numerical[0], WithinAbs(J_analytical(func_comp, static_cast<MML::Real>(0)), TOL(1e-8, 1e-4)));
+            REQUIRE_THAT(gradient_numerical[1], WithinAbs(J_analytical(func_comp, static_cast<MML::Real>(1)), TOL(1e-8, 1e-4)));
+            REQUIRE_THAT(gradient_numerical[2], WithinAbs(J_analytical(func_comp, static_cast<MML::Real>(2)), TOL(1e-8, 1e-4)));
         }
     }
 
@@ -248,7 +248,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("VectorFunction - NDer1PartialAllByAll (Full Jacobian)", "[vector_function][nder1][jacobian]")
     {
         auto func = GetTestFunction()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         MatrixNM<Real, 3, 3> J_numerical = NDer1PartialAllByAll(func, point);
         MatrixNM<Real, 3, 3> J_analytical = GetAnalyticalJacobian(point);
@@ -267,7 +267,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("VectorFunction - NDer2PartialAllByAll (Full Jacobian)", "[vector_function][nder2][jacobian]")
     {
         auto func = GetTestFunction()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         MatrixNM<Real, 3, 3> J_numerical = NDer2PartialAllByAll(func, point);
         MatrixNM<Real, 3, 3> J_analytical = GetAnalyticalJacobian(point);
@@ -286,7 +286,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("VectorFunction - NDer4PartialAllByAll (Full Jacobian)", "[vector_function][nder4][jacobian]")
     {
         auto func = GetTestFunction()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         MatrixNM<Real, 3, 3> J_numerical = NDer4PartialAllByAll(func, point);
         MatrixNM<Real, 3, 3> J_analytical = GetAnalyticalJacobian(point);
@@ -304,7 +304,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("VectorFunction - NDer6PartialAllByAll (Full Jacobian)", "[vector_function][nder6][jacobian]")
     {
         auto func = GetTestFunction()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         MatrixNM<Real, 3, 3> J_numerical = NDer6PartialAllByAll(func, point);
         MatrixNM<Real, 3, 3> J_analytical = GetAnalyticalJacobian(point);
@@ -322,7 +322,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("VectorFunction - NDer8PartialAllByAll (Full Jacobian)", "[vector_function][nder8][jacobian]")
     {
         auto func = GetTestFunction()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         MatrixNM<Real, 3, 3> J_numerical = NDer8PartialAllByAll(func, point);
         MatrixNM<Real, 3, 3> J_analytical = GetAnalyticalJacobian(point);
@@ -344,7 +344,7 @@ namespace   // Anonymous namespace for test helpers
     TEST_CASE("VectorFunction - Accuracy Progression", "[vector_function][accuracy]")
     {
         auto func = GetTestFunction()._func;
-        VectorN<Real, 3> point{REAL(1.0), REAL(0.5), REAL(2.0)};
+        VectorN<Real, 3> point{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)};
         
         // Test one specific Jacobian element: ∂F₂/∂z (most complex derivative)
         int func_comp = 2;
@@ -375,8 +375,8 @@ namespace   // Anonymous namespace for test helpers
         // Allow a tiny tolerance for roundoff: higher-order methods should
         // generally be no worse than lower-order, but floating-point noise can
         // make the inequalities non-strict at the TOL(1e-14, 1e-5) scale.
-        REQUIRE(error4 <= error2 + REAL(5e-14));  // 4th order no worse than 2nd (tolerance for roundoff)
-        REQUIRE(error6 <= error4 + REAL(5e-14));  // 6th order no worse than 4th (tolerance for roundoff)
+        REQUIRE(error4 <= error2 + static_cast<MML::Real>(5e-14));  // 4th order no worse than 2nd (tolerance for roundoff)
+        REQUIRE(error6 <= error4 + static_cast<MML::Real>(5e-14));  // 6th order no worse than 4th (tolerance for roundoff)
         // Note: NDer8 may not always be better than NDer6 due to roundoff errors
         // with very small step sizes, so we just verify both are very accurate
         REQUIRE(error8 < TOL(1e-10, 1e-3));   // 8th order still very accurate
@@ -392,11 +392,11 @@ namespace   // Anonymous namespace for test helpers
         
         // Test at various points in the domain
         std::vector<VectorN<Real, 3>> test_points = {
-            {REAL(0.5), REAL(0.3), REAL(1.0)},
-            {REAL(1.0), REAL(0.5), REAL(2.0)},
-            {REAL(1.5), REAL(1.0), REAL(1.5)},
-            {REAL(0.1), REAL(0.1), REAL(0.5)},
-            {REAL(2.0), REAL(1.5), REAL(3.0)}
+            {static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.3), static_cast<MML::Real>(1.0)},
+            {static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0)},
+            {static_cast<MML::Real>(1.5), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.5)},
+            {static_cast<MML::Real>(0.1), static_cast<MML::Real>(0.1), static_cast<MML::Real>(0.5)},
+            {static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.5), static_cast<MML::Real>(3.0)}
         };
         
         for (const auto& point : test_points)

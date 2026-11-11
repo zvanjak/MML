@@ -120,8 +120,8 @@ namespace MML {
 
 	private:
 		void computeWeights() {
-			Real midpoint = REAL(0.5) * (MinX() + MaxX());
-			Real scale = REAL(0.5) * (MaxX() - MinX());
+			Real midpoint = static_cast<MML::Real>(0.5) * (MinX() + MaxX());
+			Real scale = static_cast<MML::Real>(0.5) * (MaxX() - MinX());
 			Real maxWeight = 0.0;
 			for (int i = 0; i < _numPoints; ++i) {
 				Real normalizedXi = (_x[i] - midpoint) / scale;
@@ -131,7 +131,7 @@ namespace MML {
 					Real normalizedXj = (_x[j] - midpoint) / scale;
 					denominator *= normalizedXi - normalizedXj;
 				}
-				_weights[i] = REAL(1.0) / denominator;
+				_weights[i] = static_cast<MML::Real>(1.0) / denominator;
 				maxWeight = std::max(maxWeight, std::abs(_weights[i]));
 			}
 			for (int i = 0; i < _numPoints; ++i) _weights[i] /= maxWeight;
@@ -160,10 +160,10 @@ namespace MML {
 		if (numPoints < 2 || min >= max)
 			throw RealFuncInterpInitError("ChebyshevInterpolationNodes: require numPoints >= 2 and min < max");
 		Vector<Real> nodes(numPoints);
-		Real midpoint = REAL(0.5) * (min + max);
-		Real halfWidth = REAL(0.5) * (max - min);
+		Real midpoint = static_cast<MML::Real>(0.5) * (min + max);
+		Real halfWidth = static_cast<MML::Real>(0.5) * (max - min);
 		for (int i = 0; i < numPoints; ++i) {
-			Real angle = Constants::PI * (REAL(2.0) * i + REAL(1.0)) / (REAL(2.0) * numPoints);
+			Real angle = Constants::PI * (static_cast<MML::Real>(2.0) * i + static_cast<MML::Real>(1.0)) / (static_cast<MML::Real>(2.0) * numPoints);
 			nodes[i] = midpoint - halfWidth * std::cos(angle);
 		}
 		return nodes;

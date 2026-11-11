@@ -6,6 +6,8 @@
  * Cross-platform: works on Windows, Linux, and macOS.
  */
 
+#include "VisualizationResult.h"
+
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
@@ -26,9 +28,9 @@ void Show_Vector_Field_3D_Examples()
     VectorFunction<3> constantFlow{[](const VectorN<Real, 3>& v) {
         return VectorN<Real, 3>{1.0, 0.0, 0.0};
     }};
-    Visualizer::VisualizeVectorField3DCartesian(constantFlow, "Constant Flow",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeVectorField3DCartesian(constantFlow, "Constant Flow",
                                                 -5.0, 5.0, 8, -5.0, 5.0, 8, -5.0, 5.0, 8,
-                                                "viz_vector3d_constant.mml");
+                                                "viz_vector3d_constant.mml"), "VisualizeVectorField3DCartesian");
 
     // Example 2: Radial field (3D source)
     std::cout << "2. Radial field (3D source): F = r/|r|\n";
@@ -37,9 +39,9 @@ void Show_Vector_Field_3D_Examples()
         if (r < 0.1) r = 0.1;
         return VectorN<Real, 3>{v[0]/r, v[1]/r, v[2]/r};
     }};
-    Visualizer::VisualizeVectorField3DCartesian(radialField, "3D Radial Source",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeVectorField3DCartesian(radialField, "3D Radial Source",
                                                 -5.0, 5.0, 8, -5.0, 5.0, 8, -5.0, 5.0, 8,
-                                                "viz_vector3d_radial.mml");
+                                                "viz_vector3d_radial.mml"), "VisualizeVectorField3DCartesian");
 
     // Example 3: Gravitational field of two masses
     std::cout << "3. Two-body gravity: masses at (3,0,0) and (-3,0,0)\n";
@@ -65,9 +67,9 @@ void Show_Vector_Field_3D_Examples()
         
         return F1 + F2;
     }};
-    Visualizer::VisualizeVectorField3DCartesian(gravityField, "Two-Body Gravity",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeVectorField3DCartesian(gravityField, "Two-Body Gravity",
                                                 -8.0, 8.0, 10, -5.0, 5.0, 7, -5.0, 5.0, 7,
-                                                "viz_vector3d_gravity.mml");
+                                                "viz_vector3d_gravity.mml"), "VisualizeVectorField3DCartesian");
 
     // Example 4: Magnetic field of a current loop (simplified)
     std::cout << "4. Magnetic field pattern (simplified dipole)\n";
@@ -89,9 +91,9 @@ void Show_Vector_Field_3D_Examples()
         
         return VectorN<Real, 3>{Bx, By, Bz};
     }};
-    Visualizer::VisualizeVectorField3DCartesian(magneticField, "Magnetic Dipole",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeVectorField3DCartesian(magneticField, "Magnetic Dipole",
                                                 -4.0, 4.0, 8, -4.0, 4.0, 8, -4.0, 4.0, 8,
-                                                "viz_vector3d_magnetic.mml");
+                                                "viz_vector3d_magnetic.mml"), "VisualizeVectorField3DCartesian");
 
     // Example 5: Swirling flow (helical)
     std::cout << "5. Helical flow: rotation + upward flow\n";
@@ -107,18 +109,18 @@ void Show_Vector_Field_3D_Examples()
         
         return VectorN<Real, 3>{Vx, Vy, Vz};
     }};
-    Visualizer::VisualizeVectorField3DCartesian(helicalFlow, "Helical Flow",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeVectorField3DCartesian(helicalFlow, "Helical Flow",
                                                 -5.0, 5.0, 8, -5.0, 5.0, 8, -5.0, 5.0, 8,
-                                                "viz_vector3d_helical.mml");
+                                                "viz_vector3d_helical.mml"), "VisualizeVectorField3DCartesian");
 
     // Example 6: Saddle flow in 3D
     std::cout << "6. 3D Saddle: F = (x, -y, 0)\n";
     VectorFunction<3> saddleFlow{[](const VectorN<Real, 3>& v) {
         return VectorN<Real, 3>{v[0], -v[1], 0.0};
     }};
-    Visualizer::VisualizeVectorField3DCartesian(saddleFlow, "3D Saddle Flow",
+    Examples::ReportVisualizationResult(Visualizer::VisualizeVectorField3DCartesian(saddleFlow, "3D Saddle Flow",
                                                 -5.0, 5.0, 8, -5.0, 5.0, 8, -3.0, 3.0, 5,
-                                                "viz_vector3d_saddle.mml");
+                                                "viz_vector3d_saddle.mml"), "VisualizeVectorField3DCartesian");
 
     std::cout << "\n3D vector field visualization examples complete!\n";
 }

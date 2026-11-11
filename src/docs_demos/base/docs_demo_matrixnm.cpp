@@ -1,3 +1,6 @@
+#ifndef MML_USE_SINGLE_HEADER
+#include <mml/algorithms/MatrixAlg/MatrixInversion.h>
+#endif
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
@@ -105,7 +108,7 @@ void Docs_Demo_Basic_MatrixNM_operations()
 	std::cout << "*******             MatrixNM Basic operation        *******" << std::endl;
 
 	MatrixNM<Real, 2, 2> m1({ 1.0, -1.0, 1.5, 3.0 }), m2;
-	m2.MakeUnitMatrix();
+	m2.SetIdentity();
 
 	std::cout << "m1 = " << m1 << std::endl;
 	std::cout << "m2 = " << m2 << std::endl;
@@ -214,7 +217,7 @@ void Docs_Demo_MatrixNM_Invert()
 	MatrixNM<Real, 2, 2> m1({ 1.0, -1.0, 1.5, 3.0 });
 
 	std::cout << "m1 = " << m1 << std::endl;
-	auto m2 = m1.GetInverse();
+	auto m2 = MatrixAlg::Inverse(m1);
 
 	std::cout << "m2 (inv) = " << m2 << std::endl;
 
@@ -244,7 +247,7 @@ void Docs_Demo_MatrixNM_transpose()
 	MatrixNM<Real, 2, 2> m1({ 1.0, -1.0, 1.5, 3.0 });
 	std::cout << "m1 = " << m1 << std::endl;
 
-	auto m2 = m1.transpose();
+	auto m2 = m1.Transposed();
 	std::cout << "m2 (transp) = " << m2 << std::endl;
 
 	m1.Transpose();

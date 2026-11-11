@@ -50,8 +50,8 @@ void Readme_DivergenceTheorem()
     auto z_lo = [](Real,Real) { return 0.0; };  auto z_hi = [](Real,Real) { return 1.0; };
 
     // Volume integral with different methods
-    Real volGauss = Integrate3D(divF, GAUSS10, 0.0, 1.0, y_lo, y_hi, z_lo, z_hi).value;
-    Real volTrap  = Integrate3D(divF, TRAP,    0.0, 1.0, y_lo, y_hi, z_lo, z_hi).value;
+    Real volGauss = Integrate3D(divF, GAUSS10, 0.0, 1.0, y_lo, y_hi, z_lo, z_hi);
+    Real volTrap  = Integrate3D(divF, TRAP,    0.0, 1.0, y_lo, y_hi, z_lo, z_hi);
 
     // Surface integral (flux) through all 6 faces of the cube
     Cube3D unitCube(1.0, Point3Cartesian(0.5, 0.5, 0.5));

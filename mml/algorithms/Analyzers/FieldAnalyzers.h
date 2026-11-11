@@ -13,6 +13,7 @@
 #define MML_FIELDS_ANALYZERS_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 
 #include <mml/interfaces/IFunction.h>
 
@@ -47,14 +48,14 @@ namespace MML {
 		Vec3Cart GradientAt(const Vec3Cart& pos) const { return ScalarFieldOperations::GradientCart(_field, pos); }
 
 		// Check if gradient is zero at a point (critical point)
-		bool IsCriticalPoint(const Vec3Cart& pos, Real tol = 1e-6) const {
+		bool IsCriticalPoint(const Vec3Cart& pos, Real tol = Precision::LooseTolerance) const {
 			Vec3Cart grad = GradientAt(pos);
 			return grad.NormL2() < tol;
 		}
 
 		// Find approximate critical points by sampling a region
 		std::vector<Vec3Cart> FindCriticalPoints(const Vec3Cart& minCorner, const Vec3Cart& maxCorner, int samplesPerDim = 10,
-												 Real tol = 1e-4) const {
+												 Real tol = Precision::CoarseTolerance) const {
 			std::vector<Vec3Cart> criticalPoints;
 
 			Real dx = (maxCorner.X() - minCorner.X()) / samplesPerDim;
@@ -78,7 +79,7 @@ namespace MML {
 		Real LaplacianAt(const Vec3Cart& pos) const { return ScalarFieldOperations::LaplacianCart(_field, pos); }
 
 		// Check if field satisfies Laplace equation (harmonic) in a region
-		bool IsHarmonic(const Vec3Cart& minCorner, const Vec3Cart& maxCorner, int samplesPerDim = 5, Real tol = 1e-4) const {
+		bool IsHarmonic(const Vec3Cart& minCorner, const Vec3Cart& maxCorner, int samplesPerDim = 5, Real tol = Precision::CoarseTolerance) const {
 			Real dx = (maxCorner.X() - minCorner.X()) / samplesPerDim;
 			Real dy = (maxCorner.Y() - minCorner.Y()) / samplesPerDim;
 			Real dz = (maxCorner.Z() - minCorner.Z()) / samplesPerDim;
@@ -121,14 +122,14 @@ namespace MML {
 		Vec3Cart CurlAt(const Vec3Cart& pos) const { return VectorFieldOperations::CurlCart(_field, pos); }
 
 		// Check if field is solenoidal (divergence-free) at a point
-		bool IsSolenoidalAt(const Vec3Cart& pos, Real tol = 1e-6) const { return std::abs(DivergenceAt(pos)) < tol; }
+		bool IsSolenoidalAt(const Vec3Cart& pos, Real tol = Precision::LooseTolerance) const { return std::abs(DivergenceAt(pos)) < tol; }
 
 		// Check if field is irrotational (curl-free) at a point
-		bool IsIrrotationalAt(const Vec3Cart& pos, Real tol = 1e-6) const { return CurlAt(pos).NormL2() < tol; }
+		bool IsIrrotationalAt(const Vec3Cart& pos, Real tol = Precision::LooseTolerance) const { return CurlAt(pos).NormL2() < tol; }
 
 		// Check if field is solenoidal throughout a region (sampling-based)
 		// Solenoidal fields have ∇·F = 0 (no sources or sinks)
-		bool IsSolenoidal(const Vec3Cart& minCorner, const Vec3Cart& maxCorner, int samplesPerDim = 5, Real tol = 1e-4) const {
+		bool IsSolenoidal(const Vec3Cart& minCorner, const Vec3Cart& maxCorner, int samplesPerDim = 5, Real tol = Precision::CoarseTolerance) const {
 			Real dx = (maxCorner.X() - minCorner.X()) / samplesPerDim;
 			Real dy = (maxCorner.Y() - minCorner.Y()) / samplesPerDim;
 			Real dz = (maxCorner.Z() - minCorner.Z()) / samplesPerDim;
@@ -148,7 +149,7 @@ namespace MML {
 
 		// Check if field is irrotational throughout a region (sampling-based)
 		// Irrotational fields have ∇×F = 0
-		bool IsIrrotational(const Vec3Cart& minCorner, const Vec3Cart& maxCorner, int samplesPerDim = 5, Real tol = 1e-4) const {
+		bool IsIrrotational(const Vec3Cart& minCorner, const Vec3Cart& maxCorner, int samplesPerDim = 5, Real tol = Precision::CoarseTolerance) const {
 			Real dx = (maxCorner.X() - minCorner.X()) / samplesPerDim;
 			Real dy = (maxCorner.Y() - minCorner.Y()) / samplesPerDim;
 			Real dz = (maxCorner.Z() - minCorner.Z()) / samplesPerDim;
@@ -168,7 +169,7 @@ namespace MML {
 
 		// Check if field is conservative (path-independent)
 		// For simply-connected regions, conservative ⟺ irrotational
-		bool IsConservative(const Vec3Cart& minCorner, const Vec3Cart& maxCorner, int samplesPerDim = 5, Real tol = 1e-4) const {
+		bool IsConservative(const Vec3Cart& minCorner, const Vec3Cart& maxCorner, int samplesPerDim = 5, Real tol = Precision::CoarseTolerance) const {
 			// In simply-connected domains, conservative = irrotational
 			return IsIrrotational(minCorner, maxCorner, samplesPerDim, tol);
 		}
@@ -212,14 +213,14 @@ namespace MML {
 		// Compute circulation around a closed circular path
 		Real CirculationAroundCircle(const Vec3Cart& center, const Vec3Cart& normal, Real radius, int numPoints = 100) const {
 			// Create orthonormal basis for the plane
-			Vec3Cart n = normal.GetAsUnitVector();
+			Vec3Cart n = normal.Normalized();
 			Vec3Cart u, v;
 
 			// Find a vector not parallel to n
 			if (std::abs(n.X()) < 0.9) {
-				u = VectorProduct(n, Vec3Cart(1, 0, 0)).GetAsUnitVector();
+				u = VectorProduct(n, Vec3Cart(1, 0, 0)).Normalized();
 			} else {
-				u = VectorProduct(n, Vec3Cart(0, 1, 0)).GetAsUnitVector();
+				u = VectorProduct(n, Vec3Cart(0, 1, 0)).Normalized();
 			}
 			v = VectorProduct(n, u);
 

@@ -67,7 +67,7 @@ void Readme_GausssDivergenceTheorem()
     auto z_lo = [](Real, Real) -> Real { return 0.0; };
     auto z_hi = [](Real, Real) -> Real { return 1.0; };
 
-    Real volIntegral = Integrate3D(divF, GAUSS10, 0.0, 1.0, y_lo, y_hi, z_lo, z_hi).value;
+    Real volIntegral = Integrate3D(divF, GAUSS10, 0.0, 1.0, y_lo, y_hi, z_lo, z_hi);
 
     // ANALYTICAL: ∫₀¹∫₀¹∫₀¹(2x + 2y + 2z)dxdydz = 3
     Real analyticalVol = 3.0;
@@ -149,7 +149,7 @@ void Readme_StokesTheorem()
         Real r = p[0];  // r coordinate
         return 2.0 * r;  // curlDotN × Jacobian for polar coordinates
     });
-    Real numSurfIntegral = Integrate2D(integrand, GAUSS10, 0.0, R, theta_lo, theta_hi).value;
+    Real numSurfIntegral = Integrate2D(integrand, GAUSS10, 0.0, R, theta_lo, theta_hi);
 
     std::cout << std::fixed << std::setprecision(10);
     std::cout << "┌─────────────────────────────────────────────────────────────────┐" << std::endl;
@@ -219,7 +219,7 @@ void Readme_GreensTheorem()
     auto theta_lo = [](Real) -> Real { return 0.0; };
     auto theta_hi = [](Real) -> Real { return 2.0 * Constants::PI; };
 
-    Real areaIntegral = Integrate2D(integrand, GAUSS10, 0.0, R, theta_lo, theta_hi).value;
+    Real areaIntegral = Integrate2D(integrand, GAUSS10, 0.0, R, theta_lo, theta_hi);
 
     std::cout << std::fixed << std::setprecision(10);
     std::cout << "┌─────────────────────────────────────────────────────────────────┐" << std::endl;

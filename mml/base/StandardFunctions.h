@@ -14,6 +14,8 @@
 
 #include <mml/MMLBase.h>
 
+#include <cmath>
+
 // Feature detection for C++17 special math functions
 // macOS libc++ doesn't support these yet, so we need fallbacks
 #if defined(__cpp_lib_math_special_functions) || \

@@ -9,6 +9,12 @@
 
 Numerical calculation of fundamental field operations in various coordinate systems. These operations are essential for physics simulations, fluid dynamics, electromagnetism, and differential geometry.
 
+Opt-in [automatic differentiation adapters](Automatic_differentiation.md) supply
+scalar first/second partials and vector component partials to these same operations.
+Ordinary Real-only fields keep their numerical path. The linked guide includes
+runnable gradient/Hessian/Jacobian/divergence/curl/Laplacian examples, exact routing
+boundaries, coordinate conventions, and error/result diagnostics.
+
 ## Overview
 
 **Scalar Field Operations:**
@@ -42,6 +48,143 @@ Numerical calculation of fundamental field operations in various coordinate syst
 |-----------|-----------|-----------|-------------|---------|
 | Divergence ∇·**F** | `DivCart` | `DivSpher` | `DivCyl` | `Divergence` (with metric) |
 | Curl ∇×**F** | `CurlCart` | `CurlSpher` | `CurlCyl` | — |
+
+---
+
+## Component contract: coordinate versus physical
+
+### Determinant divergence and degenerate metrics
+
+`DivergenceViaDet` consumes contravariant coordinate components and evaluates
+\(\nabla_i F^i=|\det g|^{-1/2}\partial_i(|\det g|^{1/2}F^i)\).
+It now throws `DomainError` for a rank-deficient or numerically singular metric,
+instead of returning a misleading zero. In the numerical path, both the center
+and every derivative stencil point must have a finite, nonsingular covariant
+metric. With vector and metric derivative providers and default derivative order,
+the determinant identity is evaluated from center derivatives instead; the
+center metric must still be nonsingular.
+
+`DivergenceViaDetDetailed` returns `EvaluationResult<Real>` and uses the existing
+`FieldOperationConfig`: derivative orders 0/default, 1, 2, 4, 6, 8, optional error
+estimation, actual field-evaluation count, timing, and exception policy.
+As with other field `Detailed` APIs, the default is `Propagate`. Set
+`ConvertToStatus` to report a degenerate metric as `AlgorithmStatus::InvalidInput`,
+with a diagnostic message and an unusable result. Nonfinite field/derivative
+results are `NumericalInstability`, not successful zero-valued answers.
+
+The computation differentiates volume ratios normalized to the center, using
+scaled-pivot log absolute determinants. It does not reject a regular metric just
+because its determinant is small, or overflow when a constant rescaling makes the
+determinant enormous. Lorentzian metrics use the absolute determinant as well.
+Underflow or overflow of a stencil volume ratio is an explicit numerical failure.
+
+```cpp
+MetricTensorSpherical metric;
+VectorFunction<3> radial([](const VectorN<Real, 3>& p) {
+    return VectorN<Real, 3>{p[0], 0, 0};
+});
+FieldOperationConfig config;
+config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+auto regular = VectorFieldOperations::DivergenceViaDetDetailed(
+    radial, VectorN<Real, 3>{2, 1, 0}, metric, config);
+auto singular = VectorFieldOperations::DivergenceViaDetDetailed(
+    radial, VectorN<Real, 3>{0, 1, 0}, metric, config);
+if (regular)
+    std::cout << "Regular divergence: " << regular.value << "\n";
+else
+    std::cout << "Regular evaluation failed: " << regular.error_message << "\n";
+if (!singular)
+    std::cout << "Degenerate metric: " << singular.error_message << "\n";
+```
+
+Runnable counterpart: `Docs_Demo_DeterminantDivergenceStatus` in
+`src/docs_demos/core/docs_demo_field_operations.cpp`; run
+`MML_DocsApp --field-operations`.
+
+### Coordinate versus physical components
+
+The generic and coordinate-specialized operators describe the same geometric vector,
+but use different bases. Their existing return values are unchanged.
+
+| Operator | Component convention |
+|----------|----------------------|
+| `Gradient(f, pos, metric)` | Returns contravariant **coordinate-basis** components, \(v^i=g^{ij}\partial_j f\) |
+| `GradientCart` | Returns Cartesian components; coordinate and physical components coincide |
+| `GradientSpher`, `GradientCyl` | Return **physical components in the local orthonormal basis**, not global Cartesian components |
+| `Divergence`, `DivergenceViaDet` | Consume contravariant coordinate-basis components |
+| `DivCart`, `CurlCart` | Consume Cartesian components; `CurlCart` returns Cartesian components |
+| `DivSpher`, `DivCyl` | Consume physical components in the corresponding local orthonormal basis |
+| `CurlSpher`, `CurlCyl` | Consume and return physical components in that local orthonormal basis |
+
+The derivative-order overloads and `Detailed` counterparts use the same conventions.
+The `Vec3Sph`/`Vec3Cyl` and `VectorN` containers do not themselves distinguish these bases.
+Do not pass a generic coordinate gradient directly to `DivSpher` or `DivCyl`, or a
+specialized physical gradient directly to the generic divergence operators.
+
+### Converting vector components
+
+`VectorFieldOperations::ToPhysical(components, pos, metric)` converts contravariant
+coordinate components to physical components.
+`VectorFieldOperations::ToContravariant(components, pos, metric)` performs the inverse.
+Both return a new `VectorN<Real, N>` and leave the inputs unchanged.
+
+For orthogonal Riemannian coordinates, the scale factors are \(h_i=\sqrt{g_{ii}}>0\):
+
+\[
+v^{\hat i}=h_i v^i,\qquad v^i=v^{\hat i}/h_i \quad\text{(no sum over \(i\)).}
+\]
+
+| Coordinates | Scale factors |
+|-------------|---------------|
+| Cartesian | \((1,1,1)\) |
+| Spherical, \(r>0,\ 0<\theta<\pi\) | \((1,r,r\sin\theta)\) |
+| Cylindrical, \(\rho>0\) | \((1,\rho,1)\) |
+
+This is **not index raising or lowering**: lowering an index multiplies by \(g_{ij}\),
+whereas conversion to physical components uses the scale factors. In an orthogonal
+basis, the squared norm satisfies
+\(\lVert v\rVert^2=\sum_i(v^{\hat i})^2=\sum_i g_{ii}(v^i)^2\).
+
+The converters require a **covariant Riemannian metric** (zero contravariant and two
+covariant indices). They obtain its matrix through `GetCovariantMetric(pos)`.
+Every matrix entry must be finite, each diagonal entry positive, and each normalized
+off-diagonal entry \(g_{ij}/(h_i h_j)\) must have magnitude below
+`Precision::OrthogonalityTolerance`. Roundoff-sized off-diagonal entries are ignored.
+Each scale factor must also be at least `Precision::DivisionSafetyThreshold`.
+Invalid metrics, nonfinite positions or vector components, and nonfinite conversion
+results throw `DomainError`; there is no silent zero or NaN fallback.
+
+These helpers do not choose an orthonormal frame for nonorthogonal coordinates or
+Lorentzian spacetime, and do not accept a stored inverse metric such as
+`MetricTensorSphericalContravar`. Use the covariant `MetricTensorSpherical` instead.
+
+```cpp
+ScalarFunction<3> f([](const VectorN<Real, 3>& q) {
+    return q[0] * q[0] + q[1] + q[2] * q[2];
+});
+const Vec3Sph point{2, Constants::PI / 3, Real(0.5)};
+MetricTensorSpherical metric;
+
+const auto coordinate = ScalarFieldOperations::Gradient(f, point, metric);
+const auto physical = VectorFieldOperations::ToPhysical(coordinate, point, metric);
+const auto specialized = ScalarFieldOperations::GradientSpher(f, point);
+const auto restored = VectorFieldOperations::ToContravariant(physical, point, metric);
+
+if (!physical.IsEqualTo(specialized, Precision::LooseTolerance)
+    || !restored.IsEqualTo(coordinate, Precision::LooseTolerance))
+    throw DomainError("Gradient component conversion failed");
+```
+
+Runnable counterpart: `Docs_Demo_GradientComponentConventions` in
+[`docs_demo_field_operations.cpp`](../../src/docs_demos/core/docs_demo_field_operations.cpp).
+Build `MML_DocsApp` and run it with `--field-operations`.
+
+The identity \(\operatorname{div}(\operatorname{grad}f)=\Delta f\) holds with either
+convention when the matching divergence is used. If converting a vector-field
+callback, perform the conversion **at every evaluation position**: scale factors
+vary across the field, and divergence differentiates them too. Regression tests
+verify both conversion directions and this identity in Cartesian, spherical, and
+cylindrical coordinates against an independent analytic Laplacian.
 
 ---
 
@@ -810,4 +953,3 @@ The following demo functions in [docs_demo_field_operations.cpp](../../src/docs_
 - Griffiths, *Introduction to Electrodynamics* (4th ed.), Cambridge, 2017
 - Arfken, Weber, Harris, *Mathematical Methods for Physicists* (7th ed.), Academic Press, 2012
 - Aris, *Vectors, Tensors and the Basic Equations of Fluid Mechanics*, Dover, 1989
-

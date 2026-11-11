@@ -90,8 +90,11 @@ namespace MML
 		/// @brief Adds a vertex to the polygon
 		void AddVertex(const Point2Cartesian& p) { _vertices.push_back(p); }
 		
-		/// @brief Removes all vertices
-		void Clear() { _vertices.clear(); }
+		/// @brief Removes all vertices (STL spelling)
+		void clear() { _vertices.clear(); }
+		/// @deprecated Use clear() (CONTRACT_POLICY §11: STL-shaped protocol).
+		[[deprecated("use clear()")]]
+		void Clear() { clear(); }
 
 		/// @brief Gets edge as a segment
 		/// @param i Edge index (0 to NumVertices-1)
@@ -160,7 +163,7 @@ namespace MML
 			}
 			
 			signedArea /= 2.0;
-			if (std::abs(signedArea) < Constants::GEOMETRY_EPSILON)
+			if (std::abs(signedArea) < Precision::GeometryEpsilon)
 				throw GeometryError("Polygon2D::Centroid - degenerate polygon (zero area)");
 			
 			cx /= (6.0 * signedArea);
@@ -183,9 +186,9 @@ namespace MML
 		
 		/// @brief Computes the axis-aligned bounding box
 		/// @throws GeometryError if polygon is empty
-		BoundingBox GetBoundingBox() const {
+		BoundingBox getBoundingBox() const {
 			if (NumVertices() == 0)
-				throw GeometryError("Polygon2D::GetBoundingBox - empty polygon");
+				throw GeometryError("Polygon2D::getBoundingBox - empty polygon");
 			
 			BoundingBox box;
 			box.minX = box.maxX = _vertices[0].X();
@@ -200,6 +203,9 @@ namespace MML
 			
 			return box;
 		}
+		/// @deprecated Use getBoundingBox() (CONTRACT_POLICY §11: accessors are getX()).
+		[[deprecated("use getBoundingBox()")]]
+		BoundingBox GetBoundingBox() const { return getBoundingBox(); }
 
 		/// @brief Tests if vertices are ordered counter-clockwise
 		bool IsCounterClockwise() const {
@@ -260,8 +266,8 @@ namespace MML
 				Vector2Cartesian v2(p1, p2);
 				Real cross = v1.X() * v2.Y() - v1.Y() * v2.X();
 				
-				if (cross > Constants::GEOMETRY_EPSILON) hasPositive = true;
-				if (cross < -Constants::GEOMETRY_EPSILON) hasNegative = true;
+				if (cross > Precision::GeometryEpsilon) hasPositive = true;
+				if (cross < -Precision::GeometryEpsilon) hasNegative = true;
 				
 				// If we have both signs, polygon is not convex
 				if (hasPositive && hasNegative)

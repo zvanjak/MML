@@ -28,7 +28,7 @@ TEST_CASE("JacobiEigen_2x2_Simple", "[EigenSolvers][Jacobi][Small]")
 {
 		TEST_PRECISION_INFO();
 	// Simple 2x2 symmetric matrix with known eigenvalues
-	MatrixSym<Real> A(2, {REAL(2.0), REAL(1.0), REAL(2.0)});
+	MatrixSym<Real> A(2, {static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)});
 	
 	// Known eigenvalues: λ₁ = 1, λ₂ = 3
 	// Known eigenvectors: v₁ = [-1/√2, 1/√2], v₂ = [1/√2, 1/√2]
@@ -39,8 +39,8 @@ TEST_CASE("JacobiEigen_2x2_Simple", "[EigenSolvers][Jacobi][Small]")
 	REQUIRE(result.eigenvalues.size() == 2);
 	
 	// Check eigenvalues (sorted ascending)
-	REQUIRE(std::abs(result.eigenvalues[0] - REAL(1.0)) < TOL(1e-10, 1e-5));
-	REQUIRE(std::abs(result.eigenvalues[1] - REAL(3.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[0] - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[1] - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
 	
 	// Verify A*v = λ*v for each eigenpair
 	for (int i = 0; i < 2; i++)
@@ -65,8 +65,8 @@ TEST_CASE("JacobiEigen_2x2_Simple", "[EigenSolvers][Jacobi][Small]")
 	Real norm1 = std::sqrt(v1[0] * v1[0] + v1[1] * v1[1]);
 	
 	REQUIRE(std::abs(dot01) < TOL(1e-10, 1e-5));        // Orthogonal
-	REQUIRE(std::abs(norm0 - REAL(1.0)) < TOL(1e-10, 1e-5));  // Unit norm
-	REQUIRE(std::abs(norm1 - REAL(1.0)) < TOL(1e-10, 1e-5));  // Unit norm
+	REQUIRE(std::abs(norm0 - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));  // Unit norm
+	REQUIRE(std::abs(norm1 - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));  // Unit norm
 }
 
 TEST_CASE("HermitianJacobi solves complex Hermitian matrices", "[EigenSolvers][HermitianJacobi]")
@@ -121,7 +121,7 @@ TEST_CASE("JacobiEigen_3x3_Identity", "[EigenSolvers][Jacobi][Small]")
 {
 		TEST_PRECISION_INFO();
 	// Identity matrix - all eigenvalues = 1
-	MatrixSym<Real> I(3, {REAL(1.0), REAL(0.0), REAL(1.0), REAL(0.0), REAL(0.0), REAL(1.0)});
+	MatrixSym<Real> I(3, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)});
 	
 	auto result = SymmMatEigenSolverJacobi::Solve(I);
 	
@@ -130,23 +130,23 @@ TEST_CASE("JacobiEigen_3x3_Identity", "[EigenSolvers][Jacobi][Small]")
 	
 	// All eigenvalues should be 1
 	for (int i = 0; i < 3; i++)
-		REQUIRE(std::abs(result.eigenvalues[i] - REAL(1.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(result.eigenvalues[i] - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("JacobiEigen_3x3_Diagonal", "[EigenSolvers][Jacobi][Small]")
 {
 		TEST_PRECISION_INFO();
 	// Diagonal matrix - eigenvalues are diagonal elements
-	MatrixSym<Real> D(3, {REAL(5.0), REAL(0.0), REAL(3.0), REAL(0.0), REAL(0.0), REAL(1.0)});
+	MatrixSym<Real> D(3, {static_cast<MML::Real>(5.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)});
 	
 	auto result = SymmMatEigenSolverJacobi::Solve(D);
 	
 	REQUIRE(result.converged);
 	
 	// Eigenvalues should be 1, 3, 5 (sorted)
-	REQUIRE(std::abs(result.eigenvalues[0] - REAL(1.0)) < TOL(1e-10, 1e-5));
-	REQUIRE(std::abs(result.eigenvalues[1] - REAL(3.0)) < TOL(1e-10, 1e-5));
-	REQUIRE(std::abs(result.eigenvalues[2] - REAL(5.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[0] - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[1] - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[2] - static_cast<MML::Real>(5.0)) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("JacobiEigen_SymmetricMatrix_3x3", "[EigenSolvers][Jacobi][TestData]")
@@ -206,7 +206,7 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_5x5", "[EigenSolvers][Jacobi][TestData]")
 	{
 		Vector<Real> vi = result.eigenvectors.VectorFromColumn(i);
 		Real norm = vi.NormL2();
-		REQUIRE(std::abs(norm - REAL(1.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(norm - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
 		
 		// Check orthogonality with all other vectors
 		for (int j = i + 1; j < 5; j++)
@@ -279,11 +279,11 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_5x5_Verified", "[EigenSolvers][Jacobi][Ve
 	
 	// Verify trace = sum of eigenvalues
 	const auto& mat = symm_mat_5x5();
-	Real trace = REAL(0.0);
+	Real trace = static_cast<MML::Real>(0.0);
 	for (int i = 0; i < 5; i++)
 		trace += mat(i, i);
 	
-	Real eigensum = REAL(0.0);
+	Real eigensum = static_cast<MML::Real>(0.0);
 	for (int i = 0; i < 5; i++)
 		eigensum += result.eigenvalues[i];
 	
@@ -309,11 +309,11 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_10x10_Verified", "[EigenSolvers][Jacobi][
 	
 	// Verify trace = sum of eigenvalues
 	const auto& mat = symm_mat_10x10();
-	Real trace = REAL(0.0);
+	Real trace = static_cast<MML::Real>(0.0);
 	for (int i = 0; i < 10; i++)
 		trace += mat(i, i);
 	
-	Real eigensum = REAL(0.0);
+	Real eigensum = static_cast<MML::Real>(0.0);
 	for (int i = 0; i < 10; i++)
 		eigensum += result.eigenvalues[i];
 	
@@ -350,14 +350,14 @@ TEST_CASE("JacobiEigen_EigenvectorOrthonormality", "[EigenSolvers][Jacobi][Prope
 	REQUIRE(result.converged);
 	
 	int n = 5;
-	Matrix<Real> VtV = result.eigenvectors.transpose() * result.eigenvectors;
+	Matrix<Real> VtV = result.eigenvectors.Transposed() * result.eigenvectors;
 	
 	// Check V^T * V = I
 	for (int i = 0; i < n; i++)
 	{
 		for (int j = 0; j < n; j++)
 		{
-			Real expected = (i == j) ? REAL(1.0) : REAL(0.0);
+			Real expected = (i == j) ? static_cast<MML::Real>(1.0) : static_cast<MML::Real>(0.0);
 			REQUIRE(std::abs(VtV[i][j] - expected) < TOL(1e-8, 1e-4));
 		}
 	}
@@ -382,7 +382,7 @@ TEST_CASE("JacobiEigen_ReconstructMatrix", "[EigenSolvers][Jacobi][Properties]")
 	
 	// Reconstruct A = V * Λ * V^T
 	Matrix<Real> VL = result.eigenvectors * Lambda;
-	Matrix<Real> A_reconstructed = VL * result.eigenvectors.transpose();
+	Matrix<Real> A_reconstructed = VL * result.eigenvectors.Transposed();
 	
 	// Convert original to full matrix
 	const auto& symm_mat = symm_mat_3x3();
@@ -440,19 +440,19 @@ TEST_CASE("JacobiEigen_TraceAndDeterminant", "[EigenSolvers][Jacobi][Properties]
 	REQUIRE(result.converged);
 	
 	// Compute trace
-	Real trace = REAL(0.0);
+	Real trace = static_cast<MML::Real>(0.0);
 	for (int i = 0; i < 5; i++)
 		trace += symm_mat_5x5()(i, i);
 	
 	// Sum of eigenvalues
-	Real eigensum = REAL(0.0);
+	Real eigensum = static_cast<MML::Real>(0.0);
 	for (int i = 0; i < 5; i++)
 		eigensum += result.eigenvalues[i];
 	
 	REQUIRE(std::abs(trace - eigensum) < TOL(1e-10, 1e-5));
 	
 	// Product of eigenvalues = determinant
-	Real eigenprod = REAL(1.0);
+	Real eigenprod = static_cast<MML::Real>(1.0);
 	for (int i = 0; i < 5; i++)
 		eigenprod *= result.eigenvalues[i];
 	
@@ -469,7 +469,7 @@ TEST_CASE("QREigen_2x2_Simple", "[EigenSolvers][QR][Small]")
 {
 		TEST_PRECISION_INFO();
 	// Simple 2x2 symmetric matrix with known eigenvalues
-	MatrixSym<Real> A(2, {REAL(2.0), REAL(1.0), REAL(2.0)});
+	MatrixSym<Real> A(2, {static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)});
 	
 	// Known eigenvalues: λ₁ = 1, λ₂ = 3
 	auto result = SymmMatEigenSolverQR::Solve(A);
@@ -478,8 +478,8 @@ TEST_CASE("QREigen_2x2_Simple", "[EigenSolvers][QR][Small]")
 	REQUIRE(result.eigenvalues.size() == 2);
 	
 	// Check eigenvalues (sorted ascending)
-	REQUIRE(std::abs(result.eigenvalues[0] - REAL(1.0)) < TOL(1e-10, 1e-5));
-	REQUIRE(std::abs(result.eigenvalues[1] - REAL(3.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[0] - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[1] - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
 	
 	// Verify A*v = λ*v for each eigenpair
 	for (int i = 0; i < 2; i++)
@@ -500,23 +500,23 @@ TEST_CASE("QREigen_3x3_Identity", "[EigenSolvers][QR][Small]")
 {
 		TEST_PRECISION_INFO();
 	// 3x3 identity matrix - eigenvalues should all be 1
-	MatrixSym<Real> I(3, {REAL(1.0), REAL(0.0), REAL(1.0), REAL(0.0), REAL(0.0), REAL(1.0)});
+	MatrixSym<Real> I(3, {static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)});
 	
 	auto result = SymmMatEigenSolverQR::Solve(I);
 	
 	REQUIRE(result.converged);
 	REQUIRE(result.eigenvalues.size() == 3);
 	
-	// All eigenvalues should be REAL(1.0)
+	// All eigenvalues should be static_cast<MML::Real>(1.0)
 	for (int i = 0; i < 3; i++)
-		REQUIRE(std::abs(result.eigenvalues[i] - REAL(1.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(result.eigenvalues[i] - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("QREigen_3x3_Diagonal", "[EigenSolvers][QR][Small]")
 {
 		TEST_PRECISION_INFO();
 	// 3x3 diagonal matrix
-	MatrixSym<Real> D(3, {REAL(5.0), REAL(0.0), REAL(3.0), REAL(0.0), REAL(0.0), REAL(1.0)});
+	MatrixSym<Real> D(3, {static_cast<MML::Real>(5.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)});
 	
 	// Known eigenvalues: 1, 3, 5
 	auto result = SymmMatEigenSolverQR::Solve(D);
@@ -524,9 +524,9 @@ TEST_CASE("QREigen_3x3_Diagonal", "[EigenSolvers][QR][Small]")
 	REQUIRE(result.converged);
 	
 	// Check eigenvalues (sorted ascending)
-	REQUIRE(std::abs(result.eigenvalues[0] - REAL(1.0)) < TOL(1e-10, 1e-5));
-	REQUIRE(std::abs(result.eigenvalues[1] - REAL(3.0)) < TOL(1e-10, 1e-5));
-	REQUIRE(std::abs(result.eigenvalues[2] - REAL(5.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[0] - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[1] - static_cast<MML::Real>(3.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[2] - static_cast<MML::Real>(5.0)) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("QREigen_SymmetricMatrix_3x3_Verified", "[EigenSolvers][QR][Verified]")
@@ -607,7 +607,7 @@ TEST_CASE("QREigen_SymmetricMatrix_5x5_Verified", "[EigenSolvers][QR][Verified]"
 		
 		// Check normalization
 		Real norm_sq = Utils::ScalarProduct(vi, vi);
-		REQUIRE(std::abs(norm_sq - REAL(1.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(norm_sq - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
 		
 		// Check orthogonality with other eigenvectors
 		for (int j = i + 1; j < 5; j++)
@@ -648,12 +648,12 @@ TEST_CASE("QREigen_SymmetricMatrix_10x10_Verified", "[EigenSolvers][QR][Verified
 	Matrix<Real> Lambda(10, 10);
 	for (int i = 0; i < 10; i++)
 		for (int j = 0; j < 10; j++)
-			Lambda(i, j) = REAL(0.0);
+			Lambda(i, j) = static_cast<MML::Real>(0.0);
 	for (int i = 0; i < 10; i++)
 		Lambda(i, i) = result.eigenvalues[i];
 	
 	Matrix<Real> Q = result.eigenvectors;
-	Matrix<Real> Qt = Q.transpose();
+	Matrix<Real> Qt = Q.Transposed();
 	Matrix<Real> A_reconstructed = Q * Lambda * Qt;
 	
 	// Check reconstruction accuracy
@@ -766,12 +766,12 @@ TEST_CASE("QREigen_Trace_Property", "[EigenSolvers][QR][Properties]")
 	REQUIRE(result.converged);
 	
 	// Compute trace
-	Real trace = REAL(0.0);
+	Real trace = static_cast<MML::Real>(0.0);
 	for (int i = 0; i < 5; i++)
 		trace += A(i, i);
 	
 	// Sum eigenvalues
-	Real eigensum = REAL(0.0);
+	Real eigensum = static_cast<MML::Real>(0.0);
 	for (int i = 0; i < 5; i++)
 		eigensum += result.eigenvalues[i];
 	

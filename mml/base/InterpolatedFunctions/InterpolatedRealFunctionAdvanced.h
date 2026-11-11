@@ -131,10 +131,10 @@ namespace MML {
 			for (int i = 0; i < n - 1; ++i)
 				slopes[i + 2] = (Y(i + 1) - Y(i)) / (X(i + 1) - X(i));
 
-			slopes[1] = REAL(2.0) * slopes[2] - slopes[3];
-			slopes[0] = REAL(2.0) * slopes[1] - slopes[2];
-			slopes[n + 1] = REAL(2.0) * slopes[n] - slopes[n - 1];
-			slopes[n + 2] = REAL(2.0) * slopes[n + 1] - slopes[n];
+			slopes[1] = static_cast<MML::Real>(2.0) * slopes[2] - slopes[3];
+			slopes[0] = static_cast<MML::Real>(2.0) * slopes[1] - slopes[2];
+			slopes[n + 1] = static_cast<MML::Real>(2.0) * slopes[n] - slopes[n - 1];
+			slopes[n + 2] = static_cast<MML::Real>(2.0) * slopes[n + 1] - slopes[n];
 
 			for (int i = 0; i < n; ++i) {
 				Real weightLeft = std::abs(slopes[i + 3] - slopes[i + 2]);
@@ -142,7 +142,7 @@ namespace MML {
 				Real weightSum = weightLeft + weightRight;
 				_derivatives[i] = weightSum > PrecisionValues<Real>::DivisionSafetyThreshold
 					? (weightLeft * slopes[i + 1] + weightRight * slopes[i + 2]) / weightSum
-					: REAL(0.5) * (slopes[i + 1] + slopes[i + 2]);
+					: static_cast<MML::Real>(0.5) * (slopes[i + 1] + slopes[i + 2]);
 			}
 		}
 	};

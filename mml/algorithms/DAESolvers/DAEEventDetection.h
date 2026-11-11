@@ -6,6 +6,7 @@
 #define MML_DAE_EVENT_DETECTION_H
 
 #include <mml/algorithms/DAESolvers/DAEBackwardEuler.h>
+#include <algorithm>
 #include <mml/interfaces/IODESystemDAEWithEvents.h>
 
 #include <vector>
@@ -45,7 +46,7 @@ namespace MML {
 	namespace Detail {
 		inline bool DAEEventCrossing(Real before, Real after, EventDirection wanted,
 			EventDirection& actual) {
-			if (!(before * after < REAL(0.0))) return false;
+			if (!(before * after < static_cast<MML::Real>(0.0)) && !(before != 0 && after == 0)) return false;
 			actual = before < after ? EventDirection::Increasing : EventDirection::Decreasing;
 			return wanted == EventDirection::Both || wanted == actual;
 		}
@@ -54,6 +55,8 @@ namespace MML {
 			const DAESolverResult& segment) {
 			target.newton_iterations += segment.newton_iterations;
 			target.jacobian_evaluations += segment.jacobian_evaluations;
+			target.lu_factorizations += segment.lu_factorizations;
+			target.linear_solves += segment.linear_solves;
 			target.last_step_newton_iterations = segment.last_step_newton_iterations;
 			target.max_step_newton_iterations = std::max(target.max_step_newton_iterations,
 				segment.max_step_newton_iterations);
@@ -72,7 +75,10 @@ namespace MML {
 		const int diffDim = system.getDiffDim();
 		const int algDim = system.getAlgDim();
 		const int numEvents = system.getNumEvents();
-		DAEEventResult result(t0, tEnd, diffDim, algDim, std::min(config.max_steps, 1024));
+		if (!std::isfinite(tEnd - t0) || !std::isfinite(config.step_size) || config.step_size <= 0)
+			throw ArgumentError("DAE event integration requires finite endpoints and a positive step magnitude");
+		const Real direction = tEnd >= t0 ? Real(1) : Real(-1);
+		DAEEventResult result(t0, tEnd, diffDim, algDim, 0);
 		Vector<Real> x = x0;
 		Vector<Real> y = y0;
 		Real t = t0;
@@ -86,10 +92,12 @@ namespace MML {
 		Vector<Real> eventBefore(numEvents);
 		system.eventFunctions(t, x, y, eventBefore);
 
-		while (t < tEnd && result.integration.accepted_steps + result.integration.rejected_steps < config.max_steps) {
-			const Real stepEnd = std::min(t + config.step_size, tEnd);
+		while (direction * (tEnd - t) > 0 && result.integration.accepted_steps + result.integration.rejected_steps < config.max_steps) {
+			if (!PrepareDAETrajectoryPoint(result.integration, savedPoint)) break;
+			const Real stepEnd = t + direction * std::min(config.step_size, std::abs(tEnd - t));
+			if (!ValidateDAETimeStep(t, stepEnd, result.integration, "DAE events")) break;
 			DAESolverConfig stepConfig = config;
-			stepConfig.step_size = stepEnd - t;
+			stepConfig.step_size = std::abs(stepEnd - t);
 			stepConfig.max_steps = 2;
 			DAESolverResult segment = SolveDAEBackwardEuler(system, t, x, y, stepEnd, stepConfig);
 			Detail::AccumulateDAESegmentDiagnostics(result.integration, segment);
@@ -122,7 +130,7 @@ namespace MML {
 				Vector<Real> rootX(diffDim), rootY(algDim);
 				Real rootValue = valueLo;
 				for (int iteration = 0; iteration < eventConfig.max_root_iterations; ++iteration) {
-					const Real mid = (lo + hi) * REAL(0.5);
+					const Real mid = (lo + hi) * static_cast<MML::Real>(0.5);
 					const Real fraction = (mid - t) / (stepEnd - t);
 					rootX = x + (xEnd - x) * fraction;
 					rootY = y + (yEnd - y) * fraction;
@@ -135,19 +143,19 @@ namespace MML {
 						return result;
 					}
 					rootValue = system.eventFunction(eventIndex, mid, rootX, rootY);
-					if (std::abs(rootValue) <= eventConfig.event_tolerance || hi - lo <= eventConfig.event_tolerance) {
+					if (std::abs(rootValue) <= eventConfig.event_tolerance || std::abs(hi - lo) <= eventConfig.event_tolerance) {
 						lo = hi = mid;
 						break;
 					}
-					if (valueLo * rootValue < REAL(0.0)) {
+					if (valueLo * rootValue < static_cast<MML::Real>(0.0)) {
 						hi = mid;
 					} else {
 						lo = mid;
 						valueLo = rootValue;
 					}
 				}
-				const Real rootTime = (lo + hi) * REAL(0.5);
-				if (rootTime < selectedTime) {
+				const Real rootTime = (lo + hi) * static_cast<MML::Real>(0.5);
+				if (selectedEvent < 0 || direction * (rootTime - selectedTime) < 0) {
 					selectedEvent = eventIndex;
 					selectedTime = rootTime;
 					selectedX = rootX;
@@ -205,12 +213,13 @@ namespace MML {
 				break;
 			}
 			system.eventFunctions(t, x, y, eventBefore);
-			eventBefore[selectedEvent] = REAL(0.0);
+			eventBefore[selectedEvent] = static_cast<MML::Real>(0.0);
 		}
 
-		result.integration.solution.setFinalSize(savedPoint - 1);
+		if (result.integration.status != AlgorithmStatus::ResourceLimitExceeded)
+			result.integration.solution.setFinalSize(savedPoint - 1);
 		result.integration.total_steps = result.integration.accepted_steps;
-		if (t < tEnd && !result.terminated_by_event && result.integration.status == AlgorithmStatus::Success) {
+		if (direction * (tEnd - t) > 0 && !result.terminated_by_event && result.integration.status == AlgorithmStatus::Success) {
 			result.integration.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.integration.failure_reason = DAEFailureReason::MaxStepsExceeded;
 			result.integration.error_message = "Maximum DAE event step count reached before t_end";

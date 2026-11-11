@@ -221,15 +221,15 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 			const auto& firstEvent = result.events[0];
 			
 			// For free fall from h=10: t = sqrt(2h/g) ≈ 1.428 s
-			Real expectedTime = std::sqrt(REAL(2.0) * REAL(10.0) / REAL(9.81));
-			REQUIRE_THAT(firstEvent.time, WithinRel(expectedTime, REAL(1e-4)));
+			Real expectedTime = std::sqrt(static_cast<MML::Real>(2.0) * static_cast<MML::Real>(10.0) / static_cast<MML::Real>(9.81));
+			REQUIRE_THAT(firstEvent.time, WithinRel(expectedTime, static_cast<MML::Real>(1e-4)));
 			
 			// Position should be at ground (≈ 0)
 			REQUIRE_THAT(firstEvent.state[0], WithinAbs(0.0, TOL(1e-10, 1e-3)));
 			
 			// Velocity should be ≈ sqrt(2gh) = 14.0 m/s downward
-			Real expectedVelocity = -std::sqrt(REAL(2.0) * REAL(9.81) * REAL(10.0));
-			REQUIRE_THAT(firstEvent.state[1], WithinRel(expectedVelocity, REAL(1e-4)));
+			Real expectedVelocity = -std::sqrt(static_cast<MML::Real>(2.0) * static_cast<MML::Real>(9.81) * static_cast<MML::Real>(10.0));
+			REQUIRE_THAT(firstEvent.state[1], WithinRel(expectedVelocity, static_cast<MML::Real>(1e-4)));
 			
 			// Direction should be decreasing
 			REQUIRE(firstEvent.direction == EventDirection::Decreasing);
@@ -248,7 +248,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 				
 				// Period ratio should be approximately restitution coefficient
 				Real ratio = period2 / period1;
-				REQUIRE_THAT(ratio, WithinRel(REAL(0.9), REAL(0.05)));
+				REQUIRE_THAT(ratio, WithinRel(static_cast<MML::Real>(0.9), static_cast<MML::Real>(0.05)));
 			}
 		}
 	}
@@ -272,10 +272,10 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 			// Then at 3T/4 = 0.75, 5T/4 = 1.25, 7T/4 = 1.75
 			Real T = 1.0;  // Period
 			
-			REQUIRE_THAT(result.events[0].time, WithinRel(T / REAL(4.0), REAL(1e-4)));
-			REQUIRE_THAT(result.events[1].time, WithinRel(REAL(3.0) * T / REAL(4.0), REAL(1e-4)));
-			REQUIRE_THAT(result.events[2].time, WithinRel(REAL(5.0) * T / REAL(4.0), REAL(1e-4)));
-			REQUIRE_THAT(result.events[3].time, WithinRel(REAL(7.0) * T / REAL(4.0), REAL(1e-4)));
+			REQUIRE_THAT(result.events[0].time, WithinRel(T / static_cast<MML::Real>(4.0), static_cast<MML::Real>(1e-4)));
+			REQUIRE_THAT(result.events[1].time, WithinRel(static_cast<MML::Real>(3.0) * T / static_cast<MML::Real>(4.0), static_cast<MML::Real>(1e-4)));
+			REQUIRE_THAT(result.events[2].time, WithinRel(static_cast<MML::Real>(5.0) * T / static_cast<MML::Real>(4.0), static_cast<MML::Real>(1e-4)));
+			REQUIRE_THAT(result.events[3].time, WithinRel(static_cast<MML::Real>(7.0) * T / static_cast<MML::Real>(4.0), static_cast<MML::Real>(1e-4)));
 		}
 		
 		SECTION("Alternating crossing directions") {
@@ -312,12 +312,12 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		
 		SECTION("Termination time is accurate") {
 			Real expectedTime = -std::log(threshold);  // ln(10) ≈ 2.303
-			REQUIRE_THAT(result.events[0].time, WithinRel(expectedTime, REAL(1e-4)));
-			REQUIRE_THAT(result.finalTime, WithinRel(expectedTime, REAL(1e-4)));
+			REQUIRE_THAT(result.events[0].time, WithinRel(expectedTime, static_cast<MML::Real>(1e-4)));
+			REQUIRE_THAT(result.finalTime, WithinRel(expectedTime, static_cast<MML::Real>(1e-4)));
 		}
 		
 		SECTION("State at termination") {
-			REQUIRE_THAT(result.finalState[0], WithinRel(threshold, REAL(1e-4)));
+			REQUIRE_THAT(result.finalState[0], WithinRel(threshold, static_cast<MML::Real>(1e-4)));
 		}
 	}
 
@@ -362,7 +362,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 			
 			// Flight time: t = 2 * v0 * sin(angle) / g
 			Real expectedFlightTime = 2.0 * v0 * std::sin(angle) / g;
-			REQUIRE_THAT(lastEvent.time, WithinRel(expectedFlightTime, REAL(1e-3)));
+			REQUIRE_THAT(lastEvent.time, WithinRel(expectedFlightTime, static_cast<MML::Real>(1e-3)));
 		}
 	}
 
@@ -396,8 +396,8 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		
 		// Times should be at 3T/4 and 7T/4 (when x goes from - to +)
 		Real T = 1.0;
-		REQUIRE_THAT(result.events[0].time, WithinRel(REAL(3.0) * T / REAL(4.0), REAL(1e-4)));
-		REQUIRE_THAT(result.events[1].time, WithinRel(REAL(7.0) * T / REAL(4.0), REAL(1e-4)));
+		REQUIRE_THAT(result.events[0].time, WithinRel(static_cast<MML::Real>(3.0) * T / static_cast<MML::Real>(4.0), static_cast<MML::Real>(1e-4)));
+		REQUIRE_THAT(result.events[1].time, WithinRel(static_cast<MML::Real>(7.0) * T / static_cast<MML::Real>(4.0), static_cast<MML::Real>(1e-4)));
 	}
 
 	TEST_CASE("Event Detection - No Events", "[ODEEventDetection]") {

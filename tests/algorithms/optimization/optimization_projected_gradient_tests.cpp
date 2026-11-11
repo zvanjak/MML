@@ -28,53 +28,53 @@ namespace MML::Tests::Algorithms::Optimization
 
 		void Gradient(const VectorN<Real, 2>& point, VectorN<Real, 2>& gradient) const override
 		{
-			gradient[0] = REAL(2.0) * (point[0] - _center[0]);
-			gradient[1] = REAL(2.0) * (point[1] - _center[1]);
+			gradient[0] = static_cast<MML::Real>(2.0) * (point[0] - _center[0]);
+			gradient[1] = static_cast<MML::Real>(2.0) * (point[1] - _center[1]);
 		}
 	};
 
 	TEST_CASE("ProjectedGradient - Finds interior constrained quadratic optimum", "[Optimization][ProjectedGradient][Bounds]")
 	{
-		OffsetQuadratic2D objective(REAL(0.25), -REAL(0.5));
-		BoundConstraints bounds(Vector<Real>{ -REAL(1.0), -REAL(1.0) }, Vector<Real>{ REAL(1.0), REAL(1.0) });
+		OffsetQuadratic2D objective(static_cast<MML::Real>(0.25), -static_cast<MML::Real>(0.5));
+		BoundConstraints bounds(Vector<Real>{ -static_cast<MML::Real>(1.0), -static_cast<MML::Real>(1.0) }, Vector<Real>{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0) });
 		ProjectedGradientConfig config;
-		config.gradient_tolerance = REAL(1e-9);
+		config.gradient_tolerance = static_cast<MML::Real>(1e-9);
 		config.max_iterations = 200;
 
-		auto result = ProjectedGradientMinimize(objective, VectorN<Real, 2>{ REAL(0.9), REAL(0.9) }, bounds, config);
+		auto result = ProjectedGradientMinimize(objective, VectorN<Real, 2>{ static_cast<MML::Real>(0.9), static_cast<MML::Real>(0.9) }, bounds, config);
 
 		REQUIRE(result.converged);
 		REQUIRE(result.status == AlgorithmStatus::Success);
-		REQUIRE(result.projected_gradient_norm < REAL(1e-8));
-		REQUIRE(result.xmin.IsEqualTo(VectorN<Real, 2>{ REAL(0.25), -REAL(0.5) }, REAL(1e-6)));
-		REQUIRE(result.fmin < REAL(1e-12));
+		REQUIRE(result.projected_gradient_norm < static_cast<MML::Real>(1e-8));
+		REQUIRE(result.xmin.IsEqualTo(VectorN<Real, 2>{ static_cast<MML::Real>(0.25), -static_cast<MML::Real>(0.5) }, static_cast<MML::Real>(1e-6)));
+		REQUIRE(result.fmin < static_cast<MML::Real>(1e-12));
 	}
 
 	TEST_CASE("ProjectedGradient - Projects optimum outside box to active face", "[Optimization][ProjectedGradient][Bounds]")
 	{
-		OffsetQuadratic2D objective(REAL(2.0), -REAL(3.0));
-		BoundConstraints bounds(Vector<Real>{ -REAL(1.0), -REAL(1.0) }, Vector<Real>{ REAL(1.0), REAL(1.0) });
+		OffsetQuadratic2D objective(static_cast<MML::Real>(2.0), -static_cast<MML::Real>(3.0));
+		BoundConstraints bounds(Vector<Real>{ -static_cast<MML::Real>(1.0), -static_cast<MML::Real>(1.0) }, Vector<Real>{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0) });
 		ProjectedGradientConfig config;
-		config.gradient_tolerance = REAL(1e-9);
+		config.gradient_tolerance = static_cast<MML::Real>(1e-9);
 		config.max_iterations = 200;
 
-		auto result = ProjectedGradientMinimize(objective, VectorN<Real, 2>{ REAL(0.0), REAL(0.0) }, bounds, config);
+		auto result = ProjectedGradientMinimize(objective, VectorN<Real, 2>{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) }, bounds, config);
 
 		REQUIRE(result.converged);
-		REQUIRE(result.xmin.IsEqualTo(VectorN<Real, 2>{ REAL(1.0), -REAL(1.0) }, REAL(1e-6)));
+		REQUIRE(result.xmin.IsEqualTo(VectorN<Real, 2>{ static_cast<MML::Real>(1.0), -static_cast<MML::Real>(1.0) }, static_cast<MML::Real>(1e-6)));
 		REQUIRE(bounds.IsUpperActive(result.xmin, 0));
 		REQUIRE(bounds.IsLowerActive(result.xmin, 1));
 	}
 
 	TEST_CASE("ProjectedGradient - Inactive bounds match unconstrained solution", "[Optimization][ProjectedGradient][Bounds]")
 	{
-		OffsetQuadratic2D objective(-REAL(2.0), REAL(3.0));
-		BoundConstraints bounds(Vector<Real>{ -REAL(10.0), -REAL(10.0) }, Vector<Real>{ REAL(10.0), REAL(10.0) });
+		OffsetQuadratic2D objective(-static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0));
+		BoundConstraints bounds(Vector<Real>{ -static_cast<MML::Real>(10.0), -static_cast<MML::Real>(10.0) }, Vector<Real>{ static_cast<MML::Real>(10.0), static_cast<MML::Real>(10.0) });
 
-		auto result = ProjectedGradientMinimize(objective, VectorN<Real, 2>{ REAL(5.0), -REAL(5.0) }, bounds);
+		auto result = ProjectedGradientMinimize(objective, VectorN<Real, 2>{ static_cast<MML::Real>(5.0), -static_cast<MML::Real>(5.0) }, bounds);
 
 		REQUIRE(result.converged);
-		REQUIRE(result.xmin.IsEqualTo(VectorN<Real, 2>{ -REAL(2.0), REAL(3.0) }, REAL(1e-6)));
+		REQUIRE(result.xmin.IsEqualTo(VectorN<Real, 2>{ -static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) }, static_cast<MML::Real>(1e-6)));
 		REQUIRE(bounds.IsFree(result.xmin, 0));
 		REQUIRE(bounds.IsFree(result.xmin, 1));
 	}
@@ -82,11 +82,11 @@ namespace MML::Tests::Algorithms::Optimization
 	TEST_CASE("ProjectedGradient - Rejects invalid configuration", "[Optimization][ProjectedGradient][Bounds]")
 	{
 		ProjectedGradientConfig config;
-		config.initial_step = REAL(0.0);
+		config.initial_step = static_cast<MML::Real>(0.0);
 		REQUIRE_THROWS_AS(ProjectedGradient(config), MultidimOptimizationInputError);
 
-		config.initial_step = REAL(1.0);
-		config.contraction = REAL(1.0);
+		config.initial_step = static_cast<MML::Real>(1.0);
+		config.contraction = static_cast<MML::Real>(1.0);
 		REQUIRE_THROWS_AS(ProjectedGradient(config), MultidimOptimizationInputError);
 	}
 }

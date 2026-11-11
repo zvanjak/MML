@@ -24,11 +24,11 @@ namespace MML::Optimization
 		template<int N>
 		Matrix<Real> BuildPowellDirectionMatrix(const VectorN<Real, N>& start, const BoundConstraints& bounds)
 		{
-			Matrix<Real> directions(N, N, REAL(0.0));
+			Matrix<Real> directions(N, N, static_cast<MML::Real>(0.0));
 			for (int component = 0; component < N; ++component) {
-				Real sign = REAL(1.0);
+				Real sign = static_cast<MML::Real>(1.0);
 				if (bounds.IsUpperActive(start, component) && !bounds.IsLowerActive(start, component))
-					sign = -REAL(1.0);
+					sign = -static_cast<MML::Real>(1.0);
 				directions(component, component) = sign;
 			}
 			return directions;
@@ -39,6 +39,7 @@ namespace MML::Optimization
 		{
 			const IScalarFunction<N>& _func;
 			const BoundConstraints& _bounds;
+			mutable int _evaluations = 0;
 
 		public:
 			PowellProjectedScalarFunction(const IScalarFunction<N>& func, const BoundConstraints& bounds)
@@ -46,8 +47,10 @@ namespace MML::Optimization
 
 			Real operator()(const VectorN<Real, N>& point) const override
 			{
+				++_evaluations;
 				return _func(_bounds.Project(point));
 			}
+			int functionEvaluations() const noexcept { return _evaluations; }
 		};
 	}
 
@@ -73,10 +76,8 @@ namespace MML::Optimization
 		const MultidimOptimizationConfig& config() const noexcept { return _config; }
 
 		template<int N>
-		MultidimMinimizationResult Minimize(const IScalarFunction<N>& func,
-			const VectorN<Real, N>& start,
-			const BoundConstraints& bounds) const
-		{
+		MultidimOptimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
+																				const BoundConstraints& bounds) const {
 			validateConfig();
 			bounds.Project(start); // dimension validation
 			ValidateVectorFinite<N>(start, "BoxConstrainedPowell starting point");
@@ -86,7 +87,7 @@ namespace MML::Optimization
 			Detail::PowellProjectedScalarFunction<N> projectedFunc(func, bounds);
 			Powell optimizer(_config.tolerance, _config.max_iterations);
 			Matrix<Real> directions = Detail::BuildPowellDirectionMatrix(projectedStart, bounds);
-			MultidimMinimizationResult result = optimizer.Minimize(projectedFunc, projectedStart, directions);
+			MultidimOptimizationResult result = optimizer.Minimize(projectedFunc, projectedStart, directions);
 
 			VectorN<Real, N> rawXmin;
 			for (int component = 0; component < N; ++component)
@@ -100,7 +101,7 @@ namespace MML::Optimization
 			ValidateMultidimFunctionValue(result.fmin, "BoxConstrainedPowell final evaluation");
 			result.algorithm_name = "BoxConstrainedPowell";
 			result.elapsed_time_ms = timer.elapsed_ms();
-			result.function_evaluations = result.iterations;
+			result.function_evaluations = projectedFunc.functionEvaluations() + 1;
 			if (!result.converged) {
 				result.status = AlgorithmStatus::MaxIterationsExceeded;
 				result.error_message = "Box-constrained Powell did not converge within " + std::to_string(_config.max_iterations) + " iterations";
@@ -110,11 +111,9 @@ namespace MML::Optimization
 	};
 
 	template<int N>
-	MultidimMinimizationResult BoxConstrainedPowellMinimize(const IScalarFunction<N>& func,
-		const VectorN<Real, N>& start,
-		const BoundConstraints& bounds,
-		const MultidimOptimizationConfig& config = MultidimOptimizationConfig())
-	{
+	MultidimOptimizationResult BoxConstrainedPowellMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
+																													const BoundConstraints& bounds,
+																													const MultidimOptimizationConfig& config = MultidimOptimizationConfig()) {
 		BoxConstrainedPowell optimizer(config);
 		return optimizer.Minimize(func, start, bounds);
 	}

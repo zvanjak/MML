@@ -50,7 +50,7 @@ namespace MML
 	///     Tensor4<4> riemann(3, 1);  // 3 covariant, 1 contravariant
 	///     
 	///     // Contract indices to get Ricci tensor R_bd = R^a_bad
-	///     Tensor2<4> ricci = riemann.Contract(0, 2);  // Contract indices 0 and 2
+	///     Tensor2<4> ricci = riemann.contract(0, 2);  // Contract indices 0 and 2
 	/// @endcode
 	template <int N>
 	class Tensor4 : public ITensor4<N>
@@ -102,16 +102,16 @@ namespace MML
 		///////////////////////////////////////////////////////////////////////
 
 		/// @brief Returns the number of contravariant (upper) indices.
-		int   NumContravar() const override { return _numContravar; }
+		int   numContravar() const override { return _numContravar; }
 
 		/// @brief Returns the number of covariant (lower) indices.
-		int   NumCovar()     const override { return _numCovar; }
+		int   numCovar()     const override { return _numCovar; }
 
 		/// @brief Checks if index i is contravariant (upper index).
-		bool IsContravar(int i) const override { return _isContravar[i]; }
+		bool isContravar(int i) const override { return _isContravar[i]; }
 
 		/// @brief Checks if index i is covariant (lower index).
-		bool IsCovar(int i) const { return !_isContravar[i]; }
+		bool isCovar(int i) const { return !_isContravar[i]; }
 
 		/// @brief Sets the variance of index i, keeping covariant/contravariant counts in sync.
 		void setContravar(int i, bool val)
@@ -199,7 +199,7 @@ namespace MML
 		/// @throws TensorIndexError if indices are out of range or equal
 		/// @note Index variance is explicitly propagated from the original tensor,
 		///       not reconstructed from covariant/contravariant counts.
-		Tensor2<N> Contract(int ind1, int ind2) const override
+		Tensor2<N> contract(int ind1, int ind2) const override
 		{
 			if (ind1 < 0 || ind1 > 3 || ind2 < 0 || ind2 > 3)
 				throw TensorIndexError("Tensor4 Contract, index out of range [0,3]");
@@ -326,10 +326,10 @@ namespace MML
 		detail::ValidateTensorPermutation<4>(permutation);
 
 		bool resultContravar[4] = {
-			tensor.IsContravar(permutation[0]),
-			tensor.IsContravar(permutation[1]),
-			tensor.IsContravar(permutation[2]),
-			tensor.IsContravar(permutation[3])
+			tensor.isContravar(permutation[0]),
+			tensor.isContravar(permutation[1]),
+			tensor.isContravar(permutation[2]),
+			tensor.isContravar(permutation[3])
 		};
 		int numContravar = 0;
 		for (int i = 0; i < 4; i++)
@@ -381,10 +381,10 @@ namespace MML
 	Tensor4<N> OuterProduct(const Tensor2<N>& left, const Tensor2<N>& right)
 	{
 		bool resultContravar[4] = {
-			left.IsContravar(0),
-			left.IsContravar(1),
-			right.IsContravar(0),
-			right.IsContravar(1)
+			left.isContravar(0),
+			left.isContravar(1),
+			right.isContravar(0),
+			right.isContravar(1)
 		};
 		int numContravar = 0;
 		for (int i = 0; i < 4; i++)

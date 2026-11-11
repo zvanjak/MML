@@ -237,18 +237,18 @@ public:
 // Gauss-Legendre (weight = 1)
 auto f = [](Real x) { return x*x*x + 2*x; };
 MyFunc func(f);
-auto result = GaussianQuadrature::IntegrateGaussLegendre(func, -1.0, 1.0, 10);
+auto result = GaussianQuadrature::IntegrateGaussLegendreDetailed(func, -1.0, 1.0, 10);
 Real I_leg = result.value;
 
 // Gauss-Hermite (weight = e^(-x²))
 auto g = [](Real x) { return x*x; };  // Weight e^(-x²) is built-in!
 MyFunc gfunc(g);
-Real I_herm = GaussianQuadrature::IntegrateGaussHermite(gfunc, 10).value;
+Real I_herm = GaussianQuadrature::IntegrateGaussHermite(gfunc, 10);
 
 // Gauss-Laguerre (weight = e^(-x))
 auto h = [](Real x) { return x*x; };  // Weight e^(-x) is built-in!
 MyFunc hfunc(h);
-Real I_lag = GaussianQuadrature::IntegrateGaussLaguerre(hfunc, 10, 0.0).value;
+Real I_lag = GaussianQuadrature::IntegrateGaussLaguerre(hfunc, 10, 0.0);
 
 // Gauss-Chebyshev (weight = 1/√(1-x²))
 std::vector<Real> x(10), w(10);
@@ -308,7 +308,7 @@ auto inner_product = [&](int m, int n) {
         Real operator()(Real x) const override { return _f(x); }
     };
     IWrapper iw(integrand);
-    return IntegrateTrap(iw, -1.0, 1.0, 1e-10).value;
+    return IntegrateTrap(iw, -1.0, 1.0, 1e-10);
 };
 
 // Should be ~0 for m ≠ n

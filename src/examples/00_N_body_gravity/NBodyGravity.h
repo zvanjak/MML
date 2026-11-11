@@ -361,12 +361,12 @@ namespace NBody
                 
                 // Velocity perpendicular to radius (tangential)
                 // Pick a random tangent direction in the plane perpendicular to pos
-                Vec3Cart radial = pos.GetAsUnitVector();
+                Vec3Cart radial = pos.Normalized();
                 
                 // Create orthogonal basis
                 Vec3Cart arbitrary = (std::abs(radial.X()) < 0.9) ? Vec3Cart{1,0,0} : Vec3Cart{0,1,0};
-                Vec3Cart tangent1 = VectorProduct(radial, arbitrary).GetAsUnitVector();
-                Vec3Cart tangent2 = VectorProduct(radial, tangent1).GetAsUnitVector();
+                Vec3Cart tangent1 = VectorProduct(radial, arbitrary).Normalized();
+                Vec3Cart tangent2 = VectorProduct(radial, tangent1).Normalized();
                 
                 // Random angle in tangent plane
                 Real angle = Random::UniformReal(0.0, 2 * Constants::PI);
@@ -417,10 +417,10 @@ namespace NBody
                     Real v_mag = v_circ * Random::UniformReal(0.7, 0.95);  // Bound orbits
                     
                     // Velocity perpendicular to radial (tangential orbit)
-                    Vec3Cart radial = localPos.GetAsUnitVector();
+                    Vec3Cart radial = localPos.Normalized();
                     Vec3Cart arbitrary = (std::abs(radial.X()) < 0.9) ? Vec3Cart{1,0,0} : Vec3Cart{0,1,0};
-                    Vec3Cart tangent1 = VectorProduct(radial, arbitrary).GetAsUnitVector();
-                    Vec3Cart tangent2 = VectorProduct(radial, tangent1).GetAsUnitVector();
+                    Vec3Cart tangent1 = VectorProduct(radial, arbitrary).Normalized();
+                    Vec3Cart tangent2 = VectorProduct(radial, tangent1).Normalized();
                     
                     Real angle = Random::UniformReal(0.0, 2 * Constants::PI);
                     Vec3Cart localVel = (tangent1 * cos(angle) + tangent2 * sin(angle)) * v_mag;
@@ -712,8 +712,8 @@ namespace NBody
         {
             NBodyGravitySimulationResults results(_config, dT * numSteps);
             
-            results._vecTimes.Resize(numSteps);
-            results._vecStates.Resize(numSteps);
+            results._vecTimes.resize(numSteps);
+            results._vecStates.resize(numSteps);
             
             // Get initial state from configuration
             NBodyState sysState = _config.InitState();
@@ -838,7 +838,7 @@ namespace NBody
             
             int numBodies = _config.NumBodies();
             int numSteps = sol.getTValues().size();
-            results._vecStates.Resize(numSteps);
+            results._vecStates.resize(numSteps);
             
             for (int i = 0; i < numSteps; i++) {
                 NBodyState state;

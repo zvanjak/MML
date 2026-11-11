@@ -35,7 +35,7 @@ void Demo_MatrixSym_Construction()
 
     // Empty matrix
     MatrixSym<double> empty;
-    std::cout << "Empty matrix: dim = " << empty.Dim() << std::endl;
+    std::cout << "Empty matrix: dim = " << empty.rows() << std::endl;
 
     // Size-based construction (initialized to zero)
     MatrixSym<double> zeros(3);
@@ -89,13 +89,13 @@ void Demo_MatrixSym_Properties()
 
     // Dimensions
     std::cout << "\nDimensions:" << std::endl;
-    std::cout << "  Dim():    " << S.Dim() << std::endl;
+    std::cout << "  Dim():    " << S.rows() << std::endl;
     std::cout << "  rows(): " << S.rows() << std::endl;
     std::cout << "  cols(): " << S.cols() << std::endl;
     std::cout << "  empty():  " << (S.empty() ? "true" : "false") << std::endl;
 
     // Storage efficiency
-    size_t fullStorage = S.Dim() * S.Dim();
+    size_t fullStorage = S.rows() * S.rows();
     size_t actualStorage = S.size();  // Uses compact storage
     std::cout << "\nStorage efficiency:" << std::endl;
     std::cout << "  Full matrix storage:    " << fullStorage << " elements" << std::endl;
@@ -139,8 +139,8 @@ void Demo_MatrixSym_Access()
 
     // Convert to full matrix
     std::cout << "\nConvert to full Matrix:" << std::endl;
-    Matrix<double> full = S.GetAsMatrix();
-    std::cout << "  S.GetAsMatrix() returned " << full.rows() << "x" << full.cols() << " matrix" << std::endl;
+    Matrix<double> full = S.ToFullMatrix();
+    std::cout << "  S.ToFullMatrix() returned " << full.rows() << "x" << full.cols() << " matrix" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -295,9 +295,9 @@ void Demo_MatrixBandDiag()
 
     // Demonstrate band queries
     std::cout << "\nBand queries:" << std::endl;
-    std::cout << "  Dimension: " << B.GetDimension() << std::endl;
-    std::cout << "  Lower bandwidth (m1): " << B.GetLowerBandwidth() << std::endl;
-    std::cout << "  Upper bandwidth (m2): " << B.GetUpperBandwidth() << std::endl;
+    std::cout << "  Dimension: " << B.rows() << std::endl;
+    std::cout << "  Lower bandwidth (m1): " << B.getLowerBandwidth() << std::endl;
+    std::cout << "  Upper bandwidth (m2): " << B.getUpperBandwidth() << std::endl;
     std::cout << "  IsInBand(0,4): " << (B.IsInBand(0, 4) ? "yes" : "no") << std::endl;
     std::cout << "  IsInBand(4,0): " << (B.IsInBand(4, 0) ? "yes" : "no") << std::endl;
 

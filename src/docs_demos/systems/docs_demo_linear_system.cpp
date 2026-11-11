@@ -362,7 +362,7 @@ void Docs_Demo_LinearSystem_Decompositions()
 	std::cout << "\n--- Cholesky Decomposition: A = L*L^T (SPD only) ---\n";
 	const auto& chol = sys.CholeskyDecompose();
 	std::cout << "L (lower triangular):\n"; chol.L.Print(std::cout, 10, 6);
-	Matrix<Real> LLT = chol.L * chol.L.transpose();
+	Matrix<Real> LLT = chol.L * chol.L.Transposed();
 	std::cout << "Verification L*L^T:\n"; LLT.Print(std::cout, 10, 6);
 }
 

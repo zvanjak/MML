@@ -107,7 +107,7 @@ namespace MML
 			               _pnt2.X() * (_pnt3.Y() - _pnt1.Y()) +
 			               _pnt3.X() * (_pnt1.Y() - _pnt2.Y()));
 			
-			if (std::abs(D) < Constants::GEOMETRY_EPSILON)
+			if (std::abs(D) < Precision::GeometryEpsilon)
 				throw GeometryError("Triangle2D::Circumcenter - degenerate triangle");
 			
 			Real p1Sq = _pnt1.X() * _pnt1.X() + _pnt1.Y() * _pnt1.Y();
@@ -132,7 +132,7 @@ namespace MML
 			Real a = A(), b = B(), c = C();
 			Real area = Area();
 			
-			if (area < Constants::GEOMETRY_EPSILON)
+			if (area < Precision::GeometryEpsilon)
 				throw GeometryError("Triangle2D::CircumRadius - degenerate triangle");
 			
 			return (a * b * c) / (4.0 * area);
@@ -145,7 +145,7 @@ namespace MML
 			Real a = A(), b = B(), c = C();
 			Real perimeter = a + b + c;
 			
-			if (perimeter < Constants::GEOMETRY_EPSILON)
+			if (perimeter < Precision::GeometryEpsilon)
 				throw GeometryError("Triangle2D::Incenter - degenerate triangle");
 			
 			Real x = (a * _pnt3.X() + b * _pnt1.X() + c * _pnt2.X()) / perimeter;
@@ -161,7 +161,7 @@ namespace MML
 			Real area = Area();
 			Real s = Perimeter() / 2.0;
 			
-			if (s < Constants::GEOMETRY_EPSILON)
+			if (s < Precision::GeometryEpsilon)
 				throw GeometryError("Triangle2D::InRadius - degenerate triangle");
 			
 			return area / s;
@@ -173,7 +173,7 @@ namespace MML
 			Real a = A(), b = B(), c = C();
 			// Law of cosines: a² = b² + c² - 2bc·cos(A)
 			Real cosA = (b * b + c * c - a * a) / (2.0 * b * c);
-			return std::acos(std::clamp(cosA, REAL(-1.0), REAL(1.0)));
+			return std::acos(std::clamp(cosA, static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1.0)));
 		}
 
 		/// @brief Calculates angle B at vertex 1 (opposite to side b) in radians
@@ -181,7 +181,7 @@ namespace MML
 		{
 			Real a = A(), b = B(), c = C();
 			Real cosB = (a * a + c * c - b * b) / (2.0 * a * c);
-			return std::acos(std::clamp(cosB, REAL(-1.0), REAL(1.0)));
+			return std::acos(std::clamp(cosB, static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1.0)));
 		}
 
 		/// @brief Calculates angle C at vertex 2 (opposite to side c) in radians
@@ -189,14 +189,14 @@ namespace MML
 		{
 			Real a = A(), b = B(), c = C();
 			Real cosC = (a * a + b * b - c * c) / (2.0 * a * b);
-			return std::acos(std::clamp(cosC, REAL(-1.0), REAL(1.0)));
+			return std::acos(std::clamp(cosC, static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1.0)));
 		}
 
 		/// @brief Tests if a point is inside the triangle using barycentric coordinates
 		/// @param p The point to test
 		/// @param epsilon Tolerance for boundary cases
 		/// @return True if point is inside or on the boundary
-		bool Contains(const Point2Cartesian& p, Real epsilon = Constants::GEOMETRY_EPSILON) const
+		bool Contains(const Point2Cartesian& p, Real epsilon = Precision::GeometryEpsilon) const
 		{
 			// Compute barycentric coordinates
 			Real denom = (_pnt2.Y() - _pnt3.Y()) * (_pnt1.X() - _pnt3.X()) +
@@ -219,7 +219,7 @@ namespace MML
 
 		/// @brief Tests if the triangle is a right triangle
 		/// @param epsilon Tolerance for the test
-		bool IsRight(Real epsilon = Constants::GEOMETRY_EPSILON) const
+		bool IsRight(Real epsilon = Precision::GeometryEpsilon) const
 		{
 			Real a = A(), b = B(), c = C();
 			Real aSq = a * a, bSq = b * b, cSq = c * c;
@@ -231,7 +231,7 @@ namespace MML
 
 		/// @brief Tests if the triangle is isosceles (at least two equal sides)
 		/// @param epsilon Tolerance for the test
-		bool IsIsosceles(Real epsilon = Constants::GEOMETRY_EPSILON) const
+		bool IsIsosceles(Real epsilon = Precision::GeometryEpsilon) const
 		{
 			Real a = A(), b = B(), c = C();
 			return AreEqual(a, b, epsilon) || AreEqual(a, c, epsilon) || AreEqual(b, c, epsilon);
@@ -239,7 +239,7 @@ namespace MML
 
 		/// @brief Tests if the triangle is equilateral (all sides equal)
 		/// @param epsilon Tolerance for the test
-		bool IsEquilateral(Real epsilon = Constants::GEOMETRY_EPSILON) const
+		bool IsEquilateral(Real epsilon = Precision::GeometryEpsilon) const
 		{
 			Real a = A(), b = B(), c = C();
 			return AreEqual(a, b, epsilon) && AreEqual(a, c, epsilon);

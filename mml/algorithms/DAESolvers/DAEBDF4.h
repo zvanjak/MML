@@ -21,6 +21,7 @@
 #define MML_DAE_BDF4_H
 
 #include "DAESolverBase.h"
+#include <algorithm>
 #include <vector>
 
 namespace MML {
@@ -56,18 +57,17 @@ namespace MML {
 	                                     Real t0, const Vector<Real>& x0, const Vector<Real>& y0,
 	                                     Real t_end, const DAESolverConfig& config = DAESolverConfig())
 	{
-		if (t_end <= t0)
-			throw ArgumentError("SolveDAEBDF4: t_end must be greater than t0 (reverse-time integration is not supported)");
-		if (config.step_size <= 0)
+		if (!std::isfinite(t_end - t0) || t_end == t0)
+			throw ArgumentError("SolveDAEBDF4: requires distinct finite endpoints");
+		if (!std::isfinite(config.step_size) || config.step_size <= 0)
 			throw ArgumentError("SolveDAEBDF4: config.step_size must be positive");
 
 		AlgorithmTimer timer;
 
 		int diffDim = system.getDiffDim();
 		int algDim = system.getAlgDim();
-		int num_steps = static_cast<int>((t_end - t0) / config.step_size) + 1;
 
-		DAESolverResult result(t0, t_end, diffDim, algDim, num_steps);
+		DAESolverResult result(t0, t_end, diffDim, algDim, 0);
 		result.algorithm_name = "DAEBDF4";
 
 		// Working vectors
@@ -135,7 +135,8 @@ namespace MML {
 		// Use 4 substeps per main step to achieve O(h^4) local error during bootstrap
 		// ========================================================================
 		constexpr int bootstrap_substeps = 4;
-		Real h_main = config.step_size;
+		const Real direction = t_end > t0 ? Real(1) : Real(-1);
+		Real h_main = direction * config.step_size;
 		Real h_sub = h_main / bootstrap_substeps;
 
 		// We need values at t0, t0+h, t0+2h, t0+3h for BDF4
@@ -156,26 +157,36 @@ namespace MML {
 		}
 
 		// Take 3 main steps using sub-stepped BDF2
-		for (int main_step = 1; main_step <= 3 && t_current < t_end; ++main_step)
+		int step = 1;
+		for (int main_step = 1; main_step <= 3 && direction * (t_end - t_current) > 0 &&
+			step <= config.max_steps; ++main_step)
 		{
-			Real h_this = std::min(h_main, t_end - t_current);
+			if (!PrepareDAETrajectoryPoint(result, step)) break;
+			Real h_this = direction * std::min(std::abs(h_main), std::abs(t_end - t_current));
 			Real h_substep = h_this / bootstrap_substeps;
 
 			for (int sub = 0; sub < bootstrap_substeps; ++sub)
 			{
 				Real t_next = t_current + h_substep;
+				if (!ValidateDAETimeStep(t_current, t_next, result, "BDF4 bootstrap")) {
+					result.total_steps = result.accepted_steps;
+					result.elapsed_time_ms = timer.elapsed_ms();
+					return result;
+				}
 				
 				system.diffEqs(t_current, x_current, y_current, dxdt);
 				Vector<Real> x_pred = x_current + dxdt * h_substep;
 				Vector<Real> y_pred = y_current;
 
-				int order = (main_step == 1 && sub == 0) ? 1 : 2;  // First substep uses BE
+				int order = (main_step == 1 && sub == 0) ||
+					(sub == 0 && std::abs(h_this - h_main) > DAETimeTolerance(t_end, h_main)) ? 1 : 2;
 				DAENewtonResult newton = newtonSolve(t_next, h_substep, x_pred, y_pred, order,
 					x_current, x_sub_prev, x_current, x_current);
 				AccumulateDAENewtonDiagnostics(result, newton);
 				if (!newton.converged)
 				{
 					SetDAENewtonFailure(result, newton, "BDF4 bootstrap Newton failure at t=" + std::to_string(t_next));
+					result.total_steps = result.accepted_steps;
 					result.elapsed_time_ms = timer.elapsed_ms();
 					return result;
 				}
@@ -186,6 +197,7 @@ namespace MML {
 				t_current = t_next;
 				system.algConstraints(t_current, x_current, y_current, g);
 				if (!ValidateAcceptedDAEState(x_current, y_current, g, config, result, "BDF4 bootstrap step")) {
+					result.total_steps = result.accepted_steps;
 					result.elapsed_time_ms = timer.elapsed_ms();
 					return result;
 				}
@@ -201,34 +213,31 @@ namespace MML {
 			x_history[0] = x_current;
 			y_history[0] = y_current;
 			t_history[0] = t_current;
-		}
-
-		// Save initial condition and bootstrap points to solution
-		for (int i = 1; i <= 3; ++i)
-		{
-			result.solution.fillValues(i, t_history[3-i], x_history[3-i], y_history[3-i]);
+			result.solution.fillValues(step++, t_current, x_current, y_current);
 			result.solution.incrementSuccessfulSteps();
 			result.accepted_steps++;
 		}
-		int step = 4;
 
 		// ========================================================================
 		// MAIN PHASE: BDF4 with accurate history
 		// ========================================================================
-		while (t_current < t_end && step < config.max_steps)
+		while (direction * (t_end - t_current) > 0 && step <= config.max_steps &&
+			result.status == AlgorithmStatus::Success)
 		{
-			Real h = std::min(h_main, t_end - t_current);
+			if (!PrepareDAETrajectoryPoint(result, step)) break;
+			Real h = direction * std::min(std::abs(h_main), std::abs(t_end - t_current));
 			
 			// Skip degenerate final steps
-			if (h < h_main * 1e-10)
+			if (std::abs(h) < std::abs(h_main) * Precision::MinimumStepRatio)
 				break;
 			
 			Real t_next = t_current + h;
+			if (!ValidateDAETimeStep(t_current, t_next, result, "BDF4")) break;
 
-			// For very small final steps, fall back to lower order
+			// Fixed BDF4 coefficients require an unchanged step; restart on a clipped endpoint.
 			int order = 4;
-			if (h < h_main * 0.1)
-				order = 1;  // Backward Euler for tiny final step
+			if (std::abs(h - h_main) > DAETimeTolerance(t_end, h_main))
+				order = 1;
 
 			// Prediction
 			system.diffEqs(t_current, x_history[0], y_history[0], dxdt);
@@ -268,10 +277,11 @@ namespace MML {
 		}
 
 		// Finalize
-		result.solution.setFinalSize(step - 1);
+		if (result.status != AlgorithmStatus::ResourceLimitExceeded)
+			result.solution.setFinalSize(step - 1);
 		result.total_steps = step - 1;
 		result.final_constraint_norm = g.NormL2();
-		if (t_end - t_current > h_main * REAL(1e-10) && result.status == AlgorithmStatus::Success) {
+		if (direction * (t_end - t_current) > std::abs(h_main) * Precision::MinimumStepRatio && result.status == AlgorithmStatus::Success) {
 			result.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.failure_reason = DAEFailureReason::MaxStepsExceeded;
 			result.error_message = "Maximum BDF4 step count reached before t_end";

@@ -71,7 +71,7 @@ namespace MML::MatrixAlg
 		if (matrix.rows() == 0 || matrix.rows() != matrix.cols())
 			throw MatrixDimensionError("SymmetricEigensystem - matrix must be non-empty and square",
 				matrix.rows(), matrix.cols(), -1, -1);
-		if (!std::isfinite(tolerance) || tolerance < REAL(0.0))
+		if (!std::isfinite(tolerance) || tolerance < static_cast<MML::Real>(0.0))
 			throw DomainError("SymmetricEigensystem - tolerance must be finite and nonnegative");
 		if (maxIterations < 0)
 			throw DomainError("SymmetricEigensystem - maxIterations must be nonnegative");
@@ -81,7 +81,7 @@ namespace MML::MatrixAlg
 		MatrixSym<Real> symmetric(matrix.rows());
 		for (int row = 0; row < matrix.rows(); ++row)
 			for (int col = row; col < matrix.cols(); ++col)
-				symmetric(row, col) = REAL(0.5) * (matrix(row, col) + matrix(col, row));
+				symmetric(row, col) = static_cast<MML::Real>(0.5) * (matrix(row, col) + matrix(col, row));
 		const auto decomposition = SymmMatEigenSolverJacobi::Solve(symmetric, tolerance, maxIterations);
 		SelfAdjointEigensystemResult<Real> result;
 		result.eigenvalues = decomposition.eigenvalues;
@@ -96,10 +96,10 @@ namespace MML::MatrixAlg
 		Vector<Complex> eigenvalues(result.eigenvalues.size());
 		Matrix<Complex> eigenvectors(result.eigenvectors.rows(), result.eigenvectors.cols());
 		for (int index = 0; index < eigenvalues.size(); ++index)
-			eigenvalues[index] = Complex{result.eigenvalues[index], REAL(0.0)};
+			eigenvalues[index] = Complex{result.eigenvalues[index], static_cast<MML::Real>(0.0)};
 		for (int row = 0; row < eigenvectors.rows(); ++row)
 			for (int col = 0; col < eigenvectors.cols(); ++col)
-				eigenvectors(row, col) = Complex{result.eigenvectors(row, col), REAL(0.0)};
+				eigenvectors(row, col) = Complex{result.eigenvectors(row, col), static_cast<MML::Real>(0.0)};
 		result.maxResidual = Detail::MaximumEigenResidual(matrix, eigenvalues, eigenvectors);
 		return result;
 	}
@@ -112,7 +112,7 @@ namespace MML::MatrixAlg
 		if (matrix.rows() == 0 || matrix.rows() != matrix.cols())
 			throw MatrixDimensionError("HermitianEigensystem - matrix must be non-empty and square",
 				matrix.rows(), matrix.cols(), -1, -1);
-		if (!std::isfinite(tolerance) || tolerance < REAL(0.0))
+		if (!std::isfinite(tolerance) || tolerance < static_cast<MML::Real>(0.0))
 			throw DomainError("HermitianEigensystem - tolerance must be finite and nonnegative");
 		if (maxIterations < 0)
 			throw DomainError("HermitianEigensystem - maxIterations must be nonnegative");
@@ -122,10 +122,10 @@ namespace MML::MatrixAlg
 		Matrix<Complex> hermitian(matrix.rows(), matrix.cols());
 		for (int row = 0; row < matrix.rows(); ++row)
 		{
-			hermitian(row, row) = Complex{matrix(row, row).real(), REAL(0.0)};
+			hermitian(row, row) = Complex{matrix(row, row).real(), static_cast<MML::Real>(0.0)};
 			for (int col = row + 1; col < matrix.cols(); ++col)
 			{
-				const Complex value = REAL(0.5) * (matrix(row, col) + std::conj(matrix(col, row)));
+				const Complex value = static_cast<MML::Real>(0.5) * (matrix(row, col) + std::conj(matrix(col, row)));
 				hermitian(row, col) = value;
 				hermitian(col, row) = std::conj(value);
 			}
@@ -143,7 +143,7 @@ namespace MML::MatrixAlg
 				std::to_string(maxIterations) + " sweeps";
 		Vector<Complex> eigenvalues(result.eigenvalues.size());
 		for (int index = 0; index < eigenvalues.size(); ++index)
-			eigenvalues[index] = Complex{result.eigenvalues[index], REAL(0.0)};
+			eigenvalues[index] = Complex{result.eigenvalues[index], static_cast<MML::Real>(0.0)};
 		result.maxResidual = Detail::MaximumEigenResidual(matrix, eigenvalues, result.eigenvectors);
 		return result;
 	}
@@ -185,9 +185,9 @@ namespace MML::MatrixAlg
 			if (IsHermitian(matrix, MatrixComparisonTolerance<MatrixMagnitude<Scalar>>{tolerance, tolerance}))
 			{
 				const auto selfAdjoint = HermitianEigensystem(matrix, tolerance, maxIterations);
-				result.eigenvalues.Resize(selfAdjoint.eigenvalues.size());
+				result.eigenvalues.resize(selfAdjoint.eigenvalues.size());
 				for (int index = 0; index < result.eigenvalues.size(); ++index)
-					result.eigenvalues[index] = ComplexScalar{selfAdjoint.eigenvalues[index], REAL(0.0)};
+					result.eigenvalues[index] = ComplexScalar{selfAdjoint.eigenvalues[index], static_cast<MML::Real>(0.0)};
 				result.eigenvectors = selfAdjoint.eigenvectors;
 				result.converged = selfAdjoint.converged;
 				result.iterations = selfAdjoint.iterations;
@@ -214,13 +214,13 @@ namespace MML::MatrixAlg
 			if (IsSymmetric(matrix, MatrixComparisonTolerance<MatrixMagnitude<Scalar>>{tolerance, tolerance}))
 			{
 				const auto selfAdjoint = SymmetricEigensystem(matrix, tolerance, maxIterations);
-				result.eigenvalues.Resize(selfAdjoint.eigenvalues.size());
+				result.eigenvalues.resize(selfAdjoint.eigenvalues.size());
 				for (int index = 0; index < result.eigenvalues.size(); ++index)
-					result.eigenvalues[index] = ComplexScalar{selfAdjoint.eigenvalues[index], REAL(0.0)};
-				result.eigenvectors.Resize(matrix.rows(), matrix.cols());
+					result.eigenvalues[index] = ComplexScalar{selfAdjoint.eigenvalues[index], static_cast<MML::Real>(0.0)};
+				result.eigenvectors.resize(matrix.rows(), matrix.cols());
 				for (int row = 0; row < matrix.rows(); ++row)
 					for (int col = 0; col < matrix.cols(); ++col)
-						result.eigenvectors(row, col) = ComplexScalar{selfAdjoint.eigenvectors(row, col), REAL(0.0)};
+						result.eigenvectors(row, col) = ComplexScalar{selfAdjoint.eigenvectors(row, col), static_cast<MML::Real>(0.0)};
 				result.converged = selfAdjoint.converged;
 				result.iterations = selfAdjoint.iterations;
 				result.maxResidual = selfAdjoint.maxResidual;
@@ -231,8 +231,8 @@ namespace MML::MatrixAlg
 			}
 
 			const auto legacy = EigenSolver::Solve(matrix, tolerance, maxIterations);
-			result.eigenvalues.Resize(matrix.rows());
-			result.eigenvectors.Resize(matrix.rows(), matrix.cols());
+			result.eigenvalues.resize(matrix.rows());
+			result.eigenvectors.resize(matrix.rows(), matrix.cols());
 			for (int index = 0; index < matrix.rows(); ++index)
 				result.eigenvalues[index] = ComplexScalar{legacy.eigenvalues[index].real, legacy.eigenvalues[index].imag};
 			for (int index = 0; index < matrix.rows(); ++index)
@@ -250,7 +250,7 @@ namespace MML::MatrixAlg
 				else if (!legacy.isComplexPair[index])
 				{
 					for (int row = 0; row < matrix.rows(); ++row)
-						result.eigenvectors(row, index) = ComplexScalar{legacy.eigenvectors(row, index), REAL(0.0)};
+						result.eigenvectors(row, index) = ComplexScalar{legacy.eigenvectors(row, index), static_cast<MML::Real>(0.0)};
 				}
 			}
 			result.converged = legacy.converged;

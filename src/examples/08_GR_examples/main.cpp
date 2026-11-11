@@ -35,13 +35,13 @@ class UnitSphereMetric : public MetricTensorField<2>
 public:
 	UnitSphereMetric() : MetricTensorField<2>(0, 2) { }
 
-	Real Component(int i, int j, const VectorN<Real, 2>& pos) const override
+	Real component(int i, int j, const VectorN<Real, 2>& pos) const override
 	{
 		if (i == 0 && j == 0)
-			return REAL(1.0);
+			return static_cast<MML::Real>(1.0);
 		if (i == 1 && j == 1)
 			return std::sin(pos[0]) * std::sin(pos[0]);
-		return REAL(0.0);
+		return static_cast<MML::Real>(0.0);
 	}
 };
 
@@ -53,21 +53,21 @@ public:
 	SchwarzschildMetric(Real schwarzschildRadius)
 		: LorentzianMetric<4>(0, 2), _schwarzschildRadius(schwarzschildRadius) { }
 
-	Real Component(int i, int j, const VectorN<Real, 4>& pos) const override
+	Real component(int i, int j, const VectorN<Real, 4>& pos) const override
 	{
 		Real r = pos[1];
 		Real theta = pos[2];
-		Real f = REAL(1.0) - _schwarzschildRadius / r;
+		Real f = static_cast<MML::Real>(1.0) - _schwarzschildRadius / r;
 
 		if (i == 0 && j == 0)
 			return -f;
 		if (i == 1 && j == 1)
-			return REAL(1.0) / f;
+			return static_cast<MML::Real>(1.0) / f;
 		if (i == 2 && j == 2)
 			return r * r;
 		if (i == 3 && j == 3)
 			return r * r * std::sin(theta) * std::sin(theta);
-		return REAL(0.0);
+		return static_cast<MML::Real>(0.0);
 	}
 };
 
@@ -89,10 +89,10 @@ void PrintFourVector(const std::string& label, const VectorN<Real, 4>& v)
 
 Real MetricNormSquared(const MetricTensorField<4>& metric, const VectorN<Real, 4>& pos, const VectorN<Real, 4>& v)
 {
-	Real norm = REAL(0.0);
+	Real norm = static_cast<MML::Real>(0.0);
 	for (int i = 0; i < 4; i++)
 		for (int j = 0; j < 4; j++)
-			norm += metric.Component(i, j, pos) * v[i] * v[j];
+			norm += metric.component(i, j, pos) * v[i] * v[j];
 	return norm;
 }
 
@@ -101,13 +101,13 @@ void DemoSphereCurvature()
 	PrintSection("SCENARIO 1: Curvature of the unit 2-sphere");
 
 	UnitSphereMetric metric;
-	VectorN<Real, 2> pos{ Constants::PI / REAL(4.0), Constants::PI / REAL(3.0) };
+	VectorN<Real, 2> pos{ Constants::PI / static_cast<MML::Real>(4.0), Constants::PI / static_cast<MML::Real>(3.0) };
 	Real sinTheta = std::sin(pos[0]);
 
 	std::cout << std::fixed << std::setprecision(8);
 	std::cout << "Point (theta, phi) = (" << pos[0] << ", " << pos[1] << ")\n";
-	std::cout << "Metric components: g_theta_theta = " << metric.Component(0, 0, pos)
-		<< ", g_phi_phi = " << metric.Component(1, 1, pos) << "\n\n";
+	std::cout << "Metric components: g_theta_theta = " << metric.component(0, 0, pos)
+		<< ", g_phi_phi = " << metric.component(1, 1, pos) << "\n\n";
 
 	std::cout << "  R^theta_{phi theta phi} = " << metric.GetRiemannCurvatureTensor(0, 1, 0, 1, pos) << "\n";
 	std::cout << "  expected sin^2(theta)    = " << sinTheta * sinTheta << "\n";
@@ -123,16 +123,16 @@ void DemoSchwarzschildGeodesic()
 {
 	PrintSection("SCENARIO 2: Schwarzschild vacuum and equatorial geodesic");
 
-	const Real schwarzschildRadius = REAL(2.0);
-	const Real mass = schwarzschildRadius / REAL(2.0);
-	const Real orbitRadius = REAL(10.0);
+	const Real schwarzschildRadius = static_cast<MML::Real>(2.0);
+	const Real mass = schwarzschildRadius / static_cast<MML::Real>(2.0);
+	const Real orbitRadius = static_cast<MML::Real>(10.0);
 	SchwarzschildMetric metric(schwarzschildRadius);
 
-	VectorN<Real, 4> pos{ REAL(0.0), orbitRadius, Constants::PI / REAL(2.0), REAL(0.0) };
-	Real dt_dTau = REAL(1.0) / std::sqrt(REAL(1.0) - REAL(3.0) * mass / orbitRadius);
+	VectorN<Real, 4> pos{ static_cast<MML::Real>(0.0), orbitRadius, Constants::PI / static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0) };
+	Real dt_dTau = static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(1.0) - static_cast<MML::Real>(3.0) * mass / orbitRadius);
 	Real dphi_dTau = std::sqrt(mass / (orbitRadius * orbitRadius * orbitRadius))
-		/ std::sqrt(REAL(1.0) - REAL(3.0) * mass / orbitRadius);
-	VectorN<Real, 4> velocity{ dt_dTau, REAL(0.0), REAL(0.0), dphi_dTau };
+		/ std::sqrt(static_cast<MML::Real>(1.0) - static_cast<MML::Real>(3.0) * mass / orbitRadius);
+	VectorN<Real, 4> velocity{ dt_dTau, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), dphi_dTau };
 
 	std::cout << std::fixed << std::setprecision(8);
 	std::cout << "Schwarzschild radius r_s = " << schwarzschildRadius << ", circular orbit r = " << orbitRadius << "\n";
@@ -146,8 +146,8 @@ void DemoSchwarzschildGeodesic()
 	PrintFourVector("initial velocity", velocity);
 	std::cout << "  g(u,u) initial           = " << MetricNormSquared(metric, pos, velocity) << "\n\n";
 
-	Real lambdaEnd = REAL(120.0);
-	auto solution = IntegrateGeodesicFixedStep<4>(metric, pos, velocity, REAL(0.0), lambdaEnd, 1200);
+	Real lambdaEnd = static_cast<MML::Real>(120.0);
+	auto solution = IntegrateGeodesicFixedStep<4>(metric, pos, velocity, static_cast<MML::Real>(0.0), lambdaEnd, 1200);
 	Vector<Real> finalState = solution.getXValuesAtEnd();
 	VectorN<Real, 4> finalPosition = GeodesicPositionFromState<4>(finalState);
 	VectorN<Real, 4> finalVelocity = GeodesicVelocityFromState<4>(finalState);

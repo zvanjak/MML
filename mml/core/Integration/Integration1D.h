@@ -10,7 +10,7 @@
 ///               ROMBERG  - Romberg integration (exponentially fast for smooth f)    ///
 ///               GAUSS10  - 10-point Gauss-Legendre (exact for poly deg ≤ 19)        ///
 ///                                                                                   ///
-///  Usage:       IntegrationResult r = IntegrateSimpson(f, a, b, eps);               ///
+///  Usage:       IntegrationResult r = IntegrateSimpsonCore(f, a, b, eps);               ///
 ///               if (r.converged) std::cout << r.value << " ± " << r.error_estimate; ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
@@ -30,7 +30,6 @@
 #include "GaussKronrod.h"
 
 #include <mml/interfaces/IFunction.h>
-
 
 namespace MML
 {
@@ -54,18 +53,40 @@ namespace MML
 		{
 		public:
 			Real _a, _b, _currSum;
+			Real _currAbsSum;   ///< Same trapezoid stage applied to |f| (QUADPACK "resabs"): sets the scale of round-off
 			Function& _func;
 
 			TrapIntegratorCallable(Function& func, Real a, Real b)
-				: _func(func), _a(a), _b(b), _currSum(0.0) { }
+				: _func(func), _a(a), _b(b), _currSum(0.0), _currAbsSum(0.0) { }
+
+			/// Absolute tolerance floor: 50 ulp of the integral of |f| (as in QUADPACK/GSL).
+			/// Negligible for integrals of normal size; for integrals that are (near) zero it is
+			/// the level below which a difference of partial sums is pure round-off, so such
+			/// integrals can converge at all (analysis v4, CORE C5: the old floor eps*machine_eps
+			/// made every zero-valued integral run to the iteration limit and report converged=false).
+			Real absoluteFloor() const {
+				return Precision::IntegrationRoundoffFloorScale * _currAbsSum;
+			}
+
+			/// Convergence tolerance for a requested relative precision eps: eps is taken relative
+			/// to the integral of |f| (QUADPACK's resabs scale). For integrands without sign change
+			/// this is the usual eps*|I|; for cancelling integrals (|I| << int|f|) it is the absolute
+			/// accuracy the method can honestly deliver - a pure eps*|I| criterion can never be met
+			/// there and used to run every oscillatory integral to the iteration limit.
+			Real tolerance(Real eps) const {
+				return eps * _currAbsSum + absoluteFloor();
+			}
 
 			Real next() {
-				Real x, sum, del;
+				Real x, sum, absSum, del;
 				int subDivNum, j;
 
 				_currStep++;
 				if (_currStep == 1) {
-					return (_currSum = 0.5 * (_b - _a) * (std::invoke(_func, _a) + std::invoke(_func, _b)));
+					const Real fa = std::invoke(_func, _a);
+					const Real fb = std::invoke(_func, _b);
+					_currAbsSum = 0.5 * std::abs(_b - _a) * (std::abs(fa) + std::abs(fb));
+					return (_currSum = 0.5 * (_b - _a) * (fa + fb));
 				}
 				else {
 					for (subDivNum = 1, j = 1; j < _currStep - 1; j++)
@@ -74,10 +95,14 @@ namespace MML
 					del = (_b - _a) / subDivNum;
 					x = _a + 0.5 * del;
 
-					for (sum = 0.0, j = 0; j < subDivNum; j++, x += del)
-						sum += std::invoke(_func, x);
+					for (sum = 0.0, absSum = 0.0, j = 0; j < subDivNum; j++, x += del) {
+						const Real fx = std::invoke(_func, x);
+						sum += fx;
+						absSum += std::abs(fx);
+					}
 
 					_currSum = 0.5 * (_currSum + (_b - _a) * sum / subDivNum);
+					_currAbsSum = 0.5 * (_currAbsSum + std::abs(_b - _a) * absSum / subDivNum);
 
 					return _currSum;
 				}
@@ -93,16 +118,13 @@ namespace MML
 			Real last_error = 0.0;
 
 			TrapIntegratorCallable<Function> t(func, a, b);
-
-			const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
-
 			for (j = 0; j < Defaults::TrapezoidIntegrationMaxSteps; j++)
 			{
 				currSum = t.next();
 
 				if (j > 5) {
 					Real error = std::abs(currSum - oldSum);
-					if (error < eps * std::abs(oldSum) + abs_tol)
+					if (error <= t.tolerance(eps))   // <= so an exactly-zero integral converges
 					{
 						return IntegrationResult(currSum, error, j, true);
 					}
@@ -123,9 +145,6 @@ namespace MML
 			Real last_error = 0.0;
 
 			TrapIntegratorCallable<Function> t(func, a, b);
-
-			const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
-
 			for (j = 0; j < Defaults::SimpsonIntegrationMaxSteps; j++)
 			{
 				st = t.next();
@@ -134,7 +153,7 @@ namespace MML
 
 				if (j > 5) {
 					Real error = std::abs(currSum - oldSum);
-					if (error < eps * std::abs(oldSum) + abs_tol)
+					if (error <= t.tolerance(eps))   // <= so an exactly-zero integral converges
 					{
 						return IntegrationResult(currSum, error, j, true);
 					}
@@ -215,9 +234,7 @@ namespace MML
 
 						ss += dss;
 					}
-
-					const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
-					if (std::abs(dss) <= eps * std::abs(ss) + abs_tol)
+					if (std::abs(dss) <= trap.tolerance(eps))
 					{
 						return IntegrationResult(ss, std::abs(dss), j + 1, true);
 					}
@@ -248,14 +265,14 @@ namespace MML
 			}
 			Real result = s * xr;
 
-			return IntegrationResult(result, 0.0, 1, true);
+			return IntegrationResult::FixedRule(result);
 		}
 
 		template<RealFunctionCallable Function>
 		IntegrationResult IntegrateGK21Impl(Function& func, Real a, Real b)
 		{
-			auto gkResult = Integration::IntegrateGK21([&func](Real x) { return std::invoke(func, x); }, a, b);
-			return IntegrationResult(gkResult.value, gkResult.error_estimate, gkResult.function_evals, gkResult.converged);
+			auto gkResult = Integration::IntegrateGK21Core([&func](Real x) { return std::invoke(func, x); }, a, b);
+			return gkResult;
 		}
 	}
 
@@ -280,17 +297,49 @@ namespace MML
 	/// The first term (eps * |S|) provides relative accuracy for non-zero integrals.
 	/// The second term (eps * machine_epsilon) provides an absolute floor so that
 	/// near-zero integrals can still converge rather than demanding |error| < 0.
-	static IntegrationResult IntegrateTrap(const IRealFunction& func, Real a, Real b,
+	static IntegrationResult IntegrateTrapCore(const IRealFunction& func, Real a, Real b,
 																		 const Real eps = Defaults::TrapezoidIntegrationEPS)	{
 		return IntegrationDetail::IntegrateTrapImpl(func, a, b, eps);
 	}
 
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	static auto IntegrateTrapDetailed(const IRealFunction& func, Real a, Real b, const Real eps)
+	{
+		auto r = IntegrateTrapCore(func, a, b, eps);
+		r.algorithm_name = "IntegrateTrap";
+		return r;
+	}
+
+	static Real IntegrateTrap(const IRealFunction& func, Real a, Real b,
+																		 const Real eps = Defaults::TrapezoidIntegrationEPS)
+	{
+		return IntegrateTrapCore(func, a, b, eps).ValueOrThrow("IntegrateTrap");
+	}
+
 	template<RealFunctionCallable Function>
 		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-	static IntegrationResult IntegrateTrap(Function&& func, Real a, Real b,
+	static IntegrationResult IntegrateTrapCore(Function&& func, Real a, Real b,
 		const Real eps = Defaults::TrapezoidIntegrationEPS)
 	{
 		return IntegrationDetail::IntegrateTrapImpl(func, a, b, eps);
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static auto IntegrateTrapDetailed(Function&& func, Real a, Real b, const Real eps)
+	{
+		auto r = IntegrateTrapCore(std::forward<Function>(func), a, b, eps);
+		r.algorithm_name = "IntegrateTrap";
+		return r;
+	}
+
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static Real IntegrateTrap(Function&& func, Real a, Real b,
+		const Real eps = Defaults::TrapezoidIntegrationEPS)
+	{
+		return IntegrateTrapCore(std::forward<Function>(func), a, b, eps).ValueOrThrow("IntegrateTrap");
 	}
 
 	/// @brief Simpson's rule with adaptive refinement
@@ -303,20 +352,51 @@ namespace MML
 	/// @par Convergence model
 	/// Same mixed absolute+relative test as IntegrateTrap:
 	///   |S_n - S_{n-1}| < eps * |S_{n-1}| + eps * machine_epsilon
-	static IntegrationResult IntegrateSimpson(const IRealFunction& func, Real a, Real b,
+	static IntegrationResult IntegrateSimpsonCore(const IRealFunction& func, Real a, Real b,
 																			 const Real eps = Defaults::SimpsonIntegrationEPS)
 	{
 		return IntegrationDetail::IntegrateSimpsonImpl(func, a, b, eps);
 	}
 
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	static auto IntegrateSimpsonDetailed(const IRealFunction& func, Real a, Real b, const Real eps)
+	{
+		auto r = IntegrateSimpsonCore(func, a, b, eps);
+		r.algorithm_name = "IntegrateSimpson";
+		return r;
+	}
+
+	static Real IntegrateSimpson(const IRealFunction& func, Real a, Real b,
+																			 const Real eps = Defaults::SimpsonIntegrationEPS)
+	{
+		return IntegrateSimpsonCore(func, a, b, eps).ValueOrThrow("IntegrateSimpson");
+	}
+
 	template<RealFunctionCallable Function>
 		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-	static IntegrationResult IntegrateSimpson(Function&& func, Real a, Real b,
+	static IntegrationResult IntegrateSimpsonCore(Function&& func, Real a, Real b,
 		const Real eps = Defaults::SimpsonIntegrationEPS)
 	{
 		return IntegrationDetail::IntegrateSimpsonImpl(func, a, b, eps);
 	}
 
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static auto IntegrateSimpsonDetailed(Function&& func, Real a, Real b, const Real eps)
+	{
+		auto r = IntegrateSimpsonCore(std::forward<Function>(func), a, b, eps);
+		r.algorithm_name = "IntegrateSimpson";
+		return r;
+	}
+
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static Real IntegrateSimpson(Function&& func, Real a, Real b,
+		const Real eps = Defaults::SimpsonIntegrationEPS)
+	{
+		return IntegrateSimpsonCore(std::forward<Function>(func), a, b, eps).ValueOrThrow("IntegrateSimpson");
+	}
 
 	/**
 	 * @brief IntegrateRomberg - Romberg integration using Richardson extrapolation.
@@ -365,20 +445,51 @@ namespace MML
 	 *
 	 * @note Reference: Numerical Recipes §4.3 "Romberg Integration"
 	 */
-	static IntegrationResult IntegrateRomberg(const IRealFunction& func, Real a, Real b,
+	static IntegrationResult IntegrateRombergCore(const IRealFunction& func, Real a, Real b,
 																						const Real eps = Defaults::RombergIntegrationEPS)
 	{
 		return IntegrationDetail::IntegrateRombergImpl(func, a, b, eps);
 	}
 
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	static auto IntegrateRombergDetailed(const IRealFunction& func, Real a, Real b, const Real eps)
+	{
+		auto r = IntegrateRombergCore(func, a, b, eps);
+		r.algorithm_name = "IntegrateRomberg";
+		return r;
+	}
+
+	static Real IntegrateRomberg(const IRealFunction& func, Real a, Real b,
+																						const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrateRombergCore(func, a, b, eps).ValueOrThrow("IntegrateRomberg");
+	}
+
 	template<RealFunctionCallable Function>
 		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-	static IntegrationResult IntegrateRomberg(Function&& func, Real a, Real b,
+	static IntegrationResult IntegrateRombergCore(Function&& func, Real a, Real b,
 		const Real eps = Defaults::RombergIntegrationEPS)
 	{
 		return IntegrationDetail::IntegrateRombergImpl(func, a, b, eps);
 	}
 
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static auto IntegrateRombergDetailed(Function&& func, Real a, Real b, const Real eps)
+	{
+		auto r = IntegrateRombergCore(std::forward<Function>(func), a, b, eps);
+		r.algorithm_name = "IntegrateRomberg";
+		return r;
+	}
+
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static Real IntegrateRomberg(Function&& func, Real a, Real b,
+		const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrateRombergCore(std::forward<Function>(func), a, b, eps).ValueOrThrow("IntegrateRomberg");
+	}
 
 	/**
 	 * @brief IntegrateGauss10 - Ten-point Gauss-Legendre quadrature.
@@ -420,22 +531,44 @@ namespace MML
 	 * @param func The function to integrate
 	 * @param a Lower bound of integration
 	 * @param b Upper bound of integration
-	 * @return IntegrationResult with value, 0 error estimate (not available), 1 iteration, converged=true
+	 * @return IntegrationResult with value, error_estimate = 0 placeholder, error_estimated = false, 1 iteration
 	 *
 	 * @note Error estimate is 0 because this is a non-adaptive method.
 	 *       Use adaptive methods (Romberg, Simpson) when error bounds are needed.
 	 * @note Reference: Abramowitz & Stegun, Table 25.4 for nodes and weights
 	 */
-	static IntegrationResult IntegrateGauss10(const IRealFunction& func, const Real a, const Real b)
+	static IntegrationResult IntegrateGauss10Core(const IRealFunction& func, const Real a, const Real b)
 	{
 		return IntegrationDetail::IntegrateGauss10Impl(func, a, b);
 	}
 
+	static Real IntegrateGauss10(const IRealFunction& func, const Real a, const Real b)
+	{
+		return IntegrateGauss10Core(func, a, b).ValueOrThrow("IntegrateGauss10");
+	}
+
 	template<RealFunctionCallable Function>
 		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-	static IntegrationResult IntegrateGauss10(Function&& func, const Real a, const Real b)
+	static IntegrationResult IntegrateGauss10Core(Function&& func, const Real a, const Real b)
 	{
 		return IntegrationDetail::IntegrateGauss10Impl(func, a, b);
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static auto IntegrateGauss10Detailed(Function&& func, const Real a, const Real b)
+	{
+		auto r = IntegrateGauss10Core(std::forward<Function>(func), a, b);
+		r.algorithm_name = "IntegrateGauss10";
+		return r;
+	}
+
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static Real IntegrateGauss10(Function&& func, const Real a, const Real b)
+	{
+		return IntegrateGauss10Core(std::forward<Function>(func), a, b).ValueOrThrow("IntegrateGauss10");
 	}
 
 	/**
@@ -446,18 +579,40 @@ namespace MML
 	 * @param func Function to integrate
 	 * @param a Lower bound of integration
 	 * @param b Upper bound of integration
-	 * @return IntegrationResult with value, error_estimate, iterations=21, converged=true
+	 * @return Fixed-rule IntegrationResult with embedded error estimate and Completed status.
 	 */
-	static IntegrationResult IntegrateGK21(const IRealFunction& func, Real a, Real b)
+	static IntegrationResult IntegrateGK21Core(const IRealFunction& func, Real a, Real b)
 	{
 		return IntegrationDetail::IntegrateGK21Impl(func, a, b);
 	}
 
+	static Real IntegrateGK21(const IRealFunction& func, Real a, Real b)
+	{
+		return IntegrateGK21Core(func, a, b).ValueOrThrow("IntegrateGK21");
+	}
+
 	template<RealFunctionCallable Function>
 		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-	static IntegrationResult IntegrateGK21(Function&& func, Real a, Real b)
+	static IntegrationResult IntegrateGK21Core(Function&& func, Real a, Real b)
 	{
 		return IntegrationDetail::IntegrateGK21Impl(func, a, b);
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static auto IntegrateGK21Detailed(Function&& func, Real a, Real b)
+	{
+		auto r = IntegrateGK21Core(std::forward<Function>(func), a, b);
+		r.algorithm_name = "IntegrateGK21";
+		return r;
+	}
+
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static Real IntegrateGK21(Function&& func, Real a, Real b)
+	{
+		return IntegrateGK21Core(std::forward<Function>(func), a, b).ValueOrThrow("IntegrateGK21");
 	}
 
 	/**
@@ -475,52 +630,86 @@ namespace MML
 	 *
 	 * Example:
 	 * @code
-	 *   auto result = Integrate(f, 0.0, 1.0, SIMPSON, 1e-8);
+	 *   auto result = IntegrateCore(f, 0.0, 1.0, SIMPSON, 1e-8);
 	 *   if (!result.converged) { ... }
 	 * @endcode
 	 */
-	static IntegrationResult Integrate(const IRealFunction& func, Real a, Real b,
+	static IntegrationResult IntegrateCore(const IRealFunction& func, Real a, Real b,
 	                                   IntegrationMethod method = TRAP,
 	                                   Real eps = Defaults::TrapezoidIntegrationEPS)
 	{
 		switch (method)
 		{
 		case TRAP:
-			return IntegrateTrap(func, a, b, eps);
+			return IntegrateTrapCore(func, a, b, eps);
 		case SIMPSON:
-			return IntegrateSimpson(func, a, b, eps);
+			return IntegrateSimpsonCore(func, a, b, eps);
 		case ROMBERG:
-			return IntegrateRomberg(func, a, b, eps);
+			return IntegrateRombergCore(func, a, b, eps);
 		case GAUSS10:
-			return IntegrateGauss10(func, a, b);
+			return IntegrateGauss10Core(func, a, b);
 		case GAUSS10KRONROD21:
-			return IntegrateGK21(func, a, b);
+			return IntegrateGK21Core(func, a, b);
 		default:
-			return IntegrateTrap(func, a, b, eps);
+			return IntegrateTrapCore(func, a, b, eps);
 		}
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	static auto IntegrateDetailed(const IRealFunction& func, Real a, Real b, IntegrationMethod method, Real eps)
+	{
+		auto r = IntegrateCore(func, a, b, method, eps);
+		r.algorithm_name = "Integrate";
+		return r;
+	}
+
+	static Real Integrate(const IRealFunction& func, Real a, Real b,
+	                                   IntegrationMethod method = TRAP,
+	                                   Real eps = Defaults::TrapezoidIntegrationEPS)
+	{
+		return IntegrateCore(func, a, b, method, eps).ValueOrThrow("Integrate");
 	}
 
 	template<RealFunctionCallable Function>
 		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-	static IntegrationResult Integrate(Function&& func, Real a, Real b,
+	static IntegrationResult IntegrateCore(Function&& func, Real a, Real b,
 		IntegrationMethod method = TRAP,
 		Real eps = Defaults::TrapezoidIntegrationEPS)
 	{
 		switch (method)
 		{
 		case TRAP:
-			return IntegrateTrap(std::forward<Function>(func), a, b, eps);
+			return IntegrateTrapCore(std::forward<Function>(func), a, b, eps);
 		case SIMPSON:
-			return IntegrateSimpson(std::forward<Function>(func), a, b, eps);
+			return IntegrateSimpsonCore(std::forward<Function>(func), a, b, eps);
 		case ROMBERG:
-			return IntegrateRomberg(std::forward<Function>(func), a, b, eps);
+			return IntegrateRombergCore(std::forward<Function>(func), a, b, eps);
 		case GAUSS10:
-			return IntegrateGauss10(std::forward<Function>(func), a, b);
+			return IntegrateGauss10Core(std::forward<Function>(func), a, b);
 		case GAUSS10KRONROD21:
-			return IntegrateGK21(std::forward<Function>(func), a, b);
+			return IntegrateGK21Core(std::forward<Function>(func), a, b);
 		default:
-			return IntegrateTrap(std::forward<Function>(func), a, b, eps);
+			return IntegrateTrapCore(std::forward<Function>(func), a, b, eps);
 		}
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static auto IntegrateDetailed(Function&& func, Real a, Real b, IntegrationMethod method, Real eps)
+	{
+		auto r = IntegrateCore(std::forward<Function>(func), a, b, method, eps);
+		r.algorithm_name = "Integrate";
+		return r;
+	}
+
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static Real Integrate(Function&& func, Real a, Real b,
+		IntegrationMethod method = TRAP,
+		Real eps = Defaults::TrapezoidIntegrationEPS)
+	{
+		return IntegrateCore(std::forward<Function>(func), a, b, method, eps).ValueOrThrow("Integrate");
 	}
 
 	/**
@@ -542,40 +731,74 @@ namespace MML
 	 * @endcode
 	 */
 	template<IntegrationMethod Method = TRAP>
-	static IntegrationResult Integrate(const IRealFunction& func, Real a, Real b,
+	static IntegrationResult IntegrateCore(const IRealFunction& func, Real a, Real b,
 	                                   Real eps = Defaults::TrapezoidIntegrationEPS)
 	{
 		if constexpr (Method == TRAP)
-			return IntegrateTrap(func, a, b, eps);
+			return IntegrateTrapCore(func, a, b, eps);
 		else if constexpr (Method == SIMPSON)
-			return IntegrateSimpson(func, a, b, eps);
+			return IntegrateSimpsonCore(func, a, b, eps);
 		else if constexpr (Method == ROMBERG)
-			return IntegrateRomberg(func, a, b, eps);
+			return IntegrateRombergCore(func, a, b, eps);
 		else if constexpr (Method == GAUSS10)
-			return IntegrateGauss10(func, a, b);
+			return IntegrateGauss10Core(func, a, b);
 		else if constexpr (Method == GAUSS10KRONROD21)
-			return IntegrateGK21(func, a, b);
+			return IntegrateGK21Core(func, a, b);
 		else
-			return IntegrateTrap(func, a, b, eps);
+			return IntegrateTrapCore(func, a, b, eps);
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	template<IntegrationMethod Method = TRAP>
+	static auto IntegrateDetailed(const IRealFunction& func, Real a, Real b, Real eps)
+	{
+		auto r = IntegrateCore<Method>(func, a, b, eps);
+		r.algorithm_name = "Integrate";
+		return r;
+	}
+
+	template<IntegrationMethod Method = TRAP>
+	static Real Integrate(const IRealFunction& func, Real a, Real b,
+	                                   Real eps = Defaults::TrapezoidIntegrationEPS)
+	{
+		return IntegrateCore<Method>(func, a, b, eps).ValueOrThrow("Integrate");
 	}
 
 	template<IntegrationMethod Method = TRAP, class Function>
 		requires RealFunctionCallable<Function> && (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-	static IntegrationResult Integrate(Function&& func, Real a, Real b,
+	static IntegrationResult IntegrateCore(Function&& func, Real a, Real b,
 		Real eps = Defaults::TrapezoidIntegrationEPS)
 	{
 		if constexpr (Method == TRAP)
-			return IntegrateTrap(std::forward<Function>(func), a, b, eps);
+			return IntegrateTrapCore(std::forward<Function>(func), a, b, eps);
 		else if constexpr (Method == SIMPSON)
-			return IntegrateSimpson(std::forward<Function>(func), a, b, eps);
+			return IntegrateSimpsonCore(std::forward<Function>(func), a, b, eps);
 		else if constexpr (Method == ROMBERG)
-			return IntegrateRomberg(std::forward<Function>(func), a, b, eps);
+			return IntegrateRombergCore(std::forward<Function>(func), a, b, eps);
 		else if constexpr (Method == GAUSS10)
-			return IntegrateGauss10(std::forward<Function>(func), a, b);
+			return IntegrateGauss10Core(std::forward<Function>(func), a, b);
 		else if constexpr (Method == GAUSS10KRONROD21)
-			return IntegrateGK21(std::forward<Function>(func), a, b);
+			return IntegrateGK21Core(std::forward<Function>(func), a, b);
 		else
-			return IntegrateTrap(std::forward<Function>(func), a, b, eps);
+			return IntegrateTrapCore(std::forward<Function>(func), a, b, eps);
+	}
+
+	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+	template<IntegrationMethod Method = TRAP, class Function>
+		requires RealFunctionCallable<Function> && (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static auto IntegrateDetailed(Function&& func, Real a, Real b, Real eps)
+	{
+		auto r = IntegrateCore<Method>(std::forward<Function>(func), a, b, eps);
+		r.algorithm_name = "Integrate";
+		return r;
+	}
+
+	template<IntegrationMethod Method = TRAP, class Function>
+		requires RealFunctionCallable<Function> && (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static Real Integrate(Function&& func, Real a, Real b,
+		Real eps = Defaults::TrapezoidIntegrationEPS)
+	{
+		return IntegrateCore<Method>(std::forward<Function>(func), a, b, eps).ValueOrThrow("Integrate");
 	}
 
 	/******************************************************************************/
@@ -586,19 +809,10 @@ namespace MML
 	/// failure status when the underlying method did not converge.
 	namespace IntegrationDetail
 	{
-		inline void PopulateFromSimple(IntegrationDetailedResult& out,
-		                               const IntegrationResult& r,
-		                               const char* algorithm_name)
+		/// @deprecated Thin alias of Adopt (kept for the single-header manifest order).
+		inline void PopulateFromSimple(IntegrationResult& out, const IntegrationResult& r, const char* algorithm_name)
 		{
-			out.value = r.value;
-			out.error_estimate = r.error_estimate;
-			out.iterations = r.iterations;
-			out.converged = r.converged;
-			if (!r.converged) {
-				out.status = AlgorithmStatus::MaxIterationsExceeded;
-				out.error_message = std::string(algorithm_name) +
-					" did not converge after " + std::to_string(r.iterations) + " iterations";
-			}
+			Adopt(out, r, algorithm_name);
 		}
 	} // namespace IntegrationDetail
 
@@ -611,7 +825,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateTrap", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateTrap(func, a, b, eps);
+				auto r = IntegrateTrapCore(func, a, b, eps);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateTrap");
 			});
 	}
@@ -625,7 +839,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateSimpson", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateSimpson(func, a, b, eps);
+				auto r = IntegrateSimpsonCore(func, a, b, eps);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateSimpson");
 			});
 	}
@@ -639,7 +853,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateRomberg", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateRomberg(func, a, b, eps);
+				auto r = IntegrateRombergCore(func, a, b, eps);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateRomberg");
 			});
 	}
@@ -652,7 +866,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateGauss10", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateGauss10(func, a, b);
+				auto r = IntegrateGauss10Core(func, a, b);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateGauss10");
 				result.function_evaluations = 10;
 			});
@@ -666,7 +880,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateGK21", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateGK21(func, a, b);
+				auto r = IntegrateGK21Core(func, a, b);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateGK21");
 				result.function_evaluations = 21;
 			});

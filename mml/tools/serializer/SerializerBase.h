@@ -14,12 +14,17 @@
 
 #include <mml/MMLBase.h>
 #include <mml/tools/IOResult.h>
+#include <mml/tools/TextIOFormat.h>
 
 #include <fstream>
 #include <iomanip>
+#include <ios>
+#include <limits>
+#include <locale>
 #include <cstddef>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace MML
@@ -54,6 +59,42 @@ namespace MML
 	namespace Serializer
 	{
 		//===================================================================================
+		// Stream hygiene helpers used by every serializer
+		//===================================================================================
+		namespace detail
+		{
+			/// @brief Put a text stream into the one format MML files are defined in:
+			/// classic "C" locale (a '.' decimal point and no thousands grouping regardless of the
+			/// process locale) and round-trip precision for Real by default.
+			/// Without this, a program running under e.g. a German locale writes "3,14" and every
+			/// reader in MML and the visualizers rejects or misparses the file (analysis v4, TOOLS T1).
+			inline void ApplyTextFormat(std::ios& stream, int precision = std::numeric_limits<Real>::max_digits10)
+			{
+				TextIO::ApplyClassicFormat(stream, precision);
+			}
+
+			/// @brief Success result unless the stream has failed. Standard streams do not throw by
+			/// default, so a try/catch around `<<` never fires; the state bits are the real signal.
+			inline IOResult StreamResult(const std::ostream& out, std::string successMessage = "Success") {
+				if (!out)
+					return {false, IOError::WRITE_FAILED, "Stream write failed (failbit/badbit set)"};
+				return {true, IOError::OK, std::move(successMessage)};
+			}
+
+			/// @brief Flush and close an output file, reporting any failure that the writes left
+			/// behind or that close() itself produced (disk full, removed media, closed handle).
+			inline IOResult FinishFile(std::ofstream& file, const std::string& fileName, std::string successMessage = "Success") {
+				return FinishOutputFile(file, fileName, SerializeSuccess(std::move(successMessage)));
+			}
+
+			/// @brief FinishFile for the "open file, delegate to stream version" wrappers:
+			/// a failed delegate result is returned as-is, otherwise the file is flushed/closed and checked.
+			inline IOResult FinishFile(std::ofstream& file, const std::string& fileName, const IOResult& delegateResult) {
+				return FinishOutputFile(file, fileName, delegateResult);
+			}
+		} // namespace detail
+
+		//===================================================================================
 		// Header writers - common utilities used by other serializer modules
 		//===================================================================================
 
@@ -68,10 +109,8 @@ namespace MML
 		}
 
 		/// @brief Write header for real function data file
-		/// @return SerializeResult with success flag and error details
-		inline SerializeResult WriteRealFuncHeader(std::ostream& out, std::string type, std::string title,
-												   Real x1, Real x2, int numPoints)
-		{
+		/// @return IOResult with success flag and error details
+		inline IOResult WriteRealFuncHeader(std::ostream& out, std::string type, std::string title, Real x1, Real x2, int numPoints) {
 			try
 			{
 				out << type << std::endl;
@@ -80,19 +119,18 @@ namespace MML
 				out << "x1: " << x1 << std::endl; 
 				out << "x2: " << x2 << std::endl;
 				out << "NumPoints: " << numPoints << std::endl;
-				return {true, SerializeError::OK, "Success"};
+				return detail::StreamResult(out);
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
+				return {false, IOError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
 			}
 		}
 
 		/// @brief Write header for multi-function data file
-		/// @return SerializeResult with success flag and error details
-		inline SerializeResult WriteRealMultiFuncHeader(std::ostream& out, std::string title, int numFuncs,
-														std::vector<std::string> legend, Real x1, Real x2, int numPoints)
-		{
+		/// @return IOResult with success flag and error details
+		inline IOResult WriteRealMultiFuncHeader(std::ostream& out, std::string title, int numFuncs, std::vector<std::string> legend, Real x1,
+																						 Real x2, int numPoints) {
 			try
 			{
 				out << SerializeFormatType::MULTI_REAL_FUNCTION << std::endl;
@@ -104,19 +142,17 @@ namespace MML
 				out << "x1: " << x1 << std::endl;
 				out << "x2: " << x2 << std::endl;
 				out << "NumPoints: " << numPoints << std::endl;
-				return {true, SerializeError::OK, "Success"};
+				return detail::StreamResult(out);
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
+				return {false, IOError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
 			}
 		}
 
 		/// @brief Write header for parametric curve data file
-		/// @return SerializeResult with success flag and error details
-		inline SerializeResult WriteParamCurveHeader(std::ostream& out, std::string type, std::string title,
-													 Real t1, Real t2, int numPoints)
-		{
+		/// @return IOResult with success flag and error details
+		inline IOResult WriteParamCurveHeader(std::ostream& out, std::string type, std::string title, Real t1, Real t2, int numPoints) {
 			try
 			{
 				out << type << std::endl;
@@ -126,54 +162,49 @@ namespace MML
 				out << "t1: " << t1 << std::endl;
 				out << "t2: " << t2 << std::endl;
 				out << "NumPoints: " << numPoints << std::endl;
-				return {true, SerializeError::OK, "Success"};
+				return detail::StreamResult(out);
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
+				return {false, IOError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
 			}
 		}
 
 		/// @brief Write header for vector field data file
-		/// @return SerializeResult with success flag and error details
-		inline SerializeResult WriteVectorFieldHeader(std::ostream& out, const std::string& type, const std::string& title)
-		{
+		/// @return IOResult with success flag and error details
+		inline IOResult WriteVectorFieldHeader(std::ostream& out, const std::string& type, const std::string& title) {
 			try
 			{
 				out << type << std::endl;
 				out << "VERSION: " << SerializeFormatType::CURRENT_VERSION << std::endl;
 				out << SanitizeHeaderLine(title) << std::endl;
-				return {true, SerializeError::OK, "Success"};
+				return detail::StreamResult(out);
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
+				return {false, IOError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
 			}
 		}
 
 		/// @brief Write header for field lines data file
-		inline SerializeResult WriteFieldLinesHeader(std::ostream& out, const std::string& type,
-		                                              const std::string& title, int numLines)
-		{
+		inline IOResult WriteFieldLinesHeader(std::ostream& out, const std::string& type, const std::string& title, int numLines) {
 			try
 			{
 				out << type << std::endl;
 				out << "VERSION: " << SerializeFormatType::CURRENT_VERSION << std::endl;
 				out << "Title: " << SanitizeHeaderLine(title) << std::endl;
 				out << "NUM_LINES: " << numLines << std::endl;
-				return {true, SerializeError::OK, "Success"};
+				return detail::StreamResult(out);
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
+				return {false, IOError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
 			}
 		}
 
 		/// @brief Write header for parametric surface data file
-		inline SerializeResult WriteParametricSurfaceHeader(std::ostream& out, const std::string& title,
-		                                                     Real u1, Real u2, int numPointsU,
-		                                                     Real w1, Real w2, int numPointsW)
-		{
+		inline IOResult WriteParametricSurfaceHeader(std::ostream& out, const std::string& title, Real u1, Real u2, int numPointsU, Real w1,
+																								 Real w2, int numPointsW) {
 			try
 			{
 				out << SerializeFormatType::PARAMETRIC_SURFACE_CARTESIAN << std::endl;
@@ -185,19 +216,17 @@ namespace MML
 				out << "w1: " << w1 << std::endl;
 				out << "w2: " << w2 << std::endl;
 				out << "NumPointsW: " << numPointsW << std::endl;
-				return {true, SerializeError::OK, "Success"};
+				return detail::StreamResult(out);
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
+				return {false, IOError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
 			}
 		}
 
 		/// @brief Write header for a 2D scalar function data file
-		inline SerializeResult WriteScalarFunc2DHeader(std::ostream& out, const std::string& title,
-		                                               Real x1, Real x2, int numPointsX,
-		                                               Real y1, Real y2, int numPointsY)
-		{
+		inline IOResult WriteScalarFunc2DHeader(std::ostream& out, const std::string& title, Real x1, Real x2, int numPointsX, Real y1, Real y2,
+																						int numPointsY) {
 			try
 			{
 				out << SerializeFormatType::SCALAR_FUNCTION_CARTESIAN_2D << std::endl;
@@ -209,20 +238,17 @@ namespace MML
 				out << "y1: " << y1 << std::endl;
 				out << "y2: " << y2 << std::endl;
 				out << "NumPointsY: " << numPointsY << std::endl;
-				return {true, SerializeError::OK, "Success"};
+				return detail::StreamResult(out);
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
+				return {false, IOError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
 			}
 		}
 
 		/// @brief Write header for a 3D scalar function data file
-		inline SerializeResult WriteScalarFunc3DHeader(std::ostream& out, const std::string& title,
-		                                               Real x1, Real x2, int numPointsX,
-		                                               Real y1, Real y2, int numPointsY,
-		                                               Real z1, Real z2, int numPointsZ)
-		{
+		inline IOResult WriteScalarFunc3DHeader(std::ostream& out, const std::string& title, Real x1, Real x2, int numPointsX, Real y1, Real y2,
+																						int numPointsY, Real z1, Real z2, int numPointsZ) {
 			try
 			{
 				out << SerializeFormatType::SCALAR_FUNCTION_CARTESIAN_3D << std::endl;
@@ -237,21 +263,18 @@ namespace MML
 				out << "z1: " << z1 << std::endl;
 				out << "z2: " << z2 << std::endl;
 				out << "NumPointsZ: " << numPointsZ << std::endl;
-				return {true, SerializeError::OK, "Success"};
+				return detail::StreamResult(out);
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
+				return {false, IOError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
 			}
 		}
 
 		/// @brief Write header for a 2D particle simulation data file
-		inline SerializeResult WriteParticleSimulation2DHeader(std::ostream& out, int numBalls,
-		                                                       Real width, Real height,
-		                                                       const std::vector<std::string>& ballColors,
-		                                                       const std::vector<Real>& ballRadius,
-		                                                       int numSteps)
-		{
+		inline IOResult WriteParticleSimulation2DHeader(std::ostream& out, int numBalls, Real width, Real height,
+																										const std::vector<std::string>& ballColors, const std::vector<Real>& ballRadius,
+																										int numSteps) {
 			try
 			{
 				out << SerializeFormatType::PARTICLE_SIMULATION_DATA_2D << std::endl;
@@ -262,21 +285,18 @@ namespace MML
 				for (int i = 0; i < numBalls; i++)
 					out << "Ball_" << i + 1 << " " << ballColors[i] << " " << ballRadius[i] << std::endl;
 				out << "NumSteps: " << numSteps << std::endl;
-				return {true, SerializeError::OK, "Success"};
+				return detail::StreamResult(out);
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
+				return {false, IOError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
 			}
 		}
 
 		/// @brief Write header for a 3D particle simulation data file
-		inline SerializeResult WriteParticleSimulation3DHeader(std::ostream& out, int numBalls,
-		                                                       Real width, Real height, Real depth,
-		                                                       const std::vector<std::string>& ballColors,
-		                                                       const std::vector<Real>& ballRadius,
-		                                                       int numSteps)
-		{
+		inline IOResult WriteParticleSimulation3DHeader(std::ostream& out, int numBalls, Real width, Real height, Real depth,
+																										const std::vector<std::string>& ballColors, const std::vector<Real>& ballRadius,
+																										int numSteps) {
 			try
 			{
 				out << SerializeFormatType::PARTICLE_SIMULATION_DATA_3D << std::endl;
@@ -288,11 +308,11 @@ namespace MML
 				for (int i = 0; i < numBalls; i++)
 					out << "Ball_" << i + 1 << " " << ballColors[i] << " " << ballRadius[i] << std::endl;
 				out << "NumSteps: " << numSteps << std::endl;
-				return {true, SerializeError::OK, "Success"};
+				return detail::StreamResult(out);
 			}
 			catch (const std::exception& e)
 			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
+				return {false, IOError::WRITE_FAILED, std::string("Header write error: ") + e.what()};
 			}
 		}
 

@@ -48,7 +48,7 @@ namespace MML::Tests::Core::Derivation::ForwardADTests
     {
         auto cubic = [](auto x) { return x * x * x - 2.0 * x + 1.0; };
 
-        auto [value, deriv] = derivative(cubic, 2.0);
+        auto [value, deriv] = CalcDerivativeForwardAD(cubic, 2.0);
 
         REQUIRE(value == Catch::Approx(5.0));
         REQUIRE(deriv == Catch::Approx(10.0));
@@ -60,7 +60,7 @@ namespace MML::Tests::Core::Derivation::ForwardADTests
             return v[0] * v[0] + v[0] * v[1] + v[1] * v[1];
         };
 
-        auto grad = gradient(quadratic, std::vector<double>{2.0, 3.0});
+        auto grad = CalcGradientForwardAD(quadratic, std::vector<double>{2.0, 3.0});
 
         REQUIRE(grad.size() == 2);
         REQUIRE(grad[0] == Catch::Approx(7.0));

@@ -254,7 +254,7 @@ namespace MML
 			for (int j = 1; j < 1000000; ++j) {
 				term = std::pow((double)j, -(double)n);
 				zeta += term;
-				if (term < 1e-18 * zeta) break;
+				if (term < PrecisionValues<double>::Eps * zeta) break;   // series converged to double roundoff
 			}
 			const double pi = std::acos(-1.0);
 			double logMag = std::log(2.0) + std::lgamma((double)n + 1.0) + std::log(zeta)

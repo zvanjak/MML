@@ -30,7 +30,7 @@ namespace CompGeometry {
 	///          additional algorithms like ray-triangle intersection.
 	class Intersections {
 	private:
-		static constexpr Real EPSILON = Constants::GEOMETRY_EPSILON;
+		static constexpr Real EPSILON = Precision::GeometryEpsilon;
 
 	public:
 		// ========================================================================

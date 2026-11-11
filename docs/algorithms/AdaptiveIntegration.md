@@ -25,7 +25,7 @@ fewer evaluations in smooth regions.
 using namespace MML::Integration;
 
 // Simple API
-auto result = IntegrateAdaptive2D(
+auto result = IntegrateAdaptive2DDetailed(
     [](Real x, Real y) { return x * y; },  // Function to integrate
     0.0, 1.0,                               // x bounds [x1, x2]
     0.0, 1.0,                               // y bounds [y1, y2]
@@ -39,13 +39,13 @@ config.absoluteTolerance(1e-10)
       .maxDepth(20)
       .maxEvaluations(1000000);
 
-auto result = IntegrateAdaptive2D(f, x1, x2, y1, y2, config);
+auto result = IntegrateAdaptive2DDetailed(f, x1, x2, y1, y2, config);
 ```
 
 ### 3D Integration
 
 ```cpp
-auto result = IntegrateAdaptive3D(
+auto result = IntegrateAdaptive3DDetailed(
     [](Real x, Real y, Real z) { return x * y * z; },
     0.0, 1.0,     // x bounds
     0.0, 1.0,     // y bounds
@@ -141,7 +141,7 @@ int main() {
     // ∬ x*y dx dy over [0,1]² = 0.25
     auto f = [](Real x, Real y) { return x * y; };
     
-    auto result = IntegrateAdaptive2D(f, 0.0, 1.0, 0.0, 1.0, 1e-10);
+    auto result = IntegrateAdaptive2DDetailed(f, 0.0, 1.0, 0.0, 1.0, 1e-10);
     
     std::cout << "Integral: " << result.value << "\n";           // 0.25
     std::cout << "Error: " << result.error_estimate << "\n";     // ~1e-15
@@ -162,7 +162,7 @@ auto peak = [](Real x, Real y) {
     return std::exp(-100.0 * (dx*dx + dy*dy));
 };
 
-auto result = IntegrateAdaptive2D(peak, 0.0, 1.0, 0.0, 1.0, 1e-6);
+auto result = IntegrateAdaptive2DDetailed(peak, 0.0, 1.0, 0.0, 1.0, 1e-6);
 
 // Adaptive concentrates evaluations near the peak
 std::cout << "Cells subdivided: " << result.cells_subdivided << "\n";
@@ -180,7 +180,7 @@ evaluations than uniform grids while achieving the same accuracy.
 
 auto divergence = [](Real x, Real y, Real z) { return 3.0; };
 
-auto result = IntegrateAdaptive3D(divergence, 
+auto result = IntegrateAdaptive3DDetailed(divergence, 
                                   0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1e-8);
 
 std::cout << "Volume integral of divergence: " << result.value << "\n";  // 3.0
@@ -195,7 +195,7 @@ auto sphere_indicator = [](Real x, Real y, Real z) {
     return (x*x + y*y + z*z <= 1.0) ? 1.0 : 0.0;
 };
 
-auto result = IntegrateAdaptive3D(sphere_indicator,
+auto result = IntegrateAdaptive3DDetailed(sphere_indicator,
                                   -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1e-3);
 
 std::cout << "Sphere volume: " << result.value << "\n";  // ~4.189

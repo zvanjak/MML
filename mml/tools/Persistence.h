@@ -17,6 +17,7 @@
 #include <mml/tools/persistence/VectorBinary.h>
 #include <mml/tools/persistence/MatrixBinary.h>
 #include <mml/tools/persistence/VectorJSON.h>
+#include <mml/tools/persistence/VectorIO.h>
 #include <mml/tools/persistence/MatrixJSON.h>
 #include <mml/tools/persistence/FunctionJSON.h>
 #include <mml/tools/persistence/MatrixIO.h>

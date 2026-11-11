@@ -31,6 +31,7 @@
 #define MML_IDYNAMICALSYSTEM_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
 #include <mml/interfaces/IODESystem.h>
@@ -53,7 +54,7 @@ namespace MML
 	/// - State variable metadata
 	/// - Optional analytical Jacobian
 	/// - System property flags
-	class IDynamicalSystem : public IODESystemParametrized {
+	class IDynamicalSystem : public IODESystemParametrized, public IODESystemWithJacobian {
 	public:
 		virtual ~IDynamicalSystem() = default;
 
@@ -69,7 +70,7 @@ namespace MML
 
 		/** @brief Get valid range for parameter */
 		virtual std::pair<Real, Real> getParamRange(int i) const {
-			return {REAL(-1e10), REAL(1e10)}; // Default: no restriction
+			return {-Precision::UnboundedIntervalSamplingLimit, Precision::UnboundedIntervalSamplingLimit}; // Default: no restriction
 		}
 
 		/** @brief Get default initial condition */
@@ -79,14 +80,16 @@ namespace MML
 		// JACOBIAN
 		//=========================================================================
 
-		/** @brief Does system provide analytical Jacobian? */
-		virtual bool hasAnalyticalJacobian() const { return false; }
+		/** @brief Does system provide analytical Jacobian? Default: no - jacobian() below is finite differences. */
+		bool hasAnalyticalJacobian() const override { return false; }
 
-		/** @brief Compute Jacobian matrix at point (x, t) */
-		virtual void jacobian(Real t, const Vector<Real>& x, Matrix<Real>& J) const {
+		/** @brief Compute Jacobian matrix at point (x, t) - the IODESystemWithJacobian contract.
+		 *  Default: central finite differences of derivs(); override with the analytic form and
+		 *  return true from hasAnalyticalJacobian(). */
+		void jacobian(Real t, const Vector<Real>& x, Matrix<Real>& J) const override {
 			// Default: numerical Jacobian via finite differences
 			int n = getDim();
-			J.Resize(n, n);
+			J.resize(n, n);
 			Vector<Real> f1(n), f2(n), xp(x);
 
 			Real eps = std::sqrt(std::numeric_limits<Real>::epsilon());

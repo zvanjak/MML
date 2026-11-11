@@ -23,6 +23,7 @@
 #define MML_INTERPOLATION_2D_FUNCTION_H
 
 #include <vector>
+#include <algorithm>
 
 #include <mml/MMLBase.h>
 #include <mml/MMLExceptions.h>

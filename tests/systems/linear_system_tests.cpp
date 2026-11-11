@@ -354,9 +354,9 @@ TEST_CASE("LinearSystem - Dimension Properties", "[LinearSystem][Properties]")
 TEST_CASE("LinearSystem - MML 2.0 MatrixAnalyzer forwarding", "[LinearSystem][MatrixAnalyzer][MML2]")
 {
 	const Matrix<Real> matrix{3, 2, {
-		REAL(1.0), REAL(2.0),
-		REAL(2.0), REAL(4.0),
-		REAL(3.0), REAL(6.0)
+		static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+		static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0),
+		static_cast<MML::Real>(3.0), static_cast<MML::Real>(6.0)
 	}};
 	LinearSystem<Real> system(matrix);
 	MatrixAnalyzer<Real> analyzer(matrix);
@@ -631,13 +631,13 @@ TEST_CASE("LinearSystem - Comprehensive Analysis", "[LinearSystem][Analysis]")
 TEST_CASE("LinearSystem - MML 2.0 RHS-aware solution classification", "[LinearSystem][Analysis][MML2]")
 {
 	const Matrix<Real> rankDeficient{2, 2, {
-		REAL(1.0), REAL(1.0),
-		REAL(2.0), REAL(2.0)
+		static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0),
+		static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0)
 	}};
 
 	SECTION("Unique solution")
 	{
-		LinearSystem<Real> system(Matrix<Real>::Identity(2), Vector<Real>{REAL(1.0), REAL(2.0)});
+		LinearSystem<Real> system(Matrix<Real>::Identity(2), Vector<Real>{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)});
 		const auto analysis = system.Analyze();
 		REQUIRE(analysis.solutionStatuses == std::vector<SolutionStatus>{SolutionStatus::Unique});
 		REQUIRE(analysis.recommendedSolver == LinearSolverRecommendation::Triangular);
@@ -646,14 +646,14 @@ TEST_CASE("LinearSystem - MML 2.0 RHS-aware solution classification", "[LinearSy
 
 	SECTION("Infinite solutions")
 	{
-		LinearSystem<Real> system(rankDeficient, Vector<Real>{REAL(1.0), REAL(2.0)});
+		LinearSystem<Real> system(rankDeficient, Vector<Real>{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)});
 		const auto analysis = system.Analyze();
 		REQUIRE(analysis.solutionStatuses == std::vector<SolutionStatus>{SolutionStatus::Infinite});
 	}
 
 	SECTION("Inconsistent system")
 	{
-		LinearSystem<Real> system(rankDeficient, Vector<Real>{REAL(1.0), REAL(3.0)});
+		LinearSystem<Real> system(rankDeficient, Vector<Real>{static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0)});
 		const auto analysis = system.Analyze();
 		REQUIRE(analysis.solutionStatuses == std::vector<SolutionStatus>{SolutionStatus::Inconsistent});
 	}
@@ -661,8 +661,8 @@ TEST_CASE("LinearSystem - MML 2.0 RHS-aware solution classification", "[LinearSy
 	SECTION("Multiple RHS reports mixed statuses")
 	{
 		const Matrix<Real> rightHandSides{2, 2, {
-			REAL(1.0), REAL(1.0),
-			REAL(2.0), REAL(3.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)
 		}};
 		LinearSystem<Real> system(rankDeficient, rightHandSides);
 		const auto analysis = system.Analyze();
@@ -673,8 +673,8 @@ TEST_CASE("LinearSystem - MML 2.0 RHS-aware solution classification", "[LinearSy
 	SECTION("Multiple RHS reports common status")
 	{
 		const Matrix<Real> rightHandSides{2, 2, {
-			REAL(1.0), REAL(2.0),
-			REAL(2.0), REAL(4.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0),
+			static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0)
 		}};
 		LinearSystem<Real> system(rankDeficient, rightHandSides);
 		const auto analysis = system.Analyze();
@@ -685,10 +685,10 @@ TEST_CASE("LinearSystem - MML 2.0 RHS-aware solution classification", "[LinearSy
 	SECTION("Wide full-row-rank systems recommend SVD")
 	{
 		const Matrix<Real> wide{2, 3, {
-			REAL(1.0), REAL(0.0), REAL(0.0),
-			REAL(0.0), REAL(1.0), REAL(0.0)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)
 		}};
-		LinearSystem<Real> system(wide, Vector<Real>{REAL(1.0), REAL(2.0)});
+		LinearSystem<Real> system(wide, Vector<Real>{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)});
 		const auto analysis = system.Analyze();
 		REQUIRE(analysis.solutionStatuses == std::vector<SolutionStatus>{SolutionStatus::Infinite});
 		REQUIRE(analysis.recommendedSolver == LinearSolverRecommendation::SVD);
@@ -697,10 +697,10 @@ TEST_CASE("LinearSystem - MML 2.0 RHS-aware solution classification", "[LinearSy
 	SECTION("Ill-conditioned systems recommend SVD")
 	{
 		const Matrix<Real> illConditioned{2, 2, {
-			REAL(1.0), REAL(1.0),
-			REAL(1.0), REAL(1.0) + REAL(1e-9)
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0),
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0) + static_cast<MML::Real>(1e-9)
 		}};
-		LinearSystem<Real> system(illConditioned, Vector<Real>{REAL(2.0), REAL(2.0) + REAL(1e-9)});
+		LinearSystem<Real> system(illConditioned, Vector<Real>{static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0) + static_cast<MML::Real>(1e-9)});
 		REQUIRE(system.Analyze().recommendedSolver == LinearSolverRecommendation::SVD);
 	}
 
@@ -708,12 +708,12 @@ TEST_CASE("LinearSystem - MML 2.0 RHS-aware solution classification", "[LinearSy
 	{
 		const Real smallPivot = TOL(1e-8, 5e-7);
 		const Matrix<Real> nearlyRankDeficient{2, 2, {
-			REAL(1.0), REAL(0.0),
-			REAL(0.0), smallPivot
+			static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(0.0), smallPivot
 		}};
-		LinearSystem<Real> system(nearlyRankDeficient, Vector<Real>{REAL(1.0), smallPivot});
+		LinearSystem<Real> system(nearlyRankDeficient, Vector<Real>{static_cast<MML::Real>(1.0), smallPivot});
 		REQUIRE(system.Analyze().solutionStatuses == std::vector<SolutionStatus>{SolutionStatus::Unique});
-		const auto truncated = system.Analyze(REAL(1e-6));
+		const auto truncated = system.Analyze(static_cast<MML::Real>(1e-6));
 		REQUIRE(truncated.solutionStatuses == std::vector<SolutionStatus>{SolutionStatus::Infinite});
 		REQUIRE(truncated.recommendedSolver == LinearSolverRecommendation::SVD);
 	}

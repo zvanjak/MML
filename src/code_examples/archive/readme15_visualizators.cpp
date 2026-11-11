@@ -1,3 +1,4 @@
+#include "test_data/parametric_curves_defs.h"
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
@@ -59,7 +60,7 @@ void Readme_Parametric_curve_visualization()
 {
     // using predefine 3D curves for visualization example
     Curves::HelixCurve              helix(20.0, 2.0);
-    Curves::ToroidalSpiralCurve     toroid(Real{20.0});
+    MML::TestBeds::ShowcaseCurves::ToroidalSpiralCurve     toroid(Real{20.0});
     
     Visualizer::VisualizeParamCurve3D(helix, "helix" , -50.0, 50.0, 1000, "readme_curve_helix.mml");
     Visualizer::VisualizeParamCurve3D(toroid, "toroid", 0.0, 2 * Constants::PI, 5000, "readme_curve_toroid.mml");

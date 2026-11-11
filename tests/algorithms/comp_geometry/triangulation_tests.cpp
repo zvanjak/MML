@@ -34,7 +34,7 @@ TEST_CASE("EarClipTriangulation - Triangle", "[ComputationalGeometry][Triangulat
     auto triangles = MML::CompGeometry::Triangulation::EarClipTriangulation(triangle);
     
     REQUIRE(triangles.size() == 1);
-    REQUIRE_THAT(triangles[0].Area(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(triangles[0].Area(), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("EarClipTriangulation - Convex quadrilateral", "[ComputationalGeometry][Triangulation]")
@@ -55,7 +55,7 @@ TEST_CASE("EarClipTriangulation - Convex quadrilateral", "[ComputationalGeometry
     for (const auto& tri : triangles)
         totalArea += tri.Area();
     
-    REQUIRE_THAT(totalArea, WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(totalArea, WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("EarClipTriangulation - Concave polygon (L-shape)", "[ComputationalGeometry][Triangulation]")
@@ -553,9 +553,9 @@ TEST_CASE("DelaunayTriangulation - Co-circular points", "[ComputationalGeometry]
 TEST_CASE("RobustPredicates - exact orientation survives cancellation", "[ComputationalGeometry][Predicates]")
 {
     const Real epsilon = std::numeric_limits<Real>::epsilon();
-    const Point2Cartesian a(REAL(0.0), REAL(0.0));
-    const Point2Cartesian b(REAL(1.0), REAL(1.0) + epsilon);
-    const Point2Cartesian c(REAL(1.0) + epsilon, REAL(1.0) + REAL(2.0) * epsilon);
+    const Point2Cartesian a(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+    const Point2Cartesian b(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0) + epsilon);
+    const Point2Cartesian c(static_cast<MML::Real>(1.0) + epsilon, static_cast<MML::Real>(1.0) + static_cast<MML::Real>(2.0) * epsilon);
 
     REQUIRE(MML::CompGeometry::RobustPredicates::Orientation2D(a, b, c) < 0);
     REQUIRE(MML::CompGeometry::RobustPredicates::Orientation2D(a, c, b) > 0);
@@ -563,12 +563,12 @@ TEST_CASE("RobustPredicates - exact orientation survives cancellation", "[Comput
 
 TEST_CASE("RobustPredicates - cocircular and adjacent representable points", "[ComputationalGeometry][Predicates]")
 {
-    const Point2Cartesian a(REAL(1.0), REAL(0.0));
-    const Point2Cartesian b(REAL(0.0), REAL(1.0));
-    const Point2Cartesian c(-REAL(1.0), REAL(0.0));
-    const Point2Cartesian onCircle(REAL(0.0), -REAL(1.0));
-    const Point2Cartesian inside(REAL(0.0), std::nextafter(-REAL(1.0), REAL(0.0)));
-    const Point2Cartesian outside(REAL(0.0), std::nextafter(-REAL(1.0), -std::numeric_limits<Real>::infinity()));
+    const Point2Cartesian a(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0));
+    const Point2Cartesian b(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0));
+    const Point2Cartesian c(-static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0));
+    const Point2Cartesian onCircle(static_cast<MML::Real>(0.0), -static_cast<MML::Real>(1.0));
+    const Point2Cartesian inside(static_cast<MML::Real>(0.0), std::nextafter(-static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)));
+    const Point2Cartesian outside(static_cast<MML::Real>(0.0), std::nextafter(-static_cast<MML::Real>(1.0), -std::numeric_limits<Real>::infinity()));
 
     REQUIRE(MML::CompGeometry::RobustPredicates::InCircle2D(a, b, c, onCircle) == 0);
     REQUIRE(MML::CompGeometry::RobustPredicates::InCircle2D(a, b, c, inside) > 0);
@@ -577,14 +577,14 @@ TEST_CASE("RobustPredicates - cocircular and adjacent representable points", "[C
 
 TEST_CASE("RobustPredicates - exact 3D orientation", "[ComputationalGeometry][Predicates]")
 {
-    const Point3Cartesian a(REAL(0.0), REAL(0.0), REAL(0.0));
-    const Point3Cartesian b(REAL(1.0), REAL(0.0), REAL(1.0));
-    const Point3Cartesian c(REAL(0.0), REAL(1.0), REAL(1.0));
-    const Point3Cartesian onPlane(REAL(0.25), REAL(0.25), REAL(0.5));
-    const Point3Cartesian above(REAL(0.25), REAL(0.25),
-        std::nextafter(REAL(0.5), REAL(1.0)));
-    const Point3Cartesian below(REAL(0.25), REAL(0.25),
-        std::nextafter(REAL(0.5), REAL(0.0)));
+    const Point3Cartesian a(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+    const Point3Cartesian b(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0));
+    const Point3Cartesian c(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0));
+    const Point3Cartesian onPlane(static_cast<MML::Real>(0.25), static_cast<MML::Real>(0.25), static_cast<MML::Real>(0.5));
+    const Point3Cartesian above(static_cast<MML::Real>(0.25), static_cast<MML::Real>(0.25),
+        std::nextafter(static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.0)));
+    const Point3Cartesian below(static_cast<MML::Real>(0.25), static_cast<MML::Real>(0.25),
+        std::nextafter(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.0)));
 
     REQUIRE(MML::CompGeometry::RobustPredicates::Orientation3D(a, b, c, onPlane) == 0);
     REQUIRE(MML::CompGeometry::RobustPredicates::Orientation3D(a, b, c, above) < 0);
@@ -593,15 +593,15 @@ TEST_CASE("RobustPredicates - exact 3D orientation", "[ComputationalGeometry][Pr
 
 TEST_CASE("RobustPredicates - cospherical and adjacent representable points", "[ComputationalGeometry][Predicates]")
 {
-    const Point3Cartesian a(REAL(0.0), REAL(0.0), REAL(0.0));
-    const Point3Cartesian b(REAL(0.0), REAL(1.0), REAL(0.0));
-    const Point3Cartesian c(REAL(1.0), REAL(0.0), REAL(0.0));
-    const Point3Cartesian d(REAL(0.0), REAL(0.0), REAL(1.0));
-    const Point3Cartesian onSphere(REAL(1.0), REAL(1.0), REAL(1.0));
-    const Point3Cartesian inside(REAL(1.0), REAL(1.0),
-        std::nextafter(REAL(1.0), REAL(0.0)));
-    const Point3Cartesian outside(REAL(1.0), REAL(1.0),
-        std::nextafter(REAL(1.0), REAL(2.0)));
+    const Point3Cartesian a(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+    const Point3Cartesian b(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0));
+    const Point3Cartesian c(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+    const Point3Cartesian d(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0));
+    const Point3Cartesian onSphere(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0));
+    const Point3Cartesian inside(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0),
+        std::nextafter(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)));
+    const Point3Cartesian outside(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0),
+        std::nextafter(static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)));
 
     REQUIRE(MML::CompGeometry::RobustPredicates::Orientation3D(a, b, c, d) > 0);
     REQUIRE(MML::CompGeometry::RobustPredicates::InSphere3D(a, b, c, d, onSphere) == 0);
@@ -612,14 +612,14 @@ TEST_CASE("RobustPredicates - cospherical and adjacent representable points", "[
 
 TEST_CASE("RobustPredicates - in-sphere survives overflow-prone translation", "[ComputationalGeometry][Predicates]")
 {
-    const Real base = std::is_same_v<Real, float> ? REAL(1e30) : REAL(1e155);
-    const Real scale = std::is_same_v<Real, float> ? REAL(1e24) : REAL(1e140);
+    const Real base = std::is_same_v<Real, float> ? static_cast<MML::Real>(1e30) : static_cast<MML::Real>(1e155);
+    const Real scale = std::is_same_v<Real, float> ? static_cast<MML::Real>(1e24) : static_cast<MML::Real>(1e140);
     const Point3Cartesian a(base, base, base);
     const Point3Cartesian b(base, base + scale, base);
     const Point3Cartesian c(base + scale, base, base);
     const Point3Cartesian d(base, base, base + scale);
-    const Point3Cartesian inside(base + scale / REAL(2.0),
-        base + scale / REAL(2.0), base + scale / REAL(2.0));
+    const Point3Cartesian inside(base + scale / static_cast<MML::Real>(2.0),
+        base + scale / static_cast<MML::Real>(2.0), base + scale / static_cast<MML::Real>(2.0));
 
     REQUIRE(MML::CompGeometry::RobustPredicates::Orientation3D(a, b, c, d) > 0);
     REQUIRE(MML::CompGeometry::RobustPredicates::InSphere3D(a, b, c, d, inside) > 0);

@@ -20,10 +20,10 @@ void Docs_Demo_AlgorithmTypes()
     
     // Algorithm status codes
     std::cout << "Algorithm status codes:" << std::endl;
-    std::cout << "  Success:              " << ToString(AlgorithmStatus::Success) << std::endl;
-    std::cout << "  MaxIterationsExceeded:" << ToString(AlgorithmStatus::MaxIterationsExceeded) << std::endl;
-    std::cout << "  NumericalInstability: " << ToString(AlgorithmStatus::NumericalInstability) << std::endl;
-    std::cout << "  SingularMatrix:       " << ToString(AlgorithmStatus::SingularMatrix) << std::endl;
+    std::cout << "  Success:              " << to_string(AlgorithmStatus::Success) << std::endl;
+    std::cout << "  MaxIterationsExceeded:" << to_string(AlgorithmStatus::MaxIterationsExceeded) << std::endl;
+    std::cout << "  NumericalInstability: " << to_string(AlgorithmStatus::NumericalInstability) << std::endl;
+    std::cout << "  SingularMatrix:       " << to_string(AlgorithmStatus::SingularMatrix) << std::endl;
     
     // Base algorithm configuration (ConfigBase)
     ConfigBase config;
@@ -43,7 +43,7 @@ void Docs_Demo_AlgorithmTypes()
     result.converged = true;
     
     std::cout << "\nAlgorithm result:" << std::endl;
-    std::cout << "  Status: " << ToString(result.status) << std::endl;
+    std::cout << "  Status: " << to_string(result.status) << std::endl;
     std::cout << "  Iterations: " << result.iterations_used << std::endl;
     std::cout << "  Final error: " << result.achieved_tolerance << std::endl;
     std::cout << "  Converged: " << (result.converged ? "Yes" : "No") << std::endl;

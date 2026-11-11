@@ -461,7 +461,7 @@ TEST_CASE("QR Least Squares on Overdetermined Systems", "[QR][LeastSquares]") {
         REQUIRE(x.IsEqualTo(sys._sol, 1e-10));
         
         // Verify normal equations: AᵀAx = Aᵀb
-        Matrix<Real> At = sys._mat.transpose();
+        Matrix<Real> At = sys._mat.Transposed();
         Matrix<Real> AtA = At * sys._mat;
         Vector<Real> Atb = At * sys._rhs;
         Vector<Real> AtAx = AtA * x;

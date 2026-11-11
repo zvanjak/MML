@@ -77,7 +77,7 @@ namespace MML::SparseMatrix
         
         /// @brief Construct from COO format (main construction path)
         explicit SparseMatrixCSR(SparseMatrixCOO<T>& coo) {
-            fromCOO(coo);
+            FromCOO(coo);
         }
         
         /// @brief Construct from raw CSR data (advanced)
@@ -95,7 +95,7 @@ namespace MML::SparseMatrix
         // ==================== Conversion from COO ====================
         
         /// @brief Build CSR from COO matrix
-        void fromCOO(SparseMatrixCOO<T>& coo) {
+        void FromCOO(SparseMatrixCOO<T>& coo) {
             rows_ = coo.rows();
             cols_ = coo.cols();
             
@@ -221,7 +221,7 @@ namespace MML::SparseMatrix
         // ==================== Matrix-Vector Operations ====================
         
         /// @brief Sparse matrix-vector product: y = A * x
-        void multiply(const std::vector<T>& x, std::vector<T>& y) const {
+        void Multiply(const std::vector<T>& x, std::vector<T>& y) const {
             if (static_cast<int>(x.size()) != cols_) {
                 throw VectorDimensionError("SparseMatrixCSR::multiply - vector size must match matrix cols", static_cast<int>(x.size()), cols_);
             }
@@ -236,11 +236,11 @@ namespace MML::SparseMatrix
             }
         }
 
-        void multiply(const Vector<T>& x, Vector<T>& y) const {
+        void Multiply(const Vector<T>& x, Vector<T>& y) const {
             if (x.size() != cols_) {
                 throw VectorDimensionError("SparseMatrixCSR::multiply - vector size must match matrix cols", x.size(), cols_);
             }
-            y.Resize(rows_);
+            y.resize(rows_);
             for (int i = 0; i < rows_; ++i) {
                 T sum = T(0);
                 for (int k = row_pointers_[i]; k < row_pointers_[i + 1]; ++k) {
@@ -253,18 +253,18 @@ namespace MML::SparseMatrix
         /// @brief Sparse matrix-vector product: returns A * x
         std::vector<T> operator*(const std::vector<T>& x) const {
             std::vector<T> y;
-            multiply(x, y);
+            Multiply(x, y);
             return y;
         }
 
         Vector<T> operator*(const Vector<T>& x) const {
             Vector<T> y;
-            multiply(x, y);
+            Multiply(x, y);
             return y;
         }
         
         /// @brief Transpose matrix-vector product: y = A^T * x
-        void multiplyTranspose(const std::vector<T>& x, std::vector<T>& y) const {
+        void MultiplyTranspose(const std::vector<T>& x, std::vector<T>& y) const {
             if (static_cast<int>(x.size()) != rows_) {
                 throw VectorDimensionError("SparseMatrixCSR::multiplyTranspose - vector size must match matrix rows", static_cast<int>(x.size()), rows_);
             }
@@ -277,11 +277,11 @@ namespace MML::SparseMatrix
             }
         }
 
-        void multiplyTranspose(const Vector<T>& x, Vector<T>& y) const {
+        void MultiplyTranspose(const Vector<T>& x, Vector<T>& y) const {
             if (x.size() != rows_) {
                 throw VectorDimensionError("SparseMatrixCSR::multiplyTranspose - vector size must match matrix rows", x.size(), rows_);
             }
-            y.Resize(cols_);
+            y.resize(cols_);
             for (int j = 0; j < cols_; ++j) y[j] = T(0);
             for (int i = 0; i < rows_; ++i) {
                 for (int k = row_pointers_[i]; k < row_pointers_[i + 1]; ++k) {
@@ -358,7 +358,7 @@ namespace MML::SparseMatrix
         using NormType = decltype(std::abs(std::declval<T>()));
 
         /// @brief Frobenius norm: sqrt(sum of |element|^2)
-        NormType normFrobenius() const {
+        NormType NormFrobenius() const {
             NormType sum = NormType(0);
             for (const auto& v : values_) {
                 sum += static_cast<NormType>(std::norm(v));  // |v|^2 for complex, v^2 for real
@@ -367,7 +367,7 @@ namespace MML::SparseMatrix
         }
         
         /// @brief Infinity norm: max row sum of absolute values
-        NormType normInf() const {
+        NormType NormInf() const {
             NormType max_sum = NormType(0);
             for (int i = 0; i < rows_; ++i) {
                 NormType row_sum = NormType(0);
@@ -380,7 +380,7 @@ namespace MML::SparseMatrix
         }
         
         /// @brief One norm: max column sum of absolute values
-        NormType norm1() const {
+        NormType Norm1() const {
             std::vector<NormType> col_sums(cols_, NormType(0));
             for (int i = 0; i < rows_; ++i) {
                 for (int k = row_pointers_[i]; k < row_pointers_[i + 1]; ++k) {
@@ -393,11 +393,11 @@ namespace MML::SparseMatrix
         // ==================== Matrix Properties ====================
         
         /// @brief Check if matrix is square
-        bool isSquare() const { return rows_ == cols_; }
+        bool IsSquare() const { return rows_ == cols_; }
         
         /// @brief Check if matrix has symmetric sparsity pattern
-        bool hasSymmetricPattern() const {
-            if (!isSquare()) return false;
+        bool HasSymmetricPattern() const {
+            if (!IsSquare()) return false;
             
             for (int i = 0; i < rows_; ++i) {
                 for (int k = row_pointers_[i]; k < row_pointers_[i + 1]; ++k) {
@@ -410,16 +410,16 @@ namespace MML::SparseMatrix
             return true;
         }
         
-        /// @brief Check if matrix is symmetric (pattern AND values)
-        bool isSymmetric(T tol = T(1e-12)) const {
-            if (!isSquare()) return false;
+        /// @brief Check if matrix is symmetric (pattern AND values); tolerance is a real magnitude
+        bool IsSymmetric(Real tol = Precision::IsMatrixSymmetricTolerance) const {
+            if (!IsSquare()) return false;
             
             for (int i = 0; i < rows_; ++i) {
                 for (int k = row_pointers_[i]; k < row_pointers_[i + 1]; ++k) {
                     int j = col_indices_[k];
                     T a_ij = values_[k];
                     T a_ji = (*this)(j, i);
-                    if (std::abs(a_ij - a_ji) > tol * (std::abs(a_ij) + T(1))) {
+                    if (std::abs(a_ij - a_ji) > tol * (std::abs(a_ij) + Real(1))) {
                         return false;
                     }
                 }
@@ -433,8 +433,8 @@ namespace MML::SparseMatrix
         /// @param b Right-hand side
         /// @param x Solution (output)
         /// @note Assumes matrix is lower triangular with non-zero diagonal
-        void solveLower(const std::vector<T>& b, std::vector<T>& x) const {
-            if (!isSquare()) throw MatrixDimensionError("SparseMatrixCSR::solveLower - matrix must be square", rows_, cols_, rows_, rows_);
+        void SolveLower(const std::vector<T>& b, std::vector<T>& x) const {
+            if (!IsSquare()) throw MatrixDimensionError("SparseMatrixCSR::solveLower - matrix must be square", rows_, cols_, rows_, rows_);
             if (static_cast<int>(b.size()) != rows_) {
                 throw VectorDimensionError("SparseMatrixCSR::solveLower - right-hand side size must match matrix rows", static_cast<int>(b.size()), rows_);
             }
@@ -456,8 +456,8 @@ namespace MML::SparseMatrix
             }
         }
 
-        void solveLower(const Vector<T>& b, Vector<T>& x) const {
-            if (!isSquare()) throw MatrixDimensionError("SparseMatrixCSR::solveLower - matrix must be square", rows_, cols_, rows_, rows_);
+        void SolveLower(const Vector<T>& b, Vector<T>& x) const {
+            if (!IsSquare()) throw MatrixDimensionError("SparseMatrixCSR::solveLower - matrix must be square", rows_, cols_, rows_, rows_);
             if (b.size() != rows_) {
                 throw VectorDimensionError("SparseMatrixCSR::solveLower - right-hand side size must match matrix rows", b.size(), rows_);
             }
@@ -479,8 +479,8 @@ namespace MML::SparseMatrix
         }
         
         /// @brief Upper triangular solve: U * x = b (U is this matrix)
-        void solveUpper(const std::vector<T>& b, std::vector<T>& x) const {
-            if (!isSquare()) throw MatrixDimensionError("SparseMatrixCSR::solveUpper - matrix must be square", rows_, cols_, rows_, rows_);
+        void SolveUpper(const std::vector<T>& b, std::vector<T>& x) const {
+            if (!IsSquare()) throw MatrixDimensionError("SparseMatrixCSR::solveUpper - matrix must be square", rows_, cols_, rows_, rows_);
             if (static_cast<int>(b.size()) != rows_) {
                 throw VectorDimensionError("SparseMatrixCSR::solveUpper - right-hand side size must match matrix rows", static_cast<int>(b.size()), rows_);
             }
@@ -503,8 +503,8 @@ namespace MML::SparseMatrix
             }
         }
 
-        void solveUpper(const Vector<T>& b, Vector<T>& x) const {
-            if (!isSquare()) throw MatrixDimensionError("SparseMatrixCSR::solveUpper - matrix must be square", rows_, cols_, rows_, rows_);
+        void SolveUpper(const Vector<T>& b, Vector<T>& x) const {
+            if (!IsSquare()) throw MatrixDimensionError("SparseMatrixCSR::solveUpper - matrix must be square", rows_, cols_, rows_, rows_);
             if (b.size() != rows_) {
                 throw VectorDimensionError("SparseMatrixCSR::solveUpper - right-hand side size must match matrix rows", b.size(), rows_);
             }
@@ -539,7 +539,7 @@ namespace MML::SparseMatrix
         
         /// @brief Zero out all entries in a row
         /// @note Used for applying boundary conditions
-        void zeroRow(int row) {
+        void ZeroRow(int row) {
             if (row < 0 || row >= rows_) {
                 throw IndexError("SparseMatrixCSR::zeroRow - row index out of bounds", row, rows_);
             }
@@ -595,7 +595,7 @@ namespace MML::SparseMatrix
         }
         
         /// @brief Print matrix (for debugging)
-        void print(std::ostream& os = std::cout, int precision = 6) const {
+        void Print(std::ostream& os = std::cout, int precision = 6) const {
             os << "SparseMatrixCSR " << rows_ << "x" << cols_ 
                << " with " << nnz() << " non-zeros:\n";
             os << std::fixed << std::setprecision(precision);
@@ -610,7 +610,7 @@ namespace MML::SparseMatrix
         }
         
         /// @brief Convert to dense matrix (for debugging/testing)
-        std::vector<std::vector<T>> toDense() const {
+        std::vector<std::vector<T>> ToDense() const {
             std::vector<std::vector<T>> dense(rows_, std::vector<T>(cols_, T(0)));
             for (int i = 0; i < rows_; ++i) {
                 for (int k = row_pointers_[i]; k < row_pointers_[i + 1]; ++k) {
@@ -619,13 +619,51 @@ namespace MML::SparseMatrix
             }
             return dense;
         }
+
+        // ---- Deprecated spellings (CONTRACT_POLICY section 11; removed after one minor release) ----
+        [[deprecated("use FromCOO()")]]
+        void fromCOO(SparseMatrixCOO<T>& coo) { FromCOO(coo); }
+        [[deprecated("use NormFrobenius()")]]
+        NormType normFrobenius() const { return NormFrobenius(); }
+        [[deprecated("use NormInf()")]]
+        NormType normInf() const { return NormInf(); }
+        [[deprecated("use Norm1()")]]
+        NormType norm1() const { return Norm1(); }
+        [[deprecated("use IsSquare()")]]
+        bool isSquare() const { return IsSquare(); }
+        [[deprecated("use HasSymmetricPattern()")]]
+        bool hasSymmetricPattern() const { return HasSymmetricPattern(); }
+        [[deprecated("use IsSymmetric()")]]
+        bool isSymmetric(Real tol = Precision::IsMatrixSymmetricTolerance) const { return IsSymmetric(tol); }
+        [[deprecated("use ZeroRow()")]]
+        void zeroRow(int row) { ZeroRow(row); }
+        [[deprecated("use Print()")]]
+        void print(std::ostream& os = std::cout, int precision = 6) const { Print(os, precision); }
+        [[deprecated("use ToDense()")]]
+        std::vector<std::vector<T>> toDense() const { return ToDense(); }
+        [[deprecated("use Multiply()")]]
+        void multiply(const std::vector<T>& x, std::vector<T>& y) const { Multiply(x, y); }
+        [[deprecated("use Multiply()")]]
+        void multiply(const Vector<T>& x, Vector<T>& y) const { Multiply(x, y); }
+        [[deprecated("use MultiplyTranspose()")]]
+        void multiplyTranspose(const std::vector<T>& x, std::vector<T>& y) const { MultiplyTranspose(x, y); }
+        [[deprecated("use MultiplyTranspose()")]]
+        void multiplyTranspose(const Vector<T>& x, Vector<T>& y) const { MultiplyTranspose(x, y); }
+        [[deprecated("use SolveLower()")]]
+        void solveLower(const std::vector<T>& b, std::vector<T>& x) const { SolveLower(b, x); }
+        [[deprecated("use SolveLower()")]]
+        void solveLower(const Vector<T>& b, Vector<T>& x) const { SolveLower(b, x); }
+        [[deprecated("use SolveUpper()")]]
+        void solveUpper(const std::vector<T>& b, std::vector<T>& x) const { SolveUpper(b, x); }
+        [[deprecated("use SolveUpper()")]]
+        void solveUpper(const Vector<T>& b, Vector<T>& x) const { SolveUpper(b, x); }
     };
     
     // ==================== Free Functions ====================
     
     /// @brief Create identity matrix in CSR format
     template<typename T>
-    SparseMatrixCSR<T> identityCSR(int n) {
+    SparseMatrixCSR<T> IdentityCSR(int n) {
         std::vector<T> values(n, T(1));
         std::vector<int> col_indices(n);
         std::vector<int> row_pointers(n + 1);
@@ -639,10 +677,15 @@ namespace MML::SparseMatrix
         return SparseMatrixCSR<T>(n, n, std::move(values), 
                                   std::move(col_indices), std::move(row_pointers));
     }
+
+    /// @deprecated Use IdentityCSR().
+    template<typename T>
+    [[deprecated("use IdentityCSR()")]]
+    SparseMatrixCSR<T> identityCSR(int n) { return IdentityCSR<T>(n); }
     
     /// @brief Create diagonal matrix in CSR format
     template<typename T>
-    SparseMatrixCSR<T> diagonalCSR(const std::vector<T>& diag) {
+    SparseMatrixCSR<T> DiagonalCSR(const std::vector<T>& diag) {
         int n = static_cast<int>(diag.size());
         std::vector<T> values = diag;
         std::vector<int> col_indices(n);
@@ -657,6 +700,11 @@ namespace MML::SparseMatrix
         return SparseMatrixCSR<T>(n, n, std::move(values), 
                                   std::move(col_indices), std::move(row_pointers));
     }
+
+    /// @deprecated Use DiagonalCSR().
+    template<typename T>
+    [[deprecated("use DiagonalCSR()")]]
+    SparseMatrixCSR<T> diagonalCSR(const std::vector<T>& diag) { return DiagonalCSR<T>(diag); }
     
     /// @brief Compute residual r = b - A*x
     template<typename T>
@@ -670,17 +718,19 @@ namespace MML::SparseMatrix
         return r;
     }
     
-    /// @brief Compute L2 norm of vector
+    /// @brief Compute L2 norm of vector: sqrt(sum |x_i|^2). Returns a real magnitude also for complex T.
     template<typename T>
-    T norm2(const std::vector<T>& v) {
-        T sum = T(0);
+    auto norm2(const std::vector<T>& v) -> decltype(std::abs(std::declval<T>())) {
+        using RealT = decltype(std::abs(std::declval<T>()));
+        RealT sum = RealT(0);
         for (const auto& x : v) {
-            sum += x * x;
+            const RealT ax = std::abs(x);
+            sum += ax * ax;
         }
         return std::sqrt(sum);
     }
     
-    /// @brief Compute dot product
+    /// @brief Compute (unconjugated, bilinear) dot product sum a_i * b_i
     template<typename T>
     T dot(const std::vector<T>& a, const std::vector<T>& b) {
         T sum = T(0);
@@ -697,6 +747,34 @@ namespace MML::SparseMatrix
             y[i] += alpha * x[i];
         }
     }
+
+		template<typename T>
+		Vector<T> residual(const SparseMatrixCSR<T>& A, const Vector<T>& x, const Vector<T>& b) {
+			return b - A * x;
+		}
+
+		template<typename T>
+		auto norm2(const Vector<T>& values) {
+			return values.NormL2();
+		}
+
+		template<typename T>
+		T dot(const Vector<T>& a, const Vector<T>& b) {
+			if (a.size() != b.size())
+				throw VectorDimensionError("Sparse dot: dimensions must match", a.size(), b.size());
+			T sum = T(0);
+			for (int i = 0; i < a.size(); ++i)
+				sum += a[i] * b[i];
+			return sum;
+		}
+
+		template<typename T>
+		void axpy(T alpha, const Vector<T>& x, Vector<T>& y) {
+			if (x.size() != y.size())
+				throw VectorDimensionError("Sparse axpy: dimensions must match", x.size(), y.size());
+			for (int i = 0; i < x.size(); ++i)
+				y[i] += alpha * x[i];
+		}
 
 } // namespace MML::SparseMatrix
 

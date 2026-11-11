@@ -55,6 +55,7 @@ The metric tensor framework provides tools for working with distances, angles, a
 | Get Contravariant Metric | `GetContravariantMetric(pos)` | g^ij components |
 | Christoffel Symbols (1st) | `GetChristoffelSymbolFirstKind(i,j,k,pos)` | Γᵢⱼₖ |
 | Christoffel Symbols (2nd) | `GetChristoffelSymbolSecondKind(i,j,k,pos)` | Γⁱⱼₖ |
+| Numerical Christoffel Reference | `GetChristoffelSymbolSecondKindNumerical(i,j,k,pos)` | Fourth-order metric differentiation, bypassing analytical overrides |
 | Riemann Component | `GetRiemannCurvatureTensor(rho,sigma,mu,nu,pos)` | R^rho_sigma_mu_nu |
 | Riemann Tensor | `GetRiemannCurvatureTensor(pos)` | Tensor4<N> with 1 up, 3 down |
 | Ricci Component | `GetRicciTensor(mu,nu,pos)` | R_munu |
@@ -109,6 +110,90 @@ where eⁱ are reciprocal basis vectors (g^ik g_kj = δⁱⱼ).
 ```
 
 **Physical Meaning**: Γⁱⱼₖ describes how the i-th basis vector component changes when moving in the k-th direction.
+
+#### Analytical dispatch and numerical fallback
+
+`GetChristoffelSymbolSecondKind` is virtual. Exact instances of
+`MetricTensorCartesian3D` and `MetricTensorMinkowski` return zero analytically;
+`MetricTensorSpherical` and `MetricTensorCylindrical` use their closed-form
+coordinate connections. Spherical coordinates have nine nonzero coefficients
+(including lower-index symmetry), cylindrical coordinates three. These are
+coordinate-basis coefficients, not physical orthonormal-basis coefficients.
+
+User-defined metrics and transformation-derived metrics retain the fourth-order
+numerical fallback. Subclasses of built-ins also fall back numerically, since
+they may override the metric components. These exact-dynamic-type checks require
+RTTI (enabled by default in supported builds). A custom metric can override the virtual
+connection explicitly; its override must describe the same covariant metric as
+`component` and `GetCovariantMetric`, and is responsible for its own domain checks.
+The protected `ValidateChristoffelArguments` helper checks indices, covariant
+storage, and finite coordinates; metric-specific singularities require additional
+checks.
+
+`GetChristoffelSymbolSecondKindNumerical` is a nonvirtual reference calculation
+that always differentiates the metric components, even when an analytical
+override exists:
+
+```cpp
+MetricTensorSpherical metric;
+const MetricTensorField<3>& connection = metric;
+VectorN<Real, 3> pos{5.0, Constants::PI / 4, Constants::PI / 3};
+Real analytical = connection.GetChristoffelSymbolSecondKind(0, 1, 1, pos);
+Real numerical = connection.GetChristoffelSymbolSecondKindNumerical(0, 1, 1, pos);
+std::cout << "Gamma^r_theta_theta: " << analytical << " (numerical: " << numerical << ")\n";
+```
+
+Runnable counterpart: `Docs_Demo_AnalyticalChristoffels` in
+`src/docs_demos/core/docs_demo_metric_tensor.cpp`; run `MML_DocsApp --metric-tensor`.
+
+Covariant derivatives, divergence, geodesics, parallel transport, and curvature
+use the virtual connection automatically. Built-in analytical connections retain
+numerical outer differentiation for Riemann; their formulas remove the **inner**
+metric differentiation. Opt-in AD metrics and AD-induced surface metrics instead
+provide first/second metric partials for both the connection and its derivative.
+See [Automatic differentiation for geometry and fields](Automatic_differentiation.md)
+for the runnable examples and protected connection-derivative extension point.
+No flat-curvature shortcut is used.
+Schwarzschild is covered by a test-only custom analytical metric, not a new
+public built-in.
+
+Invalid indices throw `IndexError`; nonfinite coordinates throw `DomainError`.
+The spherical analytical connection rejects the origin and poles, and the
+cylindrical connection rejects the axis, using the shared near-zero denominator
+tolerance and throwing `DomainError` even when the requested coefficient is
+structurally zero. Connection calculations retain the default throwing matrix
+inversion checks; explicit inversion sentinel policies are described below.
+Both connection paths require covariant metric storage. In particular,
+`MetricTensorSphericalContravar` is **not** a covariant metric field and connection
+calculations now throw `DomainError`: use `MetricTensorSpherical` instead.
+Its existing inverse-component accessors are unchanged.
+
+#### Explicit metric inversion policy
+
+`GetContravariantMetric(pos)` keeps its existing signature and throws
+`SingularMatrixError` for a rank-deficient or numerically singular metric.
+`GetContravariantMetric(pos, policy)` accepts the root `SingularityPolicy`.
+At singularities, explicit `ReturnNaN`, `ReturnInf`, or `ReturnZero` fill every
+matrix entry with the requested sentinel (positive infinity for `ReturnInf`).
+These matrices are not usable inverses. `Clamp` throws `DomainError` rather than
+changing the metric through an implicit regularization. On regular inputs every
+policy returns the same inverse.
+
+Rank checks retain matrix inversion's norm-scaled pivot criterion, not an
+absolute determinant cutoff. Nonfinite coordinates/components or nonfinite
+inversion results always throw, including when a sentinel policy was requested.
+Index raising and numerical Christoffels continue using the default throwing path.
+
+```cpp
+MetricTensorSpherical metric;
+auto inverseMetric = metric.GetContravariantMetric(
+    VectorN<Real, 3>{0, 1, 0}, SingularityPolicy::ReturnNaN);
+std::cout << "Singular inverse metric signals NaN: "
+          << std::isnan(inverseMetric(0, 0)) << "\n";
+```
+
+Runnable counterpart: `Docs_Demo_MatrixSingularityPolicy` in
+`src/docs_demos/core/docs_demo_metric_tensor.cpp`; run `MML_DocsApp --metric-tensor`.
 
 ### Covariant Derivative
 
@@ -225,11 +310,11 @@ class MetricTensorField : public ITensorField2<N>
 {
 public:
     // Constructors
-    MetricTensorField();  // Default: (2,0) - covariant
+    MetricTensorField();  // Default: (0,2) - covariant
     MetricTensorField(int numContra, int numCo);
     
     // Pure virtual - must implement in derived class
-    virtual Real Component(int i, int j, const VectorN<Real, N>& pos) const = 0;
+    virtual Real component(int i, int j, const VectorN<Real, N>& pos) const = 0;
     
     // Tensor interface
     Tensor2<N> operator()(const VectorN<Real, N>& pos) const;
@@ -241,8 +326,10 @@ public:
     // Christoffel symbols
     Real GetChristoffelSymbolFirstKind(int i, int j, int k, 
                                        const VectorN<Real, N>& pos) const;
-    Real GetChristoffelSymbolSecondKind(int i, int j, int k, 
+    virtual Real GetChristoffelSymbolSecondKind(int i, int j, int k,
                                         const VectorN<Real, N>& pos) const;
+    Real GetChristoffelSymbolSecondKindNumerical(int i, int j, int k,
+                                                 const VectorN<Real, N>& pos) const;
 
     // Riemann curvature tensor R^rho_sigma_mu_nu
     Real GetRiemannCurvatureTensor(int rho, int sigma, int mu, int nu,
@@ -324,12 +411,12 @@ ODESystemSolution IntegrateParallelTransportFixedStep(
     Real curveDerivativeStep = PrecisionValues<Real>::DerivativeStepSize);
 ```
 
-**Purpose**: Abstract base providing all metric tensor operations. Derived classes only need to implement `Component(i,j,pos)`.
+**Purpose**: Abstract base providing all metric tensor operations. Derived classes only need to implement `component(i,j,pos)`.
 
 **Key Design**:
-- Covariant metric g_ij computed directly from `Component()`
+- Covariant metric g_ij computed directly from `component()`
 - Contravariant metric g^ij computed by matrix inversion
-- Christoffel symbols computed numerically using `Derivation::DerivePartial()`
+- Virtual Christoffel dispatch: analytical built-ins, fourth-order numerical fallback for user metrics
 - Covariant derivatives use Christoffel symbols for proper tensor transformation
 
 ---
@@ -343,7 +430,7 @@ class MetricTensorCartesian3D : public MetricTensorField<3>
 {
 public:
     MetricTensorCartesian3D();
-    Real Component(int i, int j, const VectorN<Real, 3>& pos) const;
+    Real component(int i, int j, const VectorN<Real, 3>& pos) const;
 };
 ```
 
@@ -390,7 +477,7 @@ class MetricTensorSpherical : public MetricTensorField<3>
 {
 public:
     MetricTensorSpherical();
-    Real Component(int i, int j, const VectorN<Real, 3>& pos) const override;
+    Real component(int i, int j, const VectorN<Real, 3>& pos) const override;
 };
 ```
 
@@ -454,7 +541,7 @@ class MetricTensorCylindrical : public MetricTensorField<3>
 {
 public:
     MetricTensorCylindrical();
-    Real Component(int i, int j, const VectorN<Real, 3>& pos) const override;
+    Real component(int i, int j, const VectorN<Real, 3>& pos) const override;
 };
 ```
 
@@ -509,7 +596,7 @@ class MetricTensorMinkowski : public MetricTensorField<4>
 {
 public:
     MetricTensorMinkowski();
-    Real Component(int i, int j, const VectorN<Real, 4>& pos) const override;
+    Real component(int i, int j, const VectorN<Real, 4>& pos) const override;
 };
 ```
 
@@ -573,7 +660,7 @@ class MetricTensorFromCoordTransf : public MetricTensorField<N>
 {
 public:
     explicit MetricTensorFromCoordTransf(const CoordTransf<VectorFrom,VectorTo,N>& transf);
-    Real Component(int i, int j, const VectorN<Real, N>& pos) const override;
+    Real component(int i, int j, const VectorN<Real, N>& pos) const override;
     MatrixNM<Real, N, N> GetCovariantMetric(const VectorN<Real, N>& pos) const override;
 };
 ```
@@ -978,12 +1065,12 @@ Real sqrtDetG = sqrt(detG);
 ### Numerical Considerations
 
 **Christoffel Symbol Accuracy**:
-- Computed numerically using `Derivation::DerivePartial()`
-- Accuracy depends on derivative order (default: NDer4)
-- Use appropriate step size for your metric scale
+- Built-in analytical connections avoid finite-difference error
+- Numerical reference and fallback use `Derivation::NDer4Partial()`
+- Numerical accuracy depends on step size, metric scale, and inversion conditioning
 
 **Singularities**:
-- Spherical: θ=0, π (poles)
+- Spherical: r=0 (origin), θ=0, π (poles)
 - Cylindrical: ρ=0 (axis)
 - Minkowski: No coordinate singularities
 - Avoid evaluation at singular points
@@ -1010,9 +1097,10 @@ for (/* many operations */) {
 ```
 
 **Christoffel Symbols**:
-- Expensive to compute (multiple partial derivatives)
-- Cache if needed at same position for multiple operations
-- Consider analytical formulas for well-known metrics
+- Exact built-in instances use closed forms without metric differentiation or inversion
+- Numerical fallback is more expensive (multiple partial derivatives)
+- Cache if needed at the same position for multiple operations
+- Custom metrics can provide their own analytical virtual override
 
 ---
 
@@ -1106,7 +1194,7 @@ The metric tensor framework provides:
 
 ✅ **Predefined Metrics** - Cartesian, spherical, cylindrical, Minkowski  
 ✅ **Automatic Computation** - From coordinate transformations  
-✅ **Christoffel Symbols** - Both kinds, numerically computed  
+✅ **Christoffel Symbols** - Analytical built-ins and numerical fallback<br>
 ✅ **Covariant Derivatives** - Proper tensor calculus  
 ✅ **Geometric Tools** - Arc length, volume elements, index manipulation  
 ✅ **Integration** - With field operations, coordinate transformations  

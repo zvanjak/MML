@@ -42,40 +42,40 @@ namespace MML::Tests::Base::Rank1TensorTests
 		static_assert(Alpha::IndexVariance == Variance::Covariant, "Covector is covariant");
 		static_assert(std::is_same<typename Vector::frame_type, Cartesian3>::value, "Frame tag is part of the type");
 
-		Vector v{ REAL(1.0), REAL(2.0), REAL(3.0) };
+		Vector v{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) };
 		REQUIRE(v.size() == 3);
-		REQUIRE(v[0] == REAL(1.0));
-		REQUIRE(v[1] == REAL(2.0));
-		REQUIRE(v[2] == REAL(3.0));
+		REQUIRE(v[0] == static_cast<MML::Real>(1.0));
+		REQUIRE(v[1] == static_cast<MML::Real>(2.0));
+		REQUIRE(v[2] == static_cast<MML::Real>(3.0));
 
-		VectorN<Real, 3> raw{ REAL(4.0), REAL(5.0), REAL(6.0) };
+		VectorN<Real, 3> raw{ static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0) };
 		Vector fromRaw(raw);
 		REQUIRE(fromRaw.components() == raw);
 
-		fromRaw.components()[0] = REAL(7.0);
-		REQUIRE(fromRaw[0] == REAL(7.0));
+		fromRaw.components()[0] = static_cast<MML::Real>(7.0);
+		REQUIRE(fromRaw[0] == static_cast<MML::Real>(7.0));
 	}
 
 	TEST_CASE("Rank1Tensor - Same category arithmetic and covector pairing", "[Rank1Tensor][DifferentialForms]")
 	{
-		TangentVector<3, Cartesian3> a{ REAL(1.0), REAL(2.0), REAL(3.0) };
-		TangentVector<3, Cartesian3> b{ REAL(4.0), -REAL(1.0), REAL(0.5) };
-		Covector<3, Cartesian3> alpha{ REAL(2.0), -REAL(3.0), REAL(4.0) };
+		TangentVector<3, Cartesian3> a{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) };
+		TangentVector<3, Cartesian3> b{ static_cast<MML::Real>(4.0), -static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5) };
+		Covector<3, Cartesian3> alpha{ static_cast<MML::Real>(2.0), -static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0) };
 
 		auto sum = a + b;
 		auto diff = a - b;
-		auto scaled = a * REAL(2.0);
-		auto divided = scaled / REAL(2.0);
+		auto scaled = a * static_cast<MML::Real>(2.0);
+		auto divided = scaled / static_cast<MML::Real>(2.0);
 
-		REQUIRE(sum[0] == REAL(5.0));
-		REQUIRE(sum[1] == REAL(1.0));
-		REQUIRE(sum[2] == REAL(3.5));
-		REQUIRE(diff[0] == -REAL(3.0));
-		REQUIRE(diff[1] == REAL(3.0));
-		REQUIRE(diff[2] == REAL(2.5));
+		REQUIRE(sum[0] == static_cast<MML::Real>(5.0));
+		REQUIRE(sum[1] == static_cast<MML::Real>(1.0));
+		REQUIRE(sum[2] == static_cast<MML::Real>(3.5));
+		REQUIRE(diff[0] == -static_cast<MML::Real>(3.0));
+		REQUIRE(diff[1] == static_cast<MML::Real>(3.0));
+		REQUIRE(diff[2] == static_cast<MML::Real>(2.5));
 		REQUIRE(divided.components() == a.components());
 
-		Real expectedPairing = REAL(2.0) * REAL(1.0) - REAL(3.0) * REAL(2.0) + REAL(4.0) * REAL(3.0);
+		Real expectedPairing = static_cast<MML::Real>(2.0) * static_cast<MML::Real>(1.0) - static_cast<MML::Real>(3.0) * static_cast<MML::Real>(2.0) + static_cast<MML::Real>(4.0) * static_cast<MML::Real>(3.0);
 		REQUIRE(Pair(alpha, a) == expectedPairing);
 		REQUIRE(alpha(a) == expectedPairing);
 	}
@@ -98,17 +98,17 @@ namespace MML::Tests::Base::Rank1TensorTests
 
 	TEST_CASE("Point - Typed coordinates and displacement operations", "[Point][DifferentialForms]")
 	{
-		Point<Real, 3, Cartesian3> p{ REAL(1.0), REAL(2.0), REAL(3.0) };
-		TangentVector<3, Cartesian3> dx{ REAL(0.5), -REAL(1.0), REAL(2.0) };
+		Point<Real, 3, Cartesian3> p{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) };
+		TangentVector<3, Cartesian3> dx{ static_cast<MML::Real>(0.5), -static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0) };
 
 		auto q = p + dx;
 		auto r = dx + p;
 		auto back = q - dx;
 		auto displacement = q - p;
 
-		REQUIRE(q[0] == REAL(1.5));
-		REQUIRE(q[1] == REAL(1.0));
-		REQUIRE(q[2] == REAL(5.0));
+		REQUIRE(q[0] == static_cast<MML::Real>(1.5));
+		REQUIRE(q[1] == static_cast<MML::Real>(1.0));
+		REQUIRE(q[2] == static_cast<MML::Real>(5.0));
 		REQUIRE(r.coordinates() == q.coordinates());
 		REQUIRE(back.coordinates() == p.coordinates());
 		REQUIRE(displacement.components() == dx.components());

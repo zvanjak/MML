@@ -25,10 +25,29 @@
 #include <mml/algorithms/ODESolvers/ODEStepCalculators.h>
 
 #include <mml/tools/Visualizer.h>
+#include <mml/tools/visualizers/VisualizerConfig.h>
 #include <mml/tools/Serializer.h>
 #endif
 
+#include <stdexcept>
+
 using namespace MML;
+
+void Docs_Demo_VisualizerConfiguration()
+{
+	const auto previousRoot = detail::GetVisualizerRootState();
+	const auto bundle = std::filesystem::current_path() / "visualizers";
+	SetVisualizerRoot(bundle);
+	const bool available = IsBackendAvailable(VisualizerBackend::Auto);
+	std::cout << "Visualizer bundle: " << GetVisualizerRoot() << '\n'
+	          << "Selected backend installed: " << std::boolalpha << available << '\n'
+	          << "Real-function executable: " << GetRealFuncVisualizerPath() << '\n';
+	SetVisualizerRoot(previousRoot);
+	const auto invalid = Visualizer::VisualizeRealFunctionFromFile("");
+	if (invalid.success || invalid.error != IOError::INVALID_PARAMETERS)
+		throw std::runtime_error("Visualizer input validation did not reject an empty filename");
+	std::cout << "Input validation (no GUI launched): " << invalid.message << '\n';
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                    EXAMPLE 1: FUNCTION ANALYSIS                                     ///
@@ -59,9 +78,9 @@ void Docs_Demo_Visualizers_Example1_FunctionAnalysis()
         200,
         "docs_gaussian.mml"
     );
-    std::cout << "    Result: " << (result1.success ? "Success" : "Failed: " + result1.errorMessage) << "\n";
-    
-    // Taylor approximations of exp(-x^2) around x=0:
+		std::cout << "    Result: " << (result1.success ? "Success" : "Failed: " + result1.message) << "\n";
+
+		// Taylor approximations of exp(-x^2) around x=0:
     // O(2): 1 - x^2
     // O(4): 1 - x^2 + x^4/2
     auto taylor2 = [](Real x) { return Real{1} - x*x; };
@@ -81,7 +100,7 @@ void Docs_Demo_Visualizers_Example1_FunctionAnalysis()
         150,
         "docs_taylor_comparison.mml"
     );
-    std::cout << "    Result: " << (result2.success ? "Success" : "Failed: " + result2.errorMessage) << "\n";
+		std::cout << "    Result: " << (result2.success ? "Success" : "Failed: " + result2.message) << "\n";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -120,7 +139,7 @@ void Docs_Demo_Visualizers_Example2_VectorField()
         -5.0, 5.0, 25,
         "docs_electric_field.mml"
     );
-    std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.errorMessage) << "\n";
+		std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.message) << "\n";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -166,22 +185,22 @@ void Docs_Demo_Visualizers_Example3_ODEPendulum()
     auto result1 = Visualizer::VisualizeODESysSolCompAsFunc(
         sol, 0, "Pendulum Angle vs Time", "docs_theta_t.mml"
     );
-    std::cout << "    Result: " << (result1.success ? "Success" : "Failed: " + result1.errorMessage) << "\n";
-    
-    // 3b. Phase portrait (ω vs θ)
+		std::cout << "    Result: " << (result1.success ? "Success" : "Failed: " + result1.message) << "\n";
+
+		// 3b. Phase portrait (ω vs θ)
     std::cout << "3b. Visualizing phase portrait (ω vs θ)\n";
     auto result2 = Visualizer::VisualizeODESysSolAsParamCurve2(
         sol, 0, 1, "Pendulum Phase Portrait", "docs_phase.mml"
     );
-    std::cout << "    Result: " << (result2.success ? "Success" : "Failed: " + result2.errorMessage) << "\n";
-    
-    // 3c. Both variables as multi-function
+		std::cout << "    Result: " << (result2.success ? "Success" : "Failed: " + result2.message) << "\n";
+
+		// 3c. Both variables as multi-function
     std::cout << "3c. Visualizing both variables θ(t) and ω(t)\n";
     std::vector<std::string> labels = {"θ (angle)", "ω (angular velocity)"};
     auto result3 = Visualizer::VisualizeODESysSolAsMultiFunc(
         sol, "Pendulum State Variables", labels, "docs_pendulum_state.mml"
     );
-    std::cout << "    Result: " << (result3.success ? "Success" : "Failed: " + result3.errorMessage) << "\n";
+		std::cout << "    Result: " << (result3.success ? "Success" : "Failed: " + result3.message) << "\n";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -226,7 +245,7 @@ void Docs_Demo_Visualizers_Example4_3DCurves()
         500,
         "docs_trefoil.mml"
     );
-    std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.errorMessage) << "\n";
+		std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.message) << "\n";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -259,7 +278,7 @@ void Docs_Demo_Visualizers_ScalarFunction()
         -Constants::PI, Constants::PI, 50,
         "docs_wave_surface.mml"
     );
-    std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.errorMessage) << "\n";
+		std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.message) << "\n";
 }
 
 /**
@@ -287,7 +306,7 @@ void Docs_Demo_Visualizers_ParamCurve2D()
         500,
         "docs_lissajous.mml"
     );
-    std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.errorMessage) << "\n";
+		std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.message) << "\n";
 }
 
 /**
@@ -318,7 +337,7 @@ void Docs_Demo_Visualizers_MultiFunctions()
         200,
         "docs_trig_compare.mml"
     );
-    std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.errorMessage) << "\n";
+		std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.message) << "\n";
 }
 
 /**
@@ -360,7 +379,7 @@ void Docs_Demo_Visualizers_LorenzAttractor()
     auto result = Visualizer::VisualizeODESysSolAsParamCurve3(
         sol, 0, 1, 2, "Lorenz Attractor", "docs_lorenz_attractor.mml"
     );
-    std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.errorMessage) << "\n";
+		std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.message) << "\n";
 }
 
 /**
@@ -389,7 +408,7 @@ void Docs_Demo_Visualizers_VectorField3D()
         -3.0, 3.0, 8,
         "docs_vector3d_cyclic.mml"
     );
-    std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.errorMessage) << "\n";
+		std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.message) << "\n";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

@@ -12,11 +12,11 @@
 ///                                                                                   ///
 ///  Usage:                                                                           ///
 ///    // Flux through parametric surface                                             ///
-///    Real flux = SurfaceIntegration::SurfaceIntegral(field, surface,                ///
+///    Real flux = SurfaceIntegration::SurfaceIntegralDetailed(field, surface,                ///
 ///                                                    u1, u2, v1, v2);               ///
 ///                                                                                   ///
 ///    // Flux through closed triangular mesh (e.g., tetrahedron)                     ///
-///    Real flux = SurfaceIntegration::SurfaceIntegral(field, solidBody);             ///
+///    Real flux = SurfaceIntegration::SurfaceIntegralDetailed(field, solidBody);             ///
 ///                                                                                   ///
 ///  Mathematical Background:                                                         ///
 ///    Surface integral:  ∬_S F·dS = ∬_D F(r(u,v))·(∂r/∂u × ∂r/∂v) du dv            ///
@@ -109,19 +109,21 @@ namespace MML
 		/// ParametricSurfaceRect<3> sphere([](Real theta, Real phi) {
 		///     return VectorN<3>({sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta)});
 		/// });
-		/// Real flux = SurfaceIntegration::SurfaceIntegral(radialField, sphere,
+		/// Real flux = SurfaceIntegration::SurfaceIntegralDetailed(radialField, sphere,
 		///                                                  0, PI, 0, 2*PI, 40, 40);
 		/// // By Gauss's theorem: flux = ∭_V ∇·F dV = ∭_V 3 dV = 4π (for unit sphere)
 		/// @endcode
 		///
 		/// @note Uses central differences for derivative computation
 		/// @warning Accuracy depends on numU, numV; increase for complex surfaces
-		static IntegrationResult SurfaceIntegral(const IVectorFunction<3>& vectorField, const IParametricSurfaceRect<3>& surface, 
+		static IntegrationResult SurfaceIntegralDetailed(const IVectorFunction<3>& vectorField, const IParametricSurfaceRect<3>& surface, 
 		                            const Real x1, const Real x2, const Real y1, const Real y2, 
 		                            int numU = 20, int numV = 20)
 		{
 			if (x2 <= x1 || y2 <= y1)
-				return IntegrationResult(0.0, 0.0, 0, true);  // Invalid parameter range
+				throw ArgumentError("SurfaceIntegral: parameter range must satisfy x1 < x2 and y1 < y2");
+			if (numU <= 0 || numV <= 0)
+				throw ArgumentError("SurfaceIntegral: numU and numV must be positive");
 
 			Real du = (x2 - x1) / numU;
 			Real dv = (y2 - y1) / numV;
@@ -174,7 +176,15 @@ namespace MML
 				}
 			}
 
-			return IntegrationResult(total, 0.0, numU * numV, true);
+			// Fixed midpoint rule: no criterion checked, no error estimate (RESULT_POLICY)
+			return IntegrationResult(total, NoEstimate, numU * numV, /*converged*/ false, /*error_estimated*/ false);
+		}
+
+		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const IParametricSurfaceRect<3>& surface, 
+		                            const Real x1, const Real x2, const Real y1, const Real y2, 
+		                            int numU = 20, int numV = 20)
+		{
+			return SurfaceIntegralDetailed(vectorField, surface, x1, x2, y1, y2, numU, numV).ValueOrThrow("SurfaceIntegral");
 		}
 
 		///////////////////////////////////////////////////////////////////////
@@ -202,15 +212,27 @@ namespace MML
 		/// VectorFunction<3> F([](const VectorN<3>& p) {
 		///     return VectorN<3>({p[0], p[1], p[2]});  // F = r, ∇·F = 3
 		/// });
-		/// Real flux = SurfaceIntegration::SurfaceIntegral(F, tetra);
+		/// Real flux = SurfaceIntegration::SurfaceIntegralDetailed(F, tetra);
 		/// // Should equal 3 * volume of tetrahedron
 		/// @endcode
-		static IntegrationResult SurfaceIntegral(const IVectorFunction<3>& vectorField, const BodyWithTriangleSurfaces& solid, Real eps = 0.001)
+		static IntegrationResult SurfaceIntegralDetailed(const IVectorFunction<3>& vectorField, const BodyWithTriangleSurfaces& solid, Real eps = 0.001)
 		{
-			Real total = 0.0;
-			for (int i = 0; i < solid.GetSurfaceCount(); i++)
-				total += SurfaceIntegral(vectorField, solid.GetSurface(i), eps).value;
-			return IntegrationResult(total, 0.0, solid.GetSurfaceCount(), true);
+			// Aggregate the per-face adaptive results: converged only if every face converged,
+			// error estimate is the sum of the per-face estimates (RESULT_POLICY)
+			Real total = 0.0, errorSum = 0.0;
+			bool allConverged = true;
+			for (int i = 0; i < solid.getSurfaceCount(); i++) {
+				IntegrationResult face = SurfaceIntegralDetailed(vectorField, solid.getSurface(i), eps);
+				total += face.value;
+				errorSum += face.error_estimate;
+				allConverged = allConverged && face.converged;
+			}
+			return IntegrationResult(total, errorSum, solid.getSurfaceCount(), allConverged);
+		}
+
+		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const BodyWithTriangleSurfaces& solid, Real eps = 0.001)
+		{
+			return SurfaceIntegralDetailed(vectorField, solid, eps).ValueOrThrow("SurfaceIntegral");
 		}
 
 		/// @brief Flux integral over a single triangle with adaptive refinement
@@ -234,17 +256,27 @@ namespace MML
 		///   B-------C             B--m2--C
 		/// @endcode
 		/// where m1, m2, m3 are edge midpoints.
-		static IntegrationResult SurfaceIntegral(const IVectorFunction<3>& vectorField, const Triangle3D& triangle, Real eps, int maxLevel = 7)
+		static IntegrationResult SurfaceIntegralDetailed(const IVectorFunction<3>& vectorField, const Triangle3D& triangle, Real eps, int maxLevel = 7)
 		{
 			Real result = CalcSurfaceContrib(vectorField, triangle);
-			Real refined = SurfaceIntegralImproveRecursively(vectorField, triangle, result, eps, maxLevel);
-			return IntegrationResult(refined, 0.0, 1, true);
+			Real errorSum = 0.0;
+			bool converged = true;
+			Real refined = SurfaceIntegralImproveRecursively(vectorField, triangle, result, eps, maxLevel, errorSum, converged);
+			return IntegrationResult(refined, errorSum, maxLevel, converged);
+		}
+
+		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const Triangle3D& triangle, Real eps, int maxLevel = 7)
+		{
+			return SurfaceIntegralDetailed(vectorField, triangle, eps, maxLevel).ValueOrThrow("SurfaceIntegral");
 		}
 
 	private:
 		/// @brief Recursive refinement for triangle surface integration
 		/// @details Subdivides triangle into 4 smaller triangles and checks convergence
-		static Real SurfaceIntegralImproveRecursively(const IVectorFunction<3>& vectorField, const Triangle3D& triangle, Real prev_value, Real eps, int level)
+		/// @param errorSum   accumulates |result - prev_value| of every accepted leaf (the actual estimate)
+		/// @param converged  cleared when a leaf is accepted only because level == 0 was reached
+		static Real SurfaceIntegralImproveRecursively(const IVectorFunction<3>& vectorField, const Triangle3D& triangle, Real prev_value, Real eps, int level,
+		                                              Real& errorSum, bool& converged)
 		{
 			// Subdivide triangle into 4 by connecting edge midpoints
 			Pnt3Cart m12 = (triangle.Pnt1() + triangle.Pnt2()) / 2.0;
@@ -263,18 +295,21 @@ namespace MML
 			Real result = c1 + c2 + c3 + c4;
 
 			// Check convergence
-			if (fabs(result - prev_value) < eps || level == 0)
+			const Real change = std::abs(result - prev_value);
+			if (change < eps || level == 0)
 			{
+				errorSum += change;
+				if (!(change < eps)) converged = false;   // accepted only because the depth budget ran out
 				return result;
 			}
 			else
 			{
 				// Recurse on each sub-triangle with its own contribution as prev_value
 				Real new_result = 0.0;
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t1, c1, eps, level - 1);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t2, c2, eps, level - 1);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t3, c3, eps, level - 1);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t4, c4, eps, level - 1);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, t1, c1, eps, level - 1, errorSum, converged);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, t2, c2, eps, level - 1, errorSum, converged);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, t3, c3, eps, level - 1, errorSum, converged);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, t4, c4, eps, level - 1, errorSum, converged);
 				return new_result;
 			}
 		}
@@ -287,9 +322,9 @@ namespace MML
 			Vec3Cart edge1(triangle.Pnt1(), triangle.Pnt2());
 			Vec3Cart edge2(triangle.Pnt1(), triangle.Pnt3());
 			// Degenerate (zero-area) triangle contributes no flux
-			Vec3Cart normal = VectorProduct(edge1, edge2).GetAsUnitVectorOrZero();
-			if (normal.isZero())
-				return REAL(0.0);
+			Vec3Cart normal = VectorProduct(edge1, edge2).NormalizedOrZero();
+			if (normal.IsZero())
+				return static_cast<MML::Real>(0.0);
 
 			// Triangle area
 			Real area = triangle.Area();
@@ -325,15 +360,27 @@ namespace MML
 		/// VectorFunction<3> F([](const VectorN<3>& p) {
 		///     return VectorN<3>({1, 0, 0});  // Uniform field in x-direction
 		/// });
-		/// Real flux = SurfaceIntegration::SurfaceIntegral(F, box);
+		/// Real flux = SurfaceIntegration::SurfaceIntegralDetailed(F, box);
 		/// // Net flux = 0 (same flux in through left face, out through right)
 		/// @endcode
-		static IntegrationResult SurfaceIntegral(const IVectorFunction<3>& vectorField, const BodyWithRectSurfaces& solid, Real eps = 0.001)
+		static IntegrationResult SurfaceIntegralDetailed(const IVectorFunction<3>& vectorField, const BodyWithRectSurfaces& solid, Real eps = 0.001)
 		{
-			Real total = 0.0;
-			for (int i = 0; i < solid.GetSurfaceCount(); i++)
-				total += SurfaceIntegral(vectorField, solid.GetSurface(i), eps).value;
-			return IntegrationResult(total, 0.0, solid.GetSurfaceCount(), true);
+			// Aggregate the per-face adaptive results: converged only if every face converged,
+			// error estimate is the sum of the per-face estimates (RESULT_POLICY)
+			Real total = 0.0, errorSum = 0.0;
+			bool allConverged = true;
+			for (int i = 0; i < solid.getSurfaceCount(); i++) {
+				IntegrationResult face = SurfaceIntegralDetailed(vectorField, solid.getSurface(i), eps);
+				total += face.value;
+				errorSum += face.error_estimate;
+				allConverged = allConverged && face.converged;
+			}
+			return IntegrationResult(total, errorSum, solid.getSurfaceCount(), allConverged);
+		}
+
+		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const BodyWithRectSurfaces& solid, Real eps = 0.001)
+		{
+			return SurfaceIntegralDetailed(vectorField, solid, eps).ValueOrThrow("SurfaceIntegral");
 		}
 
 		/// @brief Flux integral over a single rectangular surface with adaptive refinement
@@ -345,18 +392,28 @@ namespace MML
 		/// @param surface The rectangular surface patch
 		/// @param eps Convergence tolerance
 		/// @param maxLevel Maximum recursion depth (default: 7)
-		/// @return IntegrationResult with flux value (implicitly converts to Real)
-		static IntegrationResult SurfaceIntegral(const IVectorFunction<3>& vectorField, const RectSurface3D& surface, Real eps, int maxLevel = 7)
+		/// @return IntegrationResult with flux value (use .value; check converged)
+		static IntegrationResult SurfaceIntegralDetailed(const IVectorFunction<3>& vectorField, const RectSurface3D& surface, Real eps, int maxLevel = 7)
 		{
 			Real result = CalcSurfaceContrib(vectorField, surface);
-			Real refined = SurfaceIntegralImproveRecursively(vectorField, surface, result, eps, maxLevel);
-			return IntegrationResult(refined, 0.0, 1, true);
+			Real errorSum = 0.0;
+			bool converged = true;
+			Real refined = SurfaceIntegralImproveRecursively(vectorField, surface, result, eps, maxLevel, errorSum, converged);
+			return IntegrationResult(refined, errorSum, maxLevel, converged);
+		}
+
+		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const RectSurface3D& surface, Real eps, int maxLevel = 7)
+		{
+			return SurfaceIntegralDetailed(vectorField, surface, eps, maxLevel).ValueOrThrow("SurfaceIntegral");
 		}
 
 	private:
 		/// @brief Recursive refinement for rectangular surface integration
 		/// @details Subdivides rectangle into 4 by connecting edge midpoints to center
-		static Real SurfaceIntegralImproveRecursively(const IVectorFunction<3>& vectorField, const RectSurface3D& surface, Real prev_value, Real eps, int level)
+		/// @param errorSum   accumulates |result - prev_value| of every accepted leaf (the actual estimate)
+		/// @param converged  cleared when a leaf is accepted only because level == 0 was reached
+		static Real SurfaceIntegralImproveRecursively(const IVectorFunction<3>& vectorField, const RectSurface3D& surface, Real prev_value, Real eps, int level,
+		                                              Real& errorSum, bool& converged)
 		{
 			// Compute midpoints of edges and center
 			Point3Cartesian pnt_mid12 = (surface._pnt1 + surface._pnt2) / 2.0;
@@ -379,18 +436,21 @@ namespace MML
 			Real result = contrib1 + contrib2 + contrib3 + contrib4;
 
 			// Check convergence
-			if (fabs(result - prev_value) < eps || level == 0)
+			const Real change = std::abs(result - prev_value);
+			if (change < eps || level == 0)
 			{
+				errorSum += change;
+				if (!(change < eps)) converged = false;   // accepted only because the depth budget ran out
 				return result;
 			}
 			else
 			{
 				// Recurse on each sub-rectangle
 				Real new_result = 0.0;
-				new_result += SurfaceIntegralImproveRecursively(vectorField, s1, contrib1, eps, level - 1);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, s2, contrib2, eps, level - 1);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, s3, contrib3, eps, level - 1);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, s4, contrib4, eps, level - 1);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, s1, contrib1, eps, level - 1, errorSum, converged);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, s2, contrib2, eps, level - 1, errorSum, converged);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, s3, contrib3, eps, level - 1, errorSum, converged);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, s4, contrib4, eps, level - 1, errorSum, converged);
 				return new_result;
 			}
 		}

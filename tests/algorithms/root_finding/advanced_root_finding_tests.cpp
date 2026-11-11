@@ -23,45 +23,45 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 	{
 			TEST_PRECISION_INFO();
 		// f(x) = x^2 - 4, root at x = 2
-		RealFunction func([](Real x) { return x * x - REAL(4.0); });
+		RealFunction func([](Real x) { return x * x - static_cast<MML::Real>(4.0); });
 
-		Real root = RootFinding::FindRootFalsePosition(func, REAL(1.0), REAL(3.0), TOL(1e-10, 1e-5));
+		Real root = RootFinding::FindRootFalsePosition(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(root, WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::FalsePosition_cubic", "[RootFinding][falseposition]")
 	{
 			TEST_PRECISION_INFO();
-		// f(x) = x^3 - x - 2, root near x ~ REAL(1.521)
-		RealFunction func([](Real x) { return x * x * x - x - REAL(2.0); });
+		// f(x) = x^3 - x - 2, root near x ~ static_cast<MML::Real>(1.521)
+		RealFunction func([](Real x) { return x * x * x - x - static_cast<MML::Real>(2.0); });
 
-		Real root = RootFinding::FindRootFalsePosition(func, REAL(1.0), REAL(2.0), TOL(1e-10, 1e-5));
+		Real root = RootFinding::FindRootFalsePosition(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5));
 
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::FalsePosition_transcendental", "[RootFinding][falseposition]")
 	{
 			TEST_PRECISION_INFO();
-		// f(x) = cos(x) - x, root near x ~ REAL(0.739085)
+		// f(x) = cos(x) - x, root near x ~ static_cast<MML::Real>(0.739085)
 		RealFunction func([](Real x) { return std::cos(x) - x; });
 
-		Real root = RootFinding::FindRootFalsePosition(func, REAL(0.0), REAL(1.0), TOL(1e-10, 1e-5));
+		Real root = RootFinding::FindRootFalsePosition(func, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(REAL(0.739085), REAL(1e-5)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(root, WithinAbs(static_cast<MML::Real>(0.739085), static_cast<MML::Real>(1e-5)));
+		REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::FalsePosition_error_not_bracketed", "[RootFinding][falseposition][error]")
 	{
 			TEST_PRECISION_INFO();
 		// f(x) = x^2 + 1, no root between 0 and 1
-		RealFunction func([](Real x) { return x * x + REAL(1.0); });
+		RealFunction func([](Real x) { return x * x + static_cast<MML::Real>(1.0); });
 
 		REQUIRE_THROWS_AS(
-			RootFinding::FindRootFalsePosition(func, REAL(0.0), REAL(1.0), TOL(1e-8, 1e-4)),
+			RootFinding::FindRootFalsePosition(func, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)),
 			RootFindingError
 		);
 	}
@@ -73,47 +73,47 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 	{
 			TEST_PRECISION_INFO();
 		// f(x) = x^2 - 4, root at x = 2
-		RealFunction func([](Real x) { return x * x - REAL(4.0); });
+		RealFunction func([](Real x) { return x * x - static_cast<MML::Real>(4.0); });
 
-		Real root = RootFinding::FindRootSecant(func, REAL(1.0), REAL(3.0), TOL(1e-10, 1e-5));
+		Real root = RootFinding::FindRootSecant(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(root, WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::Secant_cubic_fast_convergence", "[RootFinding][secant]")
 	{
 			TEST_PRECISION_INFO();
-		// f(x) = x^3 - 2x - 5, root near x ~ REAL(2.0946)
-		RealFunction func([](Real x) { return x * x * x - REAL(2.0) * x - REAL(5.0); });
+		// f(x) = x^3 - 2x - 5, root near x ~ static_cast<MML::Real>(2.0946)
+		RealFunction func([](Real x) { return x * x * x - static_cast<MML::Real>(2.0) * x - static_cast<MML::Real>(5.0); });
 
-		Real root = RootFinding::FindRootSecant(func, REAL(2.0), REAL(3.0), TOL(1e-12, 1e-5));
+		Real root = RootFinding::FindRootSecant(func, static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), TOL(1e-12, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(REAL(2.0946), REAL(1e-4)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(root, WithinAbs(static_cast<MML::Real>(2.0946), static_cast<MML::Real>(1e-4)));
+		REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Secant_transcendental", "[RootFinding][secant]")
 	{
 			TEST_PRECISION_INFO();
-		// f(x) = e^x - 3x, root near x ~ REAL(1.512)
-		RealFunction func([](Real x) { return std::exp(x) - REAL(3.0) * x; });
+		// f(x) = e^x - 3x, root near x ~ static_cast<MML::Real>(1.512)
+		RealFunction func([](Real x) { return std::exp(x) - static_cast<MML::Real>(3.0) * x; });
 
-		Real root = RootFinding::FindRootSecant(func, REAL(1.0), REAL(2.0), TOL(1e-10, 1e-5));
+		Real root = RootFinding::FindRootSecant(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5));
 
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::Secant_superlinear_convergence", "[RootFinding][secant]")
 	{
 			TEST_PRECISION_INFO();
 		// f(x) = x^3 - x - 1, verify superlinear convergence
-		RealFunction func([](Real x) { return x * x * x - x - REAL(1.0); });
+		RealFunction func([](Real x) { return x * x * x - x - static_cast<MML::Real>(1.0); });
 
-		Real root = RootFinding::FindRootSecant(func, REAL(1.0), REAL(2.0), TOL(1e-15, 1e-5));
+		Real root = RootFinding::FindRootSecant(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), TOL(1e-15, 1e-5));
 
 		// Secant should achieve very high precision
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-13, 1e-5)));
+		REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-13, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -123,54 +123,54 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 	{
 			TEST_PRECISION_INFO();
 		// f(x) = x^2 - 4, root at x = 2
-		RealFunction func([](Real x) { return x * x - REAL(4.0); });
+		RealFunction func([](Real x) { return x * x - static_cast<MML::Real>(4.0); });
 
-		Real root = RootFinding::FindRootRidders(func, REAL(1.0), REAL(3.0), TOL(1e-12, 1e-5));
+		Real root = RootFinding::FindRootRidders(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), TOL(1e-12, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(REAL(2.0), TOL(1e-11, 1e-5)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-11, 1e-5)));
+		REQUIRE_THAT(root, WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-11, 1e-5)));
+		REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-11, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Ridders_cubic", "[RootFinding][ridders]")
 	{
 			TEST_PRECISION_INFO();
-		// f(x) = x^3 - x - 2, root near x ~ REAL(1.521)
-		RealFunction func([](Real x) { return x * x * x - x - REAL(2.0); });
+		// f(x) = x^3 - x - 2, root near x ~ static_cast<MML::Real>(1.521)
+		RealFunction func([](Real x) { return x * x * x - x - static_cast<MML::Real>(2.0); });
 
-		Real root = RootFinding::FindRootRidders(func, REAL(1.0), REAL(2.0), TOL(1e-12, 1e-5));
+		Real root = RootFinding::FindRootRidders(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), TOL(1e-12, 1e-5));
 
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-11, 1e-5)));
+		REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-11, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Ridders_transcendental", "[RootFinding][ridders]")
 	{
 			TEST_PRECISION_INFO();
-		// f(x) = cos(x) - x, root near x ~ REAL(0.739085)
+		// f(x) = cos(x) - x, root near x ~ static_cast<MML::Real>(0.739085)
 		RealFunction func([](Real x) { return std::cos(x) - x; });
 
-		Real root = RootFinding::FindRootRidders(func, REAL(0.0), REAL(1.0), TOL(1e-12, 1e-5));
+		Real root = RootFinding::FindRootRidders(func, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), TOL(1e-12, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(REAL(0.739085), TOL(1e-6, 1e-5)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-11, 1e-5)));
+		REQUIRE_THAT(root, WithinAbs(static_cast<MML::Real>(0.739085), TOL(1e-6, 1e-5)));
+		REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-11, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Ridders_quadratic_convergence", "[RootFinding][ridders]")
 	{
 			TEST_PRECISION_INFO();
 		// f(x) = x^5 - x - 1, verify fast convergence
-		RealFunction func([](Real x) -> Real { return std::pow(x, 5) - x - REAL(1.0); });
+		RealFunction func([](Real x) -> Real { return std::pow(x, 5) - x - static_cast<MML::Real>(1.0); });
 
-	Real root = RootFinding::FindRootRidders(func, REAL(1.0), REAL(2.0), TOL(1e-15, 1e-5));
+	Real root = RootFinding::FindRootRidders(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), TOL(1e-15, 1e-5));
 	}
 
 	TEST_CASE("RootFinding::Ridders_error_not_bracketed", "[RootFinding][ridders][error]")
 	{
 			TEST_PRECISION_INFO();
 		// f(x) = x^2 + 1, no root between 0 and 1
-		RealFunction func([](Real x) { return x * x + REAL(1.0); });
+		RealFunction func([](Real x) { return x * x + static_cast<MML::Real>(1.0); });
 
 		REQUIRE_THROWS_AS(
-			RootFinding::FindRootRidders(func, REAL(0.0), REAL(1.0), TOL(1e-8, 1e-4)),
+			RootFinding::FindRootRidders(func, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)),
 			RootFindingError
 		);
 	}
@@ -182,69 +182,69 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 	{
 			TEST_PRECISION_INFO();
 		// f(x) = x^2 - 4, root at x = 2
-		RealFunction func([](Real x) { return x * x - REAL(4.0); });
+		RealFunction func([](Real x) { return x * x - static_cast<MML::Real>(4.0); });
 
-		Real root = RootFinding::FindRootBrent(func, REAL(1.0), REAL(3.0), TOL(1e-12, 1e-5));
+		Real root = RootFinding::FindRootBrent(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), TOL(1e-12, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(REAL(2.0), TOL(1e-11, 1e-5)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-11, 1e-5)));
+		REQUIRE_THAT(root, WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-11, 1e-5)));
+		REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-11, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Brent_cubic", "[RootFinding][brent]")
 	{
 			TEST_PRECISION_INFO();
-		// f(x) = x^3 - x - 2, root near x ~ REAL(1.521)
-		RealFunction func([](Real x) { return x * x * x - x - REAL(2.0); });
+		// f(x) = x^3 - x - 2, root near x ~ static_cast<MML::Real>(1.521)
+		RealFunction func([](Real x) { return x * x * x - x - static_cast<MML::Real>(2.0); });
 
-		Real root = RootFinding::FindRootBrent(func, REAL(1.0), REAL(2.0), TOL(1e-12, 1e-5));
+		Real root = RootFinding::FindRootBrent(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), TOL(1e-12, 1e-5));
 
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-11, 1e-5)));
+		REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-11, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Brent_transcendental", "[RootFinding][brent]")
 	{
 			TEST_PRECISION_INFO();
-		// f(x) = cos(x) - x, root near x ~ REAL(0.739085)
+		// f(x) = cos(x) - x, root near x ~ static_cast<MML::Real>(0.739085)
 		RealFunction func([](Real x) { return std::cos(x) - x; });
 
-		Real root = RootFinding::FindRootBrent(func, REAL(0.0), REAL(1.0), TOL(1e-12, 1e-5));
+		Real root = RootFinding::FindRootBrent(func, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), TOL(1e-12, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(REAL(0.739085), TOL(1e-6, 1e-5)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-11, 1e-5)));
+		REQUIRE_THAT(root, WithinAbs(static_cast<MML::Real>(0.739085), TOL(1e-6, 1e-5)));
+		REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-11, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Brent_superlinear_convergence", "[RootFinding][brent]")
 	{
 			TEST_PRECISION_INFO();
 		// f(x) = x^7 - x - 1, challenging function
-		RealFunction func([](Real x) -> Real { return std::pow(x, 7) - x - REAL(1.0); });
+		RealFunction func([](Real x) -> Real { return std::pow(x, 7) - x - static_cast<MML::Real>(1.0); });
 
-	Real root = RootFinding::FindRootBrent(func, REAL(1.0), REAL(2.0), TOL(1e-15, 1e-5));
+	Real root = RootFinding::FindRootBrent(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), TOL(1e-15, 1e-5));
 
 	// Brent should achieve machine precision
-	REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-13, 1e-5)));
+	REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-13, 1e-5)));
 }
 
 TEST_CASE("RootFinding::Brent_difficult_function", "[RootFinding][brent]")
 {
 		TEST_PRECISION_INFO();
 	// f(x) = x^20 - 1, very flat near x=1
-	RealFunction func([](Real x) -> Real { return std::pow(x, 20) - REAL(1.0); });
+	RealFunction func([](Real x) -> Real { return std::pow(x, 20) - static_cast<MML::Real>(1.0); });
 
-	Real root = RootFinding::FindRootBrent(func, REAL(0.5), REAL(1.5), TOL(1e-10, 1e-5));
+	Real root = RootFinding::FindRootBrent(func, static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.5), TOL(1e-10, 1e-5));
 
 	// Verify convergence despite flat function
-	REQUIRE_THAT(root, WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
+	REQUIRE_THAT(root, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("RootFinding::Brent_error_not_bracketed", "[RootFinding][brent][error]")
 {
 		TEST_PRECISION_INFO();
 		// f(x) = x^2 + 1, no root between 0 and 1
-		RealFunction func([](Real x) { return x * x + REAL(1.0); });
+		RealFunction func([](Real x) { return x * x + static_cast<MML::Real>(1.0); });
 
 		REQUIRE_THROWS_AS(
-			RootFinding::FindRootBrent(func, REAL(0.0), REAL(1.0), TOL(1e-8, 1e-4)),
+			RootFinding::FindRootBrent(func, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), TOL(1e-8, 1e-4)),
 			RootFindingError
 		);
 	}
@@ -253,63 +253,63 @@ TEST_CASE("RootFinding::Brent_error_not_bracketed", "[RootFinding][brent][error]
 	{
 		TEST_PRECISION_INFO();
 
-		auto quadratic = [](Real x) { return x * x - REAL(4.0); };
-		Real left = REAL(1.0);
-		Real right = REAL(1.5);
+		auto quadratic = [](Real x) { return x * x - static_cast<MML::Real>(4.0); };
+		Real left = static_cast<MML::Real>(1.0);
+		Real right = static_cast<MML::Real>(1.5);
 		REQUIRE(RootFinding::BracketRoot(quadratic, left, right));
-		REQUIRE(left < REAL(2.0));
-		REQUIRE(right > REAL(2.0));
+		REQUIRE(left < static_cast<MML::Real>(2.0));
+		REQUIRE(right > static_cast<MML::Real>(2.0));
 
 		Vector<Real> xb1;
 		Vector<Real> xb2;
-		int bracketCount = RootFinding::FindRootBrackets(quadratic, REAL(0.0), REAL(5.0), 50, xb1, xb2);
+		int bracketCount = RootFinding::FindRootBrackets(quadratic, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), 50, xb1, xb2);
 		REQUIRE(bracketCount >= 1);
 
 		const Real tol = TOL(1e-10, 1e-5);
-		REQUIRE_THAT(RootFinding::FindRootBisection(quadratic, REAL(1.0), REAL(3.0), tol), WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
-		REQUIRE_THAT(RootFinding::FindRootFalsePosition(quadratic, REAL(1.0), REAL(3.0), tol), WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
-		REQUIRE_THAT(RootFinding::FindRootNewton(quadratic, REAL(1.0), REAL(3.0), tol), WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
-		REQUIRE_THAT(RootFinding::FindRootSecant(quadratic, REAL(1.0), REAL(3.0), tol), WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
-		REQUIRE_THAT(RootFinding::FindRootRidders(quadratic, REAL(1.0), REAL(3.0), tol), WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
-		REQUIRE_THAT(RootFinding::FindRootBrent(quadratic, REAL(1.0), REAL(3.0), tol), WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(RootFinding::FindRootBisection(quadratic, static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), tol), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(RootFinding::FindRootFalsePosition(quadratic, static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), tol), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(RootFinding::FindRootNewton(quadratic, static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), tol), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(RootFinding::FindRootSecant(quadratic, static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), tol), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(RootFinding::FindRootRidders(quadratic, static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), tol), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(RootFinding::FindRootBrent(quadratic, static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), tol), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-9, 1e-4)));
 
 		RootFinding::RootFindingConfig config;
 		config.tolerance = tol;
-		auto bisectionResult = RootFinding::FindRootBisection(quadratic, REAL(1.0), REAL(3.0), config);
-		auto brentResult = RootFinding::FindRootBrent(quadratic, REAL(1.0), REAL(3.0), config);
+		auto bisectionResult = RootFinding::FindRootBisectionDetailed(quadratic, static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), config);
+		auto brentResult = RootFinding::FindRootBrentDetailed(quadratic, static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0), config);
 		REQUIRE(bisectionResult.converged);
 		REQUIRE(brentResult.converged);
-		REQUIRE_THAT(bisectionResult.root, WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
-		REQUIRE_THAT(brentResult.root, WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(bisectionResult.root, WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(brentResult.root, WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-9, 1e-4)));
 
-		Real shift = REAL(3.0);
+		Real shift = static_cast<MML::Real>(3.0);
 		auto captured = [shift](Real x) { return x - shift; };
-		REQUIRE_THAT(RootFinding::FindRootBrent(captured, REAL(0.0), REAL(5.0), tol), WithinAbs(shift, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(RootFinding::FindRootBrent(captured, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), tol), WithinAbs(shift, TOL(1e-10, 1e-5)));
 
 		struct CubicFunctor
 		{
-			Real operator()(Real x) const { return x * x * x - x - REAL(2.0); }
+			Real operator()(Real x) const { return x * x * x - x - static_cast<MML::Real>(2.0); }
 		};
 
-		Real functorRoot = RootFinding::FindRootRidders(CubicFunctor{}, REAL(1.0), REAL(2.0), tol);
-		REQUIRE_THAT(CubicFunctor{}(functorRoot), WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+		Real functorRoot = RootFinding::FindRootRidders(CubicFunctor{}, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), tol);
+		REQUIRE_THAT(CubicFunctor{}(functorRoot), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("Scalar root solvers share diagnostic result semantics", "[RootFinding][Scalar][Diagnostics]")
 	{
-		RealFunction function([](Real x) { return x * x - REAL(2.0); });
+		RealFunction function([](Real x) { return x * x - static_cast<MML::Real>(2.0); });
 		RootFinding::RootFindingConfig config;
 		config.x_tolerance = TOL(1e-11, 1e-4);
 		config.f_tolerance = TOL(1e-12, 1e-5);
 		config.relative_tolerance = TOL(1e-12, 1e-5);
 
 		const std::vector<std::pair<std::string, RootFinding::RootFindingResult>> results{
-			{"Bisection", RootFinding::FindRootBisection(function, REAL(1.0), REAL(2.0), config)},
-			{"FalsePosition", RootFinding::FindRootFalsePosition(function, REAL(1.0), REAL(2.0), config)},
-			{"Newton", RootFinding::FindRootNewton(function, REAL(1.0), REAL(2.0), config)},
-			{"Secant", RootFinding::FindRootSecant(function, REAL(1.0), REAL(2.0), config)},
-			{"Ridders", RootFinding::FindRootRidders(function, REAL(1.0), REAL(2.0), config)},
-			{"Brent", RootFinding::FindRootBrent(function, REAL(1.0), REAL(2.0), config)}
+			{"Bisection", RootFinding::FindRootBisectionDetailed(function, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), config)},
+			{"FalsePosition", RootFinding::FindRootFalsePositionDetailed(function, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), config)},
+			{"Newton", RootFinding::FindRootNewtonDetailed(function, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), config)},
+			{"Secant", RootFinding::FindRootSecantDetailed(function, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), config)},
+			{"Ridders", RootFinding::FindRootRiddersDetailed(function, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), config)},
+			{"Brent", RootFinding::FindRootBrentDetailed(function, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), config)}
 		};
 
 		for (const auto& [name, result] : results) {
@@ -323,17 +323,17 @@ TEST_CASE("RootFinding::Brent_error_not_bracketed", "[RootFinding][brent][error]
 			REQUIRE(result.function_evaluations >= 2);
 			REQUIRE(result.elapsed_time_ms >= 0.0);
 			REQUIRE(result.x_error >= 0.0);
-			REQUIRE_THAT(result.root, WithinAbs(std::sqrt(REAL(2.0)), TOL(1e-8, 1e-3)));
+			REQUIRE_THAT(result.root, WithinAbs(std::sqrt(static_cast<MML::Real>(2.0)), TOL(1e-8, 1e-3)));
 			REQUIRE(std::abs(result.function_value) <= TOL(1e-8, 1e-3));
 		}
 	}
 
 	TEST_CASE("Scalar root solvers report structured failures", "[RootFinding][Scalar][Diagnostics][Validation]")
 	{
-		RealFunction function([](Real x) { return x * x - REAL(2.0); });
+		RealFunction function([](Real x) { return x * x - static_cast<MML::Real>(2.0); });
 		RootFinding::RootFindingConfig invalid;
-		invalid.tolerance = -REAL(1.0);
-		auto invalidResult = RootFinding::FindRootBrent(function, REAL(1.0), REAL(2.0), invalid);
+		invalid.tolerance = -static_cast<MML::Real>(1.0);
+		auto invalidResult = RootFinding::FindRootBrentDetailed(function, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), invalid);
 		REQUIRE_FALSE(invalidResult.IsSuccess());
 		REQUIRE(invalidResult.status == AlgorithmStatus::InvalidInput);
 		REQUIRE(invalidResult.algorithm_name == "Brent");
@@ -341,29 +341,29 @@ TEST_CASE("RootFinding::Brent_error_not_bracketed", "[RootFinding][brent][error]
 		RootFinding::RootFindingConfig limited;
 		limited.tolerance = TOL(1e-15, 1e-6);
 		limited.max_iterations = 1;
-		auto limitedResult = RootFinding::FindRootBisection(function, REAL(1.0), REAL(2.0), limited);
+		auto limitedResult = RootFinding::FindRootBisectionDetailed(function, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), limited);
 		REQUIRE_FALSE(limitedResult.converged);
 		REQUIRE(limitedResult.status == AlgorithmStatus::MaxIterationsExceeded);
 		REQUIRE_FALSE(limitedResult.error_message.empty());
 
 		RealFunction nonFinite([](Real) { return std::numeric_limits<Real>::infinity(); });
 		RootFinding::RootFindingConfig defaultConfig;
-		auto nonFiniteResult = RootFinding::FindRootRidders(
-			nonFinite, REAL(1.0), REAL(2.0), defaultConfig);
+		auto nonFiniteResult = RootFinding::FindRootRiddersDetailed(
+			nonFinite, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), defaultConfig);
 		REQUIRE_FALSE(nonFiniteResult.converged);
 		REQUIRE(nonFiniteResult.status == AlgorithmStatus::NumericalInstability);
 		REQUIRE(nonFiniteResult.function_evaluations == 2);
 
-		RealFunction endpointFunction([](Real x) { return x - REAL(2.0); });
-		auto endpointResult = RootFinding::FindRootBrent(
-			endpointFunction, REAL(2.0), REAL(3.0), defaultConfig);
+		RealFunction endpointFunction([](Real x) { return x - static_cast<MML::Real>(2.0); });
+		auto endpointResult = RootFinding::FindRootBrentDetailed(
+			endpointFunction, static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), defaultConfig);
 		REQUIRE(endpointResult.IsSuccess());
 		REQUIRE(endpointResult.iterations_used == 0);
-		REQUIRE(endpointResult.root == REAL(2.0));
-		REQUIRE(endpointResult.function_value == REAL(0.0));
+		REQUIRE(endpointResult.root == static_cast<MML::Real>(2.0));
+		REQUIRE(endpointResult.function_value == static_cast<MML::Real>(0.0));
 
-		auto identicalResult = RootFinding::FindRootBisection(
-			endpointFunction, REAL(2.0), REAL(2.0), defaultConfig);
+		auto identicalResult = RootFinding::FindRootBisectionDetailed(
+			endpointFunction, static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0), defaultConfig);
 		REQUIRE_FALSE(identicalResult.IsSuccess());
 		REQUIRE(identicalResult.status == AlgorithmStatus::InvalidInput);
 	}
@@ -375,15 +375,15 @@ TEST_CASE("RootFinding::Brent_error_not_bracketed", "[RootFinding][brent][error]
 	{
 			TEST_PRECISION_INFO();
 		// Compare all methods on same problem: f(x) = x^3 - x - 1
-		RealFunction func([](Real x) { return x * x * x - x - REAL(1.0); });
+		RealFunction func([](Real x) { return x * x * x - x - static_cast<MML::Real>(1.0); });
 		Real tol = TOL(1e-10, 1e-5);
 
-		Real root_bisection = RootFinding::FindRootBisection(func, REAL(1.0), REAL(2.0), tol);
-		Real root_falsepos = RootFinding::FindRootFalsePosition(func, REAL(1.0), REAL(2.0), tol);
-		Real root_newton = RootFinding::FindRootNewton(func, REAL(1.0), REAL(2.0), tol);
-		Real root_secant = RootFinding::FindRootSecant(func, REAL(1.0), REAL(2.0), tol);
-		Real root_ridders = RootFinding::FindRootRidders(func, REAL(1.0), REAL(2.0), tol);
-		Real root_brent = RootFinding::FindRootBrent(func, REAL(1.0), REAL(2.0), tol);
+		Real root_bisection = RootFinding::FindRootBisection(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), tol);
+		Real root_falsepos = RootFinding::FindRootFalsePosition(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), tol);
+		Real root_newton = RootFinding::FindRootNewton(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), tol);
+		Real root_secant = RootFinding::FindRootSecant(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), tol);
+		Real root_ridders = RootFinding::FindRootRidders(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), tol);
+		Real root_brent = RootFinding::FindRootBrent(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), tol);
 
 		// All methods should find the same root
 		REQUIRE_THAT(root_falsepos, WithinAbs(root_bisection, TOL(1e-8, 1e-4)));
@@ -393,12 +393,12 @@ TEST_CASE("RootFinding::Brent_error_not_bracketed", "[RootFinding][brent][error]
 		REQUIRE_THAT(root_brent, WithinAbs(root_bisection, TOL(1e-8, 1e-4)));
 
 		// All should satisfy f(root) ~ 0
-		REQUIRE_THAT(func(root_bisection), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
-		REQUIRE_THAT(func(root_falsepos), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
-		REQUIRE_THAT(func(root_newton), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
-		REQUIRE_THAT(func(root_secant), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
-		REQUIRE_THAT(func(root_ridders), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
-		REQUIRE_THAT(func(root_brent), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(func(root_bisection), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(func(root_falsepos), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(func(root_newton), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(func(root_secant), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(func(root_ridders), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(func(root_brent), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::AdvancedMethods_sine_wave", "[RootFinding][advanced]")
@@ -407,8 +407,8 @@ TEST_CASE("RootFinding::Brent_error_not_bracketed", "[RootFinding][brent][error]
 		// f(x) = sin(x), find root near π in [3, 4]
 		RealFunction func([](Real x) { return std::sin(x); });
 
-		Real root_ridders = RootFinding::FindRootRidders(func, REAL(3.0), REAL(4.0), TOL(1e-12, 1e-5));
-		Real root_brent = RootFinding::FindRootBrent(func, REAL(3.0), REAL(4.0), TOL(1e-12, 1e-5));
+		Real root_ridders = RootFinding::FindRootRidders(func, static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0), TOL(1e-12, 1e-5));
+		Real root_brent = RootFinding::FindRootBrent(func, static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0), TOL(1e-12, 1e-5));
 
 		REQUIRE_THAT(root_ridders, WithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
 		REQUIRE_THAT(root_brent, WithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
@@ -463,7 +463,7 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 					INFO("Root " << i << ": expected " << expectedRoot << ", got " << computedRoot);
 					REQUIRE_THAT(computedRoot, WithinAbs(expectedRoot, tolerance));
 					Real funcTol = std::max(tolerance, TOL(1e-6, 1e-3));
-					REQUIRE_THAT(test.func(computedRoot), WithinAbs(REAL(0.0), funcTol));
+					REQUIRE_THAT(test.func(computedRoot), WithinAbs(static_cast<MML::Real>(0.0), funcTol));
 				}
 			}
 		}
@@ -528,7 +528,7 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 					INFO("Root " << i << ": expected " << expectedRoot << ", got " << computedRoot);
 					REQUIRE_THAT(computedRoot, WithinAbs(expectedRoot, tolerance));
 					Real funcTol = std::max(tolerance, TOL(1e-6, 1e-3));
-					REQUIRE_THAT(test.func(computedRoot), WithinAbs(REAL(0.0), funcTol));
+					REQUIRE_THAT(test.func(computedRoot), WithinAbs(static_cast<MML::Real>(0.0), funcTol));
 				}
 			}
 		}
@@ -630,7 +630,7 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 					
 					INFO("Root " << i << ": expected " << expectedRoot << ", got " << computedRoot);
 					REQUIRE_THAT(computedRoot, WithinAbs(expectedRoot, tolerance));
-					REQUIRE_THAT(test.func(computedRoot), WithinAbs(REAL(0.0), tolerance));
+					REQUIRE_THAT(test.func(computedRoot), WithinAbs(static_cast<MML::Real>(0.0), tolerance));
 				}
 			}
 		}
@@ -743,7 +743,7 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 			DYNAMIC_SECTION("Brent (multiple roots): " << test.name) {
 				RealFunctionWrapper func(test.func);
 				// Multiple roots converge much slower - need looser tolerance
-				Real tolerance = REAL(1e-4);  // Very loose for multiple roots
+				Real tolerance = static_cast<MML::Real>(1e-4);  // Very loose for multiple roots
 				
 				for (size_t i = 0; i < test.brackets.size(); i++) {
 					Real low = test.brackets[i].first;

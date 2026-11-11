@@ -164,7 +164,6 @@ namespace MML::MatrixAlg
 		MatrixStability stability = MatrixStability::Singular;
 		std::optional<int> expectedDigitsLost;
 		std::optional<Definiteness> definiteness;
-		std::string report;
 	};
 }
 

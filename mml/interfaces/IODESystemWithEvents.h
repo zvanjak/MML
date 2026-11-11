@@ -27,6 +27,7 @@ namespace MML {
 	 * - Increasing: g(t,x) crosses zero from negative to positive
 	 * - Decreasing: g(t,x) crosses zero from positive to negative  
 	 * - Both: Any zero-crossing direction triggers event
+	 * Directions follow the integration path, including when integrating backward.
 	 */
 	enum class EventDirection {
 		Increasing,  ///< Trigger when g crosses from - to +
@@ -108,7 +109,7 @@ namespace MML {
 	 * };
 	 * @endcode
 	 */
-	class IODESystemWithEvents : public IODESystem
+	class IODESystemWithEvents : public virtual IODESystem
 	{
 	public:
 		/**

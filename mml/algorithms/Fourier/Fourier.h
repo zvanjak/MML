@@ -17,6 +17,7 @@
 #define MML_FOURIER_H
 
 #include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/AlgorithmTypes.h>
 
@@ -932,7 +933,7 @@ namespace MML::Fourier
 		///////////////////////////////////////////////////////////////////////////////////////////
 		// HELPER: Verify DCT-II/III round-trip
 		///////////////////////////////////////////////////////////////////////////////////////////
-		static bool VerifyRoundTrip(const Vector<Real>& data, Real tolerance = 1e-12) {
+		static bool VerifyRoundTrip(const Vector<Real>& data, Real tolerance = Precision::ZeroTolerance) {
 			Vector<Real> coeffs = ForwardII(data);
 			Vector<Real> recovered = InverseII(coeffs);
 
@@ -949,7 +950,7 @@ namespace MML::Fourier
 		///////////////////////////////////////////////////////////////////////////////////////////
 		// HELPER: Verify fast implementation matches reference
 		///////////////////////////////////////////////////////////////////////////////////////////
-		static bool VerifyFastMatchesReference(const Vector<Real>& data, Real tolerance = 1e-10) {
+		static bool VerifyFastMatchesReference(const Vector<Real>& data, Real tolerance = Precision::EqualityTolerance) {
 			int N = data.size();
 			if (!FFT::IsPowerOfTwo(N)) {
 				return true; // Not applicable for non-power-of-2

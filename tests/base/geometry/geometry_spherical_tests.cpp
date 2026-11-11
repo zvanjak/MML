@@ -312,7 +312,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 			
 			// Known distance: approximately 5,585 km
 			// Allow 1% tolerance for coordinate precision and Earth's non-spherical shape
-			REQUIRE_THAT(distance, WithinAbs(5585.0, REAL(60.0)));
+			REQUIRE_THAT(distance, WithinAbs(5585.0, static_cast<MML::Real>(60.0)));
 		}
 		
 		SECTION("London to Moscow")
@@ -321,7 +321,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 				EARTH_RADIUS_KM, london.lat, london.lon, moscow.lat, moscow.lon);
 			
 			// Known distance: approximately 2,500 km
-			REQUIRE_THAT(distance, WithinAbs(2500.0, REAL(50.0)));
+			REQUIRE_THAT(distance, WithinAbs(2500.0, static_cast<MML::Real>(50.0)));
 		}
 		
 		SECTION("Tokyo to Sydney")
@@ -330,7 +330,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 				EARTH_RADIUS_KM, tokyo.lat, tokyo.lon, sydney.lat, sydney.lon);
 			
 			// Known distance: approximately 7,820 km
-			REQUIRE_THAT(distance, WithinAbs(7820.0, REAL(80.0)));
+			REQUIRE_THAT(distance, WithinAbs(7820.0, static_cast<MML::Real>(80.0)));
 		}
 		
 		SECTION("New York to Sao Paulo")
@@ -339,7 +339,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 				EARTH_RADIUS_KM, newYork.lat, newYork.lon, saoPaulo.lat, saoPaulo.lon);
 			
 			// Known distance: approximately 7,700 km
-			REQUIRE_THAT(distance, WithinAbs(7700.0, REAL(80.0)));
+			REQUIRE_THAT(distance, WithinAbs(7700.0, static_cast<MML::Real>(80.0)));
 		}
 		
 		SECTION("Moscow to Tokyo")
@@ -348,7 +348,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 				EARTH_RADIUS_KM, moscow.lat, moscow.lon, tokyo.lat, tokyo.lon);
 			
 			// Known distance: approximately 7,500 km
-			REQUIRE_THAT(distance, WithinAbs(7500.0, REAL(80.0)));
+			REQUIRE_THAT(distance, WithinAbs(7500.0, static_cast<MML::Real>(80.0)));
 		}
 		
 		SECTION("Sydney to Sao Paulo")
@@ -357,7 +357,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 				EARTH_RADIUS_KM, sydney.lat, sydney.lon, saoPaulo.lat, saoPaulo.lon);
 			
 			// Known distance: approximately 13,350 km (nearly half-way around Earth)
-			REQUIRE_THAT(distance, WithinAbs(13350.0, REAL(200.0)));
+			REQUIRE_THAT(distance, WithinAbs(13350.0, static_cast<MML::Real>(200.0)));
 		}
 	}
 
@@ -466,7 +466,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 				EARTH_RADIUS_KM, tokyo_lat, tokyo_lon, anchorage_lat, anchorage_lon);
 			
 			// Known distance approximately 5,500 km
-			REQUIRE_THAT(distance, WithinAbs(5500.0, REAL(100.0)));
+			REQUIRE_THAT(distance, WithinAbs(5500.0, static_cast<MML::Real>(100.0)));
 		}
 	}
 }

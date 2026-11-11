@@ -22,6 +22,7 @@
 #define MML_GAUSS_KRONROD_H
 
 #include <vector>
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <functional>
@@ -32,18 +33,22 @@
 namespace MML {
 	namespace Integration 
 	{
-		/// @brief Result of Gauss-Kronrod integration
-		struct GKResult {
-			Real value;					 ///< Integral estimate (from Kronrod rule)
-			Real error_estimate; ///< Error estimate |Gauss - Kronrod|
-			int function_evals;	 ///< Number of function evaluations
-			bool converged;			 ///< True if error < tolerance
-
+		/// @brief Result of Gauss-Kronrod integration: the common IntegrationResult with the GK
+		///        constructor order (value, error, function evaluations, converged).
+		struct GKResult : public IntegrationResult {
 			GKResult(Real v = 0.0, Real e = 0.0, int n = 0, bool c = false)
-					: value(v)
-					, error_estimate(e)
-					, function_evals(n)
-					, converged(c) {}
+				: IntegrationResult(v, e, 1, c, /*error_estimated*/ true)
+			{
+				function_evaluations = n;
+				algorithm_name = "GaussKronrod";
+			}
+			GKResult(const IntegrationResult& r) : IntegrationResult(r) {}
+			static GKResult Fixed(Real value, Real error, int evaluations) {
+				GKResult result(value, error, evaluations, false);
+				result.status = AlgorithmStatus::Completed;
+				return result;
+			}
+
 		};
 
 		/*************************************************************************/
@@ -98,7 +103,7 @@ namespace MML {
 		/// @param b Upper limit
 		/// @return GKResult with integral estimate and error
 		template<typename Func>
-		static GKResult IntegrateGK15(Func f, Real a, Real b) {
+		static GKResult IntegrateGK15Core(Func f, Real a, Real b) {
 			const Real center = 0.5 * (a + b);
 			const Real half_length = 0.5 * (b - a);
 
@@ -135,7 +140,13 @@ namespace MML {
 
 			Real error = std::abs(result_kronrod - result_gauss);
 
-			return GKResult(result_kronrod, error, 15, true);
+			return GKResult::Fixed(result_kronrod, error, 15);
+		}
+
+		template<typename Func>
+		static Real IntegrateGK15(Func f, Real a, Real b)
+		{
+			return IntegrateGK15Core(f, a, b).ValueOrThrow("IntegrateGK15");
 		}
 
 		/*************************************************************************/
@@ -148,7 +159,7 @@ namespace MML {
 		///          21 Kronrod points = 11 unique abscissae (mirrored about center)
 		///          10 Gauss points at odd Kronrod indices (1,3,5,7,9)
 		template<typename Func>
-		static GKResult IntegrateGK21(Func f, Real a, Real b) {
+		static GKResult IntegrateGK21Core(Func f, Real a, Real b) {
 			// 21-point Kronrod abscissae (11 unique, from GSL qk21.c)
 			// xgk[1], xgk[3], ... are the 10-point Gauss abscissae
 			// xgk[0], xgk[2], ... are added by Kronrod extension
@@ -226,7 +237,13 @@ namespace MML {
 			result_gauss *= half_length;
 			result_kronrod *= half_length;
 
-			return GKResult(result_kronrod, std::abs(result_kronrod - result_gauss), 21, true);
+			return GKResult::Fixed(result_kronrod, std::abs(result_kronrod - result_gauss), 21);
+		}
+
+		template<typename Func>
+		static Real IntegrateGK21(Func f, Real a, Real b)
+		{
+			return IntegrateGK21Core(f, a, b).ValueOrThrow("IntegrateGK21");
 		}
 
 		/*************************************************************************/
@@ -240,7 +257,7 @@ namespace MML {
 		///          15 Gauss points at odd Kronrod indices (1,3,5,7,9,11,13,15)
 		///          Note: n=16 is even, so center IS a Gauss point
 		template<typename Func>
-		static GKResult IntegrateGK31(Func f, Real a, Real b) {
+		static GKResult IntegrateGK31Core(Func f, Real a, Real b) {
 			// 31-point Kronrod abscissae (16 unique, from GSL qk31.c)
 			// xgk[1], xgk[3], ... are the 15-point Gauss abscissae
 			// xgk[0], xgk[2], ... are added by Kronrod extension
@@ -332,7 +349,13 @@ namespace MML {
 			result_gauss *= half_length;
 			result_kronrod *= half_length;
 
-			return GKResult(result_kronrod, std::abs(result_kronrod - result_gauss), 31, true);
+			return GKResult::Fixed(result_kronrod, std::abs(result_kronrod - result_gauss), 31);
+		}
+
+		template<typename Func>
+		static Real IntegrateGK31(Func f, Real a, Real b)
+		{
+			return IntegrateGK31Core(f, a, b).ValueOrThrow("IntegrateGK31");
 		}
 
 		/*************************************************************************/
@@ -356,28 +379,47 @@ namespace MML {
 		/// @param rule Which Gauss-Kronrod rule to use (default GK15)
 		/// @return GKResult with integral and accumulated error estimate
 		template<typename Func>
-		static GKResult IntegrateGKAdaptive(Func f, Real a, Real b, Real tol_abs = PrecisionValues<Real>::IntegrationTolerance, Real tol_rel = PrecisionValues<Real>::IntegrationTolerance, int max_depth = 50,
+		static GKResult IntegrateGKAdaptiveCore(Func f, Real a, Real b, Real tol_abs = PrecisionValues<Real>::IntegrationTolerance, Real tol_rel = PrecisionValues<Real>::IntegrationTolerance, int max_depth = 50,
 																				GKRule rule = GKRule::GK15) {
 			// Apply basic rule first
-			GKResult local = (rule == GKRule::GK15)		? IntegrateGK15(f, a, b)
-											 : (rule == GKRule::GK21) ? IntegrateGK21(f, a, b)
-																								: IntegrateGK31(f, a, b);
+			// Qualified dispatch excludes scalar-wrapper overloads found by argument-dependent lookup.
+			GKResult local = (rule == GKRule::GK15)		? ::MML::Integration::IntegrateGK15Core(f, a, b)
+											 : (rule == GKRule::GK21) ? ::MML::Integration::IntegrateGK21Core(f, a, b)
+																								: ::MML::Integration::IntegrateGK31Core(f, a, b);
 
 			Real tolerance = std::max(tol_abs, tol_rel * std::abs(local.value));
 
 			// Check if we meet tolerance or hit max depth
 			if (local.error_estimate <= tolerance || max_depth <= 0) {
 				local.converged = (local.error_estimate <= tolerance);
+				local.status = local.converged ? AlgorithmStatus::Success : AlgorithmStatus::MaxIterationsExceeded;
+				if (!local.converged) local.error_message = "Adaptive Gauss-Kronrod depth exhausted before tolerance was met";
 				return local;
 			}
 
 			// Subdivide and recurse
 			Real mid = 0.5 * (a + b);
-			GKResult left = IntegrateGKAdaptive(f, a, mid, tol_abs / 2.0, tol_rel, max_depth - 1, rule);
-			GKResult right = IntegrateGKAdaptive(f, mid, b, tol_abs / 2.0, tol_rel, max_depth - 1, rule);
+			GKResult left = IntegrateGKAdaptiveCore(f, a, mid, tol_abs / 2.0, tol_rel, max_depth - 1, rule);
+			GKResult right = IntegrateGKAdaptiveCore(f, mid, b, tol_abs / 2.0, tol_rel, max_depth - 1, rule);
 
-			return GKResult(left.value + right.value, left.error_estimate + right.error_estimate, left.function_evals + right.function_evals,
+			return GKResult(left.value + right.value, left.error_estimate + right.error_estimate, left.function_evaluations + right.function_evaluations,
 											left.converged && right.converged);
+		}
+
+		/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
+		template<typename Func>
+		static auto IntegrateGKAdaptiveDetailed(Func f, Real a, Real b, Real tol_abs, Real tol_rel = PrecisionValues<Real>::IntegrationTolerance, int max_depth = 50, GKRule rule = GKRule::GK15)
+		{
+			auto r = IntegrateGKAdaptiveCore(f, a, b, tol_abs, tol_rel, max_depth, rule);
+			r.algorithm_name = "IntegrateGKAdaptive";
+			return r;
+		}
+
+		template<typename Func>
+		static Real IntegrateGKAdaptive(Func f, Real a, Real b, Real tol_abs = PrecisionValues<Real>::IntegrationTolerance, Real tol_rel = PrecisionValues<Real>::IntegrationTolerance, int max_depth = 50,
+																				GKRule rule = GKRule::GK15)
+		{
+			return IntegrateGKAdaptiveCore(f, a, b, tol_abs, tol_rel, max_depth, rule).ValueOrThrow("IntegrateGKAdaptive");
 		}
 
 		/*************************************************************************/
@@ -391,19 +433,19 @@ namespace MML {
 		/// @return Integral value
 		template<typename Func>
 		static Real IntegrateGaussKronrod15(Func f, Real a, Real b) {
-			return IntegrateGK15(f, a, b).value;
+			return IntegrateGK15Core(f, a, b).value;
 		}
 
 		/// @brief Integrate using G10K21 rule (non-adaptive, single application).
 		template<typename Func>
 		static Real IntegrateGaussKronrod21(Func f, Real a, Real b) {
-			return IntegrateGK21(f, a, b).value;
+			return IntegrateGK21Core(f, a, b).value;
 		}
 
 		/// @brief Integrate using G15K31 rule (non-adaptive, single application).
 		template<typename Func>
 		static Real IntegrateGaussKronrod31(Func f, Real a, Real b) {
-			return IntegrateGK31(f, a, b).value;
+			return IntegrateGK31Core(f, a, b).value;
 		}
 
 		/// @brief Adaptive Gauss-Kronrod integration (recommended general use).
@@ -413,8 +455,8 @@ namespace MML {
 		/// @param tol Absolute tolerance (default 1e-10)
 		/// @return Integral value
 		template<typename Func>
-		static Real IntegrateGaussKronrod(Func f, Real a, Real b, Real tol = 1e-10) {
-			return IntegrateGKAdaptive(f, a, b, tol, tol, 50, GKRule::GK15).value;
+		static Real IntegrateGaussKronrod(Func f, Real a, Real b, Real tol = Precision::IntegrationTolerance) {
+			return IntegrateGKAdaptiveCore(f, a, b, tol, tol, 50, GKRule::GK15).value;
 		}
 
 		/// @brief Adaptive Gauss-Kronrod with error estimate.
@@ -425,8 +467,8 @@ namespace MML {
 		/// @param tol Tolerance
 		/// @return Integral value
 		template<typename Func>
-		static Real IntegrateGaussKronrod(Func f, Real a, Real b, Real* error, Real tol = 1e-10) {
-			auto result = IntegrateGKAdaptive(f, a, b, tol, tol, 50, GKRule::GK15);
+		static Real IntegrateGaussKronrod(Func f, Real a, Real b, Real* error, Real tol = Precision::IntegrationTolerance) {
+			auto result = IntegrateGKAdaptiveCore(f, a, b, tol, tol, 50, GKRule::GK15);
 			if (error)
 				*error = result.error_estimate;
 			return result.value;
@@ -439,19 +481,9 @@ namespace MML {
 		/// Helper to populate IntegrationDetailedResult from GKResult
 		namespace GKDetail
 		{
-			inline void PopulateFromGK(IntegrationDetailedResult& out,
-			                           const GKResult& gk,
-			                           const char* algorithm_name)
+			inline void PopulateFromGK(IntegrationResult& out, const GKResult& gk, const char* algorithm_name)
 			{
-				out.value = gk.value;
-				out.error_estimate = gk.error_estimate;
-				out.function_evaluations = gk.function_evals;
-				out.converged = gk.converged;
-				if (!gk.converged) {
-					out.status = AlgorithmStatus::MaxIterationsExceeded;
-					out.error_message = std::string(algorithm_name) +
-						" did not converge (error=" + std::to_string(gk.error_estimate) + ")";
-				}
+				IntegrationDetail::Adopt(out, gk, algorithm_name);
 			}
 		} // namespace GKDetail
 
@@ -464,7 +496,7 @@ namespace MML {
 			return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 				"IntegrateGK15", config,
 				[&](IntegrationDetailedResult& result) {
-					auto gk = IntegrateGK15(f, a, b);
+					auto gk = IntegrateGK15Core(f, a, b);
 					GKDetail::PopulateFromGK(result, gk, "IntegrateGK15");
 				});
 		}
@@ -478,7 +510,7 @@ namespace MML {
 			return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 				"IntegrateGK21", config,
 				[&](IntegrationDetailedResult& result) {
-					auto gk = IntegrateGK21(f, a, b);
+					auto gk = IntegrateGK21Core(f, a, b);
 					GKDetail::PopulateFromGK(result, gk, "IntegrateGK21");
 				});
 		}
@@ -492,7 +524,7 @@ namespace MML {
 			return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 				"IntegrateGK31", config,
 				[&](IntegrationDetailedResult& result) {
-					auto gk = IntegrateGK31(f, a, b);
+					auto gk = IntegrateGK31Core(f, a, b);
 					GKDetail::PopulateFromGK(result, gk, "IntegrateGK31");
 				});
 		}
@@ -508,7 +540,7 @@ namespace MML {
 			return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 				"IntegrateGKAdaptive", config,
 				[&](IntegrationDetailedResult& result) {
-					auto gk = IntegrateGKAdaptive(f, a, b, tol_abs, tol_rel, max_depth, rule);
+					auto gk = IntegrateGKAdaptiveCore(f, a, b, tol_abs, tol_rel, max_depth, rule);
 					GKDetail::PopulateFromGK(result, gk, "IntegrateGKAdaptive");
 				});
 		}

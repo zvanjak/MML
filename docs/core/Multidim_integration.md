@@ -31,7 +31,7 @@ For higher dimensions (≥ 4) or complex domains, see [Monte Carlo integration](
 
 ### API
 ```cpp
-IntegrationResult Integrate2D(
+Real Integrate2D(   // value, throws ConvergenceError if not usable; Integrate2DDetailed(...) returns IntegrationResult
     const IScalarFunction<2>& func,     // f(x,y)
     IntegrationMethod method,           // TRAP, SIMPSON, or GAUSS10
     Real x1, Real x2,                   // x range: [x1, x2]
@@ -72,7 +72,7 @@ auto area = Integrate2D(
 
 ### API
 ```cpp
-IntegrationResult Integrate3D(
+Real Integrate3D(   // value, throws ConvergenceError if not usable; Integrate3DDetailed(...) returns IntegrationResult
     const IScalarFunction<3>& func,     // f(x,y,z)
     Real x1, Real x2,                   // x range
     Real (*y1)(Real),                   // y_min(x)

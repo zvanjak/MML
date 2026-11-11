@@ -197,8 +197,8 @@ namespace MML
 
 		bool operator!=(const MatrixNDim& other) const { return !(*this == other); }
 
-		/// @brief Approximate component-wise equality within an absolute tolerance.
-		bool IsEqualTo(const MatrixNDim& other, T tolerance) const
+		/// @brief Approximate component-wise equality within an absolute tolerance (a real magnitude).
+		bool IsEqualTo(const MatrixNDim& other, Real tolerance) const
 		{
 			for (int i = 0; i < TotalSize; ++i)
 				if (std::abs(_data[i] - other._data[i]) > tolerance)

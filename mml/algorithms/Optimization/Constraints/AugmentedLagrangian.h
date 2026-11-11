@@ -55,21 +55,21 @@ namespace MML::Optimization
 	struct ALMConfig {
 		// Outer loop
 		int max_outer_iterations = 100;         ///< Maximum outer (multiplier-update) iterations
-		Real feasibility_tolerance = 1e-6;      ///< Constraint violation tolerance
-		Real stationarity_tolerance = 1e-6;     ///< Optimality tolerance
+		Real feasibility_tolerance = Precision::LooseTolerance;      ///< Constraint violation tolerance
+		Real stationarity_tolerance = Precision::LooseTolerance;     ///< Optimality tolerance
 
 		// Penalty parameter
 		Real initial_penalty = 10.0;            ///< Initial penalty parameter rho_0
 		Real penalty_multiplier = 10.0;         ///< Penalty increase factor
-		Real max_penalty = 1e12;                ///< Maximum penalty parameter
+		Real max_penalty = Precision::PenaltyParameterMax;                ///< Maximum penalty parameter
 
 		// Multiplier updates
-		Real multiplier_lower_bound = -1e10;    ///< Lower bound on Lagrange multipliers
-		Real multiplier_upper_bound = 1e10;     ///< Upper bound on Lagrange multipliers
+		Real multiplier_lower_bound = -Precision::LagrangeMultiplierBound;    ///< Lower bound on Lagrange multipliers
+		Real multiplier_upper_bound = Precision::LagrangeMultiplierBound;     ///< Upper bound on Lagrange multipliers
 
 		// Inner (unconstrained) solver
 		int max_inner_iterations = 1000;        ///< Max iterations for the Nelder-Mead subproblem
-		Real inner_tolerance = 1e-8;            ///< Tolerance for the inner solver
+		Real inner_tolerance = Precision::ModerateTolerance;            ///< Tolerance for the inner solver
 		Real inner_simplex_delta = 1.0;         ///< Initial simplex size for the inner solver
 
 		/// Optional progress log (contract policy section 7: no std::cout in library code)
@@ -84,6 +84,7 @@ namespace MML::Optimization
 		VectorN<Real, N> x;                     ///< Optimal solution
 		Real objective_value = 0;               ///< Objective function value f(x*)
 		Real constraint_violation = 0;          ///< Final maximum constraint violation
+		Real step_norm = 0;                     ///< Max-norm change of the iterate in the last outer iteration (stationarity proxy)
 		int outer_iterations = 0;               ///< Outer iterations performed
 		int inner_iterations = 0;               ///< Total inner solver iterations
 
@@ -188,6 +189,7 @@ namespace MML::Optimization
 
 			int totalFuncEvals = 0;
 			Vec xk = x0;
+			Real stepNorm = std::numeric_limits<Real>::infinity();
 
 			for (int outer = 0; outer < _config.max_outer_iterations; ++outer) {
 				result.outer_iterations = outer + 1;
@@ -201,6 +203,7 @@ namespace MML::Optimization
 				NelderMead innerSolver(_config.inner_tolerance, _config.max_inner_iterations);
 				auto innerResult = innerSolver.Minimize(augLagrangianWrapper, xk, _config.inner_simplex_delta);
 
+				const Vec xPrev = xk;
 				for (int i = 0; i < N; ++i)
 					xk[i] = innerResult.xmin[i];
 				result.inner_iterations += innerResult.iterations;
@@ -209,18 +212,30 @@ namespace MML::Optimization
 				Real maxViolation = ComputeMaxViolation(xk);
 				result.constraint_violation = maxViolation;
 
+				// Stationarity proxy for a derivative-free inner solver: the outer iterate has stopped
+				// moving (relative to its size). Until analysis v4 (ALGORITHMS A12) stationarity_tolerance
+				// was accepted in the config and never read: feasibility alone ended the iteration.
+				stepNorm = static_cast<MML::Real>(0.0);
+				Real xScale = static_cast<MML::Real>(1.0);
+				for (int i = 0; i < N; ++i) {
+					stepNorm = std::max(stepNorm, std::abs(xk[i] - xPrev[i]));
+					xScale = std::max(xScale, std::abs(xk[i]));
+				}
+				result.step_norm = stepNorm;
+				const bool stationary = outer > 0 && stepNorm <= _config.stationarity_tolerance * xScale;
+
 				if (_config.verbose_stream)
 					(*_config.verbose_stream) << "ALM outer iter " << (outer + 1)
-						<< ": violation=" << maxViolation << ", rho=" << _rho << "\n";
+						<< ": violation=" << maxViolation << ", step=" << stepNorm << ", rho=" << _rho << "\n";
 
-				if (maxViolation <= _config.feasibility_tolerance) {
+				if (maxViolation <= _config.feasibility_tolerance && stationary) {
 					result.converged = true;
 					break;
 				}
 
 				UpdateMultipliers(xk);
 
-				if (outer > 0)
+				if (outer > 0 && maxViolation > _config.feasibility_tolerance)
 					_rho = std::min(_rho * _config.penalty_multiplier, _config.max_penalty);
 			}
 
@@ -237,9 +252,10 @@ namespace MML::Optimization
 				result.status = AlgorithmStatus::Success;
 			} else {
 				result.status = AlgorithmStatus::MaxIterationsExceeded;
-				result.error_message = "Failed to reach feasibility tolerance after "
+				result.error_message = "Failed to reach feasibility and stationarity tolerances after "
 					+ std::to_string(result.outer_iterations) + " outer iterations (violation: "
-					+ std::to_string(result.constraint_violation) + ")";
+					+ std::to_string(result.constraint_violation) + ", last step: "
+					+ std::to_string(stepNorm) + ")";
 			}
 
 			return result;

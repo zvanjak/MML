@@ -13,6 +13,7 @@
 #define MML_FOURIER_CONVOLUTION_H
 
 #include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
 
 #include <mml/algorithms/Fourier/Fourier.h>
 

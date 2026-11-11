@@ -24,22 +24,24 @@ namespace MML {
 	/***************************************************************************************************
    * GENERAL (NON-SYMMETRIC) EIGENSOLVER
    * 
-   * Complete eigensolver for general (non-symmetric) matrices using QR iteration
-   * with Francis double-shift and Wilkinson shift strategies.
+   * Complete eigensolver for general (non-symmetric) matrices using Francis implicit
+   * double-shift QR iteration on the Hessenberg form (EISPACK hqr2 / LAPACK dlahqr structure).
    * 
    * ALGORITHM:
    * 1. Reduce matrix to upper Hessenberg form H = Q^T * A * Q
-   * 2. Apply QR iteration with shifts until H converges to quasi-upper-triangular
-   * 3. Extract eigenvalues from diagonal and 2x2 blocks
-   * 4. Compute eigenvectors via back-substitution
+   * 2. Repeatedly locate the lowest unreduced diagonal block [l, iHi], deflate converged 1x1 / 2x2
+   *    blocks from the bottom (real 2x2 blocks are triangularised), otherwise apply one implicit
+   *    double-shift step to that block only, until H is quasi-upper-triangular (real Schur form)
+   * 3. Extract eigenvalues from the 1x1 and 2x2 diagonal blocks
+   * 4. Compute eigenvectors by quasi-triangular back-substitution on T, then X = Q * Y
+   * 5. Report ||A v - λ v|| / ||v|| over all eigenpairs as maxResidual
    * 
    * FEATURES:
    * - Handles both real and complex eigenvalues
-   * - Complex eigenvalues are stored as conjugate pairs
-   * - Uses Wilkinson shift for real eigenvalues (cubic convergence)
-   * - Uses Francis double-shift for complex eigenvalue pairs
-   * - Deflation to reduce problem size as eigenvalues converge
-   * - Exceptional shifts to prevent stagnation
+   * - Complex eigenvalues are stored as conjugate pairs (+β first)
+   * - Shifts are always taken from the active block, so convergence is quadratic/cubic
+   * - Exceptional shifts after 10 and 20 fruitless iterations on one eigenvalue
+   * - converged is true only when every block was deflated within maxIter
    * 
    * COMPLEXITY: O(n³) - dominated by Hessenberg reduction and QR iterations
    * 
@@ -67,11 +69,11 @@ namespace MML {
 				: real(r)
 				, imag(i) {}
 
-			bool isComplex(Real tol = 1e-12) const { return std::abs(imag) > tol; }
+			bool isComplex(Real tol = Precision::ZeroTolerance) const { return std::abs(imag) > tol; }
 			Real magnitude() const { return std::sqrt(real * real + imag * imag); }
 
 			friend std::ostream& operator<<(std::ostream& os, const ComplexEigenvalue& value) {
-				return os << value.real << (value.imag < REAL(0.0) ? " - " : " + ") << std::abs(value.imag) << 'i';
+				return os << value.real << (value.imag < static_cast<MML::Real>(0.0) ? " - " : " + ") << std::abs(value.imag) << 'i';
 			}
 		};
 
@@ -113,149 +115,133 @@ namespace MML {
 		/// - eigenvalues[k] = {λ, μ}, eigenvalues[k+1] = {λ, -μ}
 		/// - eigenvectors.Column(k) = vr, Column(k+1) = vi
 		static Result Solve(const Matrix<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 1000) {
+			if (A.rows() != A.cols())
+				throw MatrixDimensionError("EigenSolver::Solve - matrix must be square", A.rows(), A.cols(), -1, -1);
+			if (!std::isfinite(tol) || tol < static_cast<MML::Real>(0.0))
+				throw DomainError("EigenSolver::Solve - tolerance must be finite and nonnegative");
+
 			int n = A.rows();
 			Result result(n);
 
 			if (n == 0) {
-				result.converged = true;
+				// Empty problem: nothing to iterate or check (RESULT_POLICY: Completed)
+				result.converged = false;
+				result.status = AlgorithmStatus::Completed;
+				result.maxResidual = NoEstimate;
 				return result;
 			}
 
 			if (n == 1) {
+				// Closed form: A v = A(0,0) v with v = 1, residual exactly 0 - the criterion is checked and met
 				result.eigenvalues.push_back(ComplexEigenvalue(A(0, 0), 0.0));
 				result.eigenvectors(0, 0) = 1.0;
 				result.isComplexPair.push_back(false);
-				result.converged = true;
+				result.maxResidual = 0.0;
+				result.converged = result.maxResidual <= tol;
 				return result;
 			}
 
-			// Step 1: Reduce to Hessenberg form
+			// Step 1: Reduce to Hessenberg form  (H = Q^T A Q)
 			auto hess = ReduceToHessenberg(A);
 			Matrix<Real> H = hess.H;
 			Matrix<Real> Q = hess.Q; // Accumulated transformation
 
-			// Step 2: QR iteration with deflation
-			int iLo = 0;	 // Start of active region
-			int iHi = n - 1; // End of active region
+			// Step 2: Francis double-shift QR iteration with deflation, in the structure of
+			// EISPACK hqr / Numerical Recipes hqr2 / LAPACK dlahqr:
+			//   - find the lowest unreduced block [l, iHi] (NOT the first small subdiagonal from the
+			//     bottom: iterating on [0, iHi] with shifts from a converged block, or shrinking iHi
+			//     past an interior split, both break convergence - analysis v4, ALGORITHMS A1);
+			//   - deflate 1x1 and 2x2 blocks from the bottom, standardising real 2x2 blocks;
+			//   - otherwise apply one implicit double-shift step to [l, iHi] only, with exceptional
+			//     shifts after 10 and 20 fruitless iterations on the same eigenvalue.
+			const Real anorm = detail::HessenbergAbsNorm(H);
+			int iHi = n - 1;		// Bottom of the active region (everything below is converged)
+			int its = 0;			// Iterations spent on the current eigenvalue
 			int totalIter = 0;
+			bool allDeflated = true;
 
-			while (iHi > iLo && totalIter < maxIter) {
-				// Check for deflation at bottom of active region
-				auto defl = detail::CheckDeflation(H, iLo, iHi, tol);
+			while (iHi >= 0) {
+				const int l = detail::FindUnreducedBlockStart(H, 0, iHi, tol, anorm);
+				if (l > 0)
+					H(l, l - 1) = static_cast<MML::Real>(0.0); // make the split exact for extraction / back-substitution
 
-				if (defl.canDeflate) {
-					// Apply deflation
-					detail::ApplyDeflation(H, defl.deflationIndex);
-
-					// Shrink active region
-					if (defl.deflationIndex == iHi) {
-						iHi--;
-					} else if (defl.deflationIndex == iHi - 1 && defl.blockSize == 2) {
-						iHi -= 2; // 2x2 block deflated
-					} else {
-						// Middle deflation - just continue
-						iHi = defl.deflationIndex - 1;
-					}
+				if (l == iHi) {
+					// 1x1 block converged
+					iHi--;
+					its = 0;
+					continue;
+				}
+				if (l == iHi - 1) {
+					// 2x2 block converged: triangularise it if its eigenvalues are real
+					detail::StandardizeSchurBlock(H, Q, l);
+					iHi -= 2;
+					its = 0;
 					continue;
 				}
 
-				// Determine if we should use single or double shift
-				// Check if bottom 2x2 has complex eigenvalues
-				bool useDoubleShift = false;
-				if (iHi >= iLo + 1) {
-					Real a = H(iHi - 1, iHi - 1);
-					Real b = H(iHi - 1, iHi);
-					Real c = H(iHi, iHi - 1);
-					Real d = H(iHi, iHi);
-					auto eig = detail::Eigenvalues2x2(a, b, c, d);
-					useDoubleShift = eig.isComplex;
-
-					// Special case: if we have only a 2x2 block with complex eigenvalues,
-					// it's already in final form - we're done with this block
-					if (useDoubleShift && iHi == iLo + 1) {
-						// 2x2 block with complex eigenvalues is irreducible - accept it
-						break;
-					}
+				if (totalIter >= maxIter) {
+					allDeflated = false;
+					break;
 				}
 
-				if (useDoubleShift && iHi >= iLo + 2) {
-					// Apply Francis double-shift
-					auto step = detail::FrancisDoubleShift(H, iLo, iHi, true);
-					H = step.H;
-
-					// Update accumulated Q
-					Matrix<Real> newQ(n, n);
-					for (int i = 0; i < n; i++)
-						for (int j = 0; j < n; j++) {
-							newQ(i, j) = 0.0;
-							for (int k = 0; k < n; k++)
-								newQ(i, j) += Q(i, k) * step.Q(k, j);
-						}
-					Q = newQ;
-					totalIter += 2; // Double shift counts as 2 iterations
-				} else {
-					// Apply single Wilkinson shift
-					auto step = detail::SingleQRStep(H, true);
-					H = step.H;
-
-					// Update accumulated Q
-					Matrix<Real> newQ(n, n);
-					for (int i = 0; i < n; i++)
-						for (int j = 0; j < n; j++) {
-							newQ(i, j) = 0.0;
-							for (int k = 0; k < n; k++)
-								newQ(i, j) += Q(i, k) * step.Q(k, j);
-						}
-					Q = newQ;
-					totalIter++;
+				// Exceptional shifts (LAPACK dlahqr form) to break cycles
+				const Real* shiftTrace = nullptr;
+				const Real* shiftProduct = nullptr;
+				Real exTrace = static_cast<MML::Real>(0.0), exProduct = static_cast<MML::Real>(0.0);
+				if (its == 10 || its == 20) {
+					const Real s = std::abs(H(iHi, iHi - 1)) + std::abs(H(iHi - 1, iHi - 2));
+					const Real h = static_cast<MML::Real>(0.75) * s + H(iHi, iHi);
+					exTrace = static_cast<MML::Real>(2.0) * h;
+					exProduct = h * h + static_cast<MML::Real>(0.4375) * s * s;
+					shiftTrace = &exTrace;
+					shiftProduct = &exProduct;
 				}
 
-				// Apply exceptional shift if stuck (every 30 iterations without progress)
-				if (totalIter % 30 == 29 && iHi >= 2) {
-					// Exceptional shift to break cycles
-					Real exceptionalShift = std::abs(H(iHi, iHi - 1)) + std::abs(H(iHi - 1, iHi - 2));
-					auto step = detail::SingleQRStep(H, true, &exceptionalShift);
-					H = step.H;
-
-					Matrix<Real> newQ(n, n);
-					for (int i = 0; i < n; i++)
-						for (int j = 0; j < n; j++) {
-							newQ(i, j) = 0.0;
-							for (int k = 0; k < n; k++)
-								newQ(i, j) += Q(i, k) * step.Q(k, j);
-						}
-					Q = newQ;
-					totalIter++;
-				}
+				auto step = detail::FrancisDoubleShift(H, l, iHi, true, shiftTrace, shiftProduct);
+				H = step.H;
+				Q = Q * step.Q;
+				its++;
+				totalIter++;
 			}
 
-			// Step 3: Extract eigenvalues from quasi-triangular form
-			auto eigResult = detail::ExtractEigenvalues(H, tol);
-
-			// Convert to our ComplexEigenvalue format
+			// Step 3: Extract eigenvalues from the (now exactly) quasi-triangular form.
+			// Deflated subdiagonals are exact zeros, so tol = 0 classifies blocks structurally.
+			auto eigResult = detail::ExtractEigenvalues(H, static_cast<MML::Real>(0.0));
 			for (const auto& e : eigResult.eigenvalues)
 				result.eigenvalues.push_back(ComplexEigenvalue(e.real, e.imag));
 
-			// Step 4: Compute eigenvectors
-			auto vecResult = detail::ComputeEigenvectorsFromSchur(H, Q, tol);
+			// Step 4: Compute eigenvectors (quasi-triangular back-substitution, then X = Q Y)
+			auto vecResult = detail::ComputeEigenvectorsFromSchur(H, Q, static_cast<MML::Real>(0.0));
 			result.eigenvectors = vecResult.vectors;
 			result.isComplexPair = vecResult.isComplexPair;
 
-			// Step 5: Compute residuals and check convergence
+			// Step 5: Residuals ||A v - λ v|| / ||v|| for every eigenpair (complex pairs included)
 			result.iterations = totalIter;
 			result.maxResidual = 0.0;
-			result.converged = (totalIter < maxIter);
-
-			// Verify eigenvector quality
-			for (size_t i = 0; i < result.eigenvalues.size(); i++) {
-				if (!result.isComplexPair[i] || (i > 0 && result.isComplexPair[i - 1])) {
-					Vector<Real> v(n);
+			{
+				Vector<Real> vr(n), vi(n);
+				size_t i = 0;
+				while (i < result.eigenvalues.size()) {
 					for (int j = 0; j < n; j++)
-						v[j] = result.eigenvectors(j, static_cast<int>(i));
+						vr[j] = result.eigenvectors(j, static_cast<int>(i));
+					const bool pair = result.isComplexPair[i] && i + 1 < result.eigenvalues.size();
+					for (int j = 0; j < n; j++)
+						vi[j] = pair ? result.eigenvectors(j, static_cast<int>(i + 1)) : static_cast<MML::Real>(0.0);
 
-					Real residual = detail::EigenvectorResidual(A, v, result.eigenvalues[i].real, result.eigenvalues[i].imag);
+					Real residual = detail::EigenpairResidual(A, vr, vi, result.eigenvalues[i].real,
+															  pair ? result.eigenvalues[i].imag : static_cast<MML::Real>(0.0));
 					result.maxResidual = std::max(result.maxResidual, residual);
+					i += pair ? 2 : 1;
 				}
+			}
+
+			result.converged = allDeflated && std::isfinite(result.maxResidual);
+			if (!allDeflated) {
+				result.status = AlgorithmStatus::MaxIterationsExceeded;
+				result.error_message = "General QR iteration did not converge within " + std::to_string(maxIter) + " iterations";
+			} else if (!std::isfinite(result.maxResidual)) {
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.error_message = "Non-finite eigenvector residual";
 			}
 
 			return result;

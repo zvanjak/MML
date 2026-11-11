@@ -61,9 +61,9 @@ namespace MML
 				return 0.0;
 
 			Real interval_squared = ScalarProduct(*this, *this);
-			if (isTimelike())
+			if (IsTimelike())
 				return sqrt(-interval_squared);
-			else if (isSpacelike())
+			else if (IsSpacelike())
 				return -sqrt(interval_squared);
 			else 
 				return 0.0; // Lightlike vectors have zero Minkowski norm
@@ -78,20 +78,30 @@ namespace MML
 		}
 		
 		/// @brief Checks if 4-vector is timelike (inside light cone).
-		bool isTimelike() const
+		bool IsTimelike() const
 		{
 			return ScalarProduct(*this, *this) < 0;
 		}
 		/// @brief Checks if 4-vector is spacelike (outside light cone).
-		bool isSpacelike() const
+		bool IsSpacelike() const
 		{
 			return ScalarProduct(*this, *this) > 0;
 		}
 		/// @brief Checks if 4-vector is lightlike (on light cone).
-		bool isLightlike() const
+		bool IsLightlike() const
 		{
 			return ScalarProduct(*this, *this) == 0;
 		}
+
+		/// @deprecated Use IsTimelike() (CONTRACT_POLICY §11: mathematical predicates are PascalCase).
+		[[deprecated("use IsTimelike()")]]
+		bool isTimelike() const { return IsTimelike(); }
+		/// @deprecated Use IsSpacelike().
+		[[deprecated("use IsSpacelike()")]]
+		bool isSpacelike() const { return IsSpacelike(); }
+		/// @deprecated Use IsLightlike().
+		[[deprecated("use IsLightlike()")]]
+		bool isLightlike() const { return IsLightlike(); }
 	};
 
 	typedef Vector4Minkowski Vec4Mink;

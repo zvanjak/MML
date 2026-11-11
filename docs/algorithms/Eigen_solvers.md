@@ -255,7 +255,7 @@ Eigenvalues:
 
 ```cpp
 // Verify: A·v = λ·v for each eigenpair
-Matrix<Real> A_full = A.GetAsMatrix();
+Matrix<Real> A_full = A.ToFullMatrix();
 
 for (int i = 0; i < 3; i++)
 {
@@ -281,7 +281,7 @@ Eigenpair 2 error: 1.5e-15
 
 ```cpp
 // Verify eigenvectors are orthonormal: V^T · V = I
-Matrix<Real> VtV = result.eigenvectors.transpose() * result.eigenvectors;
+Matrix<Real> VtV = result.eigenvectors.Transposed() * result.eigenvectors;
 
 std::cout << "V^T · V:" << std::endl;
 VtV.Print(std::cout, 8, 4);
@@ -868,7 +868,7 @@ auto result = MatrixAlg::Eigensystem(A);
 
 // From symmetric specialized class
 MatrixSym<Real> S = ...;
-auto result = MatrixAlg::SymmetricEigensystem(S.GetAsMatrix());
+auto result = MatrixAlg::SymmetricEigensystem(S.ToFullMatrix());
 ```
 
 ### With Linear Solvers

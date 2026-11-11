@@ -32,7 +32,7 @@ TEST_CASE("Quaternion - Matrix Conversion", "[quaternion][matrix]")
 			for (int j = 0; j < 3; j++)
 			{
 				if (i == j)
-					REQUIRE(std::abs(mat[i][j] - REAL(1.0)) < TOL(1e-10, 1e-5));
+					REQUIRE(std::abs(mat[i][j] - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
 				else
 					REQUIRE(std::abs(mat[i][j]) < TOL(1e-10, 1e-5));
 			}
@@ -40,7 +40,7 @@ TEST_CASE("Quaternion - Matrix Conversion", "[quaternion][matrix]")
 
 	SECTION("90 degree rotation around Z-axis to matrix")
 	{
-		Quaternion q = Quaternion::FromAxisAngle(Vec3Cart(0, 0, 1), Constants::PI / REAL(2.0));
+		Quaternion q = Quaternion::FromAxisAngle(Vec3Cart(0, 0, 1), Constants::PI / static_cast<MML::Real>(2.0));
 		MatrixNM<Real, 3, 3> mat = q.ToRotationMatrix();
 
 		// Apply to vector (1,0,0) -> should get (0,1,0)
@@ -56,7 +56,7 @@ TEST_CASE("Quaternion - Matrix Conversion", "[quaternion][matrix]")
 	{
 		// Create a known rotation quaternion
 		Quaternion q_original = Quaternion::FromAxisAngle(
-			Vec3Cart(1, 1, 1).Normalized(), Constants::PI / REAL(3.0));
+			Vec3Cart(1, 1, 1).Normalized(), Constants::PI / static_cast<MML::Real>(3.0));
 
 		// Convert to matrix
 		MatrixNM<Real, 3, 3> mat = q_original.ToRotationMatrix();
@@ -66,8 +66,8 @@ TEST_CASE("Quaternion - Matrix Conversion", "[quaternion][matrix]")
 
 		// Quaternions q and -q represent the same rotation
 		// Check if they're equal or negatives
-		bool same = q_original.isApprox(q_reconstructed, TOL(1e-10, 1e-5)) ||
-								q_original.isApprox(-q_reconstructed, TOL(1e-10, 1e-5));
+		bool same = q_original.IsEqualTo(q_reconstructed, TOL(1e-10, 1e-5)) ||
+								q_original.IsEqualTo(-q_reconstructed, TOL(1e-10, 1e-5));
 		REQUIRE(same);
 
 		// Verify they rotate vectors the same way
@@ -80,28 +80,28 @@ TEST_CASE("Quaternion - Matrix Conversion", "[quaternion][matrix]")
 	SECTION("FromRotationMatrix handles all four cases")
 	{
 		// Case 1: trace > 0 (w largest)
-		Quaternion q1 = Quaternion::FromAxisAngle(Vec3Cart(1, 1, 1).Normalized(), REAL(0.5));
+		Quaternion q1 = Quaternion::FromAxisAngle(Vec3Cart(1, 1, 1).Normalized(), static_cast<MML::Real>(0.5));
 		MatrixNM<Real, 3, 3> mat1 = q1.ToRotationMatrix();
 		Quaternion q1_back = Quaternion::FromRotationMatrix(mat1);
 		REQUIRE(VectorApproxEqual(q1.Rotate(Vec3Cart(1, 0, 0)), 
 															q1_back.Rotate(Vec3Cart(1, 0, 0))));
 
 		// Case 2: x largest (90° around X-axis)
-		Quaternion q2 = Quaternion::FromAxisAngle(Vec3Cart(1, 0, 0), Constants::PI / REAL(2.0));
+		Quaternion q2 = Quaternion::FromAxisAngle(Vec3Cart(1, 0, 0), Constants::PI / static_cast<MML::Real>(2.0));
 		MatrixNM<Real, 3, 3> mat2 = q2.ToRotationMatrix();
 		Quaternion q2_back = Quaternion::FromRotationMatrix(mat2);
 		REQUIRE(VectorApproxEqual(q2.Rotate(Vec3Cart(0, 1, 0)), 
 															q2_back.Rotate(Vec3Cart(0, 1, 0))));
 
 		// Case 3: y largest (90° around Y-axis)
-		Quaternion q3 = Quaternion::FromAxisAngle(Vec3Cart(0, 1, 0), Constants::PI / REAL(2.0));
+		Quaternion q3 = Quaternion::FromAxisAngle(Vec3Cart(0, 1, 0), Constants::PI / static_cast<MML::Real>(2.0));
 		MatrixNM<Real, 3, 3> mat3 = q3.ToRotationMatrix();
 		Quaternion q3_back = Quaternion::FromRotationMatrix(mat3);
 		REQUIRE(VectorApproxEqual(q3.Rotate(Vec3Cart(1, 0, 0)), 
 															q3_back.Rotate(Vec3Cart(1, 0, 0))));
 
 		// Case 4: z largest (90° around Z-axis)
-		Quaternion q4 = Quaternion::FromAxisAngle(Vec3Cart(0, 0, 1), Constants::PI / REAL(2.0));
+		Quaternion q4 = Quaternion::FromAxisAngle(Vec3Cart(0, 0, 1), Constants::PI / static_cast<MML::Real>(2.0));
 		MatrixNM<Real, 3, 3> mat4 = q4.ToRotationMatrix();
 		Quaternion q4_back = Quaternion::FromRotationMatrix(mat4);
 		REQUIRE(VectorApproxEqual(q4.Rotate(Vec3Cart(1, 0, 0)), 
@@ -110,7 +110,7 @@ TEST_CASE("Quaternion - Matrix Conversion", "[quaternion][matrix]")
 
 	SECTION("Matrix determinant is 1 (proper rotation)")
 	{
-		Quaternion q = Quaternion::FromAxisAngle(Vec3Cart(1, 2, 3).Normalized(), REAL(1.234));
+		Quaternion q = Quaternion::FromAxisAngle(Vec3Cart(1, 2, 3).Normalized(), static_cast<MML::Real>(1.234));
 		MatrixNM<Real, 3, 3> mat = q.ToRotationMatrix();
 
 		// Compute determinant (3x3)
@@ -118,12 +118,12 @@ TEST_CASE("Quaternion - Matrix Conversion", "[quaternion][matrix]")
 						 - mat[0][1] * (mat[1][0] * mat[2][2] - mat[1][2] * mat[2][0])
 						 + mat[0][2] * (mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0]);
 
-		REQUIRE(std::abs(det - REAL(1.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(det - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
 	}
 
 	SECTION("Matrix is orthogonal (M^T * M = I)")
 	{
-		Quaternion q = Quaternion::FromAxisAngle(Vec3Cart(0, 1, 0), REAL(0.789));
+		Quaternion q = Quaternion::FromAxisAngle(Vec3Cart(0, 1, 0), static_cast<MML::Real>(0.789));
 		MatrixNM<Real, 3, 3> mat = q.ToRotationMatrix();
 
 		// Compute M^T * M
@@ -141,7 +141,7 @@ TEST_CASE("Quaternion - Matrix Conversion", "[quaternion][matrix]")
 			for (int j = 0; j < 3; j++)
 			{
 				if (i == j)
-					REQUIRE(std::abs(product[i][j] - REAL(1.0)) < TOL(1e-10, 1e-5));
+					REQUIRE(std::abs(product[i][j] - static_cast<MML::Real>(1.0)) < TOL(1e-10, 1e-5));
 				else
 					REQUIRE(std::abs(product[i][j]) < TOL(1e-10, 1e-5));
 			}
@@ -153,7 +153,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Construction", "[coordtransf][q
 		TEST_PRECISION_INFO();
 	SECTION("Construct from quaternion")
 	{
-		Quaternion q = Quaternion::FromAxisAngle(Vec3Cart(0, 0, 1), Constants::PI / REAL(2.0));
+		Quaternion q = Quaternion::FromAxisAngle(Vec3Cart(0, 0, 1), Constants::PI / static_cast<MML::Real>(2.0));
 		CoordTransfCart3DRotationQuaternion rot(q);
 
 		Vec3Cart v(1, 0, 0);
@@ -163,7 +163,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Construction", "[coordtransf][q
 
 	SECTION("Construct from axis-angle")
 	{
-		CoordTransfCart3DRotationQuaternion rot(Vec3Cart(1, 0, 0), Constants::PI / REAL(2.0));
+		CoordTransfCart3DRotationQuaternion rot(Vec3Cart(1, 0, 0), Constants::PI / static_cast<MML::Real>(2.0));
 
 		Vec3Cart v(0, 1, 0);
 		Vec3Cart result = rot.transf(v);
@@ -189,7 +189,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Construction", "[coordtransf][q
 	{
 		CoordTransfCart3DRotationQuaternion rot = 
 			CoordTransfCart3DRotationQuaternion::FromEulerZYX(
-				Constants::PI / REAL(2.0), 0, 0);  // Pure yaw
+				Constants::PI / static_cast<MML::Real>(2.0), 0, 0);  // Pure yaw
 
 		Vec3Cart v(1, 0, 0);
 		Vec3Cart result = rot.transf(v);
@@ -224,22 +224,22 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Transformations", "[coordtransf
 	SECTION("90 degree rotations around principal axes")
 	{
 		// X-axis
-		CoordTransfCart3DRotationQuaternion rotX(Vec3Cart(1, 0, 0), Constants::PI / REAL(2.0));
+		CoordTransfCart3DRotationQuaternion rotX(Vec3Cart(1, 0, 0), Constants::PI / static_cast<MML::Real>(2.0));
 		REQUIRE(VectorApproxEqual(rotX.transf(Vec3Cart(0, 1, 0)), Vec3Cart(0, 0, 1)));
 
 		// Y-axis
-		CoordTransfCart3DRotationQuaternion rotY(Vec3Cart(0, 1, 0), Constants::PI / REAL(2.0));
+		CoordTransfCart3DRotationQuaternion rotY(Vec3Cart(0, 1, 0), Constants::PI / static_cast<MML::Real>(2.0));
 		REQUIRE(VectorApproxEqual(rotY.transf(Vec3Cart(1, 0, 0)), Vec3Cart(0, 0, -1)));
 
 		// Z-axis
-		CoordTransfCart3DRotationQuaternion rotZ(Vec3Cart(0, 0, 1), Constants::PI / REAL(2.0));
+		CoordTransfCart3DRotationQuaternion rotZ(Vec3Cart(0, 0, 1), Constants::PI / static_cast<MML::Real>(2.0));
 		REQUIRE(VectorApproxEqual(rotZ.transf(Vec3Cart(1, 0, 0)), Vec3Cart(0, 1, 0)));
 	}
 
 	SECTION("Inverse transformation undoes rotation")
 	{
 		CoordTransfCart3DRotationQuaternion rot(
-			Vec3Cart(1, 1, 1).Normalized(), REAL(1.234));
+			Vec3Cart(1, 1, 1).Normalized(), static_cast<MML::Real>(1.234));
 
 		Vec3Cart v(1, 2, 3);
 		Vec3Cart rotated = rot.transf(v);
@@ -251,7 +251,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Transformations", "[coordtransf
 	SECTION("Transformation preserves vector length")
 	{
 		CoordTransfCart3DRotationQuaternion rot(
-			Vec3Cart(1, 2, 3).Normalized(), REAL(0.789));
+			Vec3Cart(1, 2, 3).Normalized(), static_cast<MML::Real>(0.789));
 
 		Vec3Cart v(4, 5, 6);
 		Vec3Cart rotated = rot.transf(v);
@@ -265,8 +265,8 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Composition", "[coordtransf][qu
 		TEST_PRECISION_INFO();
 	SECTION("Compose two rotations")
 	{
-		CoordTransfCart3DRotationQuaternion rot1(Vec3Cart(0, 0, 1), Constants::PI / REAL(4.0));
-		CoordTransfCart3DRotationQuaternion rot2(Vec3Cart(1, 0, 0), Constants::PI / REAL(4.0));
+		CoordTransfCart3DRotationQuaternion rot1(Vec3Cart(0, 0, 1), Constants::PI / static_cast<MML::Real>(4.0));
+		CoordTransfCart3DRotationQuaternion rot2(Vec3Cart(1, 0, 0), Constants::PI / static_cast<MML::Real>(4.0));
 
 		CoordTransfCart3DRotationQuaternion combined = rot1.Compose(rot2);
 
@@ -279,9 +279,9 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Composition", "[coordtransf][qu
 
 	SECTION("Composition is associative")
 	{
-		CoordTransfCart3DRotationQuaternion r1(Vec3Cart(1, 0, 0), REAL(0.5));
-		CoordTransfCart3DRotationQuaternion r2(Vec3Cart(0, 1, 0), REAL(0.7));
-		CoordTransfCart3DRotationQuaternion r3(Vec3Cart(0, 0, 1), REAL(0.3));
+		CoordTransfCart3DRotationQuaternion r1(Vec3Cart(1, 0, 0), static_cast<MML::Real>(0.5));
+		CoordTransfCart3DRotationQuaternion r2(Vec3Cart(0, 1, 0), static_cast<MML::Real>(0.7));
+		CoordTransfCart3DRotationQuaternion r3(Vec3Cart(0, 0, 1), static_cast<MML::Real>(0.3));
 
 		CoordTransfCart3DRotationQuaternion combined1 = r1.Compose(r2).Compose(r3);
 		CoordTransfCart3DRotationQuaternion combined2 = r1.Compose(r2.Compose(r3));
@@ -295,7 +295,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Composition", "[coordtransf][qu
 
 	SECTION("Compose with identity is identity")
 	{
-		CoordTransfCart3DRotationQuaternion rot(Vec3Cart(1, 1, 1).Normalized(), REAL(1.0));
+		CoordTransfCart3DRotationQuaternion rot(Vec3Cart(1, 1, 1).Normalized(), static_cast<MML::Real>(1.0));
 		CoordTransfCart3DRotationQuaternion identity(Quaternion::Identity());
 
 		CoordTransfCart3DRotationQuaternion result1 = rot.Compose(identity);
@@ -311,11 +311,11 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Interpolation", "[coordtransf][
 {
 		TEST_PRECISION_INFO();
 	CoordTransfCart3DRotationQuaternion rot1(Quaternion::Identity());
-	CoordTransfCart3DRotationQuaternion rot2(Vec3Cart(0, 0, 1), Constants::PI / REAL(2.0));
+	CoordTransfCart3DRotationQuaternion rot2(Vec3Cart(0, 0, 1), Constants::PI / static_cast<MML::Real>(2.0));
 
 	SECTION("Interpolation at t=0 gives first rotation")
 	{
-		CoordTransfCart3DRotationQuaternion result = rot1.Interpolate(rot2, REAL(0.0));
+		CoordTransfCart3DRotationQuaternion result = rot1.Interpolate(rot2, static_cast<MML::Real>(0.0));
 
 		Vec3Cart v(1, 0, 0);
 		REQUIRE(VectorApproxEqual(result.transf(v), rot1.transf(v), 1e-6));
@@ -323,28 +323,28 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Interpolation", "[coordtransf][
 
 	SECTION("Interpolation at t=1 gives second rotation")
 	{
-		CoordTransfCart3DRotationQuaternion result = rot1.Interpolate(rot2, REAL(1.0));
+		CoordTransfCart3DRotationQuaternion result = rot1.Interpolate(rot2, static_cast<MML::Real>(1.0));
 
 		Vec3Cart v(1, 0, 0);
 		REQUIRE(VectorApproxEqual(result.transf(v), rot2.transf(v), 1e-6));
 	}
 
-	SECTION("Interpolation at t=REAL(0.5) gives halfway rotation")
+	SECTION("Interpolation at t=static_cast<MML::Real>(0.5) gives halfway rotation")
 	{
-		CoordTransfCart3DRotationQuaternion result = rot1.Interpolate(rot2, REAL(0.5));
+		CoordTransfCart3DRotationQuaternion result = rot1.Interpolate(rot2, static_cast<MML::Real>(0.5));
 
 		// Should be 45° rotation around Z-axis
 		Vec3Cart v(1, 0, 0);
 		Vec3Cart rotated = result.transf(v);
 
 		// Result should be approximately (cos(45°), sin(45°), 0)
-		Real sqrt2_inv = REAL(1.0) / std::sqrt(REAL(2.0));
+		Real sqrt2_inv = static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(2.0));
 		REQUIRE(VectorApproxEqual(rotated, Vec3Cart(sqrt2_inv, sqrt2_inv, 0), 1e-6));
 	}
 
 	SECTION("Interpolated rotations preserve vector length")
 	{
-		CoordTransfCart3DRotationQuaternion result = rot1.Interpolate(rot2, REAL(0.3));
+		CoordTransfCart3DRotationQuaternion result = rot1.Interpolate(rot2, static_cast<MML::Real>(0.3));
 
 		Vec3Cart v(1, 2, 3);
 		Vec3Cart rotated = result.transf(v);
@@ -358,14 +358,14 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Accessors", "[coordtransf][quat
 		TEST_PRECISION_INFO();
 	Vec3Cart axis(1, 1, 1);
 	axis = axis.Normalized();
-	Real angle = Constants::PI / REAL(3.0);
+	Real angle = Constants::PI / static_cast<MML::Real>(3.0);
 
 	CoordTransfCart3DRotationQuaternion rot(axis, angle);
 
 	SECTION("GetQuaternion returns correct quaternion")
 	{
 		Quaternion q = rot.GetQuaternion();
-		REQUIRE(q.isUnit(TOL(1e-10, 1e-5)));
+		REQUIRE(q.IsUnit(TOL(1e-10, 1e-5)));
 
 		// Verify it rotates correctly
 		Vec3Cart v(1, 0, 0);
@@ -374,13 +374,13 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Accessors", "[coordtransf][quat
 
 	SECTION("GetRotationAxis returns correct axis")
 	{
-		Vec3Cart retrieved_axis = rot.GetRotationAxis();
+		Vec3Cart retrieved_axis = rot.getRotationAxis();
 		REQUIRE(VectorApproxEqual(retrieved_axis, axis));
 	}
 
 	SECTION("GetRotationAngle returns correct angle")
 	{
-		Real retrieved_angle = rot.GetRotationAngle();
+		Real retrieved_angle = rot.getRotationAngle();
 		REQUIRE(std::abs(retrieved_angle - angle) < TOL(1e-10, 1e-5));
 	}
 
@@ -406,7 +406,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Compatibility with Matrix Rotat
 		TEST_PRECISION_INFO();
 	SECTION("Matches CoordTransfCart3DRotationXAxis")
 	{
-		Real angle = Constants::PI / REAL(3.0);
+		Real angle = Constants::PI / static_cast<MML::Real>(3.0);
 
 		CoordTransfCart3DRotationXAxis matRot(angle);
 		CoordTransfCart3DRotationQuaternion quatRot(Vec3Cart(1, 0, 0), angle);
@@ -420,7 +420,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Compatibility with Matrix Rotat
 
 	SECTION("Matches CoordTransfCart3DRotationYAxis")
 	{
-		Real angle = Constants::PI / REAL(4.0);
+		Real angle = Constants::PI / static_cast<MML::Real>(4.0);
 
 		CoordTransfCart3DRotationYAxis matRot(angle);
 		CoordTransfCart3DRotationQuaternion quatRot(Vec3Cart(0, 1, 0), angle);
@@ -434,7 +434,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Compatibility with Matrix Rotat
 
 	SECTION("Matches CoordTransfCart3DRotationZAxis")
 	{
-		Real angle = Constants::PI / REAL(6.0);
+		Real angle = Constants::PI / static_cast<MML::Real>(6.0);
 
 		CoordTransfCart3DRotationZAxis matRot(angle);
 		CoordTransfCart3DRotationQuaternion quatRot(Vec3Cart(0, 0, 1), angle);
@@ -452,7 +452,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Edge Cases", "[coordtransf][qua
 		TEST_PRECISION_INFO();
 	SECTION("Zero rotation")
 	{
-		CoordTransfCart3DRotationQuaternion rot(Vec3Cart(1, 0, 0), REAL(0.0));
+		CoordTransfCart3DRotationQuaternion rot(Vec3Cart(1, 0, 0), static_cast<MML::Real>(0.0));
 
 		Vec3Cart v(1, 2, 3);
 		REQUIRE(VectorApproxEqual(rot.transf(v), v));
@@ -469,7 +469,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Edge Cases", "[coordtransf][qua
 
 	SECTION("Rotation of zero vector")
 	{
-		CoordTransfCart3DRotationQuaternion rot(Vec3Cart(1, 1, 1).Normalized(), REAL(1.5));
+		CoordTransfCart3DRotationQuaternion rot(Vec3Cart(1, 1, 1).Normalized(), static_cast<MML::Real>(1.5));
 
 		Vec3Cart zero(0, 0, 0);
 		Vec3Cart result = rot.transf(zero);
@@ -478,7 +478,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Edge Cases", "[coordtransf][qua
 
 	SECTION("Multiple full rotations (2π)")
 	{
-		CoordTransfCart3DRotationQuaternion rot(Vec3Cart(1, 0, 0), REAL(2.0) * Constants::PI);
+		CoordTransfCart3DRotationQuaternion rot(Vec3Cart(1, 0, 0), static_cast<MML::Real>(2.0) * Constants::PI);
 
 		Vec3Cart v(1, 2, 3);
 		Vec3Cart result = rot.transf(v);

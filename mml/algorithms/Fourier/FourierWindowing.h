@@ -15,6 +15,7 @@
 #define MML_WINDOWING_H
 
 #include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
 
 #include <mml/base/Vector/Vector.h>
 
@@ -256,7 +257,7 @@ namespace MML::Fourier
 					term *= (x_half / k);
 					sum += term;
 
-					if (term < 1e-12 * sum) // Convergence check
+					if (IsNegligibleRelativeTo(term, sum, Precision::ZeroTolerance)) // Convergence check
 						break;
 				}
 

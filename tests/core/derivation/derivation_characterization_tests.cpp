@@ -26,7 +26,7 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 			return x * x * x;
 		}
 
-		void Clear() const { arguments.clear(); }
+		void clear() const { arguments.clear(); }
 	};
 
 	void RequireOffsets(const std::vector<Real>& arguments, Real center, Real step,
@@ -50,14 +50,14 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 	{
 		arguments.clear();
 		invoke(nullptr);
-		RequireOffsets(arguments, REAL(1.25), REAL(0.125), value_offsets);
+		RequireOffsets(arguments, static_cast<MML::Real>(1.25), static_cast<MML::Real>(0.125), value_offsets);
 
-		Real error = REAL(0.0);
+		Real error = static_cast<MML::Real>(0.0);
 		arguments.clear();
 		invoke(&error);
-		RequireOffsets(arguments, REAL(1.25), REAL(0.125), error_offsets);
+		RequireOffsets(arguments, static_cast<MML::Real>(1.25), static_cast<MML::Real>(0.125), error_offsets);
 		REQUIRE(std::isfinite(error));
-		REQUIRE(error >= REAL(0.0));
+		REQUIRE(error >= static_cast<MML::Real>(0.0));
 	}
 
 	class RecordingComplexFunction : public IComplexFunction
@@ -104,11 +104,11 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 		VectorN<Real, 2> operator()(Real t) const override
 		{
 			arguments.push_back(t);
-			return {t * t * t, REAL(2.0) * t};
+			return {t * t * t, static_cast<MML::Real>(2.0) * t};
 		}
 
-		Real getMinT() const override { return REAL(-10.0); }
-		Real getMaxT() const override { return REAL(10.0); }
+		Real getMinT() const override { return static_cast<MML::Real>(-10.0); }
+		Real getMaxT() const override { return static_cast<MML::Real>(10.0); }
 	};
 
 	class RecordingSurface : public IParametricSurfaceRect<2>
@@ -124,10 +124,10 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 			return {u * u * u + w, w * w * w + u};
 		}
 
-		Real getMinU() const override { return REAL(-10.0); }
-		Real getMaxU() const override { return REAL(10.0); }
-		Real getMinW() const override { return REAL(-10.0); }
-		Real getMaxW() const override { return REAL(10.0); }
+		Real getMinU() const override { return static_cast<MML::Real>(-10.0); }
+		Real getMaxU() const override { return static_cast<MML::Real>(10.0); }
+		Real getMinW() const override { return static_cast<MML::Real>(-10.0); }
+		Real getMaxW() const override { return static_cast<MML::Real>(10.0); }
 	};
 
 	class RecordingTensorField2 : public ITensorField2<2>
@@ -137,7 +137,7 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 
 		RecordingTensorField2() : ITensorField2<2>(0, 2) {}
 
-		Real Component(int, int, const VectorN<Real, 2>& point) const override
+		Real component(int, int, const VectorN<Real, 2>& point) const override
 		{
 			arguments.push_back(point[0]);
 			return point[0] * point[0] * point[0] + point[1];
@@ -151,7 +151,7 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 	public:
 		mutable std::vector<Real> arguments;
 
-		Real Component(int, int, int, const VectorN<Real, 2>& point) const override
+		Real component(int, int, int, const VectorN<Real, 2>& point) const override
 		{
 			arguments.push_back(point[0]);
 			return point[0] * point[0] * point[0] + point[1];
@@ -165,7 +165,7 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 	public:
 		mutable std::vector<Real> arguments;
 
-		Real Component(int, int, int, int, const VectorN<Real, 2>& point) const override
+		Real component(int, int, int, int, const VectorN<Real, 2>& point) const override
 		{
 			arguments.push_back(point[0]);
 			return point[0] * point[0] * point[0] + point[1];
@@ -177,8 +177,8 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 	TEST_CASE("Finite-difference real stencils preserve samples, counts, values, and errors",
 	          "[derivation][characterization][stencil]")
 	{
-		constexpr Real x = REAL(1.25);
-		constexpr Real h = REAL(0.125);
+		constexpr Real x = static_cast<MML::Real>(1.25);
+		constexpr Real h = static_cast<MML::Real>(0.125);
 		RecordingRealFunction function;
 		auto cubic = [](Real value) { return value * value * value; };
 
@@ -191,20 +191,20 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 			DerivativeConfig config;
 			config.estimate_error = false;
 
-			function.Clear();
+			function.clear();
 			auto value_only = derivative(function, x, h, config);
 			RequireOffsets(function.arguments, x, h, value_offsets);
 			REQUIRE(value_only.function_evaluations == static_cast<int>(value_offsets.size()));
 			REQUIRE(value_only.value == Catch::Approx(expected_value));
-			REQUIRE(value_only.error == REAL(0.0));
+			REQUIRE(value_only.error == static_cast<MML::Real>(0.0));
 
 			config.estimate_error = true;
-			function.Clear();
+			function.clear();
 			auto with_error = derivative(function, x, h, config);
 			RequireOffsets(function.arguments, x, h, error_offsets);
 			REQUIRE(with_error.function_evaluations == static_cast<int>(error_offsets.size()));
 			REQUIRE(with_error.value == Catch::Approx(expected_value));
-			REQUIRE(with_error.error == Catch::Approx(expected_error).epsilon(MML::Testing::Tol(REAL(1e-12), REAL(2e-4))));
+			REQUIRE(with_error.error == Catch::Approx(expected_error).epsilon(MML::Testing::Tol(static_cast<MML::Real>(1e-12), static_cast<MML::Real>(2e-4))));
 		};
 
 		SECTION("NDer1")
@@ -213,7 +213,7 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 				[](const IRealFunction& f, Real at, Real step, const DerivativeConfig& config) {
 					return Derivation::NDer1Detailed(f, at, step, config);
 				},
-				{1, 0}, {1, 0, -1}, REAL(5.171875), REAL(0.46875));
+				{1, 0}, {1, 0, -1}, static_cast<MML::Real>(5.171875), static_cast<MML::Real>(0.46875));
 		}
 
 		SECTION("NDer2")
@@ -222,7 +222,7 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 				[](const IRealFunction& f, Real at, Real step, const DerivativeConfig& config) {
 					return Derivation::NDer2Detailed(f, at, step, config);
 				},
-				{1, -1}, {1, -1, 2, -2}, REAL(4.703125), REAL(0.015625));
+				{1, -1}, {1, -1, 2, -2}, static_cast<MML::Real>(4.703125), static_cast<MML::Real>(0.015625));
 		}
 
 		SECTION("NDer4")
@@ -234,7 +234,7 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 				[](const IRealFunction& f, Real at, Real step, const DerivativeConfig& config) {
 					return Derivation::NDer4Detailed(f, at, step, config);
 				},
-				{1, -1, 2, -2}, {1, -1, 2, -2, 3, -3}, REAL(4.6875), expected_error);
+				{1, -1, 2, -2}, {1, -1, 2, -2, 3, -3}, static_cast<MML::Real>(4.6875), expected_error);
 		}
 
 		SECTION("NDer6")
@@ -245,7 +245,7 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 				[](const IRealFunction& f, Real at, Real step, const DerivativeConfig& config) {
 					return Derivation::NDer6Detailed(f, at, step, config);
 				},
-				{1, -1, -2, 2, 3, -3}, {1, -1, -2, 2, 3, -3, 4, -4}, REAL(4.6875), expected_error);
+				{1, -1, -2, 2, 3, -3}, {1, -1, -2, 2, 3, -3, 4, -4}, static_cast<MML::Real>(4.6875), expected_error);
 		}
 
 		SECTION("NDer8")
@@ -257,24 +257,24 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 					return Derivation::NDer8Detailed(f, at, step, config);
 				},
 				{1, -1, -2, 2, 3, -3, -4, 4},
-				{1, -1, -2, 2, 3, -3, -4, 4, 5, -5}, REAL(4.6875), expected_error);
+				{1, -1, -2, 2, 3, -3, -4, 4, 5, -5}, static_cast<MML::Real>(4.6875), expected_error);
 		}
 	}
 
 	TEST_CASE("Finite-difference real wrappers preserve automatic step scaling",
 	          "[derivation][characterization][stencil]")
 	{
-		constexpr Real x = REAL(2.0);
+		constexpr Real x = static_cast<MML::Real>(2.0);
 		RecordingRealFunction function;
 
 		auto characterize = [&](auto invoke_automatic, auto invoke_explicit, Real default_step) {
-			Real automatic_error = REAL(0.0);
-			function.Clear();
+			Real automatic_error = static_cast<MML::Real>(0.0);
+			function.clear();
 			Real automatic_value = invoke_automatic(&automatic_error);
 			auto automatic_arguments = function.arguments;
 
-			Real explicit_error = REAL(0.0);
-			function.Clear();
+			Real explicit_error = static_cast<MML::Real>(0.0);
+			function.clear();
 			Real explicit_value = invoke_explicit(Derivation::ScaleStep(default_step, x), &explicit_error);
 
 			REQUIRE(function.arguments.size() == automatic_arguments.size());
@@ -299,8 +299,8 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 	TEST_CASE("Finite-difference real one-sided wrappers preserve sample reach",
 	          "[derivation][characterization][stencil]")
 	{
-		constexpr Real x = REAL(1.25);
-		constexpr Real h = REAL(0.125);
+		constexpr Real x = static_cast<MML::Real>(1.25);
+		constexpr Real h = static_cast<MML::Real>(0.125);
 		RecordingRealFunction function;
 
 		auto characterize = [&](auto invoke,
@@ -334,8 +334,8 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 	TEST_CASE("Finite-difference complex adapters preserve supported stencil reach",
 	          "[derivation][characterization][stencil]")
 	{
-		constexpr Real x = REAL(1.25);
-		constexpr Real h = REAL(0.125);
+		constexpr Real x = static_cast<MML::Real>(1.25);
+		constexpr Real h = static_cast<MML::Real>(0.125);
 		RecordingComplexFunction function;
 
 		auto characterize = [&](auto invoke, std::initializer_list<int> value_offsets,
@@ -353,7 +353,7 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 			auto with_error = invoke(config);
 			RequireOffsets(function.arguments, x, h, error_offsets);
 			REQUIRE(with_error.function_evaluations == static_cast<int>(error_offsets.size()));
-			REQUIRE(with_error.error >= REAL(0.0));
+			REQUIRE(with_error.error >= static_cast<MML::Real>(0.0));
 		};
 
 		characterize([&](const DerivativeConfig& config) { return Derivation::NDer1ComplexDetailed(function, Complex(x), h, config); }, {1, 0}, {1, 0, -1});
@@ -365,8 +365,8 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 	TEST_CASE("Finite-difference scalar and vector partial adapters preserve stencil reach",
 	          "[derivation][characterization][stencil]")
 	{
-		const VectorN<Real, 2> point{REAL(1.25), REAL(0.5)};
-		constexpr Real h = REAL(0.125);
+		const VectorN<Real, 2> point{static_cast<MML::Real>(1.25), static_cast<MML::Real>(0.5)};
+		constexpr Real h = static_cast<MML::Real>(0.125);
 		RecordingScalarFunction scalar;
 		RecordingVectorFunction vector;
 
@@ -395,8 +395,8 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 	TEST_CASE("Finite-difference curve and surface adapters preserve supported stencil reach",
 	          "[derivation][characterization][stencil]")
 	{
-		constexpr Real x = REAL(1.25);
-		constexpr Real h = REAL(0.125);
+		constexpr Real x = static_cast<MML::Real>(1.25);
+		constexpr Real h = static_cast<MML::Real>(0.125);
 		RecordingCurve curve;
 		RecordingSurface surface;
 
@@ -414,24 +414,24 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 		characterize_curve([&](Real* error) { return Derivation::NDer8(curve, x, h, error); }, {1, -1, -2, 2, 3, -3, -4, 4}, {1, -1, -2, 2, 3, -3, -4, 4, 5, -5});
 
 		RequireAdapterOffsets(surface.u_arguments,
-			[&](Real* error) { surface.w_arguments.clear(); return Derivation::NDer1_u(surface, x, REAL(0.5), h, error); },
+			[&](Real* error) { surface.w_arguments.clear(); return Derivation::NDer1_u(surface, x, static_cast<MML::Real>(0.5), h, error); },
 			{1, 0}, {1, 0, -1});
 		RequireAdapterOffsets(surface.w_arguments,
-			[&](Real* error) { surface.u_arguments.clear(); return Derivation::NDer1_w(surface, REAL(0.5), x, h, error); },
+			[&](Real* error) { surface.u_arguments.clear(); return Derivation::NDer1_w(surface, static_cast<MML::Real>(0.5), x, h, error); },
 			{1, 0}, {1, 0, -1});
 		RequireAdapterOffsets(surface.u_arguments,
-			[&](Real* error) { surface.w_arguments.clear(); return Derivation::NDer2_u(surface, x, REAL(0.5), h, error); },
+			[&](Real* error) { surface.w_arguments.clear(); return Derivation::NDer2_u(surface, x, static_cast<MML::Real>(0.5), h, error); },
 			{1, -1}, {1, -1, 2, -2});
 		RequireAdapterOffsets(surface.w_arguments,
-			[&](Real* error) { surface.u_arguments.clear(); return Derivation::NDer2_w(surface, REAL(0.5), x, h, error); },
+			[&](Real* error) { surface.u_arguments.clear(); return Derivation::NDer2_w(surface, static_cast<MML::Real>(0.5), x, h, error); },
 			{1, -1}, {1, -1, 2, -2});
 	}
 
 	TEST_CASE("Finite-difference tensor adapters preserve rank and supported stencil reach",
 	          "[derivation][characterization][stencil]")
 	{
-		const VectorN<Real, 2> point{REAL(1.25), REAL(0.5)};
-		constexpr Real h = REAL(0.125);
+		const VectorN<Real, 2> point{static_cast<MML::Real>(1.25), static_cast<MML::Real>(0.5)};
+		constexpr Real h = static_cast<MML::Real>(0.125);
 		RecordingTensorField2 rank2;
 		RecordingTensorField3 rank3;
 		RecordingTensorField4 rank4;

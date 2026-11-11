@@ -311,7 +311,7 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 			Real theta = elevationGuess;
 			Real vx = v0 * std::cos(theta);
 			Real vy = v0 * std::sin(theta);
-			Real vz = REAL(0.0);
+			Real vz = static_cast<MML::Real>(0.0);
 			
 			// Helper to find landing point from trajectory
 			auto findLandingPoint = [&](const ODESystemSolution& sol,
@@ -686,21 +686,21 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		BVPShootingSolver<RungeKutta4_StepCalculator> solver(system, 1000, TOL(1e-10, 1e-5));
 		
 		Vector<Real> initCond(2);
-		initCond[0] = REAL(1.0);  // y(0) = 1
-		initCond[1] = REAL(0.0);  // placeholder for y'(0)
+		initCond[0] = static_cast<MML::Real>(1.0);  // y(0) = 1
+		initCond[1] = static_cast<MML::Real>(0.0);  // placeholder for y'(0)
 		
-		auto result = solver.solve1D(REAL(0.0), REAL(2.0), initCond,
+		auto result = solver.solve1D(static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), initCond,
 		                             1,        // shoot with velocity
 		                             0,        // target position
-		                             REAL(5.0), // y(2) = 5
-		                             REAL(0.0), REAL(5.0));  // velocity guesses
+		                             static_cast<MML::Real>(5.0), // y(2) = 5
+		                             static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0));  // velocity guesses
 		
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.shootingParams[0], WithinRel(REAL(2.0), TOL(1e-6, 5e-5)));
+		REQUIRE_THAT(result.shootingParams[0], WithinRel(static_cast<MML::Real>(2.0), TOL(1e-6, 5e-5)));
 		
 		// Verify final value
 		Vector<Real> finalState = result.solution.getXValuesAtEnd();
-		REQUIRE_THAT(finalState[0], WithinRel(REAL(5.0), TOL(1e-5, 5e-4)));
+		REQUIRE_THAT(finalState[0], WithinRel(static_cast<MML::Real>(5.0), TOL(1e-5, 5e-4)));
 	}
 
 	TEST_CASE("Shooting_HarmonicOscillator_BVP", "[bvp_shooting][harmonic]")
@@ -709,19 +709,19 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		
 		// y'' + y = 0 with y(0) = 0 and y(π/2) = 1
 		// Solution: y = sin(t), so y'(0) = 1
-		HarmonicOscillator system(REAL(1.0));
+		HarmonicOscillator system(static_cast<MML::Real>(1.0));
 		BVPShootingSolver<RungeKutta4_StepCalculator> solver(system, 2000, TOL(1e-10, 1e-5));
 		
 		Vector<Real> initCond(2);
-		initCond[0] = REAL(0.0);  // y(0) = 0
-		initCond[1] = REAL(0.0);  // placeholder
+		initCond[0] = static_cast<MML::Real>(0.0);  // y(0) = 0
+		initCond[1] = static_cast<MML::Real>(0.0);  // placeholder
 		
-		auto result = solver.solve1D(REAL(0.0), Constants::PI / 2, initCond,
-		                             1, 0, REAL(1.0),
-		                             REAL(0.5), REAL(2.0));
+		auto result = solver.solve1D(static_cast<MML::Real>(0.0), Constants::PI / 2, initCond,
+		                             1, 0, static_cast<MML::Real>(1.0),
+		                             static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0));
 		
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.shootingParams[0], WithinRel(REAL(1.0), REAL(1e-5)));
+		REQUIRE_THAT(result.shootingParams[0], WithinRel(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5)));
 	}
 
 	/*********************************************************************/
@@ -753,26 +753,26 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		BVPShootingSolverND<RungeKutta4_StepCalculator> solver(system, 1000, TOL(1e-8, 1e-4));
 		
 		Vector<Real> initCond(3);
-		initCond[0] = REAL(1.0);  // y(0) = 1 (known)
-		initCond[1] = REAL(0.0);  // y'(0) placeholder
-		initCond[2] = REAL(0.0);  // y''(0) placeholder
+		initCond[0] = static_cast<MML::Real>(1.0);  // y(0) = 1 (known)
+		initCond[1] = static_cast<MML::Real>(0.0);  // y'(0) placeholder
+		initCond[2] = static_cast<MML::Real>(0.0);  // y''(0) placeholder
 		
 		ShootingConfig config;
 		config.unknownIndices = {1, 2};        // y'(0) and y''(0) are unknown
-		config.unknownGuesses = {REAL(0.5), REAL(0.5)};   // Initial guesses
+		config.unknownGuesses = {static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.5)};   // Initial guesses
 		config.targetIndices  = {0, 1};        // y(2) and y'(2) are targets
-		config.targetValues   = {REAL(5.0), REAL(3.0)};   // Desired values at t=2
+		config.targetValues   = {static_cast<MML::Real>(5.0), static_cast<MML::Real>(3.0)};   // Desired values at t=2
 		
-		auto result = solver.solve(REAL(0.0), REAL(2.0), initCond, config);
+		auto result = solver.solve(static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), initCond, config);
 		
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.shootingParams[0], WithinRel(REAL(1.0), REAL(1e-4)));  // y'(0) = 1
-		REQUIRE_THAT(result.shootingParams[1], WithinRel(REAL(1.0), REAL(1e-4)));  // y''(0) = 1
+		REQUIRE_THAT(result.shootingParams[0], WithinRel(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-4)));  // y'(0) = 1
+		REQUIRE_THAT(result.shootingParams[1], WithinRel(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-4)));  // y''(0) = 1
 		
 		// Verify final conditions
 		Vector<Real> finalState = result.solution.getXValuesAtEnd();
-		REQUIRE_THAT(finalState[0], WithinRel(REAL(5.0), REAL(1e-4)));  // y(2) = 5
-		REQUIRE_THAT(finalState[1], WithinRel(REAL(3.0), REAL(1e-4)));  // y'(2) = 3
+		REQUIRE_THAT(finalState[0], WithinRel(static_cast<MML::Real>(5.0), static_cast<MML::Real>(1e-4)));  // y(2) = 5
+		REQUIRE_THAT(finalState[1], WithinRel(static_cast<MML::Real>(3.0), static_cast<MML::Real>(1e-4)));  // y'(2) = 3
 		
 		INFO("Converged in " << result.iterations << " iterations");
 		INFO("y'(0) = " << result.shootingParams[0] << " (expected 1)");
@@ -802,21 +802,21 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		BVPShootingSolverND<RungeKutta4_StepCalculator> solver(system, 1000, TOL(1e-8, 1e-3));
 		
 		Vector<Real> initCond(3);
-		initCond[0] = REAL(2.0);  // y(0) = 2
-		initCond[1] = REAL(0.0);  // placeholder
-		initCond[2] = REAL(0.0);  // placeholder
+		initCond[0] = static_cast<MML::Real>(2.0);  // y(0) = 2
+		initCond[1] = static_cast<MML::Real>(0.0);  // placeholder
+		initCond[2] = static_cast<MML::Real>(0.0);  // placeholder
 		
 		ShootingConfig config;
 		config.unknownIndices = {1, 2};
-		config.unknownGuesses = {REAL(0.0), REAL(0.0)};
+		config.unknownGuesses = {static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
 		config.targetIndices  = {0, 1};
-		config.targetValues   = {REAL(3.0), REAL(1.0)};
+		config.targetValues   = {static_cast<MML::Real>(3.0), static_cast<MML::Real>(1.0)};
 		
-		auto result = solver.solve(REAL(0.0), REAL(1.0), initCond, config);
+		auto result = solver.solve(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), initCond, config);
 		
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.shootingParams[0], WithinAbs(REAL(1.0), REAL(1e-4)));  // y'(0) = 1
-		REQUIRE_THAT(result.shootingParams[1], WithinAbs(REAL(0.0), REAL(1e-4)));  // y''(0) = 0
+		REQUIRE_THAT(result.shootingParams[0], WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-4)));  // y'(0) = 1
+		REQUIRE_THAT(result.shootingParams[1], WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-4)));  // y''(0) = 0
 	}
 
 	TEST_CASE("ShootingND_ConfigValidation", "[bvp_shooting][nd][validation]")
@@ -831,13 +831,13 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		
 		// Mismatched sizes
 		config.unknownIndices = {1, 2};
-		config.unknownGuesses = {REAL(0.0)};  // Wrong size
+		config.unknownGuesses = {static_cast<MML::Real>(0.0)};  // Wrong size
 		config.targetIndices  = {0, 1};
-		config.targetValues   = {REAL(1.0), REAL(2.0)};
+		config.targetValues   = {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
 		REQUIRE_FALSE(config.isValid());
 		
 		// Correct sizes
-		config.unknownGuesses = {REAL(0.0), REAL(0.0)};
+		config.unknownGuesses = {static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
 		REQUIRE(config.isValid());
 		REQUIRE(config.numParams() == 2);
 	}
@@ -851,31 +851,31 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		
 		// Using 1D solver
 		BVPShootingSolver<RungeKutta4_StepCalculator> solver1D(system, 1000, TOL(1e-10, 1e-5));
-		auto result1D = solver1D.solvePositionBVP(REAL(0.0), REAL(2.0),
-		                                          REAL(1.0), REAL(5.0),
-		                                          REAL(0.0), REAL(5.0));
+		auto result1D = solver1D.solvePositionBVP(static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0),
+		                                          static_cast<MML::Real>(1.0), static_cast<MML::Real>(5.0),
+		                                          static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0));
 		
 		// Using N-D solver with N=1
 		BVPShootingSolverND<RungeKutta4_StepCalculator> solverND(system, 1000, TOL(1e-10, 1e-5));
 		
 		Vector<Real> initCond(2);
-		initCond[0] = REAL(1.0);  // y(0) = 1
-		initCond[1] = REAL(0.0);
+		initCond[0] = static_cast<MML::Real>(1.0);  // y(0) = 1
+		initCond[1] = static_cast<MML::Real>(0.0);
 		
 		ShootingConfig config;
 		config.unknownIndices = {1};
-		config.unknownGuesses = {REAL(1.0)};
+		config.unknownGuesses = {static_cast<MML::Real>(1.0)};
 		config.targetIndices  = {0};
-		config.targetValues   = {REAL(5.0)};
+		config.targetValues   = {static_cast<MML::Real>(5.0)};
 		
-		auto resultND = solverND.solve(REAL(0.0), REAL(2.0), initCond, config);
+		auto resultND = solverND.solve(static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), initCond, config);
 		
 		REQUIRE(result1D.converged);
 		REQUIRE(resultND.converged);
 		
 		// Both should find y'(0) = 2
-		REQUIRE_THAT(result1D.shootingParams[0], WithinRel(REAL(2.0), TOL(1e-5, 1e-3)));
-		REQUIRE_THAT(resultND.shootingParams[0], WithinRel(REAL(2.0), REAL(1e-4)));
+		REQUIRE_THAT(result1D.shootingParams[0], WithinRel(static_cast<MML::Real>(2.0), TOL(1e-5, 1e-3)));
+		REQUIRE_THAT(resultND.shootingParams[0], WithinRel(static_cast<MML::Real>(2.0), static_cast<MML::Real>(1e-4)));
 	}
 
 	TEST_CASE("Shooting_PositionBVP_Convenience", "[bvp_shooting][convenience]")
@@ -886,12 +886,12 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		BVPShootingSolver<RungeKutta4_StepCalculator> solver(system, 1000, TOL(1e-10, 1e-5));
 		
 		// y(0) = 0, y(1) = 10 → y = 10t, y'(0) = 10
-		auto result = solver.solvePositionBVP(REAL(0.0), REAL(1.0),
-		                                      REAL(0.0), REAL(10.0),
-		                                      REAL(5.0), REAL(15.0));
+		auto result = solver.solvePositionBVP(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0),
+		                                      static_cast<MML::Real>(0.0), static_cast<MML::Real>(10.0),
+		                                      static_cast<MML::Real>(5.0), static_cast<MML::Real>(15.0));
 		
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.shootingParams[0], WithinRel(REAL(10.0), REAL(1e-5)));
+		REQUIRE_THAT(result.shootingParams[0], WithinRel(static_cast<MML::Real>(10.0), static_cast<MML::Real>(1e-5)));
 	}
 
 	/*********************************************************************/
@@ -904,15 +904,15 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		
 		// With k=0 (no drag), compare to analytical solution
 		// Range = v0² * sin(2θ) / g
-		ProjectileBVPSolver solver(REAL(9.81), REAL(0.0), 2000);  // No drag
+		ProjectileBVPSolver solver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.0), 2000);  // No drag
 		
-		Real v0 = REAL(50.0);
+		Real v0 = static_cast<MML::Real>(50.0);
 		Real angle = Constants::PI / 4;  // 45 degrees
 		
 		auto traj = solver.computeTrajectory(0, 0, v0, angle, 10.0);
 		
 		// Analytical range for 45 degrees
-		Real analytical_range = v0 * v0 / REAL(9.81);  // v0²/g at 45°
+		Real analytical_range = v0 * v0 / static_cast<MML::Real>(9.81);  // v0²/g at 45°
 		
 		// Find landing point from trajectory
 		Real landing_x = 0;
@@ -926,7 +926,7 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 			}
 		}
 		
-		REQUIRE_THAT(landing_x, WithinRel(analytical_range, REAL(1e-3)));
+		REQUIRE_THAT(landing_x, WithinRel(analytical_range, static_cast<MML::Real>(1e-3)));
 	}
 
 	/*********************************************************************/
@@ -939,19 +939,19 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		
 		// Find angle to hit target at 100m with v0 = 60 m/s
 		// With drag k=0.01, need sufficient speed to reach 100m
-		ProjectileBVPSolver solver(REAL(9.81), REAL(0.01), 3000, TOL(1e-6, 1e-4));
+		ProjectileBVPSolver solver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.01), 3000, TOL(1e-6, 1e-4));
 		
 		auto result = solver.findAngleForSpeed(
-			REAL(0.0), REAL(0.0),     // Start at origin
-			REAL(100.0), REAL(0.0),   // Target at x=100, y=0
-			REAL(60.0),               // Launch speed 60 m/s
-			REAL(0.1), REAL(0.8)      // Angle guesses: tighter range (5.7° to 46°)
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),     // Start at origin
+			static_cast<MML::Real>(100.0), static_cast<MML::Real>(0.0),   // Target at x=100, y=0
+			static_cast<MML::Real>(60.0),               // Launch speed 60 m/s
+			static_cast<MML::Real>(0.1), static_cast<MML::Real>(0.8)      // Angle guesses: tighter range (5.7° to 46°)
 		);
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.launchAngle > REAL(0.0));
+		REQUIRE(result.launchAngle > static_cast<MML::Real>(0.0));
 		REQUIRE(result.launchAngle < Constants::PI / 2);
-		REQUIRE(result.residual < REAL(1.0));  // Landing within 1m of target
+		REQUIRE(result.residual < static_cast<MML::Real>(1.0));  // Landing within 1m of target
 		
 		INFO("Optimal angle: " << result.launchAngleDegrees() << " degrees");
 		INFO("Flight time: " << result.flightTime << " seconds");
@@ -964,17 +964,17 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		
 		// Find angle to hit target at 150m with moderate drag
 		// Lower drag (0.005) makes longer range more achievable
-		ProjectileBVPSolver solver(REAL(9.81), REAL(0.005), 4000, TOL(1e-6, 1e-4));
+		ProjectileBVPSolver solver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.005), 4000, TOL(1e-6, 1e-4));
 		
 		auto result = solver.findAngleForSpeed(
-			REAL(0.0), REAL(0.0),
-			REAL(150.0), REAL(0.0),
-			REAL(60.0),               // 60 m/s with lower drag
-			REAL(0.2), REAL(1.0)      // Angle guesses
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(150.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(60.0),               // 60 m/s with lower drag
+			static_cast<MML::Real>(0.2), static_cast<MML::Real>(1.0)      // Angle guesses
 		);
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.residual < REAL(2.0));
+		REQUIRE(result.residual < static_cast<MML::Real>(2.0));
 		
 		INFO("Optimal angle: " << result.launchAngleDegrees() << " degrees");
 		INFO("Flight time: " << result.flightTime << " seconds");
@@ -985,19 +985,19 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		TEST_PRECISION_INFO();
 		
 		// Target is elevated: x=80m, y=20m - needs sufficient speed
-		ProjectileBVPSolver solver(REAL(9.81), REAL(0.01), 3000, TOL(1e-6, 1e-3));
+		ProjectileBVPSolver solver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.01), 3000, TOL(1e-6, 1e-3));
 		
 		auto result = solver.findAngleForSpeed(
-			REAL(0.0), REAL(0.0),
-			REAL(80.0), REAL(20.0),   // Elevated target
-			REAL(55.0),               // Increased from 50 to ensure reachability
-			REAL(0.2), REAL(0.8)
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(80.0), static_cast<MML::Real>(20.0),   // Elevated target
+			static_cast<MML::Real>(55.0),               // Increased from 50 to ensure reachability
+			static_cast<MML::Real>(0.2), static_cast<MML::Real>(0.8)
 		);
 		
 		REQUIRE(result.converged);
 		
 		// Verify max height is above target
-		REQUIRE(result.maxHeight >= REAL(20.0));
+		REQUIRE(result.maxHeight >= static_cast<MML::Real>(20.0));
 		
 		INFO("Optimal angle: " << result.launchAngleDegrees() << " degrees");
 		INFO("Max height: " << result.maxHeight << " m");
@@ -1012,18 +1012,18 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		TEST_PRECISION_INFO();
 		
 		// Find speed to hit target at 150m with 45° angle
-		ProjectileBVPSolver solver(REAL(9.81), REAL(0.01), 3000, TOL(1e-6, 1e-4));
+		ProjectileBVPSolver solver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.01), 3000, TOL(1e-6, 1e-4));
 		
 		auto result = solver.findSpeedForAngle(
-			REAL(0.0), REAL(0.0),
-			REAL(150.0), REAL(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(150.0), static_cast<MML::Real>(0.0),
 			Constants::PI / 4,        // 45 degrees
-			REAL(30.0), REAL(100.0)   // Speed guesses
+			static_cast<MML::Real>(30.0), static_cast<MML::Real>(100.0)   // Speed guesses
 		);
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.launchSpeed > REAL(0.0));
-		REQUIRE(result.residual < REAL(1.0));
+		REQUIRE(result.launchSpeed > static_cast<MML::Real>(0.0));
+		REQUIRE(result.residual < static_cast<MML::Real>(1.0));
 		
 		INFO("Required speed: " << result.launchSpeed << " m/s");
 		INFO("Flight time: " << result.flightTime << " seconds");
@@ -1034,13 +1034,13 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		TEST_PRECISION_INFO();
 		
 		// Find speed for 30° angle to hit target at 100m
-		ProjectileBVPSolver solver(REAL(9.81), REAL(0.01), 3000, TOL(1e-6, 1e-4));
+		ProjectileBVPSolver solver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.01), 3000, TOL(1e-6, 1e-4));
 		
 		auto result = solver.findSpeedForAngle(
-			REAL(0.0), REAL(0.0),
-			REAL(100.0), REAL(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(100.0), static_cast<MML::Real>(0.0),
 			Constants::PI / 6,        // 30 degrees
-			REAL(20.0), REAL(80.0)
+			static_cast<MML::Real>(20.0), static_cast<MML::Real>(80.0)
 		);
 		
 		REQUIRE(result.converged);
@@ -1054,19 +1054,19 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		TEST_PRECISION_INFO();
 		
 		// Find speed for 60° angle (mortar-style trajectory)
-		ProjectileBVPSolver solver(REAL(9.81), REAL(0.01), 3000, TOL(1e-6, 1e-4));
+		ProjectileBVPSolver solver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.01), 3000, TOL(1e-6, 1e-4));
 		
 		auto result = solver.findSpeedForAngle(
-			REAL(0.0), REAL(0.0),
-			REAL(80.0), REAL(0.0),
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(80.0), static_cast<MML::Real>(0.0),
 			Constants::PI / 3,        // 60 degrees
-			REAL(20.0), REAL(80.0)
+			static_cast<MML::Real>(20.0), static_cast<MML::Real>(80.0)
 		);
 		
 		REQUIRE(result.converged);
 		
 		// High angle should give high trajectory
-		REQUIRE(result.maxHeight > REAL(20.0));
+		REQUIRE(result.maxHeight > static_cast<MML::Real>(20.0));
 		
 		INFO("Required speed: " << result.launchSpeed << " m/s");
 		INFO("Max height: " << result.maxHeight << " m");
@@ -1081,11 +1081,11 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		TEST_PRECISION_INFO();
 		
 		// Same initial conditions, compare range with and without drag
-		Real v0 = REAL(50.0);
+		Real v0 = static_cast<MML::Real>(50.0);
 		Real angle = Constants::PI / 4;
 		
-		ProjectileBVPSolver noDragSolver(REAL(9.81), REAL(0.0), 2000);
-		ProjectileBVPSolver withDragSolver(REAL(9.81), REAL(0.02), 2000);  // k=0.02
+		ProjectileBVPSolver noDragSolver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.0), 2000);
+		ProjectileBVPSolver withDragSolver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.02), 2000);  // k=0.02
 		
 		auto noDragTraj = noDragSolver.computeTrajectory(0, 0, v0, angle, 15.0);
 		auto withDragTraj = withDragSolver.computeTrajectory(0, 0, v0, angle, 15.0);
@@ -1115,7 +1115,7 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		
 		// Drag should reduce range significantly
 		REQUIRE(range_withDrag < range_noDrag);
-		REQUIRE(range_withDrag < REAL(0.8) * range_noDrag);  // At least 20% reduction
+		REQUIRE(range_withDrag < static_cast<MML::Real>(0.8) * range_noDrag);  // At least 20% reduction
 		
 		INFO("No-drag range: " << range_noDrag << " m");
 		INFO("With-drag range: " << range_withDrag << " m");
@@ -1128,10 +1128,10 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		
 		// To hit same target, higher drag requires more speed
 		Real angle = Constants::PI / 4;
-		Real targetX = REAL(100.0);
+		Real targetX = static_cast<MML::Real>(100.0);
 		
-		ProjectileBVPSolver lowDragSolver(REAL(9.81), REAL(0.005), 3000, TOL(1e-6, 1e-4));
-		ProjectileBVPSolver highDragSolver(REAL(9.81), REAL(0.02), 3000, TOL(1e-6, 1e-4));
+		ProjectileBVPSolver lowDragSolver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.005), 3000, TOL(1e-6, 1e-4));
+		ProjectileBVPSolver highDragSolver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.02), 3000, TOL(1e-6, 1e-4));
 		
 		auto lowDragResult = lowDragSolver.findSpeedForAngle(0, 0, targetX, 0, angle, 20, 80);
 		auto highDragResult = highDragSolver.findSpeedForAngle(0, 0, targetX, 0, angle, 20, 100);
@@ -1164,27 +1164,27 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		TEST_PRECISION_INFO();
 		
 		// Without wind, azimuth should be ~0 (aim straight at target)
-		Projectile3DBVPSolver solver(REAL(9.81), REAL(0.01),
-		                              REAL(0.0), REAL(0.0), REAL(0.0),  // No wind
-		                              4000, REAL(0.5));  // Looser tolerance for landing
+		Projectile3DBVPSolver solver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.01),
+		                              static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),  // No wind
+		                              4000, static_cast<MML::Real>(0.5));  // Looser tolerance for landing
 		
 		auto result = solver.findAnglesForSpeed(
-			REAL(0.0), REAL(0.0), REAL(0.0),  // Start at origin
-			REAL(100.0), REAL(0.0),            // Target at x=100, z=0
-			REAL(50.0),                        // 50 m/s
-			REAL(0.6)                          // ~35° elevation guess
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),  // Start at origin
+			static_cast<MML::Real>(100.0), static_cast<MML::Real>(0.0),            // Target at x=100, z=0
+			static_cast<MML::Real>(50.0),                        // 50 m/s
+			static_cast<MML::Real>(0.6)                          // ~35° elevation guess
 		);
 		
 		REQUIRE(result.converged);
 		
 		// Azimuth should be essentially zero (no wind compensation needed)
-		REQUIRE_THAT(result.launchAzimuthDegrees(), WithinAbs(REAL(0.0), REAL(2.0)));
+		REQUIRE_THAT(result.launchAzimuthDegrees(), WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0)));
 		
 		// Should hit target in x
-		REQUIRE_THAT(result.finalPosition[0], WithinAbs(REAL(100.0), REAL(2.0)));
+		REQUIRE_THAT(result.finalPosition[0], WithinAbs(static_cast<MML::Real>(100.0), static_cast<MML::Real>(2.0)));
 		
 		// No lateral drift
-		REQUIRE_THAT(result.finalPosition[2], WithinAbs(REAL(0.0), REAL(1.0)));
+		REQUIRE_THAT(result.finalPosition[2], WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)));
 		
 		INFO("Elevation: " << result.launchElevationDegrees() << "°");
 		INFO("Azimuth: " << result.launchAzimuthDegrees() << "°");
@@ -1198,25 +1198,25 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		
 		// Crosswind of 5 m/s in z-direction
 		// Solver should find negative azimuth to compensate (aim into wind)
-		Projectile3DBVPSolver solver(REAL(9.81), REAL(0.01),
-		                              REAL(0.0), REAL(0.0), REAL(5.0),  // 5 m/s crosswind
-		                              4000, REAL(0.5));
+		Projectile3DBVPSolver solver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.01),
+		                              static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0),  // 5 m/s crosswind
+		                              4000, static_cast<MML::Real>(0.5));
 		
 		auto result = solver.findAnglesForSpeed(
-			REAL(0.0), REAL(0.0), REAL(0.0),
-			REAL(100.0), REAL(0.0),   // Target straight ahead
-			REAL(50.0),
-			REAL(0.6)
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(100.0), static_cast<MML::Real>(0.0),   // Target straight ahead
+			static_cast<MML::Real>(50.0),
+			static_cast<MML::Real>(0.6)
 		);
 		
 		REQUIRE(result.converged);
 		
 		// Azimuth should be NEGATIVE (aim into the wind coming from +z)
-		REQUIRE(result.launchAzimuth < REAL(0.0));
+		REQUIRE(result.launchAzimuth < static_cast<MML::Real>(0.0));
 		
 		// Should still hit target
-		REQUIRE_THAT(result.finalPosition[0], WithinAbs(REAL(100.0), REAL(2.0)));
-		REQUIRE_THAT(result.finalPosition[2], WithinAbs(REAL(0.0), REAL(1.0)));
+		REQUIRE_THAT(result.finalPosition[0], WithinAbs(static_cast<MML::Real>(100.0), static_cast<MML::Real>(2.0)));
+		REQUIRE_THAT(result.finalPosition[2], WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)));
 		
 		INFO("Elevation: " << result.launchElevationDegrees() << "°");
 		INFO("Azimuth (wind compensation): " << result.launchAzimuthDegrees() << "°");
@@ -1229,21 +1229,21 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		TEST_PRECISION_INFO();
 		
 		// Strong 8 m/s crosswind - requires significant compensation
-		Projectile3DBVPSolver solver(REAL(9.81), REAL(0.01),
-		                              REAL(0.0), REAL(0.0), REAL(8.0),  // 8 m/s crosswind
-		                              4000, REAL(0.5));
+		Projectile3DBVPSolver solver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.01),
+		                              static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(8.0),  // 8 m/s crosswind
+		                              4000, static_cast<MML::Real>(0.5));
 		
 		auto result = solver.findAnglesForSpeed(
-			REAL(0.0), REAL(0.0), REAL(0.0),
-			REAL(80.0), REAL(0.0),    // Slightly closer target
-			REAL(50.0),
-			REAL(0.6)                 // ~35° elevation guess
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(80.0), static_cast<MML::Real>(0.0),    // Slightly closer target
+			static_cast<MML::Real>(50.0),
+			static_cast<MML::Real>(0.6)                 // ~35° elevation guess
 		);
 		
 		REQUIRE(result.converged);
 		
 		// Larger azimuth compensation for stronger wind
-		REQUIRE(result.launchAzimuth < REAL(-0.02));  // At least a degree or so
+		REQUIRE(result.launchAzimuth < static_cast<MML::Real>(-0.02));  // At least a degree or so
 		
 		INFO("Elevation: " << result.launchElevationDegrees() << "°");
 		INFO("Azimuth compensation: " << result.launchAzimuthDegrees() << "°");
@@ -1257,19 +1257,19 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		// Compare elevation needed with headwind vs no wind
 		// Headwind should require steeper angle to reach same distance
 		
-		Projectile3DBVPSolver noWindSolver(REAL(9.81), REAL(0.01),
-		                                    REAL(0.0), REAL(0.0), REAL(0.0),
-		                                    4000, REAL(0.5));
+		Projectile3DBVPSolver noWindSolver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.01),
+		                                    static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+		                                    4000, static_cast<MML::Real>(0.5));
 		
-		Projectile3DBVPSolver headwindSolver(REAL(9.81), REAL(0.01),
-		                                      REAL(-5.0), REAL(0.0), REAL(0.0),  // -5 m/s headwind
-		                                      4000, REAL(0.5));
+		Projectile3DBVPSolver headwindSolver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.01),
+		                                      static_cast<MML::Real>(-5.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),  // -5 m/s headwind
+		                                      4000, static_cast<MML::Real>(0.5));
 		
 		auto noWindResult = noWindSolver.findAnglesForSpeed(
-			0, 0, 0, REAL(80.0), 0, REAL(50.0), REAL(0.5));
+			0, 0, 0, static_cast<MML::Real>(80.0), 0, static_cast<MML::Real>(50.0), static_cast<MML::Real>(0.5));
 		
 		auto headwindResult = headwindSolver.findAnglesForSpeed(
-			0, 0, 0, REAL(80.0), 0, REAL(50.0), REAL(0.5));
+			0, 0, 0, static_cast<MML::Real>(80.0), 0, static_cast<MML::Real>(50.0), static_cast<MML::Real>(0.5));
 		
 		REQUIRE(noWindResult.converged);
 		REQUIRE(headwindResult.converged);
@@ -1287,19 +1287,19 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		TEST_PRECISION_INFO();
 		
 		// Tailwind should allow lower elevation angle for same distance
-		Projectile3DBVPSolver noWindSolver(REAL(9.81), REAL(0.01),
-		                                    REAL(0.0), REAL(0.0), REAL(0.0),
-		                                    4000, REAL(0.5));
+		Projectile3DBVPSolver noWindSolver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.01),
+		                                    static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+		                                    4000, static_cast<MML::Real>(0.5));
 		
-		Projectile3DBVPSolver tailwindSolver(REAL(9.81), REAL(0.01),
-		                                      REAL(5.0), REAL(0.0), REAL(0.0),  // +5 m/s tailwind
-		                                      4000, REAL(0.5));
+		Projectile3DBVPSolver tailwindSolver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.01),
+		                                      static_cast<MML::Real>(5.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),  // +5 m/s tailwind
+		                                      4000, static_cast<MML::Real>(0.5));
 		
 		auto noWindResult = noWindSolver.findAnglesForSpeed(
-			0, 0, 0, REAL(80.0), 0, REAL(50.0), REAL(0.5));
+			0, 0, 0, static_cast<MML::Real>(80.0), 0, static_cast<MML::Real>(50.0), static_cast<MML::Real>(0.5));
 		
 		auto tailwindResult = tailwindSolver.findAnglesForSpeed(
-			0, 0, 0, REAL(80.0), 0, REAL(50.0), REAL(0.5));
+			0, 0, 0, static_cast<MML::Real>(80.0), 0, static_cast<MML::Real>(50.0), static_cast<MML::Real>(0.5));
 		
 		REQUIRE(noWindResult.converged);
 		REQUIRE(tailwindResult.converged);
@@ -1314,21 +1314,21 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		
 		// Wind at 45° angle: both headwind component and crosswind
 		// wx = -3 m/s (slight headwind), wz = 3 m/s (crosswind)
-		Projectile3DBVPSolver solver(REAL(9.81), REAL(0.01),
-		                              REAL(-3.0), REAL(0.0), REAL(3.0),
-		                              4000, REAL(0.5));
+		Projectile3DBVPSolver solver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.01),
+		                              static_cast<MML::Real>(-3.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0),
+		                              4000, static_cast<MML::Real>(0.5));
 		
 		auto result = solver.findAnglesForSpeed(
-			REAL(0.0), REAL(0.0), REAL(0.0),
-			REAL(100.0), REAL(0.0),
-			REAL(50.0),
-			REAL(0.6)
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(100.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(50.0),
+			static_cast<MML::Real>(0.6)
 		);
 		
 		REQUIRE(result.converged);
 		
 		// Should have negative azimuth to compensate for crosswind
-		REQUIRE(result.launchAzimuth < REAL(0.0));
+		REQUIRE(result.launchAzimuth < static_cast<MML::Real>(0.0));
 		
 		INFO("Elevation: " << result.launchElevationDegrees() << "°");
 		INFO("Azimuth: " << result.launchAzimuthDegrees() << "°");
@@ -1341,14 +1341,14 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		TEST_PRECISION_INFO();
 		
 		// Target too far for given speed with drag - should fail gracefully
-		Projectile3DBVPSolver solver(REAL(9.81), REAL(0.02),  // Higher drag
-		                              REAL(0.0), REAL(0.0), REAL(0.0),
-		                              3000, REAL(1e-4));
+		Projectile3DBVPSolver solver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.02),  // Higher drag
+		                              static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+		                              3000, static_cast<MML::Real>(1e-4));
 		
 		auto result = solver.findAnglesForSpeed(
-			REAL(0.0), REAL(0.0), REAL(0.0),
-			REAL(500.0), REAL(0.0),   // Very far target
-			REAL(30.0),                // Low speed
+			static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0),
+			static_cast<MML::Real>(500.0), static_cast<MML::Real>(0.0),   // Very far target
+			static_cast<MML::Real>(30.0),                // Low speed
 			Constants::PI / 4
 		);
 		
@@ -1356,7 +1356,7 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		if (result.converged)
 		{
 			// If it "converged", check that landing was far from target
-			Real error = std::abs(result.finalPosition[0] - REAL(500.0));
+			Real error = std::abs(result.finalPosition[0] - static_cast<MML::Real>(500.0));
 			INFO("Landing error: " << error << " m (target unreachable)");
 		}
 		else
@@ -1372,20 +1372,20 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		
 		// Demonstrate wind drift when NOT compensating
 		// Fire straight ahead (azimuth = 0) with crosswind and see drift
-		Projectile3DBVPSolver solver(REAL(9.81), REAL(0.01),
-		                              REAL(0.0), REAL(0.0), REAL(5.0),  // 5 m/s crosswind
-		                              3000, REAL(1e-4));
+		Projectile3DBVPSolver solver(static_cast<MML::Real>(9.81), static_cast<MML::Real>(0.01),
+		                              static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0),  // 5 m/s crosswind
+		                              3000, static_cast<MML::Real>(1e-4));
 		
 		// Launch with elevation only, no azimuth (vz = 0)
-		Real v0 = REAL(50.0);
-		Real theta = REAL(0.6);  // ~35° elevation
+		Real v0 = static_cast<MML::Real>(50.0);
+		Real theta = static_cast<MML::Real>(0.6);  // ~35° elevation
 		
 		auto traj = solver.computeTrajectory(
 			0, 0, 0,
 			v0 * std::cos(theta),  // vx
 			v0 * std::sin(theta),  // vy
-			REAL(0.0),             // vz = 0 (no compensation)
-			REAL(10.0)
+			static_cast<MML::Real>(0.0),             // vz = 0 (no compensation)
+			static_cast<MML::Real>(10.0)
 		);
 		
 		// Find landing point
@@ -1415,7 +1415,7 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		REQUIRE(landed);
 		
 		// Should have significant drift in direction of wind
-		REQUIRE(z_drift > REAL(5.0));  // Drifted downwind
+		REQUIRE(z_drift > static_cast<MML::Real>(5.0));  // Drifted downwind
 		
 		INFO("Without compensation:");
 		INFO("  Range: " << x_land << " m");

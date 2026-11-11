@@ -10,6 +10,8 @@
  * so no copying to the results folder is needed.
  */
 
+#include "VisualizationResult.h"
+
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
@@ -56,7 +58,7 @@ namespace {
     /// @brief Show a single readme file using its visualizer, with status output
     void ShowFile(const std::filesystem::path& folder, const std::string& fileName,
                   const std::string& description,
-                  std::function<VisualizerResult(const std::string&)> visualize)
+                  std::function<IOResult(const std::string&)> visualize)
     {
         std::cout << "  " << description << " (" << fileName << ")...\n";
 
@@ -67,8 +69,7 @@ namespace {
         }
 
         auto result = visualize(path);
-        if (!result.success)
-            std::cerr << "    Visualizer error: " << result.errorMessage << "\n";
+        Examples::ReportVisualizationResult(result, description);
     }
 
 } // anonymous namespace
@@ -173,8 +174,7 @@ void Show_Readme_Files()
 
         if (allExist) {
             auto result = Visualizer::VisualizeRigidBodyTrajectory(rigidFiles);
-            if (!result.success)
-                std::cerr << "    Visualizer error: " << result.errorMessage << "\n";
+            Examples::ReportVisualizationResult(result, "Rigid-body README files");
         }
     }
 

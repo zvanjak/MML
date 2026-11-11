@@ -52,9 +52,9 @@ void Readme_NumericalCalculus()
     // Integrate f(x) = sin(x) from 0 to π — Analytical result: 2.0
     Real a = 0.0, b = Constants::PI;
 
-    auto trap = IntegrateTrap(f, a, b, 1e-8);
-    auto simp = IntegrateSimpson(f, a, b, 1e-8);
-    auto romb = IntegrateRomberg(f, a, b, 1e-10);
+    auto trap = IntegrateTrapDetailed(f, a, b, 1e-8);
+    auto simp = IntegrateSimpsonDetailed(f, a, b, 1e-8);
+    auto romb = IntegrateRombergDetailed(f, a, b, 1e-10);
 
     std::cout << std::fixed << std::setprecision(10);
     std::cout << "Trapezoid: " << trap.value << " (error: " << trap.error_estimate << ")\n";

@@ -15,6 +15,7 @@
 
 #include <mml/base/Function.h>
 #include <mml/algorithms/Analyzers/FunctionsAnalyzer.h>
+#include <mml/tools/analyzers/FunctionAnalysisReports.h>
 #include <mml/algorithms/RootFinding.h>
 #endif
 
@@ -34,8 +35,8 @@ void Readme_FunctionAnalysis()
     std::cout << "Analyzing f(x) = x³ - 3x + 1" << std::endl;
     std::cout << std::endl;
 
-    RealFunctionAnalyzer analyzer(f, "x³ - 3x + 1");
-    analyzer.PrintIntervalAnalysis(-3.0, 3.0, 100, 1e-6);
+    RealFunctionAnalyzer analyzer(f);
+    AnalysisReports::PrintIntervalAnalysis(std::cout, analyzer.AnalyzeInterval(-3.0, 3.0, 100, 1e-6));
 
     // Find roots using root bracket search + bisection
     Vector<Real> xb1, xb2;
@@ -54,20 +55,20 @@ void Readme_FunctionAnalysis()
         else if (x > 0) return 1.0;
         else return 0.5;
     });
-    RealFunctionAnalyzer step_analyzer(step, "step(x)");
-    step_analyzer.PrintIntervalAnalysis(-2.0, 2.0, 100, 1e-6);
+    RealFunctionAnalyzer step_analyzer(step);
+    AnalysisReports::PrintIntervalAnalysis(std::cout, step_analyzer.AnalyzeInterval(-2.0, 2.0, 100, 1e-6));
 
     // Analyze a function with singularity
     std::cout << std::endl << "--- Analyzing 1/(x-1) ---" << std::endl;
     RealFunction singular{[](Real x) -> Real { return 1.0 / (x - 1.0); }};
-    RealFunctionAnalyzer sing_analyzer(singular, "1/(x-1)");
-    sing_analyzer.PrintIntervalAnalysis(-2.0, 3.0, 100, 1e-6);
+    RealFunctionAnalyzer sing_analyzer(singular);
+    AnalysisReports::PrintIntervalAnalysis(std::cout, sing_analyzer.AnalyzeInterval(-2.0, 3.0, 100, 1e-6));
 
     // Analyze oscillating function
     std::cout << std::endl << "--- Analyzing sin(x) ---" << std::endl;
     RealFunction sinf{[](Real x) { return std::sin(x); }};
-    RealFunctionAnalyzer sin_analyzer(sinf, "sin(x)");
-    sin_analyzer.PrintIntervalAnalysis(0.0, 4*Constants::PI, 200, 1e-6);
+    RealFunctionAnalyzer sin_analyzer(sinf);
+    AnalysisReports::PrintIntervalAnalysis(std::cout, sin_analyzer.AnalyzeInterval(0.0, 4*Constants::PI, 200, 1e-6));
 
     // Find roots of sin(x) using root bracketing
     Vector<Real> sin_xb1, sin_xb2;

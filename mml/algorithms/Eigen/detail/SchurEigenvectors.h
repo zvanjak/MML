@@ -9,6 +9,9 @@
 #include <algorithm>
 #include <cmath>
 #include <complex>
+#include <limits>
+#include <utility>
+#include <vector>
 
 namespace MML::detail {
 	// =========================================================================
@@ -28,147 +31,160 @@ namespace MML::detail {
 		std::vector<bool> isComplexPair; // isComplexPair[i] = true if columns i,i+1 form complex pair
 	};
 
-	/// Compute eigenvector for a real eigenvalue using back-substitution.
+	/// Shared back-substitution kernel for eigenvectors of a quasi-upper-triangular (real Schur) matrix.
 	///
-	/// Given upper triangular T with eigenvalue λ = T[k,k], solve (T - λI)x = 0
-	/// by back-substitution from row k-1 up to row 0.
+	/// Solves (T - λI) x = 0 for the eigenvalue λ belonging to the diagonal block that starts at
+	/// row `blockStart` and has size `blockSize` (1 for a real eigenvalue, 2 for a complex pair).
+	/// The entries of x inside that block are preset by the caller; entries below it are zero;
+	/// entries above are obtained by back-substitution from row blockStart-1 up to row 0.
 	///
-	/// @param T Upper triangular (or quasi-upper-triangular) matrix
-	/// @param k Index of the eigenvalue (diagonal element T[k,k])
-	/// @return Eigenvector (normalized)
-	inline Vector<Real> ComputeRealEigenvector(const Matrix<Real>& T, int k) {
-		int n = T.rows();
-		Vector<Real> x(n, 0.0);
+	/// Unlike plain triangular back-substitution this honours 2x2 diagonal blocks ABOVE the target
+	/// block: whenever T(i, i-1) != 0 the rows i-1, i are solved together as a 2x2 (complex) system.
+	/// Ignoring that coupling is exactly what produced O(1) eigenvector residuals on dense
+	/// nonsymmetric matrices (analysis v4, ALGORITHMS A1).
+	///
+	/// Small or zero denominators (repeated eigenvalues) are replaced by smin as in
+	/// LAPACK dtrevc / Numerical Recipes hqr2, so the routine never divides by zero.
+	///
+	/// Reference: Golub & Van Loan, Matrix Computations 4th ed., §7.6.1; LAPACK dtrevc.
+	inline void BackSubstituteSchurEigenvector(const Matrix<Real>& T, int blockStart, int blockSize,
+											   std::complex<Real> lambda, std::vector<std::complex<Real>>& x) {
+		using C = std::complex<Real>;
+		const int top = blockStart + blockSize - 1; // last row/column with a preset (nonzero) entry
 
-		// Set x[k] = 1 as starting point
-		x[k] = 1.0;
-		Real lambda = T(k, k);
+		Real anorm = static_cast<MML::Real>(0.0);
+		for (int r = 0; r <= top; r++)
+			for (int c = std::max(r - 1, 0); c <= top; c++)
+				anorm = std::max(anorm, std::abs(T(r, c)));
+		const Real eps = std::numeric_limits<Real>::epsilon();
+		const Real smin = std::max({eps * std::abs(lambda), eps * anorm, PrecisionValues<Real>::DivisionSafetyThreshold});
 
-		// Back-substitute: for i = k-1 down to 0
-		// (T[i,i] - λ) * x[i] + sum_{j=i+1}^{k} T[i,j] * x[j] = 0
-		// x[i] = -sum_{j=i+1}^{k} T[i,j] * x[j] / (T[i,i] - λ)
+		auto rowSum = [&](int r, int from) {
+			C s(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+			for (int j = from; j <= top; j++)
+				s += T(r, j) * x[j];
+			return s;
+		};
 
-		for (int i = k - 1; i >= 0; i--) {
-			Real sum = 0.0;
-			for (int j = i + 1; j <= k; j++)
-				sum += T(i, j) * x[j];
-
-			Real denom = T(i, i) - lambda;
-			if (std::abs(denom) > PrecisionValues<Real>::DivisionSafetyThreshold) {
-				x[i] = -sum / denom;
+		int i = blockStart - 1;
+		while (i >= 0) {
+			const bool coupled = (i > 0) && (T(i, i - 1) != static_cast<MML::Real>(0.0));
+			if (!coupled) {
+				C denom = C(T(i, i), static_cast<MML::Real>(0.0)) - lambda;
+				if (std::abs(denom) < smin)
+					denom = C(smin, static_cast<MML::Real>(0.0));
+				x[i] = -rowSum(i, i + 1) / denom;
+				i -= 1;
 			} else {
-				// Near-singular: use small perturbation to avoid division by zero
-				x[i] = -sum / PrecisionValues<Real>::DivisionSafetyThreshold;
+				// Rows i-1, i form a 2x2 block: solve
+				//   [T(i-1,i-1)-λ   T(i-1,i)  ] [x(i-1)]   [-Σ_{j>i} T(i-1,j) x_j]
+				//   [T(i,i-1)       T(i,i)-λ  ] [x(i)  ] = [-Σ_{j>i} T(i,j)   x_j]
+				const C a = C(T(i - 1, i - 1), static_cast<MML::Real>(0.0)) - lambda;
+				const C b = C(T(i - 1, i), static_cast<MML::Real>(0.0));
+				const C c = C(T(i, i - 1), static_cast<MML::Real>(0.0));
+				const C d = C(T(i, i), static_cast<MML::Real>(0.0)) - lambda;
+				const C r0 = -rowSum(i - 1, i + 1);
+				const C r1 = -rowSum(i, i + 1);
+				C det = a * d - b * c;
+				if (std::abs(det) < smin * smin)
+					det = C(smin * smin, static_cast<MML::Real>(0.0));
+				x[i - 1] = (r0 * d - b * r1) / det;
+				x[i] = (a * r1 - c * r0) / det;
+				i -= 2;
 			}
 		}
-
-		// Normalize
-		Real norm = 0.0;
-		for (int i = 0; i < n; i++)
-			norm += x[i] * x[i];
-		norm = std::sqrt(norm);
-
-		if (norm > PrecisionValues<Real>::DivisionSafetyThreshold) {
-			for (int i = 0; i < n; i++)
-				x[i] /= norm;
-		}
-
-		return x;
 	}
 
-	/// Compute eigenvectors for a 2x2 complex eigenvalue block.
+	/// Normalise a complex vector to unit Euclidean norm (||Re||² + ||Im||² = 1).
+	inline void NormalizeComplexVector(std::vector<std::complex<Real>>& x) {
+		Real norm = static_cast<MML::Real>(0.0);
+		for (const auto& v : x)
+			norm += std::norm(v);
+		norm = std::sqrt(norm);
+		if (norm > PrecisionValues<Real>::DivisionSafetyThreshold)
+			for (auto& v : x)
+				v /= norm;
+	}
+
+	/// Compute eigenvector for a real eigenvalue λ = T[k,k] of a quasi-upper-triangular T.
 	///
-	/// For a 2x2 block at positions [k, k+1] with complex eigenvalues α ± iβ,
-	/// compute the real and imaginary parts of the eigenvector.
+	/// Solves (T - λI)x = 0 with x[k] = 1 by back-substitution over rows k-1 .. 0,
+	/// treating any 2x2 diagonal block above k as a coupled system.
+	///
+	/// @param T Upper triangular or quasi-upper-triangular (real Schur) matrix
+	/// @param k Index of the eigenvalue (1x1 diagonal block T[k,k])
+	/// @return Eigenvector (unit Euclidean norm)
+	inline Vector<Real> ComputeRealEigenvector(const Matrix<Real>& T, int k) {
+		const int n = T.rows();
+		std::vector<std::complex<Real>> x(n, std::complex<Real>(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)));
+		x[k] = std::complex<Real>(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0));
+
+		BackSubstituteSchurEigenvector(T, k, 1, std::complex<Real>(T(k, k), static_cast<MML::Real>(0.0)), x);
+		NormalizeComplexVector(x);
+
+		Vector<Real> v(n);
+		for (int i = 0; i < n; i++)
+			v[i] = x[i].real();
+		return v;
+	}
+
+	/// Compute eigenvectors for the 2x2 diagonal block at rows/columns (k, k+1).
+	///
+	/// If the block has complex eigenvalues α ± iβ (β > 0), returns the real and imaginary
+	/// parts of the eigenvector for α + iβ, normalised so that ||Re||² + ||Im||² = 1.
+	/// If the block has two real eigenvalues (an un-standardised real 2x2 block), returns the
+	/// two real eigenvectors in the same order as Eigenvalues2x2 (real1, real2); the coupling
+	/// T(k+1,k) inside the block is honoured in both cases.
 	///
 	/// @param T Quasi-upper-triangular matrix
 	/// @param k Starting index of the 2x2 block
-	/// @return Pair of vectors: (real part, imaginary part)
+	/// @return Pair of vectors: (real part, imaginary part) or (eigvec(real1), eigvec(real2))
 	inline std::pair<Vector<Real>, Vector<Real>> ComputeComplexEigenvectors(const Matrix<Real>& T, int k) {
-		int n = T.rows();
-		Vector<Real> xr(n, 0.0); // Real part
-		Vector<Real> xi(n, 0.0); // Imaginary part
+		using C = std::complex<Real>;
+		const int n = T.rows();
 
-		// Get the 2x2 block and its eigenvalues
-		Real a = T(k, k);
-		Real b = T(k, k + 1);
-		Real c = T(k + 1, k);
-		Real d = T(k + 1, k + 1);
+		const Real a = T(k, k), b = T(k, k + 1), c = T(k + 1, k), d = T(k + 1, k + 1);
+		const auto eig = Eigenvalues2x2(a, b, c, d);
 
-		auto eig = Eigenvalues2x2(a, b, c, d);
-		Real alpha = eig.real1; // Real part of eigenvalue
-		Real beta = eig.imag1;	// Imaginary part (positive)
-
-		if (std::abs(beta) < PrecisionValues<Real>::DivisionSafetyThreshold) {
-			// Not actually complex, treat as two real
-			xr = ComputeRealEigenvector(T, k);
-			xi = ComputeRealEigenvector(T, k + 1);
-			return {xr, xi};
-		}
-
-		// For the 2x2 block, the eigenvector of [[a,b],[c,d]] for α+iβ is:
-		// v = [b, α+iβ-a] or [α+iβ-d, c] (up to scaling)
-		// We use [b, (α-a)+iβ] which gives:
-		//   real: [b, α-a]
-		//   imag: [0, β]
-
-		// Initialize at the 2x2 block
-		xr[k] = b;
-		xr[k + 1] = alpha - a;
-		xi[k] = 0.0;
-		xi[k + 1] = beta;
-
-		// Back-substitute for rows k-1 down to 0
-		// We need to solve (T - (α+iβ)I) * (xr + i*xi) = 0
-		// This gives two coupled real equations:
-		// (T - αI) * xr + βI * xi = 0  =>  (T-αI)*xr = -β*xi
-		// (T - αI) * xi - βI * xr = 0  =>  (T-αI)*xi = β*xr
-		for (int i = k - 1; i >= 0; i--) {
-			// sum_r = sum of T[i,j]*xr[j] for j > i
-			// sum_i = sum of T[i,j]*xi[j] for j > i
-			Real sum_r = 0.0;
-			Real sum_i = 0.0;
-			for (int j = i + 1; j <= k + 1; j++) {
-				sum_r += T(i, j) * xr[j];
-				sum_i += T(i, j) * xi[j];
-			}
-
-			// (T[i,i] - α) * xr[i] + β * xi[i] = -sum_r
-			// (T[i,i] - α) * xi[i] - β * xr[i] = -sum_i
-			// Let p = T[i,i] - α
-			// p * xr[i] + β * xi[i] = -sum_r
-			// p * xi[i] - β * xr[i] = -sum_i
-			// Solve 2x2 system:
-			// |p   β | |xr[i]|   |-sum_r|
-			// |-β  p | |xi[i]| = |-sum_i|
-			// det = p² + β²
-
-			Real p = T(i, i) - alpha;
-			Real det = p * p + beta * beta;
-
-			if (det > PrecisionValues<Real>::DivisionSafetyThreshold) {
-				xr[i] = (-sum_r * p - sum_i * beta) / det;
-				xi[i] = (-sum_i * p + sum_r * beta) / det;
+		// Eigenvector of the 2x2 block for eigenvalue λ: [b, λ-a] or [λ-d, c]; use the larger one.
+		auto blockVector = [&](C lambda, std::vector<C>& x) {
+			const C v0 = C(b, static_cast<MML::Real>(0.0)), v1 = lambda - a;
+			const C w0 = lambda - d, w1 = C(c, static_cast<MML::Real>(0.0));
+			if (std::norm(w0) + std::norm(w1) > std::norm(v0) + std::norm(v1)) {
+				x[k] = w0;
+				x[k + 1] = w1;
 			} else {
-				xr[i] = 0.0;
-				xi[i] = 0.0;
+				x[k] = v0;
+				x[k + 1] = v1;
 			}
-		}
+			if (std::norm(x[k]) + std::norm(x[k + 1]) < PrecisionValues<Real>::DivisionSafetyThreshold)
+				x[k] = C(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)); // a == d, b == c == 0: any vector in the block works
+		};
 
-		// Normalize: ||xr||² + ||xi||² = 1 for each eigenvector
-		Real norm_sq = 0.0;
-		for (int i = 0; i < n; i++)
-			norm_sq += xr[i] * xr[i] + xi[i] * xi[i];
+		auto solveFor = [&](C lambda) {
+			std::vector<C> x(n, C(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)));
+			blockVector(lambda, x);
+			BackSubstituteSchurEigenvector(T, k, 2, lambda, x);
+			NormalizeComplexVector(x);
+			return x;
+		};
 
-		Real norm = std::sqrt(norm_sq);
-		if (norm > PrecisionValues<Real>::DivisionSafetyThreshold) {
+		Vector<Real> first(n), second(n);
+		if (eig.isComplex) {
+			const auto x = solveFor(C(eig.real1, std::abs(eig.imag1)));
 			for (int i = 0; i < n; i++) {
-				xr[i] /= norm;
-				xi[i] /= norm;
+				first[i] = x[i].real();
+				second[i] = x[i].imag();
+			}
+		} else {
+			const auto x1 = solveFor(C(eig.real1, static_cast<MML::Real>(0.0)));
+			const auto x2 = solveFor(C(eig.real2, static_cast<MML::Real>(0.0)));
+			for (int i = 0; i < n; i++) {
+				first[i] = x1[i].real();
+				second[i] = x2[i].real();
 			}
 		}
-
-		return {xr, xi};
+		return {first, second};
 	}
 
 	/// Compute all eigenvectors from quasi-upper-triangular (real Schur) form.
@@ -177,7 +193,7 @@ namespace MML::detail {
 	/// @param Q Accumulated orthogonal transformation (T = Q^T * A * Q)
 	/// @param tol Tolerance for detecting 2x2 blocks
 	/// @return EigenvectorResult with eigenvector matrix
-	inline EigenvectorResult ComputeEigenvectorsFromSchur(const Matrix<Real>& T, const Matrix<Real>& Q, Real tol = 1e-10) {
+	inline EigenvectorResult ComputeEigenvectorsFromSchur(const Matrix<Real>& T, const Matrix<Real>& Q, Real tol = Precision::EigenSolverConvergenceTolerance) {
 		int n = T.rows();
 		EigenvectorResult result;
 		result.vectors = Matrix<Real>(n, n);
@@ -193,7 +209,7 @@ namespace MML::detail {
 			if (i < n - 1) {
 				Real subdiag = std::abs(T(i + 1, i));
 				Real diagSum = std::abs(T(i, i)) + std::abs(T(i + 1, i + 1));
-				is2x2 = (subdiag >= tol * std::max(diagSum, REAL(1.0)) && subdiag >= PrecisionValues<Real>::DivisionSafetyThreshold);
+				is2x2 = (subdiag >= tol * std::max(diagSum, static_cast<MML::Real>(1.0)) && subdiag >= PrecisionValues<Real>::DivisionSafetyThreshold);
 			}
 
 			if (!is2x2) {
@@ -204,14 +220,16 @@ namespace MML::detail {
 				result.isComplexPair[i] = false;
 				i++;
 			} else {
-				// 2x2 block: complex conjugate pair
+				// 2x2 block: complex conjugate pair (Re, Im) or two real eigenvectors if the block
+				// has real eigenvalues and was not standardised to triangular form.
+				const bool complexPair = Eigenvalues2x2(T(i, i), T(i, i + 1), T(i + 1, i), T(i + 1, i + 1)).isComplex;
 				auto [vr, vi] = ComputeComplexEigenvectors(T, i);
 				for (int j = 0; j < n; j++) {
 					Y(j, i) = vr[j];	 // Real part in column i
 					Y(j, i + 1) = vi[j]; // Imaginary part in column i+1
 				}
-				result.isComplexPair[i] = true;
-				result.isComplexPair[i + 1] = true;
+				result.isComplexPair[i] = complexPair;
+				result.isComplexPair[i + 1] = complexPair;
 				i += 2;
 			}
 		}
@@ -225,20 +243,49 @@ namespace MML::detail {
 					sum += Q(row, k) * Y(k, col);
 				result.vectors(row, col) = sum;
 			}
+		}
 
-			// Re-normalize after transformation
+		// Re-normalize. Columns (i, i+1) of a complex pair are Re and Im of ONE eigenvector and
+		// must be scaled by a common factor; normalising them separately destroys the eigenvector.
+		int col = 0;
+		while (col < n) {
+			const int width = (result.isComplexPair[col] && col + 1 < n) ? 2 : 1;
 			Real norm = 0.0;
-			for (int row = 0; row < n; row++)
-				norm += result.vectors(row, col) * result.vectors(row, col);
+			for (int c = col; c < col + width; c++)
+				for (int row = 0; row < n; row++)
+					norm += result.vectors(row, c) * result.vectors(row, c);
 			norm = std::sqrt(norm);
 
-			if (norm > PrecisionValues<Real>::DivisionSafetyThreshold) {
-				for (int row = 0; row < n; row++)
-					result.vectors(row, col) /= norm;
-			}
+			if (norm > PrecisionValues<Real>::DivisionSafetyThreshold)
+				for (int c = col; c < col + width; c++)
+					for (int row = 0; row < n; row++)
+						result.vectors(row, c) /= norm;
+			col += width;
 		}
 
 		return result;
+	}
+
+	/// Residual ||A v - λ v|| / ||v|| for a complex eigenpair λ = λr + i λi, v = vr + i vi.
+	/// Works for real pairs too (pass a zero vi and λi = 0).
+	inline Real EigenpairResidual(const Matrix<Real>& A, const Vector<Real>& vr, const Vector<Real>& vi, Real lambda_real, Real lambda_imag) {
+		const int n = A.rows();
+		Real residual = 0.0;
+		Real vnorm = 0.0;
+		for (int i = 0; i < n; i++) {
+			Real Avr = 0.0, Avi = 0.0;
+			for (int j = 0; j < n; j++) {
+				Avr += A(i, j) * vr[j];
+				Avi += A(i, j) * vi[j];
+			}
+			// (λr + iλi)(vr + i vi) = (λr vr - λi vi) + i(λr vi + λi vr)
+			const Real dr = Avr - (lambda_real * vr[i] - lambda_imag * vi[i]);
+			const Real di = Avi - (lambda_real * vi[i] + lambda_imag * vr[i]);
+			residual += dr * dr + di * di;
+			vnorm += vr[i] * vr[i] + vi[i] * vi[i];
+		}
+		vnorm = std::sqrt(vnorm);
+		return vnorm > PrecisionValues<Real>::DivisionSafetyThreshold ? std::sqrt(residual) / vnorm : static_cast<MML::Real>(0.0);
 	}
 
 	/// Verify eigenvector: compute ||A*v - λ*v|| / ||v||

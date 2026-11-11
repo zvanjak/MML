@@ -288,7 +288,7 @@ namespace MML
 	{
 		static_assert(Index >= 0 && Index < N, "Basis one-form index must be in range");
 		Form1<N, FrameTag> result;
-		result.Component(Index) = REAL(1.0);
+		result.Component(Index) = static_cast<MML::Real>(1.0);
 		return result;
 	}
 

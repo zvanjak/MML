@@ -83,16 +83,21 @@ where:
 
 ### IODESystemWithJacobian
 
-Interface for systems that can provide analytical Jacobian.
+Interface for systems that can provide the Jacobian ∂f/∂x. There is **one** Jacobian contract
+(shared with IDynamicalSystem, which adds a finite-difference default): implementers override
+jacobian(t, x, J) - the Jacobian alone. Stiff steppers call derivsAndJacobian(t, x, dxdt, J),
+which by default evaluates derivs() and jacobian(); override it only when both come out of one
+computation. The old four-argument jacobian(t, x, dxdt, J) is a deprecated non-virtual forwarder.
 
 **Interface:**
 ```cpp
-class IODESystemWithJacobian : public IODESystem
+class IODESystemWithJacobian : public virtual IODESystem
 {
 public:
-    virtual void jacobian(const Real t, const Vector<Real>& x, 
-                          Vector<Real>& dxdt, 
-                          Matrix<Real>& dydx) const = 0;
+    virtual void jacobian(Real t, const Vector<Real>& x, Matrix<Real>& J) const = 0;
+    virtual void derivsAndJacobian(Real t, const Vector<Real>& x,
+                                   Vector<Real>& dxdt, Matrix<Real>& J) const;   // default: derivs + jacobian
+    virtual bool hasAnalyticalJacobian() const;                                   // default: true
 };
 ```
 
@@ -124,8 +129,10 @@ public:
     virtual Real getParam(int i) const = 0;
     virtual void setParam(int i, Real val) = 0;
     
-    virtual Vector<Real> getParams() const = 0;
-    virtual void setParams(const Vector<Real>&) = 0;
+    // bulk accessors inherited from IParametrized; the default setParams() throws
+    // VectorDimensionError when the vector size differs from getNumParam()
+    virtual Vector<Real> getParams() const;
+    virtual void setParams(const Vector<Real>& params);
 };
 ```
 
@@ -244,8 +251,7 @@ void robertson_derivs(Real t, const Vector<Real>& y, Vector<Real>& dydt)
     dydt[2] = 3.0e7 * y[1] * y[1];
 }
 
-void robertson_jacobian(const Real t, const Vector<Real>& y, 
-                        Vector<Real>& dydt, Matrix<Real>& J)
+void robertson_jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J)
 {
     // J[i][j] = ∂fᵢ/∂yⱼ
     J[0][0] = -0.04;
@@ -426,8 +432,9 @@ void Example_Simple_Pendulum()
     Vector<Real> x0{Constants::PI/4, 0.0};
     
     // Solve using RK4
-    ODESystemSolver<RK4Step> solver(system);
-    auto solution = solver.solve(0.0, 10.0, x0, 0.01);
+    RungeKutta4_StepCalculator rk4;
+    ODESystemFixedStepSolver solver(system, rk4);
+    auto solution = solver.integrate(x0, 0.0, 10.0, 1000);   // h = 0.01
     
     // Extract angle as function of time
     auto theta_t = solution.getSolAsSplineInterp(0);
@@ -490,8 +497,9 @@ void Example_TwoBody_System()
     x0[6] = 0.0;    x0[7] = -1000.0;  // Body 2 velocity
     
     // Solve
-    ODESystemSolver<RK4Step> solver(system);
-    auto solution = solver.solve(0.0, 1000.0, x0, 1.0);
+    RungeKutta4_StepCalculator rk4;
+    ODESystemFixedStepSolver solver(system, rk4);
+    auto solution = solver.integrate(x0, 0.0, 1000.0, 1000);   // h = 1.0
     
     // Extract trajectories
     auto body1_traj = solution.getSolAsParamCurve2D(0, 1);
@@ -514,15 +522,15 @@ void Example_Stiff_VanDerPol()
         dxdt[1] = mu * (1.0 - x[0]*x[0]) * x[1] - x[0];
     };
     
-    auto van_der_pol_jacobian = [mu](const Real t, const Vector<Real>& x, 
-                                      Vector<Real>& dxdt, Matrix<Real>& J) {
+    auto van_der_pol_jacobian = [mu](Real t, const Vector<Real>& x, Matrix<Real>& J) {
         J[0][0] = 0.0;
         J[0][1] = 1.0;
         J[1][0] = -2.0 * mu * x[0] * x[1] - 1.0;
         J[1][1] = mu * (1.0 - x[0]*x[0]);
     };
     
-    ODESystemWithJacobian system(2, van_der_pol_derivs, van_der_pol_jacobian);
+    // capturing lambdas need the std::function wrapper
+    ODESystemWithJacobianFromStdFunc system(2, van_der_pol_derivs, van_der_pol_jacobian);
     
     Vector<Real> x0{2.0, 0.0};
     
@@ -572,6 +580,8 @@ public:
     }
     
     void setParams(const Vector<Real>& params) override {
+        if (params.size() != 2)
+            throw VectorDimensionError("ParametrizedOscillator::setParams - expected 2 parameters", params.size(), 2);
         _omega = params[0];
         _damping = params[1];
     }
@@ -586,8 +596,9 @@ void Example_Parameter_Study()
     {
         ParametrizedOscillator system(2.0, damping);
         
-        ODESystemSolver<RK4Step> solver(system);
-        auto solution = solver.solve(0.0, 10.0, x0, 0.01);
+        RungeKutta4_StepCalculator rk4;
+        ODESystemFixedStepSolver solver(system, rk4);
+        auto solution = solver.integrate(x0, 0.0, 10.0, 1000);   // h = 0.01
         
         // Analyze decay rate
         auto x_t = solution.getSolAsSplineInterp(0);
@@ -683,15 +694,16 @@ auto discontinuous = solution.getSolAsLinInterp(component);
 ### With ODE Solvers (algorithms/)
 
 ```cpp
-// Fixed-step solvers
-ODESystemSolver<RK4Step> rk4_solver(system);
-ODESystemSolver<DormandPrince54> dp54_solver(system);
+// Fixed-step solvers: pick a step calculator
+RungeKutta4_StepCalculator rk4;
+ODESystemFixedStepSolver rk4_solver(system, rk4);
 
-// Adaptive solvers
-AdaptiveODESolver adaptive(system, tolerance);
+// Adaptive solver (Dormand-Prince 5(4) by default; see ODESolverAdaptive.h)
+ODEAdaptiveIntegrator adaptive(system);
 
-// Specialized solvers
-LeapfrogSolver symplectic(hamiltonian_system);
+// Symplectic / specialized: a step calculator plugged into the fixed-step solver
+VelocityVerlet_StepCalculator verlet;
+ODESystemFixedStepSolver symplectic(hamiltonian_system, verlet);
 ```
 
 ### With Interpolation

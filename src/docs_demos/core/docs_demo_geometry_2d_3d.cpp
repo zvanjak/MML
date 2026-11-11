@@ -119,7 +119,7 @@ void Docs_Demo_3D_Plane()
     std::cout << "=== 3D Plane ===" << std::endl << std::endl;
     
     // XY plane (z = 0)
-    Plane3D plane = Plane3D::GetXYPlane();
+    Plane3D plane = Plane3D::XYPlane();
     
     std::cout << "XY Plane (z=0):" << std::endl;
     std::cout << "  Equation: " << plane.A() << "x + " << plane.B() << "y + " << plane.C() << "z + " << plane.D() << " = 0" << std::endl;
@@ -147,7 +147,7 @@ void Docs_Demo_3D_Plane()
     
     // Plane-plane intersection
     std::cout << std::endl << "Plane-Plane Intersection:" << std::endl;
-    Plane3D yz_plane = Plane3D::GetYZPlane();
+    Plane3D yz_plane = Plane3D::YZPlane();
     Line3D inter_line;
     if (plane.IntersectionWithPlane(yz_plane, inter_line)) {
         std::cout << "  XY and YZ planes intersect along y-axis" << std::endl;

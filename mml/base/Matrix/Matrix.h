@@ -12,7 +12,9 @@
 #if !defined MML_MATRIX_H
 #define MML_MATRIX_H
 
+#include <mml/base/PrintFormatting.h>
 #include <memory>
+#include <array>
 #include <vector>
 #include <algorithm>
 #include <iomanip>
@@ -20,6 +22,7 @@
 #include <sstream>
 #include <complex>
 #include <type_traits>
+#include <limits>
 
 #include <mml/MMLBase.h>
 #include <mml/base/Matrix/MatrixPrintFormat.h>
@@ -93,7 +96,6 @@ namespace MML
 	{
 	private:
 		// Allocation safety limits
-		static constexpr int MAX_DIMENSION = 100000;
 		static constexpr size_t MAX_ELEMENTS = 100000000;  ///< ~800MB for doubles
 
 		int _rows;
@@ -109,15 +111,8 @@ namespace MML
 			if (rows < 0 || cols < 0)
 				throw MatrixDimensionError("Matrix - dimensions cannot be negative", rows, cols, -1, -1);
 			
-			if (rows > MAX_DIMENSION || cols > MAX_DIMENSION)
-				throw MatrixDimensionError("Matrix - dimensions exceed maximum limit", rows, cols, MAX_DIMENSION, MAX_DIMENSION);
-			
-			// Integer overflow protection
-			size_t numElements = static_cast<size_t>(rows) * static_cast<size_t>(cols);
-			if (cols > 0 && numElements / static_cast<size_t>(cols) != static_cast<size_t>(rows))
-				throw MatrixAllocationError("Matrix - size calculation overflow", rows, cols);
-
-			if (numElements > MAX_ELEMENTS)
+			// Check the product budget without multiplying potentially overflowing dimensions.
+			if (cols > 0 && static_cast<size_t>(rows) > MAX_ELEMENTS / static_cast<size_t>(cols))
 				throw MatrixAllocationError("Matrix - allocation exceeds MAX_ELEMENTS", rows, cols);
 		}
 
@@ -129,6 +124,10 @@ namespace MML
 	public:
 		typedef Type value_type;  ///< Element type alias for STL compatibility
 
+		/// Index representability, not a per-axis allocation budget.
+		static constexpr int MaxDimension() noexcept { return std::numeric_limits<int>::max(); }
+		static constexpr size_t MaxElementCount() noexcept { return MAX_ELEMENTS; }
+
 		///////////////////////          Constructors and destructor       //////////////////////
 		
 		/// @brief Default constructor - creates empty matrix
@@ -137,7 +136,8 @@ namespace MML
 		/// @brief Construct matrix of given dimensions
 		/// @param rows Number of rows (must be non-negative)
 		/// @param cols Number of columns (must be non-negative)
-		/// @throws MatrixDimensionError if dimensions are negative or exceed limits
+		/// @throws MatrixDimensionError if dimensions are negative
+		/// @throws MatrixAllocationError if the total element budget is exceeded
 		/// @details Elements initialized to zero for numeric types
 		explicit Matrix(int rows, int cols) : _rows(rows), _cols(cols)
 		{
@@ -325,14 +325,15 @@ namespace MML
 		/// @param rows New number of rows
 		/// @param cols New number of columns
 		/// @param preserveElements If true, existing elements are preserved (up to new dimensions)
-		/// @throws MatrixDimensionError if dimensions are invalid
-		void Resize(int rows, int cols, bool preserveElements = false)
+		/// @throws MatrixDimensionError if dimensions are negative
+		/// @throws MatrixAllocationError if the total element budget is exceeded
+		void resize(int rows, int cols, bool preserveElements = false)
 		{
 			if (rows == _rows && cols == _cols)
 				return;
 			
 			if (rows < 0 || cols < 0)
-				throw MatrixDimensionError("Matrix::Resize - dimensions cannot be negative", rows, cols, -1, -1);
+				throw MatrixDimensionError("Matrix::resize - dimensions cannot be negative", rows, cols, -1, -1);
 			
 			ValidateDimensions(rows, cols);
 			
@@ -354,18 +355,38 @@ namespace MML
 			_rows = rows;
 			_cols = cols;
 		}
+
+		/// @deprecated Use resize() (CONTRACT_POLICY §11: STL-shaped protocol is spelled as the STL spells it).
+		[[deprecated("use resize()")]]
+		void Resize(int rows, int cols, bool preserveElements = false) { resize(rows, cols, preserveElements); }
 		
+		/// @brief Set all elements to zero (in-place, keeps dimensions)
+		void SetZero() noexcept
+		{
+			std::fill(_data.begin(), _data.end(), Type{0});
+		}
+
+		/// @brief Set all elements to the same value (in-place, keeps dimensions)
+		void Fill(const Type& value)
+		{
+			std::fill(_data.begin(), _data.end(), value);
+		}
+
 		/// @brief Convert to identity matrix (in-place)
 		/// @throws MatrixDimensionError if matrix is not square
-		void MakeUnitMatrix()
+		void SetIdentity()
 		{
 			if (_rows != _cols)
-				throw MatrixDimensionError("Matrix::MakeUnitMatrix - must be square", _rows, _cols, -1, -1);
+				throw MatrixDimensionError("Matrix::SetIdentity - must be square", _rows, _cols, -1, -1);
 			
 			std::fill(_data.begin(), _data.end(), Type{0});
 			for (int i = 0; i < _rows; ++i)
 				_data[idx(i, i)] = Type{1};
 		}
+
+		/// @deprecated Use SetIdentity() (CONTRACT_POLICY §11 reset vocabulary).
+		[[deprecated("use SetIdentity()")]]
+		void MakeUnitMatrix() { SetIdentity(); }
 
 		///////////////////////          Static factory methods            //////////////////////
 		
@@ -378,7 +399,7 @@ namespace MML
 				throw MatrixDimensionError("Matrix::Identity - dimension must be positive", dim, dim, -1, -1);
 			
 			Matrix mat(dim, dim);
-			mat.MakeUnitMatrix();
+			mat.SetIdentity();
 			return mat;
 		}
 		
@@ -403,8 +424,11 @@ namespace MML
 		inline int rows() const noexcept { return _rows; }
 		/// @brief Get number of columns (preferred API)
 		inline int cols() const noexcept { return _cols; }
-		/// @brief Check if matrix is empty (zero dimensions)
-		inline bool isEmpty() const noexcept { return _rows == 0 || _cols == 0; }
+		/// @brief Check if matrix is empty (zero dimensions) - STL spelling
+		inline bool empty() const noexcept { return _rows == 0 || _cols == 0; }
+		/// @deprecated Use empty() (CONTRACT_POLICY §11: STL-shaped protocol).
+		[[deprecated("use empty()")]]
+		inline bool isEmpty() const noexcept { return empty(); }
 		
 		/// @brief Direct access to underlying data (for algorithms that need it)
 		Type* data() noexcept { return _data.data(); }
@@ -414,7 +438,10 @@ namespace MML
 		//////////////////         Accessors         /////////////////
 		
 		/// @brief Check if matrix is square.
-		inline bool isSquare() const noexcept { return _rows == _cols; }
+		inline bool IsSquare() const noexcept { return _rows == _cols; }
+		/// @deprecated Use IsSquare() (CONTRACT_POLICY §11: mathematical predicates are PascalCase).
+		[[deprecated("use IsSquare()")]]
+		inline bool isSquare() const noexcept { return IsSquare(); }
 		
 		/// @brief Returns string representation of matrix (compact format).
 		std::string to_string() const
@@ -466,22 +493,23 @@ namespace MML
 			return ret;
 		}
 		
-		/// @brief Extract diagonal as vector (for square matrices)
-		/// @return Vector containing diagonal elements
-		/// @throws MatrixDimensionError if matrix is not square
 		/// @brief Extract diagonal elements as vector (preferred API)
 		/// @return Vector containing diagonal elements
 		/// @throws MatrixDimensionError if matrix is not square
-		Vector<Type> diagonal() const
+		Vector<Type> getDiagonal() const
 		{
 			if (_rows != _cols)
-				throw MatrixDimensionError("diagonal - must be square", _rows, _cols, -1, -1);
+				throw MatrixDimensionError("Matrix::getDiagonal - must be square", _rows, _cols, -1, -1);
 			
 			Vector<Type> ret(_rows);
 			for (int i = 0; i < _rows; ++i)
 				ret[i] = (*this)(i, i);
 			return ret;
 		}
+
+		/// @deprecated Use getDiagonal() (CONTRACT_POLICY §11: accessors are getX(); same spelling on every matrix type).
+		[[deprecated("use getDiagonal()")]]
+		Vector<Type> diagonal() const { return getDiagonal(); }
 
 		///////////////////////          Matrix extraction                 //////////////////////
 		
@@ -624,7 +652,7 @@ namespace MML
 		/// @brief Check if matrix is identity matrix
 		/// @param eps Tolerance for floating-point comparison
 		/// @return true if |M(i,i)-1| < eps and |M(i,j)| < eps for i≠j
-		bool isIdentity(Real eps = Defaults::IsMatrixUnitTolerance) const
+		bool IsIdentity(Real eps = Precision::IsMatrixUnitTolerance) const
 		{
 			if (_rows != _cols) return false;
 			
@@ -640,21 +668,69 @@ namespace MML
 			return true;
 		}
 
-		/// @brief Check if matrix is anti-symmetric (skew-symmetric) within tolerance
-		/// @param eps Maximum allowed difference |M(i,j) + M(j,i)|
-		/// @return true if M(i,j) ≈ -M(j,i) for all i,j
-		bool isAntiSymmetric(Real eps = Defaults::IsMatrixSymmetricTolerance) const
+		/// @brief Check if matrix is symmetric within tolerance (M(i,j) ≈ M(j,i); no conjugation)
+		/// @param eps Maximum allowed difference |M(i,j) - M(j,i)|
+		/// @return true if square and M(i,j) ≈ M(j,i) for all i,j
+		bool IsSymmetric(Real eps = Precision::IsMatrixSymmetricTolerance) const
+		{
+			if (_rows != _cols) return false;
+			
+			for (int i = 0; i < _rows; ++i)
+				for (int j = i + 1; j < _cols; ++j)
+					if (Abs((*this)(i, j) - (*this)(j, i)) > eps)
+						return false;
+			return true;
+		}
+
+		/// @brief Check if matrix is anti-symmetric (skew-symmetric) within tolerance: M(i,j) ≈ -M(j,i), no conjugation
+		/// @param eps Maximum allowed |M(i,j) + M(j,i)|
+		bool IsAntiSymmetric(Real eps = Precision::IsMatrixSymmetricTolerance) const
+		{
+			if (_rows != _cols) return false;
+			
+			for (int i = 0; i < _rows; ++i)
+				for (int j = i + 1; j < _cols; ++j)
+					if (Abs((*this)(i, j) + (*this)(j, i)) > eps)
+						return false;
+			return true;
+		}
+
+		/// @brief Check if matrix is Hermitian within tolerance: M(i,j) ≈ conj(M(j,i)) and real diagonal.
+		/// For real element types this is IsSymmetric().
+		bool IsHermitian(Real eps = Precision::IsMatrixSymmetricTolerance) const
 		{
 			if (_rows != _cols) return false;
 			
 			for (int i = 0; i < _rows; ++i) {
+				if constexpr (MMLComplex<Type>) {
+					if (Abs((*this)(i, i).imag()) > eps) return false;
+				}
 				for (int j = i + 1; j < _cols; ++j) {
-					if (IsMatrixTypeComplex()) {
-						if (Abs((*this)(i, j) + std::conj((*this)(j, i))) > eps)
-							return false;
+					if constexpr (MMLComplex<Type>) {
+						if (Abs((*this)(i, j) - std::conj((*this)(j, i))) > eps) return false;
 					} else {
-						if (Abs((*this)(i, j) + (*this)(j, i)) > eps)
-							return false;
+						if (Abs((*this)(i, j) - (*this)(j, i)) > eps) return false;
+					}
+				}
+			}
+			return true;
+		}
+
+		/// @brief Check if matrix is skew-Hermitian (anti-Hermitian) within tolerance: M(i,j) ≈ -conj(M(j,i)), imaginary diagonal.
+		/// For real element types this is IsAntiSymmetric().
+		bool IsSkewHermitian(Real eps = Precision::IsMatrixSymmetricTolerance) const
+		{
+			if (_rows != _cols) return false;
+			
+			for (int i = 0; i < _rows; ++i) {
+				if constexpr (MMLComplex<Type>) {
+					if (Abs((*this)(i, i).real()) > eps) return false;
+				}
+				for (int j = i + 1; j < _cols; ++j) {
+					if constexpr (MMLComplex<Type>) {
+						if (Abs((*this)(i, j) + std::conj((*this)(j, i))) > eps) return false;
+					} else {
+						if (Abs((*this)(i, j) + (*this)(j, i)) > eps) return false;
 					}
 				}
 			}
@@ -664,13 +740,28 @@ namespace MML
 		/// @brief Check if matrix is a zero matrix (all elements are zero within tolerance)
 		/// @param eps Maximum allowed absolute value for an element to be considered zero
 		/// @return true if all elements have absolute value <= eps
-		bool isZero(Real eps = Defaults::IsMatrixZeroTolerance) const
+		bool IsZero(Real eps = Precision::IsMatrixZeroTolerance) const
 		{
 			for (const auto& elem : _data)
 				if (Abs(elem) > eps)
 					return false;
 			return true;
 		}
+
+		/// @deprecated Use IsIdentity() (CONTRACT_POLICY §11: mathematical predicates are PascalCase).
+		[[deprecated("use IsIdentity()")]]
+		bool isIdentity(Real eps = Precision::IsMatrixUnitTolerance) const { return IsIdentity(eps); }
+		/// @deprecated Use IsAntiSymmetric() (plain) or IsSkewHermitian() (conjugated). The 2.0 spelling applied
+		/// std::conj for complex element types, i.e. it tested skew-Hermitian; the alias keeps that meaning.
+		[[deprecated("use IsAntiSymmetric() or IsSkewHermitian()")]]
+		bool isAntiSymmetric(Real eps = Precision::IsMatrixSymmetricTolerance) const
+		{
+			if constexpr (MMLComplex<Type>) return IsSkewHermitian(eps);
+			else return IsAntiSymmetric(eps);
+		}
+		/// @deprecated Use IsZero().
+		[[deprecated("use IsZero()")]]
+		bool isZero(Real eps = Precision::IsMatrixZeroTolerance) const { return IsZero(eps); }
 
 		///////////////////////               Access operators             //////////////////////
 		
@@ -839,7 +930,7 @@ namespace MML
 		/// @brief Approximate equality with tolerance
 		/// @param b Matrix to compare with
 		/// @param eps Maximum allowed difference per element
-		bool IsEqualTo(const Matrix& b, Real eps = Defaults::MatrixIsEqualTolerance) const
+		bool IsEqualTo(const Matrix& b, Real eps = Precision::MatrixIsEqualTolerance) const
 		{
 			if (_rows != b._rows || _cols != b._cols)
 				return false;
@@ -851,7 +942,7 @@ namespace MML
 		}
 		
 		/// @brief Static version of IsEqualTo
-		static bool AreEqual(const Matrix& a, const Matrix& b, Real eps = Defaults::MatrixIsEqualTolerance)
+		static bool AreEqual(const Matrix& a, const Matrix& b, Real eps = Precision::MatrixIsEqualTolerance)
 		{
 			return a.IsEqualTo(b, eps);
 		}
@@ -1012,10 +1103,10 @@ namespace MML
 		/// @brief Calculate matrix trace (sum of diagonal elements) - preferred API
 		/// @return tr(M) = Σ M(i,i)
 		/// @throws MatrixDimensionError if matrix is not square
-		Type trace() const
+		Type Trace() const
 		{
 			if (_rows != _cols)
-				throw MatrixDimensionError("Matrix::trace - must be square", _rows, _cols, -1, -1);
+				throw MatrixDimensionError("Matrix::Trace - must be square", _rows, _cols, -1, -1);
 			
 			Type sum{0};
 			for (int i = 0; i < _rows; ++i)
@@ -1023,92 +1114,10 @@ namespace MML
 			return sum;
 		}
 
-		/// @brief Invert matrix in-place using Gauss-Jordan elimination
-		/// @throws MatrixDimensionError if matrix is not square
-		/// @throws SingularMatrixError if matrix is singular
-		void Invert()
-		{
-			if (_rows != _cols)
-				throw MatrixDimensionError("Matrix::Invert - must be square", _rows, _cols, -1, -1);
-			
-			// Gauss-Jordan elimination with pivoting
-			int n = _rows;
-			Matrix& a = *this;
-			std::vector<int> indxc(n), indxr(n), ipiv(n, 0);
+		/// @deprecated Use Trace() (CONTRACT_POLICY §11: mathematical operations are PascalCase).
+		[[deprecated("use Trace()")]]
+		Type trace() const { return Trace(); }
 
-			// Compute infinity norm for norm-scaled singularity threshold
-			Real norm_a = 0.0;
-			for (int ii = 0; ii < n; ii++)
-				for (int jj = 0; jj < n; jj++) {
-					Real abs_val = Abs(a(ii, jj));
-					if (abs_val > norm_a) norm_a = abs_val;
-				}
-			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * n;
-
-			for (int i = 0; i < n; ++i) {
-				Real big{0};
-				int irow = 0, icol = 0;
-				
-				// Find pivot
-				for (int j = 0; j < n; ++j) {
-					if (ipiv[j] != 1) {
-						for (int k = 0; k < n; ++k) {
-							if (ipiv[k] == 0) {
-								if (Abs(a(j, k)) >= big) {
-									big = Abs(a(j, k));
-									irow = j;
-									icol = k;
-								}
-							}
-						}
-					}
-				}
-				++ipiv[icol];
-				
-				// Swap rows if needed
-				if (irow != icol) {
-					for (int l = 0; l < n; ++l)
-						std::swap(a(irow, l), a(icol, l));
-				}
-				
-				indxr[i] = irow;
-				indxc[i] = icol;
-				
-				if (Abs(a(icol, icol)) < singularity_threshold)
-					throw SingularMatrixError("Matrix::Invert - Singular Matrix", Abs(a(icol, icol)));
-				
-				Type pivinv = Type{1} / a(icol, icol);
-				a(icol, icol) = Type{1};
-				for (int l = 0; l < n; ++l)
-					a(icol, l) *= pivinv;
-				
-				for (int ll = 0; ll < n; ++ll) {
-					if (ll != icol) {
-						Type dum = a(ll, icol);
-						a(ll, icol) = Type{0};
-						for (int l = 0; l < n; ++l)
-							a(ll, l) -= a(icol, l) * dum;
-					}
-				}
-			}
-			
-			// Unscramble columns
-			for (int l = n - 1; l >= 0; --l) {
-				if (indxr[l] != indxc[l]) {
-					for (int k = 0; k < n; ++k)
-						std::swap(a(k, indxr[l]), a(k, indxc[l]));
-				}
-			}
-		}
-		
-		/// @brief Get inverse matrix (returns copy) - preferred API
-		/// @throws SingularMatrixError if matrix is singular
-		[[nodiscard]] Matrix inverse() const
-		{
-			Matrix ret(*this);
-			ret.Invert();
-			return ret;
-		}
 
 		/// @brief Transpose matrix in-place (only for square matrices)
 		/// @throws MatrixDimensionError if matrix is not square
@@ -1124,7 +1133,7 @@ namespace MML
 		
 		/// @brief Get transpose matrix (returns copy, works for any dimensions) - preferred API
 		/// @return Mᵀ where Mᵀ(i,j) = M(j,i)
-		[[nodiscard]] Matrix transpose() const
+		[[nodiscard]] Matrix Transposed() const
 		{
 			Matrix ret(_cols, _rows);
 			for (int i = 0; i < _rows; ++i)
@@ -1133,6 +1142,11 @@ namespace MML
 			return ret;
 		}
 
+		/// @deprecated Use Transposed() (CONTRACT_POLICY §11: Transpose() mutates, Transposed() returns a copy;
+		/// pairs differing only in case are banned).
+		[[deprecated("use Transposed()")]]
+		[[nodiscard]] Matrix transpose() const { return Transposed(); }
+
 		///////////////////////                    I/O                    //////////////////////
 		
 		/// @brief Print matrix to stream with formatting options
@@ -1140,32 +1154,7 @@ namespace MML
 		/// @param fmt Format options (width, precision, brackets, etc.)
 		void Print(std::ostream& stream, const MatrixPrintFormat& fmt = MatrixPrintFormat::Default()) const
 		{
-			if (isEmpty()) {
-				if (fmt.showHeader)
-					stream << "Rows: " << _rows << " Cols: " << _cols << " - Empty matrix" << std::endl;
-				return;
-			}
-
-			if (fmt.showHeader)
-				stream << "Rows: " << _rows << " Cols: " << _cols << std::endl;
-
-			std::ios_base::fmtflags oldFlags = stream.flags();
-			if (fmt.scientific)
-				stream << std::scientific;
-			else if (fmt.fixed)
-				stream << std::fixed;
-
-			for (int i = 0; i < _rows; ++i) {
-				if (fmt.showBrackets) stream << "[ ";
-				for (int j = 0; j < _cols; ++j) {
-					stream << std::setw(fmt.width) << std::setprecision(fmt.precision) << (*this)(i, j);
-					if (j < _cols - 1) stream << fmt.delimiter;
-				}
-				if (fmt.showBrackets) stream << " ]";
-				if (i < _rows - 1) stream << std::endl;
-			}
-			
-			stream.flags(oldFlags);
+			PrintFormatting::Matrix(stream, rows(), cols(), [&](int i, int j) { return (*this)(i, j); }, fmt, "");
 		}
 		
 		/// @brief Print with specified width and precision
@@ -1181,19 +1170,12 @@ namespace MML
 		/// @brief Print with zero threshold (values below threshold printed as 0)
 		void Print(std::ostream& stream, int width, int precision, Real threshold) const
 		{
-			// Create a temporary copy with thresholded values
-			Matrix<Type> temp(*this);
-			if constexpr (is_MML_simple_numeric<Type>) {
-				for (int i = 0; i < _rows; ++i) {
-					for (int j = 0; j < _cols; ++j) {
-						if (std::abs(static_cast<Real>(temp(i, j))) < threshold) {
-							temp(i, j) = Type{0};
-						}
-					}
-				}
-			}
-			// Use the standard Print function for consistent formatting
-			temp.Print(stream, width, precision);
+			MatrixPrintFormat fmt = MatrixPrintFormat::Default();
+			fmt.width = width;
+			fmt.precision = precision;
+			fmt.fixed = false;
+			fmt.zeroThreshold = threshold;
+			Print(stream, fmt);
 		}
 		
 		/// @brief Stream output operator

@@ -14,6 +14,7 @@
 #include <mml/systems/DynamicalSystem/DynamicalAnalysisCommon.h>
 #include <mml/systems/DynamicalSystem/DynamicalSystemTypes.h>
 
+#include <cmath>
 #include <vector>
 
 namespace MML::Systems
@@ -24,12 +25,35 @@ namespace MML::Systems
 		static BifurcationDiagram<Real> Sweep(IDynamicalSystem& system, int parameterIndex,
 			Real parameterMinimum, Real parameterMaximum, int numberOfSteps, Vector<Real> initialState,
 			int component, Real transientTime = DefaultTransientTime,
-			Real recordTime = DefaultRecordTime, Real initialStep = REAL(0.01))
+			Real recordTime = DefaultRecordTime, Real initialStep = static_cast<MML::Real>(0.01))
 		{
+			if (parameterIndex < 0 || parameterIndex >= system.getNumParam())
+				throw ArgumentError("BifurcationAnalyzer::Sweep: parameterIndex out of range");
+			if (numberOfSteps < 1)
+				throw ArgumentError("BifurcationAnalyzer::Sweep: numberOfSteps must be at least 1");
+			if (!std::isfinite(parameterMinimum) || !std::isfinite(parameterMaximum))
+				throw ArgumentError("BifurcationAnalyzer::Sweep: parameter range must be finite");
+			if (numberOfSteps > 1 && parameterMaximum == parameterMinimum)
+				throw ArgumentError("BifurcationAnalyzer::Sweep: parameterMaximum must differ from parameterMinimum when numberOfSteps > 1");
+			if (component < 0 || component >= system.getDim())
+				throw ArgumentError("BifurcationAnalyzer::Sweep: component out of range");
+			if (initialState.size() != system.getDim())
+				throw VectorDimensionError("BifurcationAnalyzer::Sweep: initialState size must equal system dimension", initialState.size(), system.getDim());
+
 			BifurcationDiagram<Real> diagram;
 			diagram.parameterName = system.getParamName(parameterIndex);
-			const Real originalParameter = system.getParam(parameterIndex);
-			const Real parameterStep = (parameterMaximum - parameterMinimum) / (numberOfSteps - 1);
+			diagram.numTransientSteps = static_cast<int>(std::lround(transientTime / initialStep));
+			diagram.numRecordedPoints = static_cast<int>(std::lround(recordTime / initialStep));
+
+			// The swept parameter is restored even if the integrator throws part-way through
+			// (previously the system was left at an arbitrary sweep value on exception)
+			struct ParameterRestore {
+				IDynamicalSystem& sys; int index; Real original;
+				~ParameterRestore() { sys.setParam(index, original); }
+			} restore{ system, parameterIndex, system.getParam(parameterIndex) };
+
+			// numberOfSteps == 1: single evaluation at parameterMinimum (step would be 0/0 otherwise)
+			const Real parameterStep = numberOfSteps > 1 ? (parameterMaximum - parameterMinimum) / (numberOfSteps - 1) : static_cast<MML::Real>(0.0);
 
 			for (int step = 0; step < numberOfSteps; ++step) {
 				const Real parameter = parameterMinimum + step * parameterStep;
@@ -42,7 +66,6 @@ namespace MML::Systems
 				initialState = state;
 			}
 
-			system.setParam(parameterIndex, originalParameter);
 			return diagram;
 		}
 
@@ -57,7 +80,7 @@ namespace MML::Systems
 			if (totalTime == 0)
 				return;
 			state = DynamicalAnalysisDetail::Integrate(
-				system, state, REAL(0.0), totalTime, totalTime, initialStep).getXValuesAtEnd();
+				system, state, static_cast<MML::Real>(0.0), totalTime, totalTime, initialStep).getXValuesAtEnd();
 		}
 
 		static std::vector<Real> FindLocalMaxima(IDynamicalSystem& system, Vector<Real>& state,
@@ -67,7 +90,7 @@ namespace MML::Systems
 			if (totalTime == 0)
 				return maxima;
 			const auto solution = DynamicalAnalysisDetail::Integrate(
-				system, state, REAL(0.0), totalTime, initialStep, initialStep);
+				system, state, static_cast<MML::Real>(0.0), totalTime, initialStep, initialStep);
 			for (int point = 1; point + 1 < solution.size(); ++point) {
 				const Real previous = solution.getXValue(point - 1, component);
 				const Real current = solution.getXValue(point, component);
@@ -89,7 +112,7 @@ namespace MML::Systems
 	inline BifurcationAnalysisResult<Real> SweepBifurcationDetailed(IDynamicalSystem& system,
 		int parameterIndex, Real parameterMinimum, Real parameterMaximum, int numberOfSteps,
 		Vector<Real> initialState, int component, Real transientTime = DefaultTransientTime,
-		Real recordTime = DefaultRecordTime, Real initialStep = REAL(0.01),
+		Real recordTime = DefaultRecordTime, Real initialStep = static_cast<MML::Real>(0.01),
 		const DynSysConfig& config = {})
 	{
 		return DynSysDetail::ExecuteDynSysDetailed<BifurcationAnalysisResult<Real>>(

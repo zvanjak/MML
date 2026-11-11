@@ -67,7 +67,7 @@ namespace MML
 			return _coordTransf.transfTensor2(tensor, posFrom);
 		}
 
-		Real Component(int i, int j, const VectorN<Real, N>& pos) const override
+		Real component(int i, int j, const VectorN<Real, N>& pos) const override
 		{
 			return (*this)(pos)(i, j);
 		}
@@ -96,7 +96,7 @@ namespace MML
 			, _originalField(originalField)
 			, _coordTransf(coordTransf)
 		{
-			if (!_originalField.TransformsAsTensor())
+			if (!_originalField.transformsAsTensor())
 				throw ArgumentError("TransformedTensorField3 requires a true rank-3 tensor field; connection coefficients such as Christoffel symbols do not transform as tensors.");
 		}
 
@@ -108,7 +108,7 @@ namespace MML
 			return _coordTransf.transfTensor3(tensor, posFrom);
 		}
 
-		Real Component(int i, int j, int k, const VectorN<Real, N>& pos) const override
+		Real component(int i, int j, int k, const VectorN<Real, N>& pos) const override
 		{
 			return (*this)(pos)(i, j, k);
 		}
@@ -145,7 +145,7 @@ namespace MML
 			return _coordTransf.transfTensor4(tensor, posFrom);
 		}
 
-		Real Component(int i, int j, int k, int l, const VectorN<Real, N>& pos) const override
+		Real component(int i, int j, int k, int l, const VectorN<Real, N>& pos) const override
 		{
 			return (*this)(pos)[i][j][k][l];
 		}
@@ -181,7 +181,7 @@ namespace MML
 			return _coordTransf.transfTensor5(tensor, posFrom);
 		}
 
-		Real Component(int i, int j, int k, int l, int m, const VectorN<Real, N>& pos) const override
+		Real component(int i, int j, int k, int l, int m, const VectorN<Real, N>& pos) const override
 		{
 			return (*this)(pos)[i][j][k][l][m];
 		}

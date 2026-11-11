@@ -36,13 +36,13 @@ namespace MML {
 		/*****           Forward Declarations                            *****/
 		/*********************************************************************/
 		// Config-based overloads declared here so simple versions can call them
-		static RootFindingResult FindRootNewton(const IRealFunction& func, Real x1, Real x2,
+		static RootFindingResult FindRootNewtonDetailed(const IRealFunction& func, Real x1, Real x2,
 												const RootFindingConfig& config);
-		static RootFindingResult FindRootSecant(const IRealFunction& func, Real x1, Real x2,
+		static RootFindingResult FindRootSecantDetailed(const IRealFunction& func, Real x1, Real x2,
 												const RootFindingConfig& config);
-		static RootFindingResult FindRootRidders(const IRealFunction& func, Real x1, Real x2,
+		static RootFindingResult FindRootRiddersDetailed(const IRealFunction& func, Real x1, Real x2,
 												 const RootFindingConfig& config);
-		static RootFindingResult FindRootBrent(const IRealFunction& func, Real x1, Real x2,
+		static RootFindingResult FindRootBrentDetailed(const IRealFunction& func, Real x1, Real x2,
 											   const RootFindingConfig& config);
 
 		/*********************************************************************/
@@ -52,20 +52,21 @@ namespace MML {
 		///
 		/// Newton-Raphson is the premier method for root finding when speed matters:
 		/// it exhibits quadratic convergence near roots, doubling the number of correct
-		/// digits each iteration. However, it requires derivative information and can
-		/// diverge if not properly constrained. This implementation uses numerical
-		/// differentiation (4-point stencil) and bracket checking for robustness.
+		/// digits each iteration. On its own it can diverge; this implementation is the
+		/// SAFEGUARDED variant (Numerical Recipes rtsafe, §9.4): every Newton step is checked
+		/// against the bracket and falls back to bisection when it would leave the bracket,
+		/// would not converge fast enough, or the derivative is zero/non-finite. The
+		/// derivative is computed numerically (4-point stencil); an overload taking an
+		/// analytic derivative is also provided.
 		///
 		/// ALGORITHM:
-		/// - Newton iteration: x_{n+1} = x_n - f(x_n) / f'(x_n)
-		/// - Starting point: midpoint of initial bracket [x1, x2]
+		/// - Maintain a bracket [xl, xh] with f(xl) < 0 < f(xh); start at the midpoint
 		/// - At each step:
 		/// 1. Evaluate f(x) and f'(x) at current point
-		/// 2. Compute Newton step: dx = -f/f'
-		/// 3. Update: x_new = x + dx
-		/// 4. Check if x_new still in bracket [x1, x2]
-		/// 5. If out of bounds, revert to bisection step
-		/// 6. Continue until |dx| < xacc or f(x) ≈ 0
+		/// 2. If the Newton step x - f/f' stays inside the bracket and |2f| <= |dx_old f'|
+		///    take it; otherwise take a bisection step x = (xl + xh)/2
+		/// 3. Update the bracket with the sign of f(x_new)
+		/// 4. Continue until |dx| < xacc or |f| below the function tolerance
 		///
 		/// DERIVATIVE:
 		/// - Uses 4-point central difference formula (NDer4)
@@ -76,29 +77,26 @@ namespace MML {
 		/// - Near root: QUADRATIC convergence
 		/// - Error decreases as e_{n+1} ≈ e_n² (doubles correct digits each step)
 		/// - Typical: 3-6 iterations for machine precision
-		/// - Much faster than bisection's linear convergence
+		/// - Far from the root or at stationary points: bisection steps, always convergent
 		///
 		/// ADVANTAGES:
 		/// - Extremely fast convergence near roots
-		/// - Few iterations needed
+		/// - Cannot fail on a bracketed continuous function (bisection safeguard)
 		/// - Well-suited for smooth functions
 		///
 		/// DISADVANTAGES:
-		/// - May diverge if starting point is poor
-		/// - Fails at stationary points (f' = 0)
-		/// - Can jump outside bracket with bad behavior
-		/// - Needs derivative (here computed numerically)
+		/// - Needs a bracket (use FindRootSecant for unbracketed starts)
+		/// - Needs derivative (here computed numerically: 4 extra evaluations per step)
 		///
 		/// ROBUSTNESS FEATURES:
-		/// - Bracket checking: reverts to bisection if step goes out of bounds
-		/// - Derivative validation: throws if non-finite or too small
+		/// - Bracket is maintained and shrunk at every iteration
+		/// - Zero / non-finite derivative -> bisection step instead of failure
 		/// - Maximum iteration limit
-		/// - Handles both function and derivative failures gracefully
 		///
-		/// ERROR HANDLING:
-		/// - Throws RootFindingError if derivative is NaN or Inf
-		/// - Throws if derivative too small (< 1e-15) - likely stationary point
-		/// - Throws if maximum iterations exhausted
+		/// ERROR HANDLING (simple overload):
+		/// - Throws RootFindingError if the root is not bracketed, if f is non-finite,
+		///   or if the maximum number of iterations is exhausted
+		/// - The config overload returns the same conditions as status codes
 		///
 		/// USE CASES:
 		/// - When you need high precision quickly
@@ -117,13 +115,13 @@ namespace MML {
 		/// - Number of iterations typically 3-6
 		///
 		/// Based on Numerical Recipes §9.4
-		/// @see FindRootNewton(const IRealFunction&, Real, Real, const RootFindingConfig&)
+		/// @see FindRootNewtonDetailed(const IRealFunction&, Real, Real, const RootFindingConfig&)
 		static Real FindRootNewton(const IRealFunction& func, Real x1, Real x2, Real xacc) {
 			RootFindingConfig config;
 			config.tolerance = xacc;
 			config.max_iterations = 0;  // Use default from Defaults namespace
 			
-			auto result = FindRootNewton(func, x1, x2, config);
+			auto result = FindRootNewtonDetailed(func, x1, x2, config);
 			if (!result.converged)
 				throw RootFindingError(result.error_message);
 			return result.root;
@@ -137,130 +135,163 @@ namespace MML {
 			return FindRootNewton(adapter, x1, x2, xacc);
 		}
 
-		/// Find root using Newton-Raphson method with configurable parameters.
+		namespace Detail {
+			/// Safeguarded Newton-Raphson on a bracket (Numerical Recipes rtsafe, §9.4).
+			///
+			/// Keeps a bracket [xl, xh] with f(xl) < 0 < f(xh) at all times. A Newton step is taken
+			/// only if it stays inside the bracket and at least halves the previous step length;
+			/// otherwise (including a zero or non-finite derivative) a bisection step is taken.
+			/// Convergence is therefore guaranteed for any continuous f with a sign change, while
+			/// retaining quadratic convergence near a simple root.
+			template<typename DerivativeFn>
+			RootFindingResult FindRootNewtonSafeguarded(const IRealFunction& func, DerivativeFn&& derivative,
+														Real x1, Real x2, const RootFindingConfig& config,
+														const char* algorithmName) {
+				RootFindingResult result;
+				RootFindingResultFinalizer finalizer(result, algorithmName);
+				if (!IsValidConfig(config) || !AreValidEndpoints(x1, x2)) {
+					result.status = AlgorithmStatus::InvalidInput;
+					result.error_message = "Invalid configuration or endpoints in FindRootNewton";
+					return result;
+				}
+
+				Real f1 = func(x1);
+				Real f2 = func(x2);
+				result.function_evaluations = 2;
+				if (!IsFunctionValueValid(f1) || !IsFunctionValueValid(f2)) {
+					result.status = AlgorithmStatus::NumericalInstability;
+					result.error_message = "Non-finite endpoint value in FindRootNewton";
+					return result;
+				}
+				if (AcceptEndpointRoot(result, config, x1, f1, x2, f2)) return result;
+				if (f1 * f2 > 0.0) {
+					result.status = AlgorithmStatus::InvalidInput;
+					result.error_message = "Root must be bracketed for Newton-Raphson method";
+					return result;
+				}
+
+				// Orient the bracket so that f(xl) < 0 < f(xh)
+				Real xl, xh;
+				if (f1 < 0.0) { xl = x1; xh = x2; }
+				else          { xl = x2; xh = x1; }
+
+				Real rts = 0.5 * (x1 + x2);
+				Real dxold = std::abs(x2 - x1);
+				Real dx = dxold;
+				Real f = func(rts);
+				++result.function_evaluations;
+				Real df = derivative(rts);
+				int bisectionSteps = 0;
+
+				int maxIter = (config.max_iterations > 0) ? config.max_iterations : Defaults::NewtonRaphsonMaxSteps;
+				for (int j = 0; j < maxIter; j++) {
+					if (!IsFunctionValueValid(f)) {
+						result.status = AlgorithmStatus::NumericalInstability;
+						result.root = rts;
+						result.function_value = f;
+						result.iterations_used = j;
+						result.error_message = "Non-finite function value in FindRootNewton";
+						return result;
+					}
+
+					// Newton step leaves the bracket, is not converging fast enough, or the derivative is unusable -> bisect
+					const bool newtonOutOfBracket = ((rts - xh) * df - f) * ((rts - xl) * df - f) > 0.0;
+					const bool newtonTooSlow = std::abs(2.0 * f) > std::abs(dxold * df);
+					if (!IsFunctionValueValid(df) || newtonOutOfBracket || newtonTooSlow) {
+						dxold = dx;
+						dx = 0.5 * (xh - xl);
+						rts = xl + dx;
+						++bisectionSteps;
+					} else {
+						dxold = dx;
+						dx = f / df;
+						rts -= dx;
+					}
+
+					if (config.verbose && config.verboseStream) {
+						*config.verboseStream << algorithmName << " iter " << j << ": x=" << rts
+							<< ", f(x)=" << f << ", dx=" << dx << (bisectionSteps > 0 ? " (bisection used)" : "") << std::endl;
+					}
+
+					f = func(rts);
+					++result.function_evaluations;
+					if (MeetsConvergence(config, rts, std::abs(dx), f)) {
+						result.root = rts;
+						result.function_value = f;
+						result.iterations_used = j + 1;
+						result.converged = true;
+						result.achieved_tolerance = std::abs(dx);
+						result.x_error = std::abs(dx);
+						return result;
+					}
+
+					// Maintain the bracket
+					if (f < 0.0) xl = rts;
+					else         xh = rts;
+
+					df = derivative(rts);
+				}
+
+				result.root = rts;
+				result.function_value = f;
+				result.iterations_used = maxIter;
+				result.achieved_tolerance = std::abs(dx);
+				result.x_error = std::abs(dx);
+				result.status = AlgorithmStatus::MaxIterationsExceeded;
+				result.error_message = "Maximum number of iterations exceeded in FindRootNewton";
+				return result;
+			}
+		} // namespace Detail
+
+		/// Find root using the safeguarded Newton-Raphson method with configurable parameters.
 		///
-		/// This overload provides full control over convergence parameters and
-		/// returns detailed diagnostic information via RootFindingResult.
+		/// Numerical Recipes rtsafe (§9.4): Newton steps while they stay inside the bracket and
+		/// converge, bisection steps otherwise - so a zero derivative or a wild Newton jump can
+		/// never make the method fail on a bracketed continuous function. The derivative is
+		/// computed numerically with Derivation::NDer4; use the overload taking a derivative
+		/// function when an analytic f' is available.
 		///
 		/// @param func   Real function implementing IRealFunction interface
 		/// @param x1     Left endpoint of initial bracket
 		/// @param x2     Right endpoint of initial bracket
 		/// @param config Configuration parameters (tolerance, max_iterations, etc.)
 		/// @return RootFindingResult with root value and convergence diagnostics
-		static RootFindingResult FindRootNewton(const IRealFunction& func, Real x1, Real x2,
+		static RootFindingResult FindRootNewtonDetailed(const IRealFunction& func, Real x1, Real x2,
 												const RootFindingConfig& config) {
-			RootFindingResult result;
-			RootFindingResultFinalizer finalizer(result, "Newton");
-			if (!IsValidConfig(config) || !AreValidEndpoints(x1, x2)) {
-				result.status = AlgorithmStatus::InvalidInput;
-				result.error_message = "Invalid configuration or endpoints in FindRootNewton";
-				return result;
-			}
-
-			Real f1 = func(x1);
-			Real f2 = func(x2);
-			result.function_evaluations = 2;
-			if (!IsFunctionValueValid(f1) || !IsFunctionValueValid(f2)) {
-				result.status = AlgorithmStatus::NumericalInstability;
-				result.error_message = "Non-finite endpoint value in FindRootNewton";
-				return result;
-			}
-			if (AcceptEndpointRoot(result, config, x1, f1, x2, f2)) return result;
-			if (f1 * f2 > 0.0) {
-				result.status = AlgorithmStatus::InvalidInput;
-				result.error_message = "Root must be bracketed for Newton-Raphson method";
-				return result;
-			}
-
-			Real rtn = 0.5 * (x1 + x2);
-			int maxIter = (config.max_iterations > 0) ? config.max_iterations : Defaults::NewtonRaphsonMaxSteps;
-			Real dx = 0.0;
-
-			for (int j = 0; j < maxIter; j++) {
-				Real f = func(rtn);
-				++result.function_evaluations;
-				Real df = Derivation::NDer4(func, rtn);
-
-				// Check for non-finite derivative (NaN/Inf) or near-zero derivative
-				if (!IsFunctionValueValid(df)) {
-					result.status = AlgorithmStatus::NumericalInstability;
-					result.root = rtn;
-					result.function_value = f;
-					result.iterations_used = j + 1;
-					result.error_message = "Non-finite derivative in FindRootNewton";
-					return result;
-				}
-				Real dfThreshold = std::sqrt(Real(Constants::Eps));
-				if (std::abs(df) < dfThreshold) {
-					result.status = AlgorithmStatus::Stalled;
-					result.root = rtn;
-					result.function_value = f;
-					result.iterations_used = j + 1;
-					result.error_message = "Zero or near-zero derivative in FindRootNewton";
-					return result;
-				}
-
-				dx = f / df;
-
-				// Check for non-finite step using shared validation helper
-				if (!IsFinite(dx)) {
-					result.status = AlgorithmStatus::NumericalInstability;
-					result.root = rtn;
-					result.function_value = f;
-					result.iterations_used = j + 1;
-					result.error_message = "Non-finite step in FindRootNewton";
-					return result;
-				}
-
-				rtn -= dx;
-
-				if (config.verbose && config.verboseStream) {
-					*config.verboseStream << "Newton iter " << j << ": x=" << rtn 
-							  << ", f(x)=" << f << ", dx=" << dx << std::endl;
-				}
-
-				if ((x1 - rtn) * (rtn - x2) < 0.0) {
-					result.status = AlgorithmStatus::Stalled;
-					result.root = rtn;
-					result.function_value = func(rtn);
-					++result.function_evaluations;
-					result.iterations_used = j + 1;
-					result.achieved_tolerance = std::abs(dx);
-					result.error_message = "Jumped out of brackets in FindRootNewton";
-					return result;
-				}
-
-				Real updatedValue = func(rtn);
-				++result.function_evaluations;
-				if (MeetsConvergence(config, rtn, std::abs(dx), updatedValue)) {
-					result.root = rtn;
-					result.function_value = updatedValue;
-					result.iterations_used = j + 1;
-					result.converged = true;
-					result.achieved_tolerance = std::abs(dx);
-					result.x_error = std::abs(dx);
-					return result;
-				}
-			}
-			
-			result.root = rtn;
-			result.function_value = func(rtn);
-			++result.function_evaluations;
-			result.iterations_used = maxIter;
-			result.achieved_tolerance = std::abs(dx);
-			result.x_error = std::abs(dx);
-			result.status = AlgorithmStatus::MaxIterationsExceeded;
-			result.error_message = "Maximum number of iterations exceeded in FindRootNewton";
-			return result;
+			return Detail::FindRootNewtonSafeguarded(func,
+				[&func](Real x) { return Derivation::NDer4(func, x); }, x1, x2, config, "Newton");
 		}
 
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static RootFindingResult FindRootNewton(Function&& func, Real x1, Real x2,
+		static RootFindingResult FindRootNewtonDetailed(Function&& func, Real x1, Real x2,
 										const RootFindingConfig& config)
 		{
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
-			return FindRootNewton(adapter, x1, x2, config);
+			return FindRootNewtonDetailed(adapter, x1, x2, config);
+		}
+
+		/// Safeguarded Newton-Raphson with an analytic derivative (Numerical Recipes rtsafe).
+		///
+		/// @param func   Function f
+		/// @param dfunc  Its derivative f'
+		/// @param x1,x2  Bracket with f(x1) f(x2) < 0
+		/// @param config Configuration parameters
+		static RootFindingResult FindRootNewtonDetailed(const IRealFunction& func, const IRealFunction& dfunc,
+												Real x1, Real x2, const RootFindingConfig& config) {
+			return Detail::FindRootNewtonSafeguarded(func,
+				[&dfunc](Real x) { return dfunc(x); }, x1, x2, config, "NewtonAnalytic");
+		}
+
+		/// Safeguarded Newton-Raphson with an analytic derivative; throws RootFindingError on failure.
+		static Real FindRootNewton(const IRealFunction& func, const IRealFunction& dfunc, Real x1, Real x2, Real xacc) {
+			RootFindingConfig config;
+			config.tolerance = xacc;
+			config.max_iterations = 0;
+			auto result = FindRootNewtonDetailed(func, dfunc, x1, x2, config);
+			if (!result.converged)
+				throw RootFindingError(result.error_message);
+			return result.root;
 		}
 
 		/*********************************************************************/
@@ -325,13 +356,13 @@ namespace MML {
 		/// - Typical iterations: 5-10 for machine precision
 		///
 		/// Based on Numerical Recipes §9.2
-		/// @see FindRootSecant(const IRealFunction&, Real, Real, const RootFindingConfig&)
+		/// @see FindRootSecantDetailed(const IRealFunction&, Real, Real, const RootFindingConfig&)
 		static Real FindRootSecant(const IRealFunction& func, Real x1, Real x2, Real xacc) {
 			RootFindingConfig config;
 			config.tolerance = xacc;
 			config.max_iterations = 0;
 			
-			auto result = FindRootSecant(func, x1, x2, config);
+			auto result = FindRootSecantDetailed(func, x1, x2, config);
 			if (!result.converged)
 				throw RootFindingError(result.error_message);
 			return result.root;
@@ -346,7 +377,7 @@ namespace MML {
 		}
 
 		/// Find root using secant method with configurable parameters.
-		static RootFindingResult FindRootSecant(const IRealFunction& func, Real x1, Real x2,
+		static RootFindingResult FindRootSecantDetailed(const IRealFunction& func, Real x1, Real x2,
 												const RootFindingConfig& config) {
 			RootFindingResult result;
 			RootFindingResultFinalizer finalizer(result, "Secant");
@@ -435,11 +466,11 @@ namespace MML {
 
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static RootFindingResult FindRootSecant(Function&& func, Real x1, Real x2,
+		static RootFindingResult FindRootSecantDetailed(Function&& func, Real x1, Real x2,
 										const RootFindingConfig& config)
 		{
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
-			return FindRootSecant(adapter, x1, x2, config);
+			return FindRootSecantDetailed(adapter, x1, x2, config);
 		}
 
 		/*********************************************************************/
@@ -511,13 +542,13 @@ namespace MML {
 		/// - Root guaranteed in original bracket
 		///
 		/// Based on Numerical Recipes §9.2
-		/// @see FindRootRidders(const IRealFunction&, Real, Real, const RootFindingConfig&)
+		/// @see FindRootRiddersDetailed(const IRealFunction&, Real, Real, const RootFindingConfig&)
 		static Real FindRootRidders(const IRealFunction& func, Real x1, Real x2, Real xacc) {
 			RootFindingConfig config;
 			config.tolerance = xacc;
 			config.max_iterations = 0;
 			
-			auto result = FindRootRidders(func, x1, x2, config);
+			auto result = FindRootRiddersDetailed(func, x1, x2, config);
 			if (!result.converged)
 				throw RootFindingError(result.error_message);
 			return result.root;
@@ -532,7 +563,7 @@ namespace MML {
 		}
 
 		/// Find root using Ridders' method with configurable parameters.
-		static RootFindingResult FindRootRidders(const IRealFunction& func, Real x1, Real x2,
+		static RootFindingResult FindRootRiddersDetailed(const IRealFunction& func, Real x1, Real x2,
 												 const RootFindingConfig& config) {
 			RootFindingResult result;
 			RootFindingResultFinalizer finalizer(result, "Ridders");
@@ -558,7 +589,7 @@ namespace MML {
 			}
 
 			int maxIter = (config.max_iterations > 0) ? config.max_iterations : Defaults::BisectionMaxSteps;
-			Real ans = -1.0e99;
+			Real ans = NoEstimate;   // no previous estimate yet
 
 			for (int j = 0; j < maxIter; j++) {
 				Real xm = 0.5 * (x1 + x2);
@@ -589,7 +620,7 @@ namespace MML {
 
 				Real xnew = xm + (xm - x1) * ((f1 >= f2 ? 1.0 : -1.0) * fm / s);
 
-				if (ans > -1.0e98 && std::abs(xnew - ans) <= EffectiveXTolerance(config, xnew)) {
+				if (HasEstimate(ans) && std::abs(xnew - ans) <= EffectiveXTolerance(config, xnew)) {
 					result.root = ans;
 					result.function_value = func(ans);
 					++result.function_evaluations;
@@ -666,11 +697,11 @@ namespace MML {
 
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static RootFindingResult FindRootRidders(Function&& func, Real x1, Real x2,
+		static RootFindingResult FindRootRiddersDetailed(Function&& func, Real x1, Real x2,
 											 const RootFindingConfig& config)
 		{
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
-			return FindRootRidders(adapter, x1, x2, config);
+			return FindRootRiddersDetailed(adapter, x1, x2, config);
 		}
 
 		/*********************************************************************/
@@ -749,13 +780,13 @@ namespace MML {
 		/// - Root guaranteed in original bracket
 		///
 		/// Based on Numerical Recipes §9.3 and Brent (1973)
-		/// @see FindRootBrent(const IRealFunction&, Real, Real, const RootFindingConfig&)
+		/// @see FindRootBrentDetailed(const IRealFunction&, Real, Real, const RootFindingConfig&)
 		static Real FindRootBrent(const IRealFunction& func, Real x1, Real x2, Real xacc) {
 			RootFindingConfig config;
 			config.tolerance = xacc;
 			config.max_iterations = 0;
 			
-			auto result = FindRootBrent(func, x1, x2, config);
+			auto result = FindRootBrentDetailed(func, x1, x2, config);
 			if (!result.converged)
 				throw RootFindingError(result.error_message);
 			return result.root;
@@ -779,7 +810,7 @@ namespace MML {
 		/// @param x2     Right endpoint of bracket
 		/// @param config Configuration parameters (tolerance, max_iterations, etc.)
 		/// @return RootFindingResult with root value and convergence diagnostics
-		static RootFindingResult FindRootBrent(const IRealFunction& func, Real x1, Real x2,
+		static RootFindingResult FindRootBrentDetailed(const IRealFunction& func, Real x1, Real x2,
 											   const RootFindingConfig& config) {
 			RootFindingResult result;
 			RootFindingResultFinalizer finalizer(result, "Brent");
@@ -822,7 +853,7 @@ namespace MML {
 					fc = fa;
 				}
 
-				tol1 = 2.0 * Constants::Eps * std::abs(b) + 0.5 * EffectiveXTolerance(config, b);
+				tol1 = 2.0 * Constants::Eps * std::abs(b) + 0.5 * EffectiveXTolerance(config, b);   // tol-ok: Brent's published 2*eps*|b| term
 				xm = 0.5 * (c - b);
 
 				if (config.verbose && config.verboseStream) {
@@ -901,12 +932,96 @@ namespace MML {
 
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
-		static RootFindingResult FindRootBrent(Function&& func, Real x1, Real x2,
+		static RootFindingResult FindRootBrentDetailed(Function&& func, Real x1, Real x2,
 									   const RootFindingConfig& config)
 		{
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
-			return FindRootBrent(adapter, x1, x2, config);
+			return FindRootBrentDetailed(adapter, x1, x2, config);
 		}
+
+		/*********************************************************************/
+		/*****   Deprecated spellings + plain-argument Detailed forms      *****/
+		/*********************************************************************/
+
+		/// @deprecated Use FindRootNewtonDetailed() - the result-returning spelling (CONTRACT_POLICY section 11).
+		[[deprecated("use FindRootNewtonDetailed()")]]
+		static RootFindingResult FindRootNewton(const IRealFunction& func, Real x1, Real x2, const RootFindingConfig& config)
+		{ return FindRootNewtonDetailed(func, x1, x2, config); }
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		[[deprecated("use FindRootNewtonDetailed()")]]
+		static RootFindingResult FindRootNewton(Function&& func, Real x1, Real x2, const RootFindingConfig& config)
+		{ MML::Detail::RealFunctionCallableAdapter<Function> adapter(func); return FindRootNewtonDetailed(adapter, x1, x2, config); }
+
+		/// Result-returning form with the plain argument list: tolerance xacc, default iteration budget.
+		static RootFindingResult FindRootNewtonDetailed(const IRealFunction& func, Real x1, Real x2, Real xacc)
+		{ RootFindingConfig config; config.tolerance = xacc; config.max_iterations = 0; return FindRootNewtonDetailed(func, x1, x2, config); }
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static RootFindingResult FindRootNewtonDetailed(Function&& func, Real x1, Real x2, Real xacc)
+		{ MML::Detail::RealFunctionCallableAdapter<Function> adapter(func); return FindRootNewtonDetailed(adapter, x1, x2, xacc); }
+
+		/// @deprecated Use FindRootNewtonDetailed(func, dfunc, x1, x2, config).
+		[[deprecated("use FindRootNewtonDetailed()")]]
+		static RootFindingResult FindRootNewton(const IRealFunction& func, const IRealFunction& dfunc, Real x1, Real x2, const RootFindingConfig& config)
+		{ return FindRootNewtonDetailed(func, dfunc, x1, x2, config); }
+		/// Analytic-derivative Newton, result-returning form with the plain argument list.
+		static RootFindingResult FindRootNewtonDetailed(const IRealFunction& func, const IRealFunction& dfunc, Real x1, Real x2, Real xacc)
+		{ RootFindingConfig config; config.tolerance = xacc; config.max_iterations = 0; return FindRootNewtonDetailed(func, dfunc, x1, x2, config); }
+
+		/// @deprecated Use FindRootSecantDetailed() - the result-returning spelling (CONTRACT_POLICY section 11).
+		[[deprecated("use FindRootSecantDetailed()")]]
+		static RootFindingResult FindRootSecant(const IRealFunction& func, Real x1, Real x2, const RootFindingConfig& config)
+		{ return FindRootSecantDetailed(func, x1, x2, config); }
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		[[deprecated("use FindRootSecantDetailed()")]]
+		static RootFindingResult FindRootSecant(Function&& func, Real x1, Real x2, const RootFindingConfig& config)
+		{ MML::Detail::RealFunctionCallableAdapter<Function> adapter(func); return FindRootSecantDetailed(adapter, x1, x2, config); }
+
+		/// Result-returning form with the plain argument list: tolerance xacc, default iteration budget.
+		static RootFindingResult FindRootSecantDetailed(const IRealFunction& func, Real x1, Real x2, Real xacc)
+		{ RootFindingConfig config; config.tolerance = xacc; config.max_iterations = 0; return FindRootSecantDetailed(func, x1, x2, config); }
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static RootFindingResult FindRootSecantDetailed(Function&& func, Real x1, Real x2, Real xacc)
+		{ MML::Detail::RealFunctionCallableAdapter<Function> adapter(func); return FindRootSecantDetailed(adapter, x1, x2, xacc); }
+
+		/// @deprecated Use FindRootRiddersDetailed() - the result-returning spelling (CONTRACT_POLICY section 11).
+		[[deprecated("use FindRootRiddersDetailed()")]]
+		static RootFindingResult FindRootRidders(const IRealFunction& func, Real x1, Real x2, const RootFindingConfig& config)
+		{ return FindRootRiddersDetailed(func, x1, x2, config); }
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		[[deprecated("use FindRootRiddersDetailed()")]]
+		static RootFindingResult FindRootRidders(Function&& func, Real x1, Real x2, const RootFindingConfig& config)
+		{ MML::Detail::RealFunctionCallableAdapter<Function> adapter(func); return FindRootRiddersDetailed(adapter, x1, x2, config); }
+
+		/// Result-returning form with the plain argument list: tolerance xacc, default iteration budget.
+		static RootFindingResult FindRootRiddersDetailed(const IRealFunction& func, Real x1, Real x2, Real xacc)
+		{ RootFindingConfig config; config.tolerance = xacc; config.max_iterations = 0; return FindRootRiddersDetailed(func, x1, x2, config); }
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static RootFindingResult FindRootRiddersDetailed(Function&& func, Real x1, Real x2, Real xacc)
+		{ MML::Detail::RealFunctionCallableAdapter<Function> adapter(func); return FindRootRiddersDetailed(adapter, x1, x2, xacc); }
+
+		/// @deprecated Use FindRootBrentDetailed() - the result-returning spelling (CONTRACT_POLICY section 11).
+		[[deprecated("use FindRootBrentDetailed()")]]
+		static RootFindingResult FindRootBrent(const IRealFunction& func, Real x1, Real x2, const RootFindingConfig& config)
+		{ return FindRootBrentDetailed(func, x1, x2, config); }
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		[[deprecated("use FindRootBrentDetailed()")]]
+		static RootFindingResult FindRootBrent(Function&& func, Real x1, Real x2, const RootFindingConfig& config)
+		{ MML::Detail::RealFunctionCallableAdapter<Function> adapter(func); return FindRootBrentDetailed(adapter, x1, x2, config); }
+
+		/// Result-returning form with the plain argument list: tolerance xacc, default iteration budget.
+		static RootFindingResult FindRootBrentDetailed(const IRealFunction& func, Real x1, Real x2, Real xacc)
+		{ RootFindingConfig config; config.tolerance = xacc; config.max_iterations = 0; return FindRootBrentDetailed(func, x1, x2, config); }
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static RootFindingResult FindRootBrentDetailed(Function&& func, Real x1, Real x2, Real xacc)
+		{ MML::Detail::RealFunctionCallableAdapter<Function> adapter(func); return FindRootBrentDetailed(adapter, x1, x2, xacc); }
 
 	} // namespace RootFinding
 } // namespace MML

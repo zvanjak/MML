@@ -156,7 +156,7 @@ TEST_CASE("Matrix I/O - Text format single element", "[Matrix][IO][Text]")
     REQUIRE(loaded.rows() == 1);
     REQUIRE(loaded.cols() == 1);
     // Text format uses default stream precision (~6 digits)
-    REQUIRE_THAT(loaded(0, 0), WithinRel(original(0, 0), REAL(1e-5)));
+    REQUIRE_THAT(loaded(0, 0), WithinRel(original(0, 0), static_cast<MML::Real>(1e-5)));
 }
 
 TEST_CASE("Matrix I/O - Text format row vector", "[Matrix][IO][Text]")

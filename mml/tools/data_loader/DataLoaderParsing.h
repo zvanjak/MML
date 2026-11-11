@@ -13,6 +13,7 @@
 
 #include <mml/tools/data_loader/DataLoaderTypes.h>
 #include <mml/tools/CsvUtils.h>
+#include <mml/tools/TextIOFormat.h>
 
 #include <algorithm>
 #include <cctype>
@@ -137,7 +138,9 @@ namespace MML {
 			try {
 				switch (targetType) {
 					case ColumnType::REAL: {
-						realOut = std::stod(trimmed);
+						// std::stod honours the C locale; CSV/JSON numbers are always '.'-decimal
+						if (!TextIO::ParseReal(trimmed, realOut))
+							return ParseResult::Invalid;
 						return ParseResult::Parsed;
 					}
 					case ColumnType::INT: {

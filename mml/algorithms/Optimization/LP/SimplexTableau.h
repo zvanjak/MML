@@ -94,11 +94,11 @@ public:
             
             // First check artificial variables (they take priority for two-phase)
             for (int artIdx : artificialIndices) {
-                if (std::abs(_tableau(i, artIdx) - 1.0) < 1e-10) {
+                if (std::abs(_tableau(i, artIdx) - 1.0) < Precision::EqualityTolerance) {
                     // Verify it's a unit column (1 in row i, 0 elsewhere)
                     bool isUnit = true;
                     for (int k = 0; k < _numRows && isUnit; ++k) {
-                        if (k != i && std::abs(_tableau(k, artIdx)) > 1e-10) {
+                        if (k != i && std::abs(_tableau(k, artIdx)) > Precision::EqualityTolerance) {
                             isUnit = false;
                         }
                     }
@@ -115,11 +115,11 @@ public:
             int slackStart = numOriginalVars;
             int slackEnd = numOriginalVars + numSlack;
             for (int j = slackStart; j < slackEnd; ++j) {
-                if (std::abs(_tableau(i, j) - 1.0) < 1e-10) {
+                if (std::abs(_tableau(i, j) - 1.0) < Precision::EqualityTolerance) {
                     // Verify it's a unit column
                     bool isUnit = true;
                     for (int k = 0; k < _numRows && isUnit; ++k) {
-                        if (k != i && std::abs(_tableau(k, j)) > 1e-10) {
+                        if (k != i && std::abs(_tableau(k, j)) > Precision::EqualityTolerance) {
                             isUnit = false;
                         }
                     }

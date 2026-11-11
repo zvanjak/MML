@@ -32,14 +32,14 @@
 namespace MML::RootFinding {
 
 	struct NonlinearSystemConfig {
-		Real residual_tolerance = std::max(REAL(1e-10), REAL(100.0) * std::numeric_limits<Real>::epsilon());
-		Real step_tolerance = std::max(REAL(1e-12), REAL(10.0) * std::numeric_limits<Real>::epsilon());
+		Real residual_tolerance = std::max(Precision::EqualityTolerance, Precision::RoundoffZeroThreshold);
+		Real step_tolerance = std::max(Precision::ZeroTolerance, Precision::RoundoffZeroThreshold);
 		Real relative_step_tolerance = 0.0;
 		int max_iterations = 100;
 		Real numerical_jacobian_step = 0.0; // Absolute step; zero uses coordinate-scaled automatic steps
 		bool use_backtracking = true;
 		Real backtracking_factor = 0.5;
-		Real minimum_damping = 1e-6;
+		Real minimum_damping = Precision::LooseTolerance;
 		int max_backtracking_steps = 20;
 		bool store_trace = false;
 		bool check_finite = true;
@@ -168,7 +168,7 @@ namespace MML::RootFinding {
 				++result.jacobian_evaluations;
 				jacobian = jacobianFunction
 					? jacobianFunction(result.solution)
-					: Derivation::calcJacobianDyn(function, result.solution,
+					: Derivation::CalcJacobian(function, result.solution,
 						config.numerical_jacobian_step, &result.function_evaluations);
 			} catch (const std::exception& error) {
 				result.status = AlgorithmStatus::NumericalInstability;

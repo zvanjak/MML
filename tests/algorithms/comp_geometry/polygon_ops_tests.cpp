@@ -86,7 +86,7 @@ TEST_CASE("ClipPolygon - Partial overlap", "[ComputationalGeometry][Clipping]")
     
     // Should clip to right half: area = 1 * 2 = 2
     REQUIRE(result.NumVertices() >= 3);
-    REQUIRE_THAT(result.Area(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.Area(), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ClipPolygon - Diamond clipped by square", "[ComputationalGeometry][Clipping]")
@@ -164,7 +164,7 @@ TEST_CASE("ClipToRect - Square inside rectangle", "[ComputationalGeometry][Clipp
     Polygon2D result = MML::CompGeometry::PolygonOps::ClipToRect(square, 0, 0, 4, 4);
     
     REQUIRE(result.NumVertices() == 4);
-    REQUIRE_THAT(result.Area(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.Area(), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ClipToRect - Triangle half-clipped", "[ComputationalGeometry][Clipping]")
@@ -182,7 +182,7 @@ TEST_CASE("ClipToRect - Triangle half-clipped", "[ComputationalGeometry][Clippin
     // Clipped at y=2: smaller similar triangle on top has height 2, base 2
     // Lower trapezoid area = 8 - 0.5 * 2 * 2 = 8 - 2 = 6
     REQUIRE(result.NumVertices() >= 3);
-    REQUIRE_THAT(result.Area(), WithinAbs(REAL(6.0), REAL(0.1)));
+    REQUIRE_THAT(result.Area(), WithinAbs(static_cast<MML::Real>(6.0), static_cast<MML::Real>(0.1)));
 }
 
 TEST_CASE("ClipToRect - Outside rectangle", "[ComputationalGeometry][Clipping]")
@@ -213,7 +213,7 @@ TEST_CASE("ClipToRect - Spanning rectangle", "[ComputationalGeometry][Clipping]"
     
     // Should be exactly the clip rectangle
     REQUIRE(result.NumVertices() == 4);
-    REQUIRE_THAT(result.Area(), WithinAbs(REAL(16.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.Area(), WithinAbs(static_cast<MML::Real>(16.0), TOL(1e-10, 1e-5)));
 }
 
 // ============================================================================
@@ -240,7 +240,7 @@ TEST_CASE("PolygonIntersection - Two overlapping squares", "[ComputationalGeomet
     
     // Intersection is 1x1 square at (1,1)-(2,2)
     REQUIRE(result.size() >= 1);
-    REQUIRE_THAT(result[0].Area(), WithinAbs(REAL(1.0), REAL(0.1)));
+    REQUIRE_THAT(result[0].Area(), WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.1)));
 }
 
 TEST_CASE("PolygonIntersection - Non-overlapping", "[ComputationalGeometry][BooleanOps]")

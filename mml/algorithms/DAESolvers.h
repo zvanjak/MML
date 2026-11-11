@@ -14,7 +14,7 @@
 /// - DAE interfaces and system data structures
 /// - Solver configuration, result, and initial-condition helpers
 /// - Numerical Jacobian adapters
-/// - Backward Euler, BDF2, BDF4, RODAS, Radau IIA, adaptive, and event-aware solvers
+/// - Backward Euler, BDF2, BDF4, linearly-implicit trapezoid, RODAS4, Radau IIA, adaptive, and event-aware solvers
 ///
 /// Main types and functions included here:
 /// - IODESystemDAE and IODESystemDAEWithEvents - DAE system interfaces
@@ -22,7 +22,8 @@
 /// - DAESolverConfig, DAESolverResult, DAEFailureReason, and DAENewtonResult
 /// - ComputeConsistentIC and VerifyConsistentIC - consistent initial-condition helpers
 /// - DAESystemNumericalJacobian - Jacobian adapter for systems without analytical Jacobians
-/// - SolveDAEBackwardEuler, SolveDAEBDF2, SolveDAEBDF4, SolveDAERODAS, and SolveDAERadauIIA
+/// - SolveDAEBackwardEuler, SolveDAEBDF2, SolveDAEBDF4, SolveDAELinearlyImplicit, and SolveDAERadauIIA
+/// - SolveDAERODAS4 - adaptive six-stage Rosenbrock 4(3)
 /// - DAEEventConfig, DAEEventInfo, and DAEEventResult - event detection support
 ///
 /// For more focused includes, use the individual headers under DAESolvers/.
@@ -38,7 +39,8 @@
 #include <mml/algorithms/DAESolvers/DAEBackwardEuler.h>
 #include <mml/algorithms/DAESolvers/DAEBDF2.h>
 #include <mml/algorithms/DAESolvers/DAEBDF4.h>
-#include <mml/algorithms/DAESolvers/DAERODAS.h>
+#include <mml/algorithms/DAESolvers/DAELinearlyImplicit.h>
+#include <mml/algorithms/DAESolvers/DAERODAS4.h>
 #include <mml/algorithms/DAESolvers/DAERadauIIA.h>
 #include <mml/algorithms/DAESolvers/DAEAdaptive.h>
 #include <mml/algorithms/DAESolvers/DAEEventDetection.h>

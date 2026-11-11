@@ -168,10 +168,10 @@ std::cout << "f(x) = " << maxResult.fmin << "\n";  // Actual max value (not nega
 
 ### Result Structure
 
-All multidimensional methods return `MultidimMinimizationResult`:
+All multidimensional methods return `MultidimOptimizationResult`:
 
 ```cpp
-struct MultidimMinimizationResult {
+struct MultidimOptimizationResult {
     Vector<Real> xmin;      // Location of minimum
     Real         fmin;      // Function value at minimum
     int          iterations; // Iterations or function evaluations

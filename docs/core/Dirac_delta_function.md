@@ -4,6 +4,27 @@
 
 Numerical approximations of the Dirac delta function δ(x) for discrete sampling and integration.
 
+## Derived-Class Member Migration
+
+The protected approximation parameter is now named `_sharpness` rather than `_N`.
+The former underscore-uppercase identifier was reserved to the C++ implementation
+even at class scope; no alias using the reserved name is retained. Constructor
+parameters, approximation formulas and numerical behavior are unchanged.
+
+```cpp
+class CustomDelta : public MML::DiracFunction {
+public:
+    using MML::DiracFunction::DiracFunction;
+    MML::Real operator()(MML::Real) const override {
+        return static_cast<MML::Real>(_sharpness);
+    }
+};
+```
+
+Runnable counterpart: `Docs_Demo_ProtectedDiracParameter()` in
+[docs_demo_dirac_delta.cpp](../../src/docs_demos/base/docs_demo_dirac_delta.cpp),
+selected with `MML_DocsApp --reserved-members`.
+
 ---
 
 ## Overview

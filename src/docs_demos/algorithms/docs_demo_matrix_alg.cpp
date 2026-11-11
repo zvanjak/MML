@@ -19,6 +19,7 @@
 #include <mml/base/Matrix/MatrixSym.h>
 #include <mml/algorithms/MatrixAlg.h>
 #include <mml/algorithms/Analyzers/MatrixAnalyzer.h>
+#include <mml/tools/analyzers/MatrixAnalysisReports.h>
 #include <mml/base/BaseUtils/MatrixOps.h>
 #endif
 
@@ -78,12 +79,12 @@ void Demo_HessenbergReduction()
     std::cout << "\n--- Verification ---" << std::endl;
     std::cout << "Checking H = Q^T * A * Q:" << std::endl;
     
-    Matrix<Real> QtAQ = result.Q.transpose() * A * result.Q;
+    Matrix<Real> QtAQ = result.Q.Transposed() * A * result.Q;
     Real maxError = Utils::MaxAbsDiff(result.H, QtAQ);
     std::cout << "Max difference ||H - Q^T*A*Q||_∞ = " << std::scientific << maxError << std::fixed << std::endl;
     
     std::cout << "\nChecking Q is orthogonal (Q^T * Q = I):" << std::endl;
-    Matrix<Real> QtQ = result.Q.transpose() * result.Q;
+    Matrix<Real> QtQ = result.Q.Transposed() * result.Q;
     Matrix<Real> I = Matrix<Real>::Identity(4);
     maxError = Utils::MaxAbsDiff(QtQ, I);
     std::cout << "Max difference ||Q^T*Q - I||_∞ = " << std::scientific << maxError << std::fixed << std::endl;
@@ -126,7 +127,7 @@ void Demo_DefinitenessClassification()
     std::cout << "\n--- Positive Definite Matrix ---" << std::endl;
     std::cout << "Matrix:" << std::endl;
     // Print symmetric matrix
-    Matrix<Real> pdfull = posdef.GetAsMatrix();
+    Matrix<Real> pdfull = posdef.ToFullMatrix();
     pdfull.Print(std::cout, 6, 2);
     std::cout << "Classification: " << DefinitenessToString(MatrixAlg::ClassifyDefiniteness(posdef)) << std::endl;
     std::cout << "IsPositiveDefinite: " << (MatrixAlg::IsPositiveDefinite(posdef) ? "Yes" : "No") << std::endl;
@@ -139,7 +140,7 @@ void Demo_DefinitenessClassification()
     
     std::cout << "\n--- Positive Semi-Definite Matrix ---" << std::endl;
     std::cout << "Matrix (all 1's, rank 1):" << std::endl;
-    Matrix<Real> psdfull = possemidef.GetAsMatrix();
+    Matrix<Real> psdfull = possemidef.ToFullMatrix();
     psdfull.Print(std::cout, 6, 2);
     std::cout << "Classification: " << DefinitenessToString(MatrixAlg::ClassifyDefiniteness(possemidef)) << std::endl;
     std::cout << "IsPositiveSemiDefinite: " << (MatrixAlg::IsPositiveSemiDefinite(possemidef) ? "Yes" : "No") << std::endl;
@@ -153,7 +154,7 @@ void Demo_DefinitenessClassification()
     
     std::cout << "\n--- Negative Definite Matrix ---" << std::endl;
     std::cout << "Matrix:" << std::endl;
-    Matrix<Real> ndfull = negdef.GetAsMatrix();
+    Matrix<Real> ndfull = negdef.ToFullMatrix();
     ndfull.Print(std::cout, 6, 2);
     std::cout << "Classification: " << DefinitenessToString(MatrixAlg::ClassifyDefiniteness(negdef)) << std::endl;
     std::cout << "IsNegativeDefinite: " << (MatrixAlg::IsNegativeDefinite(negdef) ? "Yes" : "No") << std::endl;
@@ -166,7 +167,7 @@ void Demo_DefinitenessClassification()
     
     std::cout << "\n--- Indefinite Matrix ---" << std::endl;
     std::cout << "Matrix (diagonal with eigenvalues 1, -2, 3):" << std::endl;
-    Matrix<Real> indefull = indef.GetAsMatrix();
+    Matrix<Real> indefull = indef.ToFullMatrix();
     indefull.Print(std::cout, 6, 2);
     std::cout << "Classification: " << DefinitenessToString(MatrixAlg::ClassifyDefiniteness(indef)) << std::endl;
     std::cout << "IsIndefinite: " << (MatrixAlg::IsIndefinite(indef) ? "Yes" : "No") << std::endl;
@@ -262,6 +263,8 @@ void Demo_CachedAndComplexAnalysis()
     MatrixAnalyzer<Real> analyzer(realMatrix);
     const auto& firstSVD = analyzer.SVDDecompose();
     const auto& repeatedSVD = analyzer.SVDDecompose();
+    const auto analysis = analyzer.Analyze();
+    AnalysisReports::PrintMatrixAnalysis(std::cout, analysis, "Rank-deficient matrix");
     std::cout << "Rank: " << analyzer.Rank() << ", nullity: " << analyzer.Nullity() << std::endl;
     std::cout << "Repeated SVD request reused cache: "
               << (&firstSVD == &repeatedSVD ? "Yes" : "No") << std::endl;
@@ -271,6 +274,7 @@ void Demo_CachedAndComplexAnalysis()
         Complex{1.0, -2.0}, Complex{3.0, 0.0}
     });
     MatrixAnalyzer<Complex> complexAnalyzer(hermitian);
+    AnalysisReports::PrintMatrixAnalysis(std::cout, complexAnalyzer.Analyze(), "Hermitian matrix");
     const auto eigen = complexAnalyzer.HermitianEigensystem();
     std::cout << "Hermitian: " << (complexAnalyzer.IsHermitian() ? "Yes" : "No") << std::endl;
     std::cout << "Real eigenvalues: ";
@@ -278,7 +282,7 @@ void Demo_CachedAndComplexAnalysis()
     const auto& cholesky = complexAnalyzer.CholeskyDecompose();
     const Matrix<Complex> reconstructed = cholesky.L * Utils::GetConjugateTranspose(cholesky.L);
     std::cout << "\nCholesky reconstructs A = L*L*: "
-              << (reconstructed.IsEqualTo(hermitian, REAL(1e-10)) ? "Yes" : "No") << std::endl;
+              << (reconstructed.IsEqualTo(hermitian, static_cast<MML::Real>(1e-10)) ? "Yes" : "No") << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -304,7 +308,7 @@ void Demo_DefinitenessApplications()
     
     std::cout << "   Example: f(x,y) = x² + 2y²" << std::endl;
     std::cout << "   Hessian at (0,0):" << std::endl;
-    Matrix<Real> hm = hessianMin.GetAsMatrix();
+    Matrix<Real> hm = hessianMin.ToFullMatrix();
     std::cout << "   "; hm.Print(std::cout, 6, 2);
     std::cout << "   Definiteness: " << DefinitenessToString(MatrixAlg::ClassifyDefiniteness(hessianMin)) << std::endl;
     std::cout << "   ⟹ (0,0) is a minimum\n" << std::endl;
@@ -317,7 +321,7 @@ void Demo_DefinitenessApplications()
     
     std::cout << "   Example: f(x,y) = x² - 2y²" << std::endl;
     std::cout << "   Hessian at (0,0):" << std::endl;
-    Matrix<Real> hs = hessianSaddle.GetAsMatrix();
+    Matrix<Real> hs = hessianSaddle.ToFullMatrix();
     std::cout << "   "; hs.Print(std::cout, 6, 2);
     std::cout << "   Definiteness: " << DefinitenessToString(MatrixAlg::ClassifyDefiniteness(hessianSaddle)) << std::endl;
     std::cout << "   ⟹ (0,0) is a saddle point\n" << std::endl;

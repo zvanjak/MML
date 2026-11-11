@@ -13,6 +13,7 @@
 #define MML_DISCRETE_MAPS_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/interfaces/IDiscreteMap.h>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
@@ -38,14 +39,18 @@ namespace MML::Systems
 		void map(const Vector<Real>& x, Vector<Real>& xNext) const override { xNext[0] = _r * x[0] * (1 - x[0]); }
 
 		void jacobian(const Vector<Real>& x, Matrix<Real>& J) const override {
-			J.Resize(1, 1);
+			J.resize(1, 1);
 			J(0, 0) = _r * (1 - 2 * x[0]);
 		}
 
-		Real getParam(int index) const override { return (index == 0) ? _r : 0; }
+		int  getNumParam() const override { return 1; }
+		Real getParam(int index) const override {
+			if (index != 0) throw IndexError("LogisticMap::getParam - parameter index out of range");
+			return _r;
+		}
 		void setParam(int index, Real value) override {
-			if (index == 0)
-				_r = value;
+			if (index != 0) throw IndexError("LogisticMap::setParam - parameter index out of range");
+			_r = value;
 		}
 		std::string getParamName(int /*index*/) const override { return "r"; }
 		std::string getStateName(int /*index*/) const override { return "x"; }
@@ -87,19 +92,21 @@ namespace MML::Systems
 		}
 
 		void jacobian(const Vector<Real>& x, Matrix<Real>& J) const override {
-			J.Resize(2, 2);
+			J.resize(2, 2);
 			J(0, 0) = -2 * _a * x[0];
 			J(0, 1) = 1;
 			J(1, 0) = _b;
 			J(1, 1) = 0;
 		}
 
-		Real getParam(int index) const override { return (index == 0) ? _a : _b; }
+		int  getNumParam() const override { return 2; }
+		Real getParam(int index) const override {
+			if (index < 0 || index > 1) throw IndexError("HenonMap::getParam - parameter index out of range");
+			return (index == 0) ? _a : _b;
+		}
 		void setParam(int index, Real value) override {
-			if (index == 0)
-				_a = value;
-			else if (index == 1)
-				_b = value;
+			if (index < 0 || index > 1) throw IndexError("HenonMap::setParam - parameter index out of range");
+			(index == 0 ? _a : _b) = value;
 		}
 		std::string getParamName(int index) const override { return (index == 0) ? "a" : "b"; }
 		std::string getStateName(int index) const override { return (index == 0) ? "x" : "y"; }
@@ -140,10 +147,10 @@ namespace MML::Systems
 	/// Canonical model for Hamiltonian chaos.
 	class StandardMap : public IDiscreteMap<2> {
 	public:
-		StandardMap(Real K = 0.971635) : _K(K) {}
+		StandardMap(Real K = 0.971635) : _kickStrength(K) {}
 
 		void map(const Vector<Real>& x, Vector<Real>& xNext) const override {
-			Real p = x[0] + _K * std::sin(x[1]);
+			Real p = x[0] + _kickStrength * std::sin(x[1]);
 			Real theta = x[1] + p;
 
 			// Wrap to [0, 2π)
@@ -156,16 +163,23 @@ namespace MML::Systems
 		}
 
 		void jacobian(const Vector<Real>& x, Matrix<Real>& J) const override {
-			J.Resize(2, 2);
-			Real c = _K * std::cos(x[1]);
+			J.resize(2, 2);
+			Real c = _kickStrength * std::cos(x[1]);
 			J(0, 0) = 1;
 			J(0, 1) = c;
 			J(1, 0) = 1;
 			J(1, 1) = 1 + c;
 		}
 
-		Real getParam(int /*index*/) const override { return _K; }
-		void setParam(int /*index*/, Real value) override { _K = value; }
+		int  getNumParam() const override { return 1; }
+		Real getParam(int index) const override {
+			if (index != 0) throw IndexError("StandardMap::getParam - parameter index out of range");
+			return _kickStrength;
+		}
+		void setParam(int index, Real value) override {
+			if (index != 0) throw IndexError("StandardMap::setParam - parameter index out of range");
+			_kickStrength = value;
+		}
 		std::string getParamName(int /*index*/) const override { return "K"; }
 		std::string getStateName(int index) const override { return (index == 0) ? "p" : "theta"; }
 
@@ -173,7 +187,7 @@ namespace MML::Systems
 		bool isAreaPreserving() const { return true; }
 
 	private:
-		Real _K;
+		Real _kickStrength;
 	};
 
 	//=============================================================================
@@ -192,13 +206,20 @@ namespace MML::Systems
 		void map(const Vector<Real>& x, Vector<Real>& xNext) const override { xNext[0] = _mu * std::min(x[0], 1 - x[0]); }
 
 		void jacobian(const Vector<Real>& x, Matrix<Real>& J) const override {
-			J.Resize(1, 1);
+			J.resize(1, 1);
 			// Derivative is ±μ depending on which side of peak
 			J(0, 0) = (x[0] < 0.5) ? _mu : -_mu;
 		}
 
-		Real getParam(int /*index*/) const override { return _mu; }
-		void setParam(int /*index*/, Real value) override { _mu = value; }
+		int  getNumParam() const override { return 1; }
+		Real getParam(int index) const override {
+			if (index != 0) throw IndexError("TentMap::getParam - parameter index out of range");
+			return _mu;
+		}
+		void setParam(int index, Real value) override {
+			if (index != 0) throw IndexError("TentMap::setParam - parameter index out of range");
+			_mu = value;
+		}
 		std::string getParamName(int /*index*/) const override { return "mu"; }
 		std::string getStateName(int /*index*/) const override { return "x"; }
 
@@ -303,7 +324,7 @@ namespace MML::Systems
 
 			// Build result
 			DiscreteMapLyapunovResult<Real> result;
-			result.exponents.Resize(N);
+			result.exponents.resize(N);
 			for (int i = 0; i < N; ++i)
 				result.exponents[i] = lyapunovSums[i] / numIterations;
 

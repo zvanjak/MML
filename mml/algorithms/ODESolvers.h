@@ -21,7 +21,7 @@
 /// - EulerStep_Calculator, Midpoint_StepCalculator, and RungeKutta4_StepCalculator
 /// - DormandPrince5_Stepper, CashKarp_Stepper, DormandPrince8_Stepper, and BulirschStoer_Stepper
 /// - ODEAdaptiveIntegrator - adaptive integration with step-size control and solution statistics
-/// - Rosenbrock23Solver - stiff ODE integration
+/// - ROS2Solver - stiff ODE integration (2-stage Rosenbrock)
 /// - BVPShootingSolver and BVPShootingSolverND - shooting-method solvers for boundary-value problems
 ///
 /// All ODE solvers are reentrant when separate solver instances are used per thread.

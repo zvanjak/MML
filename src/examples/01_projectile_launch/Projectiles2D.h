@@ -515,11 +515,11 @@ namespace Projectile
             bool addEventPoint = eventResult.terminatedByEvent;
             int totalPoints = numPoints + (addEventPoint ? 1 : 0);
 
-            result._tValues.Resize(totalPoints);
-            result._xValues.Resize(totalPoints);
-            result._yValues.Resize(totalPoints);
-            result._vxValues.Resize(totalPoints);
-            result._vyValues.Resize(totalPoints);
+            result._tValues.resize(totalPoints);
+            result._xValues.resize(totalPoints);
+            result._yValues.resize(totalPoints);
+            result._vxValues.resize(totalPoints);
+            result._vyValues.resize(totalPoints);
 
             for (int i = 0; i < numPoints; i++)
             {
@@ -584,11 +584,11 @@ namespace Projectile
 
                 // Store only up to ground hit + exact hit point
                 int trimmedSize = lastIndex + 2;
-                result._tValues.Resize(trimmedSize);
-                result._xValues.Resize(trimmedSize);
-                result._yValues.Resize(trimmedSize);
-                result._vxValues.Resize(trimmedSize);
-                result._vyValues.Resize(trimmedSize);
+                result._tValues.resize(trimmedSize);
+                result._xValues.resize(trimmedSize);
+                result._yValues.resize(trimmedSize);
+                result._vxValues.resize(trimmedSize);
+                result._vyValues.resize(trimmedSize);
 
                 for (int i = 0; i <= lastIndex; i++)
                 {

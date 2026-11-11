@@ -47,10 +47,10 @@ namespace MML::MatrixAlg
 			MatrixAlg::FundamentalSubspaces<Scalar> result;
 			result.rank = svd.rank;
 			result.threshold = svd.threshold;
-			result.columnSpace.Resize(rows, svd.rank);
-			result.rowSpace.Resize(cols, svd.rank);
-			result.nullSpace.Resize(cols, cols - svd.rank);
-			result.leftNullSpace.Resize(rows, rows - svd.rank);
+			result.columnSpace.resize(rows, svd.rank);
+			result.rowSpace.resize(cols, svd.rank);
+			result.nullSpace.resize(cols, cols - svd.rank);
+			result.leftNullSpace.resize(rows, rows - svd.rank);
 
 			for (int row = 0; row < rows; ++row)
 			{
@@ -83,9 +83,9 @@ namespace MML::MatrixAlg
 		{
 			if (!std::isfinite(condition))
 				return MatrixStability::Singular;
-			if (condition < static_cast<Magnitude>(1e4))
+			if (condition < static_cast<Magnitude>(Precision::WellConditionedLimit))
 				return MatrixStability::WellConditioned;
-			if (condition < static_cast<Magnitude>(1e8))
+			if (condition < static_cast<Magnitude>(Precision::IllConditionedLimit))
 				return MatrixStability::ModeratelyConditioned;
 			return MatrixStability::IllConditioned;
 		}

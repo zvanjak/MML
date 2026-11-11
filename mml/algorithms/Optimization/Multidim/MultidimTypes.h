@@ -97,35 +97,32 @@ namespace MML::Optimization {
 	}
 
 	///////////////////////////////////////////////////////////////////////////
-	///                  MultidimMinimizationResult                        ///
+	///                  MultidimOptimizationResult                        ///
 	///////////////////////////////////////////////////////////////////////////
 	/**
      * @brief Result structure for multidimensional minimization
      */
-	struct MultidimMinimizationResult {
+	struct [[nodiscard]] MultidimOptimizationResult : IterativeResultBase {
 		Vector<Real> xmin; ///< Location of minimum
 		Real fmin;		   ///< Function value at minimum
 		int iterations;	   ///< Number of iterations (or function evaluations)
-		bool converged;	   ///< True if converged within tolerance
 		
 		// Enhanced diagnostic fields (API Standardization Phase 4)
-		std::string algorithm_name;  ///< Name of the algorithm used
-		AlgorithmStatus status = AlgorithmStatus::Success;  ///< Algorithm termination status
-		std::string error_message;   ///< Error message if failed
-		double elapsed_time_ms = 0;  ///< Execution time in milliseconds
-		int function_evaluations = 0; ///< Number of function evaluations
 
-		MultidimMinimizationResult()
-			: fmin(0.0)
-			, iterations(0)
-			, converged(false) {}
+		MultidimOptimizationResult()
+				: fmin(0.0)
+				, iterations(0) {}
 
-		MultidimMinimizationResult(const Vector<Real>& x, Real f, int iter, bool conv)
-			: xmin(x)
-			, fmin(f)
-			, iterations(iter)
-			, converged(conv)
-			, function_evaluations(iter) {}
+		MultidimOptimizationResult(const Vector<Real>& x, Real f, int iter, bool conv)
+				: xmin(x)
+				, fmin(f)
+				, iterations(iter) {
+			iterations_used = iter;
+			converged = conv;
+			status = conv ? AlgorithmStatus::Success : AlgorithmStatus::MaxIterationsExceeded;
+			if (!conv)
+				error_message = "Multidimensional minimization did not converge";
+		}
 	};
 
 	///////////////////////////////////////////////////////////////////////////
@@ -136,8 +133,10 @@ namespace MML::Optimization {
      * 
      * Standardized config object following API Standardization Phase 4 pattern.
      */
+	using MultidimMinimizationResult [[deprecated("use MultidimOptimizationResult")]] = MultidimOptimizationResult;
+
 	struct MultidimOptimizationConfig {
-		Real tolerance = 1e-8;           ///< Convergence tolerance
+		Real tolerance = Precision::OptimizationGradientTolerance;           ///< Convergence tolerance
 		int max_iterations = 5000;       ///< Maximum iterations
 		bool verbose = false;            ///< Enable verbose output
 		Real initial_delta = 1.0;        ///< Initial simplex/step size
@@ -154,7 +153,7 @@ namespace MML::Optimization {
 		/// Factory: High precision configuration
 		static MultidimOptimizationConfig HighPrecision() {
 			MultidimOptimizationConfig cfg;
-			cfg.tolerance = 1e-12;
+			cfg.tolerance = Precision::ZeroTolerance;
 			cfg.max_iterations = 10000;
 			return cfg;
 		}
@@ -162,7 +161,7 @@ namespace MML::Optimization {
 		/// Factory: Fast configuration (lower precision, fewer iterations)
 		static MultidimOptimizationConfig Fast() {
 			MultidimOptimizationConfig cfg;
-			cfg.tolerance = 1e-4;
+			cfg.tolerance = Precision::CoarseTolerance;
 			cfg.max_iterations = 500;
 			return cfg;
 		}
@@ -170,7 +169,7 @@ namespace MML::Optimization {
 		/// Factory: Large-scale configuration (for L-BFGS with many variables)
 		static MultidimOptimizationConfig LargeScale(int memory_size = 20) {
 			MultidimOptimizationConfig cfg;
-			cfg.tolerance = 1e-8;
+			cfg.tolerance = Precision::OptimizationGradientTolerance;
 			cfg.max_iterations = 10000;
 			cfg.lbfgs_memory_size = memory_size;
 			return cfg;

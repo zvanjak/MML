@@ -104,7 +104,7 @@ namespace MML::VectorSpaces
 
 	template<class Scalar, int HomogeneousN>
 	PointInSpace<Scalar, HomogeneousN - 1> PointFromHomogeneous(const VectorN<Scalar, HomogeneousN>& coordinates,
-		Real tolerance = Defaults::VectorIsEqualTolerance) requires (HomogeneousN > 1)
+		Real tolerance = Precision::VectorIsEqualTolerance) requires (HomogeneousN > 1)
 	{
 		constexpr int N = HomogeneousN - 1;
 		if (std::abs(coordinates[N]) <= Scalar(tolerance))
@@ -118,7 +118,7 @@ namespace MML::VectorSpaces
 
 	template<class Scalar, int HomogeneousN>
 	VectorN<Scalar, HomogeneousN - 1> VectorFromHomogeneous(const VectorN<Scalar, HomogeneousN>& coordinates,
-		Real tolerance = Defaults::VectorIsEqualTolerance) requires (HomogeneousN > 1)
+		Real tolerance = Precision::VectorIsEqualTolerance) requires (HomogeneousN > 1)
 	{
 		constexpr int N = HomogeneousN - 1;
 		if (std::abs(coordinates[N]) > Scalar(tolerance))

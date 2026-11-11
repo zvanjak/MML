@@ -32,7 +32,7 @@ namespace MML::TestBeds
         return v;
     }
 
-    inline Real mat_cmplx_symmetric_2x2_det_abs() { return std::sqrt(REAL(250.0)); }
+    inline Real mat_cmplx_symmetric_2x2_det_abs() { return std::sqrt(static_cast<MML::Real>(250.0)); }
     inline const Vector<Real>& mat_cmplx_symmetric_2x2_singular_values() {
         static const Vector<Real> v{5.678683713116302, 2.7843403749343954};
         return v;
@@ -68,7 +68,7 @@ namespace MML::TestBeds
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
     inline const Matrix<Complex>& mat_cmplx_unitary_2x2() {
-        static const Real invSqrt2 = REAL(1.0) / std::sqrt(REAL(2.0));
+        static const Real invSqrt2 = static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(2.0));
         static const Matrix<Complex> m{2, 2, {
             Complex(invSqrt2, 0.0), Complex(0.0, invSqrt2),
             Complex(0.0, invSqrt2), Complex(invSqrt2, 0.0)
@@ -77,7 +77,7 @@ namespace MML::TestBeds
     }
 
     inline const Vector<Complex>& mat_cmplx_unitary_2x2_rhs0() {
-        static const Real invSqrt2 = REAL(1.0) / std::sqrt(REAL(2.0));
+        static const Real invSqrt2 = static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(2.0));
         static const Vector<Complex> v{Complex(invSqrt2, invSqrt2), Complex(3.0 * invSqrt2, invSqrt2)};
         return v;
     }

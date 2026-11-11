@@ -67,19 +67,35 @@ namespace MML
 	class ITensor2
 	{
 	public:
+		/// @deprecated Use numContravar() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use numContravar()")]]
+		int NumContravar() const { return numContravar(); }
+		/// @deprecated Use numCovar() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use numCovar()")]]
+		int NumCovar() const { return numCovar(); }
+		/// @deprecated Use isContravar() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use isContravar()")]]
+		bool IsContravar(int index) const { return isContravar(index); }
+		/// @deprecated Use contract() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use contract()")]]
+		Real Contract() const { return contract(); }
 		virtual ~ITensor2() = default;
 
 		/** @brief Get the number of contravariant (upper) indices. */
-		virtual int   NumContravar() const = 0;
+		virtual int   numContravar() const = 0;
 		
 		/** @brief Get the number of covariant (lower) indices. */
-		virtual int   NumCovar() const = 0;
+		virtual int   numCovar() const = 0;
 
 		/** @brief Check if the index at position `index` is contravariant (upper). */
-		virtual bool  IsContravar(int index) const = 0;
+		virtual bool  isContravar(int index) const = 0;
 
 		/** @brief Check if the index at position `index` is covariant (lower). */
-		bool IsCovar(int index) const { return !IsContravar(index); }
+		bool IsCovar(int index) const { return !isContravar(index); }
 
 		/**
 		 * @brief Access tensor component (const).
@@ -106,7 +122,7 @@ namespace MML
 		 * @return Scalar result of contraction (trace)
 		 * @throws TensorCovarContravarNumError if tensor is not mixed type (1 up, 1 down)
 		 */
-		virtual Real Contract() const = 0;
+		virtual Real contract() const = 0;
 
 		/**
 		 * @brief Apply tensor as a multilinear form to two vectors.
@@ -138,16 +154,32 @@ namespace MML
 	class ITensor3
 	{
 	public:
+		/// @deprecated Use numContravar() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use numContravar()")]]
+		int NumContravar() const { return numContravar(); }
+		/// @deprecated Use numCovar() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use numCovar()")]]
+		int NumCovar() const { return numCovar(); }
+		/// @deprecated Use isContravar() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use isContravar()")]]
+		bool IsContravar(int index) const { return isContravar(index); }
+		/// @deprecated Use contract() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use contract()")]]
+		VectorN<Real, N> Contract(int ind1, int ind2) const { return contract(ind1, ind2); }
 		virtual ~ITensor3() = default;
 
-		virtual int   NumContravar() const = 0;
-		virtual int   NumCovar() const = 0;
+		virtual int   numContravar() const = 0;
+		virtual int   numCovar() const = 0;
 
 		/** @brief Check if the index at position `index` is contravariant (upper). */
-		virtual bool  IsContravar(int index) const = 0;
+		virtual bool  isContravar(int index) const = 0;
 
 		/** @brief Check if the index at position `index` is covariant (lower). */
-		bool IsCovar(int index) const { return !IsContravar(index); }
+		bool IsCovar(int index) const { return !isContravar(index); }
 
 		/**
 		 * @brief Access tensor component.
@@ -169,7 +201,7 @@ namespace MML
 		 * @return VectorN<Real, N> - the contracted rank-1 result
 		 * @throws TensorIndexError if indices out of range or equal
 		 */
-		virtual VectorN<Real, N> Contract(int ind1, int ind2) const = 0;
+		virtual VectorN<Real, N> contract(int ind1, int ind2) const = 0;
 
 		/**
 		 * @brief Apply tensor as a multilinear form to three vectors.
@@ -200,16 +232,32 @@ namespace MML
 	class ITensor4
 	{
 	public:
+		/// @deprecated Use numContravar() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use numContravar()")]]
+		int NumContravar() const { return numContravar(); }
+		/// @deprecated Use numCovar() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use numCovar()")]]
+		int NumCovar() const { return numCovar(); }
+		/// @deprecated Use isContravar() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use isContravar()")]]
+		bool IsContravar(int index) const { return isContravar(index); }
+		/// @deprecated Use contract() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use contract()")]]
+		Tensor2<N> Contract(int ind1, int ind2) const { return contract(ind1, ind2); }
 		virtual ~ITensor4() = default;
 
-		virtual int   NumContravar() const = 0;
-		virtual int   NumCovar() const = 0;
+		virtual int   numContravar() const = 0;
+		virtual int   numCovar() const = 0;
 
 		/** @brief Check if the index at position `index` is contravariant (upper). */
-		virtual bool  IsContravar(int index) const = 0;
+		virtual bool  isContravar(int index) const = 0;
 
 		/** @brief Check if the index at position `index` is covariant (lower). */
-		bool IsCovar(int index) const { return !IsContravar(index); }
+		bool IsCovar(int index) const { return !isContravar(index); }
 
 		/**
 		 * @brief Access tensor component.
@@ -232,7 +280,7 @@ namespace MML
 		 * @return Tensor2<N> - the contracted rank-2 result
 		 * @throws TensorIndexError if indices out of range or equal
 		 */
-		virtual Tensor2<N> Contract(int ind1, int ind2) const = 0;
+		virtual Tensor2<N> contract(int ind1, int ind2) const = 0;
 
 		/**
 		 * @brief Apply tensor as a multilinear form to four vectors.
@@ -262,16 +310,32 @@ namespace MML
 	class ITensor5
 	{
 	public:
+		/// @deprecated Use numContravar() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use numContravar()")]]
+		int NumContravar() const { return numContravar(); }
+		/// @deprecated Use numCovar() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use numCovar()")]]
+		int NumCovar() const { return numCovar(); }
+		/// @deprecated Use isContravar() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use isContravar()")]]
+		bool IsContravar(int index) const { return isContravar(index); }
+		/// @deprecated Use contract() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
+		/// forwarder for callers; implementers override the lowerCamel name.
+		[[deprecated("use contract()")]]
+		Tensor3<N> Contract(int ind1, int ind2) const { return contract(ind1, ind2); }
 		virtual ~ITensor5() = default;
 
-		virtual int   NumContravar() const = 0;
-		virtual int   NumCovar() const = 0;
+		virtual int   numContravar() const = 0;
+		virtual int   numCovar() const = 0;
 
 		/** @brief Check if the index at position `index` is contravariant (upper). */
-		virtual bool  IsContravar(int index) const = 0;
+		virtual bool  isContravar(int index) const = 0;
 
 		/** @brief Check if the index at position `index` is covariant (lower). */
-		bool IsCovar(int index) const { return !IsContravar(index); }
+		bool IsCovar(int index) const { return !isContravar(index); }
 
 		/**
 		 * @brief Access tensor component.
@@ -295,7 +359,7 @@ namespace MML
 		 * @return Tensor3<N> - the contracted rank-3 result
 		 * @throws TensorIndexError if indices out of range or equal
 		 */
-		virtual Tensor3<N> Contract(int ind1, int ind2) const = 0;
+		virtual Tensor3<N> contract(int ind1, int ind2) const = 0;
 
 		/**
 		 * @brief Apply tensor as a multilinear form to five vectors.
@@ -316,5 +380,4 @@ namespace MML
 	};
 }
 #endif
-
 

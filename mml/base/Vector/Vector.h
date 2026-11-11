@@ -12,10 +12,11 @@
 #if !defined  MML_Vector_H
 #define MML_Vector_H
 
+#include <mml/base/PrintFormatting.h>
 #include <mml/MMLBase.h>
 
 // Standard headers - include what we use
-#include <fstream>
+#include <algorithm>
 #include <initializer_list>
 #include <iomanip>
 #include <iostream>
@@ -168,16 +169,23 @@ namespace MML
 		}
 		void erase(const Type& val)			{ _elems.erase(std::remove(_elems.begin(), _elems.end(), val), _elems.end()); }
 
-		/// @brief Remove all elements
-		void Clear()	{ _elems.clear(); }
+		/// @brief Remove all elements (STL spelling)
+		void clear()	{ _elems.clear(); }
+		/// @deprecated Use clear() (CONTRACT_POLICY §11: STL-shaped protocol is spelled as the STL spells it).
+		[[deprecated("use clear()")]]
+		void Clear()	{ clear(); }
 		
-		/// @brief Resize the vector
+		/// @brief Resize the vector (STL spelling)
 		/// @param newLen New size
 		/// @param preserveElements Ignored (std::vector::resize always preserves existing elements)
-		void Resize(int newLen, [[maybe_unused]] bool preserveElements = false)	
+		void resize(int newLen, [[maybe_unused]] bool preserveElements = false)	
 		{ 
 			_elems.resize(newLen); 
 		}
+
+		/// @deprecated Use resize() (CONTRACT_POLICY §11: STL-shaped protocol is spelled as the STL spells it).
+		[[deprecated("use resize()")]]
+		void Resize(int newLen, bool preserveElements = false) { resize(newLen, preserveElements); }
 
 		/////////////////////            Accessing elements             ///////////////////////
 		
@@ -189,18 +197,18 @@ namespace MML
 		/// @brief Checked element access
 		/// @param n Index (0-based)
 		/// @return Reference to element at index n
-		/// @throws VectorDimensionError if index out of bounds
+		/// @throws VectorAccessBoundsError if index out of bounds
 		Type& at(int n)	{
 			if(n < 0 || n >= size())
-				throw VectorDimensionError("Vector::at - index out of bounds", size(), n);
+				throw VectorAccessBoundsError("Vector::at - index out of bounds", n, size());
 			else
 				return _elems[n];
 		}
 		/// @brief Checked element access (const)
-		/// @throws VectorDimensionError if index out of bounds
+		/// @throws VectorAccessBoundsError if index out of bounds
 		const Type& at(int n) const { 
 			if(n < 0 || n >= size())
-				throw VectorDimensionError("Vector::at - index out of bounds", size(), n);
+				throw VectorAccessBoundsError("Vector::at - index out of bounds", n, size());
 			else
 				return _elems[n];
 		}
@@ -346,7 +354,7 @@ namespace MML
 		/// @param eps Maximum allowed difference per element
 		/// @return true if |this[i] - b[i]| <= eps for all i
 		/// @throws VectorDimensionError if sizes don't match
-		bool IsEqualTo(const Vector& b, Real eps = Defaults::VectorIsEqualTolerance) const
+		bool IsEqualTo(const Vector& b, Real eps = Precision::VectorIsEqualTolerance) const
 		{
 			if (size() != b.size())
 				throw VectorDimensionError("Vector::IsEqual - vectors must be equal size", size(), b.size());
@@ -360,7 +368,7 @@ namespace MML
 		}	
 		
 		/// @brief Check if all elements are zero
-		bool isZero() const noexcept
+		bool IsZero() const noexcept
 		{
 			for (int i = 0; i < size(); i++)
 				if (Abs((*this)[i]) != 0.0 )
@@ -371,13 +379,20 @@ namespace MML
 		/// @brief Check if all elements are near zero within tolerance
 		/// @param eps Maximum absolute value for an element to be considered near-zero
 		/// @return true if |this[i]| <= eps for all i
-		bool isNearZero(Real eps = Defaults::VectorIsEqualTolerance) const noexcept
+		bool IsNearZero(Real eps = Precision::VectorIsEqualTolerance) const noexcept
 		{
 			for (int i = 0; i < size(); i++)
 				if (Abs((*this)[i]) > eps)
 					return false;
 			return true;
 		}
+
+		/// @deprecated Use IsZero() (CONTRACT_POLICY §11: mathematical predicates are PascalCase).
+		[[deprecated("use IsZero()")]]
+		bool isZero() const noexcept { return IsZero(); }
+		/// @deprecated Use IsNearZero().
+		[[deprecated("use IsNearZero()")]]
+		bool isNearZero(Real eps = Precision::VectorIsEqualTolerance) const noexcept { return IsNearZero(eps); }
 
 		//////////////////////                 Operations                 ///////////////////////
 		
@@ -391,18 +406,14 @@ namespace MML
 		}
 		
 		/// @brief L2 norm (Euclidean length): ||v||_2 = √(Σ|v_i|²)
-		/// @details For complex vectors, uses std::norm(z) = |z|² = real² + imag²
+		/// @details Scaled accumulation (StableNormL2Accumulator): no overflow for components up to
+		///          Real max and no underflow to 0 for tiny components; |z| is used for complex entries.
 		Real NormL2() const
 		{
-			Real norm{ 0.0 };
-			for (int i = 0; i < size(); i++) {
-				if constexpr (MMLComplex<Type>) {
-					norm += std::norm((*this)[i]);  // |z|² for complex
-				} else {
-					norm += (*this)[i] * (*this)[i];  // x² for real
-				}
-			}
-			return std::sqrt(norm);
+			StableNormL2Accumulator acc;
+			for (int i = 0; i < size(); i++)
+				acc.add(Abs((*this)[i]));
+			return acc.value();
 		}
 		
 		/// @brief L∞ norm (maximum absolute value): ||v||_∞ = max|v_i|
@@ -423,23 +434,7 @@ namespace MML
 		/// @param zeroThreshold Values with |x| <= threshold printed as 0
 		std::ostream& Print(std::ostream& stream, int width, int precision, Real zeroThreshold) const
 		{
-			stream << "[";
-			bool first = true;
-			for (const Type& x : _elems)
-			{
-				if (!first)
-					stream << ", ";
-				else
-					first = false;
-
-        if( Abs(x) > zeroThreshold )
-				  stream << std::setw(width) << std::setprecision(precision) << x;
-        else
-          stream << std::setw(width) << std::setprecision(precision) << 0.0;
-			}
-			stream << "]";
-
-			return stream;
+			return PrintFormatting::Vector(stream, size(), [&](int i) { return (*this)[i]; }, width, precision, zeroThreshold, true);
 		}
 		
 		/// @brief Print vector to stream with formatting
@@ -461,9 +456,7 @@ namespace MML
 		/// @brief Print vector as column (one element per line)
 		std::ostream& PrintCol(std::ostream& stream, int width, int precision) const
 		{
-			for (const Type& x : _elems)
-				stream << std::setw(width) << std::setprecision(precision) << x << std::endl;
-			return stream;
+			return PrintFormatting::Column(stream, size(), [&](int i) { return (*this)[i]; }, width, precision);
 		}		
 
 		/// @brief Convert to string representation
@@ -490,42 +483,6 @@ namespace MML
 			return stream;
 		}
 		
-		/// @brief Save vector to text file (one value per line)
-		/// @param vec Vector to save
-		/// @param filename Path to output file
-		/// @return true if successful
-		static bool SaveToFile(const Vector& vec, const std::string& filename)
-		{
-			std::ofstream file(filename);
-			if (!file.is_open()) return false;
-			
-			file << vec._elems.size() << std::endl;
-			for (const auto& val : vec._elems)
-				file << val << std::endl;
-			
-			file.close();
-			return true;
-		}
-		
-		/// @brief Load vector from text file
-		/// @param filename Path to input file
-		/// @param outVec Vector to populate
-		/// @return true if successful
-		static bool LoadFromFile(const std::string& filename, Vector& outVec)
-		{
-			std::ifstream file(filename);
-			if (!file.is_open()) return false;
-			
-			size_t size;
-			file >> size;
-			outVec._elems.resize(size);
-			
-			for (size_t i = 0; i < size; ++i)
-				file >> outVec._elems[i];
-			
-			file.close();
-			return true;
-		}
 	};
 
 	// Common type aliases

@@ -1,4 +1,6 @@
 #include <catch2/catch_all.hpp>
+#include <complex>
+#include <cmath>
 #include "../../TestPrecision.h"
 #include "../../TestMatchers.h"
 
@@ -42,65 +44,65 @@ namespace MML::Tests::Base::VectorTests
 
 	TEST_CASE("Vector::Ctor_init_to_value", "[Vector]") {
 		TEST_PRECISION_INFO();
-		Vector<Real> a(3, REAL(1.5));
+		Vector<Real> a(3, static_cast<MML::Real>(1.5));
 
 		REQUIRE(3 == a.size());
 
-		REQUIRE(REAL(1.5) == a[0]);
-		REQUIRE(REAL(1.5) == a[1]);
-		REQUIRE(REAL(1.5) == a[2]);
+		REQUIRE(static_cast<MML::Real>(1.5) == a[0]);
+		REQUIRE(static_cast<MML::Real>(1.5) == a[1]);
+		REQUIRE(static_cast<MML::Real>(1.5) == a[2]);
 	}
 
 	TEST_CASE("Vector::Ctor_init_from_real_array", "[simple]") {
 		TEST_PRECISION_INFO();
-		Real x[] = { REAL(1.0), REAL(2.0), REAL(3.0) };
+		Real x[] = { static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) };
 		Vector<Real> a(3, x);
 
 		REQUIRE(3 == a.size());
 
-		REQUIRE(REAL(1.0) == a[0]);
-		REQUIRE(REAL(2.0) == a[1]);
-		REQUIRE(REAL(3.0) == a[2]);
+		REQUIRE(static_cast<MML::Real>(1.0) == a[0]);
+		REQUIRE(static_cast<MML::Real>(2.0) == a[1]);
+		REQUIRE(static_cast<MML::Real>(3.0) == a[2]);
 	}
 
 	TEST_CASE("Vector::Ctor_negative_size_throws", "[simple]")
 	{
 		TEST_PRECISION_INFO();
 		REQUIRE_THROWS_AS(Vector<Real>(-5), VectorInitializationError);
-		REQUIRE_THROWS_AS(Vector<Real>(-10, REAL(0.5)), VectorInitializationError);
+		REQUIRE_THROWS_AS(Vector<Real>(-10, static_cast<MML::Real>(0.5)), VectorInitializationError);
 
-		Real x[] = { REAL(1.0), REAL(2.0), REAL(3.0) };
+		Real x[] = { static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) };
 		REQUIRE_THROWS_AS(Vector<Real>(-3, x), VectorInitializationError);
 	}
 
 	TEST_CASE("Vector::Ctor_init_from_std vector", "[simple]") {
 		TEST_PRECISION_INFO();
-		std::vector<Real> x{ REAL(1.0), REAL(2.0), REAL(3.0) };
+		std::vector<Real> x{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) };
 		Vector<Real> a(x);
 
 		REQUIRE(3 == a.size());
 
-		REQUIRE(REAL(1.0) == a[0]);
-		REQUIRE(REAL(2.0) == a[1]);
-		REQUIRE(REAL(3.0) == a[2]);
+		REQUIRE(static_cast<MML::Real>(1.0) == a[0]);
+		REQUIRE(static_cast<MML::Real>(2.0) == a[1]);
+		REQUIRE(static_cast<MML::Real>(3.0) == a[2]);
 	}
 
 	TEST_CASE("Vector::Ctor_initializer_list", "[simple]") {
 		TEST_PRECISION_INFO();
-		Vector<Real> a{ REAL(1.0), REAL(2.0), REAL(3.0) };
+		Vector<Real> a{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) };
 
 		REQUIRE(3 == a.size());
 
-		REQUIRE(REAL(1.0) == a[0]);
-		REQUIRE(REAL(2.0) == a[1]);
-		REQUIRE(REAL(3.0) == a[2]);
+		REQUIRE(static_cast<MML::Real>(1.0) == a[0]);
+		REQUIRE(static_cast<MML::Real>(2.0) == a[1]);
+		REQUIRE(static_cast<MML::Real>(3.0) == a[2]);
 	}
 
 	TEST_CASE("Vector::IsEqual", "[simple]") {
 		TEST_PRECISION_INFO();
-		Vector<Real> a({ REAL(1.0), REAL(2.0) });
+		Vector<Real> a({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0) });
 		// Difference of 1e-5 is detectable across all precisions after scaling
-		Vector<Real> b({ REAL(1.0), REAL(2.00001) });
+		Vector<Real> b({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.00001) });
 
 		// Use precision-aware tolerance
 		// 1e-4 scales to 1e-2 (float), TOL(1e-8, 1e-4) scales to 1e-6 (float)
@@ -110,9 +112,9 @@ namespace MML::Tests::Base::VectorTests
 
 	TEST_CASE("Utils::AreEqual", "[simple]") {
 		TEST_PRECISION_INFO();
-		Vector<Real> a({ REAL(1.0), REAL(2.0) });
+		Vector<Real> a({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0) });
 		// Difference of 1e-5 is detectable across all precisions after scaling
-		Vector<Real> b({ REAL(1.0), REAL(2.00001) });
+		Vector<Real> b({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.00001) });
 
 		// Use precision-aware tolerance
 		// 1e-4 scales to 1e-2 (float), TOL(1e-8, 1e-4) scales to 1e-6 (float)
@@ -122,15 +124,15 @@ namespace MML::Tests::Base::VectorTests
 
 	TEST_CASE("Vector::access_operators", "[simple]") {
 		TEST_PRECISION_INFO();
-		Vector<Real> a({ REAL(1.0), REAL(2.0), REAL(3.0) });
+		Vector<Real> a({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) });
 
-		REQUIRE(REAL(1.0) == a[0]);
-		REQUIRE(REAL(2.0) == a[1]);
-		REQUIRE(REAL(3.0) == a[2]);
+		REQUIRE(static_cast<MML::Real>(1.0) == a[0]);
+		REQUIRE(static_cast<MML::Real>(2.0) == a[1]);
+		REQUIRE(static_cast<MML::Real>(3.0) == a[2]);
 
-		REQUIRE(REAL(1.0) == a.at(0));
-		REQUIRE(REAL(2.0) == a.at(1));
-		REQUIRE(REAL(3.0) == a.at(2));
+		REQUIRE(static_cast<MML::Real>(1.0) == a.at(0));
+		REQUIRE(static_cast<MML::Real>(2.0) == a.at(1));
+		REQUIRE(static_cast<MML::Real>(3.0) == a.at(2));
 	}
 
 	TEST_CASE("Vector::template_type_deduction", "[simple]") {
@@ -159,68 +161,68 @@ namespace MML::Tests::Base::VectorTests
 		REQUIRE(Complex(0, 2) == vec_cmplx[1]);
 
 		int x = 5;
-		Vector<Real> vec_dbl_1({ REAL(x * 1.0), REAL(sin(2.0)), REAL(3.0) });
+		Vector<Real> vec_dbl_1({ static_cast<MML::Real>(x * 1.0), static_cast<MML::Real>(sin(2.0)), static_cast<MML::Real>(3.0) });
 		// CAN'T DO THIS!
 		// Vector vec_dbl_2({ 1 , sin(2.0), 3.0 });
 		// needs explicit template type argument
-		Vector<Real> vec_dbl_2({ REAL(1) , REAL(sin(2.0)), REAL(3.0) });
+		Vector<Real> vec_dbl_2({ static_cast<MML::Real>(1) , static_cast<MML::Real>(sin(2.0)), static_cast<MML::Real>(3.0) });
 
-		Vector<Complex> vec_cmplx_1({ REAL(3.0) * Complex(1,1), Complex(0,2) - REAL(sin(2.5)) });
-		Vector<Complex> vec_cmplx_2({ REAL(1), REAL(3.5678), Complex(1, 1), REAL(sin(2.5)) });
+		Vector<Complex> vec_cmplx_1({ static_cast<MML::Real>(3.0) * Complex(1,1), Complex(0,2) - static_cast<MML::Real>(sin(2.5)) });
+		Vector<Complex> vec_cmplx_2({ static_cast<MML::Real>(1), static_cast<MML::Real>(3.5678), Complex(1, 1), static_cast<MML::Real>(sin(2.5)) });
 	}
 
 	TEST_CASE("Vector::Op+-", "[simple]") {
 		TEST_PRECISION_INFO();
-		Vector<Real> a({ REAL(1.0), REAL(2.0) });
-		Vector<Real> b({ REAL(1.0), REAL(2.0) });
+		Vector<Real> a({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0) });
+		Vector<Real> b({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0) });
 
 		auto c = a + b;
 		auto d = a - b;
 
-		REQUIRE(REAL(2.0) == c[0]);
-		REQUIRE(REAL(4.0) == c[1]);
+		REQUIRE(static_cast<MML::Real>(2.0) == c[0]);
+		REQUIRE(static_cast<MML::Real>(4.0) == c[1]);
 
-		REQUIRE(REAL(0.0) == d[0]);
-		REQUIRE(REAL(0.0) == d[1]);
+		REQUIRE(static_cast<MML::Real>(0.0) == d[0]);
+		REQUIRE(static_cast<MML::Real>(0.0) == d[1]);
 	}
 
 	TEST_CASE("Vector::mul_double", "[simple]") {
 		TEST_PRECISION_INFO();
-		Vector a({ REAL(1.0), REAL(100.0) });
+		Vector a({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(100.0) });
 
-		auto b = a * REAL(2.0);
-		auto c = REAL(2.0) * a;
+		auto b = a * static_cast<MML::Real>(2.0);
+		auto c = static_cast<MML::Real>(2.0) * a;
 
-		REQUIRE(REAL(2.0) == b[0]);
-		REQUIRE(REAL(2.0) == c[0]);
+		REQUIRE(static_cast<MML::Real>(2.0) == b[0]);
+		REQUIRE(static_cast<MML::Real>(2.0) == c[0]);
 
-		REQUIRE(REAL(200.0) == b[1]);
-		REQUIRE(REAL(200.0) == c[1]);
+		REQUIRE(static_cast<MML::Real>(200.0) == b[1]);
+		REQUIRE(static_cast<MML::Real>(200.0) == c[1]);
 	}
 
 	TEST_CASE("Vector::div_double", "[simple]") {
 		TEST_PRECISION_INFO();
-		Vector a({ REAL(4.0), REAL(400.0) });
+		Vector a({ static_cast<MML::Real>(4.0), static_cast<MML::Real>(400.0) });
 
-		auto b = a / REAL(2.0);
+		auto b = a / static_cast<MML::Real>(2.0);
 
-		REQUIRE(REAL(2.0) == b[0]);
-		REQUIRE(REAL(200.0) == b[1]);
+		REQUIRE(static_cast<MML::Real>(2.0) == b[0]);
+		REQUIRE(static_cast<MML::Real>(200.0) == b[1]);
 	}
 
 	TEST_CASE("Utils::ScalarProduct", "[simple]") {
 		TEST_PRECISION_INFO();
-		Vector a({ REAL(1.0), REAL(2.0) });
-		Vector b({ REAL(1.0), REAL(2.0) });
+		Vector a({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0) });
+		Vector b({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0) });
 
-		REQUIRE(REAL(5.0) == Utils::ScalarProduct(a, b));
+		REQUIRE(static_cast<MML::Real>(5.0) == Utils::ScalarProduct(a, b));
 	}
 
 	TEST_CASE("Vector::NormL2", "[simple]") {
 		TEST_PRECISION_INFO();
-		Vector a({ REAL(2.0), REAL(2.0) });
+		Vector a({ static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0) });
 
-		REQUIRE_THAT(a.NormL2(), RealApprox(std::sqrt(REAL(8.0))));
+		REQUIRE_THAT(a.NormL2(), RealApprox(std::sqrt(static_cast<MML::Real>(8.0))));
 	}
 
 	//TEST_CASE("Vector::AngleToVector", "[simple]") {
@@ -232,21 +234,21 @@ namespace MML::Tests::Base::VectorTests
 	//	Vector c({ 0.0, 1.0 });
 	//	Vector d({ 1.0, 1.0 });
 
-	//	REQUIRE_THAT(Constants::PI / 4, Catch::Matchers::WithinAbs(c.AngleToVector(d), REAL(1e-16)));
+	//	REQUIRE_THAT(Constants::PI / 4, Catch::Matchers::WithinAbs(c.AngleToVector(d), static_cast<MML::Real>(1e-16)));
 	//}
 
 	TEST_CASE("Vector::to_string", "[simple]") {
 		TEST_PRECISION_INFO();
-		Vector a({ REAL(2.0), REAL(2.0) });
+		Vector a({ static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0) });
 
 		REQUIRE("[    2,     2]" == a.to_string(5, 3));
 
-		Vector b({ REAL(123.0), REAL(1.0), REAL(10.0), REAL(-8.0) });
+		Vector b({ static_cast<MML::Real>(123.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(10.0), static_cast<MML::Real>(-8.0) });
 
 		REQUIRE("[    123,       1,      10,      -8]" == b.to_string(7, 3));
 
 		// Use float-safe values (powers of 2) for precision-independent testing
-		Vector c({ REAL(128.0), REAL(2.0), REAL(16.0) });
+		Vector c({ static_cast<MML::Real>(128.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(16.0) });
 
 		REQUIRE("[       128,          2,         16]" == c.to_string(10, 5));
 	REQUIRE("[            128,               2,              16]" == c.to_string(15, 9));
@@ -256,17 +258,17 @@ namespace MML::Tests::Base::VectorTests
 	{
 		TEST_PRECISION_INFO();
 		Vector<Real> vec_dim_5(5);
-		Vector<Real> vec_dim_4({ REAL(1.0), REAL(0.0), REAL(0.0), REAL(1.0) });
+		Vector<Real> vec_dim_4({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0) });
 
 		REQUIRE_THROWS_AS(Vector<Real>::UnitVector(-1, 5), VectorDimensionError);
 		REQUIRE_THROWS_AS(Vector<Real>::UnitVector(5, 7), VectorDimensionError);
 
 		REQUIRE_THROWS_AS(vec_dim_4.IsEqualTo(vec_dim_5), VectorDimensionError);
 
-		REQUIRE_THROWS_AS(vec_dim_4.at(5), VectorDimensionError);
-		REQUIRE_THROWS_AS(vec_dim_4.at(-1), VectorDimensionError);
-		REQUIRE_THROWS_AS(vec_dim_4.at(4) = REAL(5.0), VectorDimensionError);
-		REQUIRE_THROWS_AS(vec_dim_4.at(-1) = REAL(5.0), VectorDimensionError);
+		REQUIRE_THROWS_AS(vec_dim_4.at(5), VectorAccessBoundsError);
+		REQUIRE_THROWS_AS(vec_dim_4.at(-1), VectorAccessBoundsError);
+		REQUIRE_THROWS_AS(vec_dim_4.at(4) = static_cast<MML::Real>(5.0), VectorAccessBoundsError);
+		REQUIRE_THROWS_AS(vec_dim_4.at(-1) = static_cast<MML::Real>(5.0), VectorAccessBoundsError);
 
 		REQUIRE_THROWS_AS(vec_dim_4 + vec_dim_5, VectorDimensionError);
 		REQUIRE_THROWS_AS(vec_dim_4 - vec_dim_5, VectorDimensionError);
@@ -349,35 +351,35 @@ namespace MML::Tests::Base::VectorTests
 	TEST_CASE("Vector::EdgeCase_single_element", "[Vector][edge_cases]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> single1({REAL(3.0)});
-		Vector<Real> single2({REAL(4.0)});
+		Vector<Real> single1({static_cast<MML::Real>(3.0)});
+		Vector<Real> single2({static_cast<MML::Real>(4.0)});
 		
 		REQUIRE(single1.size() == 1);
-		REQUIRE(single1[0] == REAL(3.0));
+		REQUIRE(single1[0] == static_cast<MML::Real>(3.0));
 		
 		// Arithmetic
 		Vector<Real> sum = single1 + single2;
 		REQUIRE(sum.size() == 1);
-		REQUIRE(sum[0] == REAL(7.0));
+		REQUIRE(sum[0] == static_cast<MML::Real>(7.0));
 		
 		// Norm
-		REQUIRE(single1.NormL2() == REAL(3.0));
+		REQUIRE(single1.NormL2() == static_cast<MML::Real>(3.0));
 		
 		// Scalar product of single-element vectors
 		Real dot = Utils::ScalarProduct(single1, single2);
-		REQUIRE(dot == REAL(12.0));
+		REQUIRE(dot == static_cast<MML::Real>(12.0));
 	}
 
 	TEST_CASE("Vector::EdgeCase_large_vector", "[Vector][edge_cases]")
 	{
 		TEST_PRECISION_INFO();
 		const int N = 100000;
-		Vector<Real> large(N, REAL(1.0));
+		Vector<Real> large(N, static_cast<MML::Real>(1.0));
 		
 		REQUIRE(large.size() == N);
-		REQUIRE(large[0] == REAL(1.0));
-		REQUIRE(large[N-1] == REAL(1.0));
-		REQUIRE(large[N/2] == REAL(1.0));
+		REQUIRE(large[0] == static_cast<MML::Real>(1.0));
+		REQUIRE(large[N-1] == static_cast<MML::Real>(1.0));
+		REQUIRE(large[N/2] == static_cast<MML::Real>(1.0));
 		
 		// NormL2 of vector of ones should be sqrt(N)
 		Real norm = large.NormL2();
@@ -392,40 +394,40 @@ namespace MML::Tests::Base::VectorTests
 	{
 		TEST_PRECISION_INFO();
 		// v = [3+4i], |3+4i|² = 9+16 = 25, ||v|| = 5
-		Vector<Complex> v({Complex(REAL(3.0), REAL(4.0))});
+		Vector<Complex> v({Complex(static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0))});
 		
 		REQUIRE(v.size() == 1);
-		REQUIRE_THAT(v.NormL2(), RealApprox(REAL(5.0)));
+		REQUIRE_THAT(v.NormL2(), RealApprox(static_cast<MML::Real>(5.0)));
 	}
 
 	TEST_CASE("Vector<Complex>::NormL2_multiple_elements", "[Vector][complex]")
 	{
 		TEST_PRECISION_INFO();
 		// v = [3+4i, 0], |3+4i|² = 25, |0|² = 0, ||v|| = 5
-		Vector<Complex> v1({Complex(REAL(3.0), REAL(4.0)), Complex(REAL(0.0), REAL(0.0))});
-		REQUIRE_THAT(v1.NormL2(), RealApprox(REAL(5.0)));
+		Vector<Complex> v1({Complex(static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)), Complex(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0))});
+		REQUIRE_THAT(v1.NormL2(), RealApprox(static_cast<MML::Real>(5.0)));
 		
 		// v = [1+1i, 1+1i], |1+1i|² = 2, ||v||² = 4, ||v|| = 2
-		Vector<Complex> v2({Complex(REAL(1.0), REAL(1.0)), Complex(REAL(1.0), REAL(1.0))});
-		REQUIRE_THAT(v2.NormL2(), RealApprox(REAL(2.0)));
+		Vector<Complex> v2({Complex(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0)), Complex(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0))});
+		REQUIRE_THAT(v2.NormL2(), RealApprox(static_cast<MML::Real>(2.0)));
 		
 		// v = [1, i, 1+i], |1|² = 1, |i|² = 1, |1+i|² = 2, ||v||² = 4, ||v|| = 2
-		Vector<Complex> v3({Complex(REAL(1.0), REAL(0.0)), 
-		                    Complex(REAL(0.0), REAL(1.0)), 
-		                    Complex(REAL(1.0), REAL(1.0))});
-		REQUIRE_THAT(v3.NormL2(), RealApprox(REAL(2.0)));
+		Vector<Complex> v3({Complex(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)),
+		                    Complex(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)),
+		                    Complex(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0))});
+		REQUIRE_THAT(v3.NormL2(), RealApprox(static_cast<MML::Real>(2.0)));
 	}
 
 	TEST_CASE("Vector<Complex>::NormL2_pure_real", "[Vector][complex]")
 	{
 		TEST_PRECISION_INFO();
 		// Complex vector with zero imaginary parts should match real vector norm
-		Vector<Complex> vc({Complex(REAL(3.0), REAL(0.0)), Complex(REAL(4.0), REAL(0.0))});
-		Vector<Real> vr({REAL(3.0), REAL(4.0)});
+		Vector<Complex> vc({Complex(static_cast<MML::Real>(3.0), static_cast<MML::Real>(0.0)), Complex(static_cast<MML::Real>(4.0), static_cast<MML::Real>(0.0))});
+		Vector<Real> vr({static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)});
 		
 		// Both should give ||v|| = 5
-		REQUIRE_THAT(vc.NormL2(), RealApprox(REAL(5.0)));
-		REQUIRE_THAT(vr.NormL2(), RealApprox(REAL(5.0)));
+		REQUIRE_THAT(vc.NormL2(), RealApprox(static_cast<MML::Real>(5.0)));
+		REQUIRE_THAT(vr.NormL2(), RealApprox(static_cast<MML::Real>(5.0)));
 		REQUIRE_THAT(vc.NormL2(), RealApprox(vr.NormL2()));
 	}
 
@@ -433,8 +435,8 @@ namespace MML::Tests::Base::VectorTests
 	{
 		TEST_PRECISION_INFO();
 		// v = [3i, 4i], |3i|² = 9, |4i|² = 16, ||v|| = 5
-		Vector<Complex> v({Complex(REAL(0.0), REAL(3.0)), Complex(REAL(0.0), REAL(4.0))});
-		REQUIRE_THAT(v.NormL2(), RealApprox(REAL(5.0)));
+		Vector<Complex> v({Complex(static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0)), Complex(static_cast<MML::Real>(0.0), static_cast<MML::Real>(4.0))});
+		REQUIRE_THAT(v.NormL2(), RealApprox(static_cast<MML::Real>(5.0)));
 	}
 
 	TEST_CASE("Vector<Complex>::NormL2_unit_circle", "[Vector][complex]")
@@ -442,11 +444,11 @@ namespace MML::Tests::Base::VectorTests
 		TEST_PRECISION_INFO();
 		// All elements on unit circle: |e^(iθ)| = 1
 		// v = [1, i, -1, -i] (4 elements on unit circle), ||v|| = 2
-		Vector<Complex> v({Complex(REAL(1.0), REAL(0.0)),   // 1
-		                   Complex(REAL(0.0), REAL(1.0)),   // i
-		                   Complex(REAL(-1.0), REAL(0.0)),  // -1
-		                   Complex(REAL(0.0), REAL(-1.0))}); // -i
-		REQUIRE_THAT(v.NormL2(), RealApprox(REAL(2.0)));  // sqrt(4) = 2
+		Vector<Complex> v({Complex(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)),   // 1
+		                   Complex(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)),   // i
+		                   Complex(static_cast<MML::Real>(-1.0), static_cast<MML::Real>(0.0)),  // -1
+		                   Complex(static_cast<MML::Real>(0.0), static_cast<MML::Real>(-1.0))}); // -i
+		REQUIRE_THAT(v.NormL2(), RealApprox(static_cast<MML::Real>(2.0)));  // sqrt(4) = 2
 	}
 
 	TEST_CASE("Vector<Complex>::NormL2_empty", "[Vector][complex][edge_cases]")
@@ -454,7 +456,7 @@ namespace MML::Tests::Base::VectorTests
 		TEST_PRECISION_INFO();
 		Vector<Complex> empty;
 		REQUIRE(empty.size() == 0);
-		REQUIRE(empty.NormL2() == REAL(0.0));
+		REQUIRE(empty.NormL2() == static_cast<MML::Real>(0.0));
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -464,56 +466,56 @@ namespace MML::Tests::Base::VectorTests
 	TEST_CASE("Vector::copy_constructor", "[Vector][copy_move]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> original({REAL(1.0), REAL(2.0), REAL(3.0)});
+		Vector<Real> original({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
 		Vector<Real> copy(original);
 		
 		REQUIRE(copy.size() == 3);
-		REQUIRE(copy[0] == REAL(1.0));
-		REQUIRE(copy[1] == REAL(2.0));
-		REQUIRE(copy[2] == REAL(3.0));
+		REQUIRE(copy[0] == static_cast<MML::Real>(1.0));
+		REQUIRE(copy[1] == static_cast<MML::Real>(2.0));
+		REQUIRE(copy[2] == static_cast<MML::Real>(3.0));
 		
 		// Modify copy, original should be unchanged
-		copy[0] = REAL(99.0);
-		REQUIRE(original[0] == REAL(1.0));
+		copy[0] = static_cast<MML::Real>(99.0);
+		REQUIRE(original[0] == static_cast<MML::Real>(1.0));
 	}
 
 	TEST_CASE("Vector::copy_assignment", "[Vector][copy_move]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> original({REAL(1.0), REAL(2.0), REAL(3.0)});
+		Vector<Real> original({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
 		Vector<Real> copy;
 		copy = original;
 		
 		REQUIRE(copy.size() == 3);
-		REQUIRE(copy[0] == REAL(1.0));
+		REQUIRE(copy[0] == static_cast<MML::Real>(1.0));
 		
 		// Modify copy, original should be unchanged
-		copy[1] = REAL(99.0);
-		REQUIRE(original[1] == REAL(2.0));
+		copy[1] = static_cast<MML::Real>(99.0);
+		REQUIRE(original[1] == static_cast<MML::Real>(2.0));
 	}
 
 	TEST_CASE("Vector::move_constructor", "[Vector][copy_move]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> original({REAL(1.0), REAL(2.0), REAL(3.0)});
+		Vector<Real> original({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
 		Vector<Real> moved(std::move(original));
 		
 		REQUIRE(moved.size() == 3);
-		REQUIRE(moved[0] == REAL(1.0));
-		REQUIRE(moved[1] == REAL(2.0));
-		REQUIRE(moved[2] == REAL(3.0));
+		REQUIRE(moved[0] == static_cast<MML::Real>(1.0));
+		REQUIRE(moved[1] == static_cast<MML::Real>(2.0));
+		REQUIRE(moved[2] == static_cast<MML::Real>(3.0));
 		// original is in valid but unspecified state after move
 	}
 
 	TEST_CASE("Vector::move_assignment", "[Vector][copy_move]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> original({REAL(1.0), REAL(2.0), REAL(3.0)});
+		Vector<Real> original({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
 		Vector<Real> moved;
 		moved = std::move(original);
 		
 		REQUIRE(moved.size() == 3);
-		REQUIRE(moved[0] == REAL(1.0));
+		REQUIRE(moved[0] == static_cast<MML::Real>(1.0));
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -524,7 +526,7 @@ namespace MML::Tests::Base::VectorTests
 	{
 		TEST_PRECISION_INFO();
 		Vector<Real> empty;
-		Vector<Real> nonempty({REAL(1.0)});
+		Vector<Real> nonempty({static_cast<MML::Real>(1.0)});
 		
 		REQUIRE(empty.empty() == true);
 		REQUIRE(nonempty.empty() == false);
@@ -533,50 +535,50 @@ namespace MML::Tests::Base::VectorTests
 	TEST_CASE("Vector::front_back", "[Vector][stl_interface]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> v({REAL(1.0), REAL(2.0), REAL(3.0)});
+		Vector<Real> v({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
 		
-		REQUIRE(v.front() == REAL(1.0));
-		REQUIRE(v.back() == REAL(3.0));
+		REQUIRE(v.front() == static_cast<MML::Real>(1.0));
+		REQUIRE(v.back() == static_cast<MML::Real>(3.0));
 		
 		// Modify through front/back
-		v.front() = REAL(10.0);
-		v.back() = REAL(30.0);
-		REQUIRE(v[0] == REAL(10.0));
-		REQUIRE(v[2] == REAL(30.0));
+		v.front() = static_cast<MML::Real>(10.0);
+		v.back() = static_cast<MML::Real>(30.0);
+		REQUIRE(v[0] == static_cast<MML::Real>(10.0));
+		REQUIRE(v[2] == static_cast<MML::Real>(30.0));
 		
 		// Const version
-		const Vector<Real> cv({REAL(5.0), REAL(6.0), REAL(7.0)});
-		REQUIRE(cv.front() == REAL(5.0));
-		REQUIRE(cv.back() == REAL(7.0));
+		const Vector<Real> cv({static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0), static_cast<MML::Real>(7.0)});
+		REQUIRE(cv.front() == static_cast<MML::Real>(5.0));
+		REQUIRE(cv.back() == static_cast<MML::Real>(7.0));
 	}
 
 	TEST_CASE("Vector::iterators", "[Vector][stl_interface]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> v({REAL(1.0), REAL(2.0), REAL(3.0)});
+		Vector<Real> v({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
 		
 		// Range-based for (uses begin/end)
-		Real sum = REAL(0.0);
+		Real sum = static_cast<MML::Real>(0.0);
 		for (const auto& x : v) {
 			sum += x;
 		}
-		REQUIRE(sum == REAL(6.0));
+		REQUIRE(sum == static_cast<MML::Real>(6.0));
 		
 		// Modify through iterator
 		for (auto& x : v) {
-			x *= REAL(2.0);
+			x *= static_cast<MML::Real>(2.0);
 		}
-		REQUIRE(v[0] == REAL(2.0));
-		REQUIRE(v[1] == REAL(4.0));
-		REQUIRE(v[2] == REAL(6.0));
+		REQUIRE(v[0] == static_cast<MML::Real>(2.0));
+		REQUIRE(v[1] == static_cast<MML::Real>(4.0));
+		REQUIRE(v[2] == static_cast<MML::Real>(6.0));
 		
 		// cbegin/cend
-		const Vector<Real> cv({REAL(1.0), REAL(2.0)});
-		Real csum = REAL(0.0);
+		const Vector<Real> cv({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)});
+		Real csum = static_cast<MML::Real>(0.0);
 		for (auto it = cv.cbegin(); it != cv.cend(); ++it) {
 			csum += *it;
 		}
-		REQUIRE(csum == REAL(3.0));
+		REQUIRE(csum == static_cast<MML::Real>(3.0));
 	}
 
 	TEST_CASE("Vector::push_back", "[Vector][stl_interface]")
@@ -584,72 +586,72 @@ namespace MML::Tests::Base::VectorTests
 		TEST_PRECISION_INFO();
 		Vector<Real> v;
 		
-		v.push_back(REAL(1.0));
+		v.push_back(static_cast<MML::Real>(1.0));
 		REQUIRE(v.size() == 1);
-		REQUIRE(v[0] == REAL(1.0));
+		REQUIRE(v[0] == static_cast<MML::Real>(1.0));
 		
-		v.push_back(REAL(2.0));
+		v.push_back(static_cast<MML::Real>(2.0));
 		REQUIRE(v.size() == 2);
-		REQUIRE(v[1] == REAL(2.0));
+		REQUIRE(v[1] == static_cast<MML::Real>(2.0));
 		
 		// Push_back with move
-		Real val = REAL(3.0);
+		Real val = static_cast<MML::Real>(3.0);
 		v.push_back(std::move(val));
 		REQUIRE(v.size() == 3);
-		REQUIRE(v[2] == REAL(3.0));
+		REQUIRE(v[2] == static_cast<MML::Real>(3.0));
 	}
 
 	TEST_CASE("Vector::insert", "[Vector][stl_interface]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> v({REAL(1.0), REAL(3.0)});
+		Vector<Real> v({static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0)});
 		
-		v.insert(1, REAL(2.0));  // Insert at position 1
+		v.insert(1, static_cast<MML::Real>(2.0));  // Insert at position 1
 		REQUIRE(v.size() == 3);
-		REQUIRE(v[0] == REAL(1.0));
-		REQUIRE(v[1] == REAL(2.0));
-		REQUIRE(v[2] == REAL(3.0));
+		REQUIRE(v[0] == static_cast<MML::Real>(1.0));
+		REQUIRE(v[1] == static_cast<MML::Real>(2.0));
+		REQUIRE(v[2] == static_cast<MML::Real>(3.0));
 		
-		v.insert(0, REAL(0.0));  // Insert at beginning
+		v.insert(0, static_cast<MML::Real>(0.0));  // Insert at beginning
 		REQUIRE(v.size() == 4);
-		REQUIRE(v[0] == REAL(0.0));
-		REQUIRE(v[1] == REAL(1.0));
+		REQUIRE(v[0] == static_cast<MML::Real>(0.0));
+		REQUIRE(v[1] == static_cast<MML::Real>(1.0));
 	}
 
 	TEST_CASE("Vector::erase", "[Vector][stl_interface]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> v({REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)});
+		Vector<Real> v({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)});
 		
 		// Erase single element
 		v.erase(1);  // Erase element at position 1
 		REQUIRE(v.size() == 3);
-		REQUIRE(v[0] == REAL(1.0));
-		REQUIRE(v[1] == REAL(3.0));
-		REQUIRE(v[2] == REAL(4.0));
+		REQUIRE(v[0] == static_cast<MML::Real>(1.0));
+		REQUIRE(v[1] == static_cast<MML::Real>(3.0));
+		REQUIRE(v[2] == static_cast<MML::Real>(4.0));
 		
 		// Erase range
-		Vector<Real> v2({REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0), REAL(5.0)});
+		Vector<Real> v2({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0)});
 		v2.erase(1, 3);  // Erase elements at positions 1,2
 		REQUIRE(v2.size() == 3);
-		REQUIRE(v2[0] == REAL(1.0));
-		REQUIRE(v2[1] == REAL(4.0));
-		REQUIRE(v2[2] == REAL(5.0));
+		REQUIRE(v2[0] == static_cast<MML::Real>(1.0));
+		REQUIRE(v2[1] == static_cast<MML::Real>(4.0));
+		REQUIRE(v2[2] == static_cast<MML::Real>(5.0));
 		
 		// Erase by value
-		Vector<Real> v3({REAL(1.0), REAL(2.0), REAL(2.0), REAL(3.0)});
-		v3.erase(REAL(2.0));  // Erase all occurrences of 2.0
+		Vector<Real> v3({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
+		v3.erase(static_cast<MML::Real>(2.0));  // Erase all occurrences of 2.0
 		REQUIRE(v3.size() == 2);
-		REQUIRE(v3[0] == REAL(1.0));
-		REQUIRE(v3[1] == REAL(3.0));
+		REQUIRE(v3[0] == static_cast<MML::Real>(1.0));
+		REQUIRE(v3[1] == static_cast<MML::Real>(3.0));
 	}
 
 	TEST_CASE("Vector::Clear", "[Vector][stl_interface]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> v({REAL(1.0), REAL(2.0), REAL(3.0)});
+		Vector<Real> v({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
 		
-		v.Clear();
+		v.clear();
 		REQUIRE(v.size() == 0);
 		REQUIRE(v.empty() == true);
 	}
@@ -657,30 +659,30 @@ namespace MML::Tests::Base::VectorTests
 	TEST_CASE("Vector::Resize", "[Vector][stl_interface]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> v({REAL(1.0), REAL(2.0), REAL(3.0)});
+		Vector<Real> v({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
 		
 		// Resize smaller without preserving
-		v.Resize(2);
+		v.resize(2);
 		REQUIRE(v.size() == 2);
 		
 		// Resize larger
-		v.Resize(5);
+		v.resize(5);
 		REQUIRE(v.size() == 5);
 		
 		// Resize with preserve
-		Vector<Real> v2({REAL(1.0), REAL(2.0), REAL(3.0)});
-		v2.Resize(5, true);  // Preserve existing elements
+		Vector<Real> v2({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
+		v2.resize(5, true);  // Preserve existing elements
 		REQUIRE(v2.size() == 5);
-		REQUIRE(v2[0] == REAL(1.0));
-		REQUIRE(v2[1] == REAL(2.0));
-		REQUIRE(v2[2] == REAL(3.0));
+		REQUIRE(v2[0] == static_cast<MML::Real>(1.0));
+		REQUIRE(v2[1] == static_cast<MML::Real>(2.0));
+		REQUIRE(v2[2] == static_cast<MML::Real>(3.0));
 		
 		// Resize smaller with preserve
-		Vector<Real> v3({REAL(1.0), REAL(2.0), REAL(3.0)});
-		v3.Resize(2, true);
+		Vector<Real> v3({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
+		v3.resize(2, true);
 		REQUIRE(v3.size() == 2);
-		REQUIRE(v3[0] == REAL(1.0));
-		REQUIRE(v3[1] == REAL(2.0));
+		REQUIRE(v3[0] == static_cast<MML::Real>(1.0));
+		REQUIRE(v3[1] == static_cast<MML::Real>(2.0));
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -690,72 +692,72 @@ namespace MML::Tests::Base::VectorTests
 	TEST_CASE("Vector::operator_plus_equals", "[Vector][operators]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> a({REAL(1.0), REAL(2.0), REAL(3.0)});
-		Vector<Real> b({REAL(4.0), REAL(5.0), REAL(6.0)});
+		Vector<Real> a({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
+		Vector<Real> b({static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0), static_cast<MML::Real>(6.0)});
 		
 		a += b;
-		REQUIRE(a[0] == REAL(5.0));
-		REQUIRE(a[1] == REAL(7.0));
-		REQUIRE(a[2] == REAL(9.0));
+		REQUIRE(a[0] == static_cast<MML::Real>(5.0));
+		REQUIRE(a[1] == static_cast<MML::Real>(7.0));
+		REQUIRE(a[2] == static_cast<MML::Real>(9.0));
 		
 		// b should be unchanged
-		REQUIRE(b[0] == REAL(4.0));
+		REQUIRE(b[0] == static_cast<MML::Real>(4.0));
 	}
 
 	TEST_CASE("Vector::operator_minus_equals", "[Vector][operators]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> a({REAL(5.0), REAL(7.0), REAL(9.0)});
-		Vector<Real> b({REAL(1.0), REAL(2.0), REAL(3.0)});
+		Vector<Real> a({static_cast<MML::Real>(5.0), static_cast<MML::Real>(7.0), static_cast<MML::Real>(9.0)});
+		Vector<Real> b({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
 		
 		a -= b;
-		REQUIRE(a[0] == REAL(4.0));
-		REQUIRE(a[1] == REAL(5.0));
-		REQUIRE(a[2] == REAL(6.0));
+		REQUIRE(a[0] == static_cast<MML::Real>(4.0));
+		REQUIRE(a[1] == static_cast<MML::Real>(5.0));
+		REQUIRE(a[2] == static_cast<MML::Real>(6.0));
 	}
 
 	TEST_CASE("Vector::operator_times_equals", "[Vector][operators]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> a({REAL(1.0), REAL(2.0), REAL(3.0)});
+		Vector<Real> a({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
 		
-		a *= REAL(2.0);
-		REQUIRE(a[0] == REAL(2.0));
-		REQUIRE(a[1] == REAL(4.0));
-		REQUIRE(a[2] == REAL(6.0));
+		a *= static_cast<MML::Real>(2.0);
+		REQUIRE(a[0] == static_cast<MML::Real>(2.0));
+		REQUIRE(a[1] == static_cast<MML::Real>(4.0));
+		REQUIRE(a[2] == static_cast<MML::Real>(6.0));
 	}
 
 	TEST_CASE("Vector::operator_divide_equals", "[Vector][operators]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> a({REAL(2.0), REAL(4.0), REAL(6.0)});
+		Vector<Real> a({static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0)});
 		
-		a /= REAL(2.0);
-		REQUIRE(a[0] == REAL(1.0));
-		REQUIRE(a[1] == REAL(2.0));
-		REQUIRE(a[2] == REAL(3.0));
+		a /= static_cast<MML::Real>(2.0);
+		REQUIRE(a[0] == static_cast<MML::Real>(1.0));
+		REQUIRE(a[1] == static_cast<MML::Real>(2.0));
+		REQUIRE(a[2] == static_cast<MML::Real>(3.0));
 	}
 
 	TEST_CASE("Vector::unary_negation", "[Vector][operators]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> a({REAL(1.0), REAL(-2.0), REAL(3.0)});
+		Vector<Real> a({static_cast<MML::Real>(1.0), static_cast<MML::Real>(-2.0), static_cast<MML::Real>(3.0)});
 		
 		Vector<Real> neg = -a;
-		REQUIRE(neg[0] == REAL(-1.0));
-		REQUIRE(neg[1] == REAL(2.0));
-		REQUIRE(neg[2] == REAL(-3.0));
+		REQUIRE(neg[0] == static_cast<MML::Real>(-1.0));
+		REQUIRE(neg[1] == static_cast<MML::Real>(2.0));
+		REQUIRE(neg[2] == static_cast<MML::Real>(-3.0));
 		
 		// Original unchanged
-		REQUIRE(a[0] == REAL(1.0));
+		REQUIRE(a[0] == static_cast<MML::Real>(1.0));
 	}
 
 	TEST_CASE("Vector::operator_not_equals", "[Vector][operators]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> a({REAL(1.0), REAL(2.0)});
-		Vector<Real> b({REAL(1.0), REAL(2.0)});
-		Vector<Real> c({REAL(1.0), REAL(3.0)});
+		Vector<Real> a({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)});
+		Vector<Real> b({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)});
+		Vector<Real> c({static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0)});
 		
 		REQUIRE((a != b) == false);
 		REQUIRE((a != c) == true);
@@ -768,36 +770,36 @@ namespace MML::Tests::Base::VectorTests
 	TEST_CASE("Vector::NormL1", "[Vector][norms]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> v({REAL(1.0), REAL(-2.0), REAL(3.0)});
+		Vector<Real> v({static_cast<MML::Real>(1.0), static_cast<MML::Real>(-2.0), static_cast<MML::Real>(3.0)});
 		
-		REQUIRE(v.NormL1() == REAL(6.0));  // |1| + |-2| + |3| = 6
+		REQUIRE(v.NormL1() == static_cast<MML::Real>(6.0));  // |1| + |-2| + |3| = 6
 		
-		Vector<Real> zeros(3, REAL(0.0));
-		REQUIRE(zeros.NormL1() == REAL(0.0));
+		Vector<Real> zeros(3, static_cast<MML::Real>(0.0));
+		REQUIRE(zeros.NormL1() == static_cast<MML::Real>(0.0));
 	}
 
 	TEST_CASE("Vector::NormLInf", "[Vector][norms]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> v({REAL(1.0), REAL(-5.0), REAL(3.0)});
+		Vector<Real> v({static_cast<MML::Real>(1.0), static_cast<MML::Real>(-5.0), static_cast<MML::Real>(3.0)});
 		
-		REQUIRE(v.NormLInf() == REAL(5.0));  // max(|1|, |-5|, |3|) = 5
+		REQUIRE(v.NormLInf() == static_cast<MML::Real>(5.0));  // max(|1|, |-5|, |3|) = 5
 		
-		Vector<Real> zeros(3, REAL(0.0));
-		REQUIRE(zeros.NormLInf() == REAL(0.0));
+		Vector<Real> zeros(3, static_cast<MML::Real>(0.0));
+		REQUIRE(zeros.NormLInf() == static_cast<MML::Real>(0.0));
 	}
 
 	TEST_CASE("Vector::IsNullVec", "[Vector][norms]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> zeros(3, REAL(0.0));
-		Vector<Real> nonzero({REAL(0.0), REAL(1.0), REAL(0.0)});
+		Vector<Real> zeros(3, static_cast<MML::Real>(0.0));
+		Vector<Real> nonzero({static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)});
 		
-		REQUIRE(zeros.isZero() == true);
-		REQUIRE(nonzero.isZero() == false);
+		REQUIRE(zeros.IsZero() == true);
+		REQUIRE(nonzero.IsZero() == false);
 		
 		Vector<Real> empty;
-		REQUIRE(empty.isZero() == true);  // Empty vector is null
+		REQUIRE(empty.IsZero() == true);  // Empty vector is null
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -807,7 +809,7 @@ namespace MML::Tests::Base::VectorTests
 	TEST_CASE("Vector::Print", "[Vector][output]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> v({REAL(1.0), REAL(2.0), REAL(3.0)});
+		Vector<Real> v({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
 		
 		std::ostringstream oss;
 		v.Print(oss, 5, 2);
@@ -823,10 +825,10 @@ namespace MML::Tests::Base::VectorTests
 	TEST_CASE("Vector::Print_zeroThreshold", "[Vector][output]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> v({REAL(1.0), TOL(1e-10, 1e-5), REAL(3.0)});
+		Vector<Real> v({static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5), static_cast<MML::Real>(3.0)});
 		
 		std::ostringstream oss;
-		v.Print(oss, 5, 2, REAL(1e-5));  // Values below 1e-5 printed as 0
+		v.Print(oss, 5, 2, static_cast<MML::Real>(1e-5));  // Values below 1e-5 printed as 0
 		std::string result = oss.str();
 		
 		// The small value should be printed as 0
@@ -836,7 +838,7 @@ namespace MML::Tests::Base::VectorTests
 	TEST_CASE("Vector::PrintLine", "[Vector][output]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> v({REAL(1.0), REAL(2.0)});
+		Vector<Real> v({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)});
 		
 		std::ostringstream oss;
 		v.PrintLine(oss, "Values: ", 5, 2);
@@ -849,7 +851,7 @@ namespace MML::Tests::Base::VectorTests
 	TEST_CASE("Vector::PrintCol", "[Vector][output]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> v({REAL(1.0), REAL(2.0), REAL(3.0)});
+		Vector<Real> v({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
 		
 		std::ostringstream oss;
 		v.PrintCol(oss, 5, 2);
@@ -863,7 +865,7 @@ namespace MML::Tests::Base::VectorTests
 	TEST_CASE("Vector::stream_output", "[Vector][output]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> v({REAL(1.0), REAL(2.0)});
+		Vector<Real> v({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)});
 		
 		std::ostringstream oss;
 		oss << v;
@@ -918,19 +920,19 @@ namespace MML::Tests::Base::VectorTests
 	{
 		TEST_PRECISION_INFO();
 		Vector<Real> e0 = Vector<Real>::UnitVector(3, 0);
-		REQUIRE(e0[0] == REAL(1.0));
-		REQUIRE(e0[1] == REAL(0.0));
-		REQUIRE(e0[2] == REAL(0.0));
+		REQUIRE(e0[0] == static_cast<MML::Real>(1.0));
+		REQUIRE(e0[1] == static_cast<MML::Real>(0.0));
+		REQUIRE(e0[2] == static_cast<MML::Real>(0.0));
 		
 		Vector<Real> e1 = Vector<Real>::UnitVector(3, 1);
-		REQUIRE(e1[0] == REAL(0.0));
-		REQUIRE(e1[1] == REAL(1.0));
-		REQUIRE(e1[2] == REAL(0.0));
+		REQUIRE(e1[0] == static_cast<MML::Real>(0.0));
+		REQUIRE(e1[1] == static_cast<MML::Real>(1.0));
+		REQUIRE(e1[2] == static_cast<MML::Real>(0.0));
 		
 		Vector<Real> e2 = Vector<Real>::UnitVector(3, 2);
-		REQUIRE(e2[0] == REAL(0.0));
-		REQUIRE(e2[1] == REAL(0.0));
-		REQUIRE(e2[2] == REAL(1.0));
+		REQUIRE(e2[0] == static_cast<MML::Real>(0.0));
+		REQUIRE(e2[1] == static_cast<MML::Real>(0.0));
+		REQUIRE(e2[2] == static_cast<MML::Real>(1.0));
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -940,11 +942,47 @@ namespace MML::Tests::Base::VectorTests
 	TEST_CASE("Vector::compound_assignment_dimension_mismatch", "[Vector][exceptions]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> a({REAL(1.0), REAL(2.0), REAL(3.0)});
-		Vector<Real> b({REAL(1.0), REAL(2.0)});
+		Vector<Real> a({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
+		Vector<Real> b({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)});
 		
 		REQUIRE_THROWS_AS(a += b, VectorDimensionError);
 		REQUIRE_THROWS_AS(a -= b, VectorDimensionError);
+	}
+
+
+	TEST_CASE("Vector/VectorN NormL2 is overflow- and underflow-safe (scaled accumulation)", "[Vector][VectorN][norm][wewi.1.16]")
+	{
+		// Naive sqrt(sum x^2) overflows to inf for |x| > ~1e154 and underflows to 0 below ~1e-154
+		const Real big = static_cast<MML::Real>(1e200), tiny = static_cast<MML::Real>(1e-200);
+
+		Vector<Real> vBig({big, big});
+		REQUIRE(std::isfinite(vBig.NormL2()));
+		REQUIRE_THAT(vBig.NormL2(), Catch::Matchers::WithinRel(big * std::sqrt(static_cast<MML::Real>(2.0)), static_cast<MML::Real>(1e-14)));
+
+		Vector<Real> vTiny({tiny, tiny});
+		REQUIRE(vTiny.NormL2() > static_cast<MML::Real>(0.0));
+		REQUIRE_THAT(vTiny.NormL2(), Catch::Matchers::WithinRel(tiny * std::sqrt(static_cast<MML::Real>(2.0)), static_cast<MML::Real>(1e-14)));
+
+		VectorN<Real, 3> nBig{big, -big, big};
+		REQUIRE_THAT(nBig.NormL2(), Catch::Matchers::WithinRel(big * std::sqrt(static_cast<MML::Real>(3.0)), static_cast<MML::Real>(1e-14)));
+
+		Vector<Real> mixed({static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(0.0), tiny});
+		REQUIRE_THAT(mixed.NormL2(), Catch::Matchers::WithinRel(static_cast<MML::Real>(5.0), static_cast<MML::Real>(1e-15)));
+
+		Vector<Complex> cBig({Complex(big, big), Complex(0.0, big)});
+		REQUIRE(std::isfinite(cBig.NormL2()));
+		REQUIRE_THAT(cBig.NormL2(), Catch::Matchers::WithinRel(big * std::sqrt(static_cast<MML::Real>(3.0)), static_cast<MML::Real>(1e-14)));
+
+		Vector<Real> zero(4, static_cast<MML::Real>(0.0));
+		REQUIRE(zero.NormL2() == static_cast<MML::Real>(0.0));
+		Vector<Real> empty;
+		REQUIRE(empty.NormL2() == static_cast<MML::Real>(0.0));
+
+		// Complex inner product is Hermitian (b conjugated) and consistent with the norm
+		Vector<Complex> z({Complex(1.0, 2.0), Complex(-3.0, 0.5)});
+		Complex zz = Utils::ScalarProduct(z, z);
+		REQUIRE_THAT(zz.imag(), Catch::Matchers::WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-15)));
+		REQUIRE_THAT(std::sqrt(zz.real()), Catch::Matchers::WithinRel(z.NormL2(), static_cast<MML::Real>(1e-14)));
 	}
 
 } // namespace MML::VectorTests

@@ -54,8 +54,8 @@ namespace MML
 				Stencil::value_offsets, Stencil::error_offsets,
 				[](const auto& at, const auto& norm, Real step) {
 					auto diff = at(1) - at(-1);
-					return Constants::Eps * norm((at(1) + at(-1)) / (REAL(2.0) * step))
-					     + norm((at(2) - at(-2)) / REAL(2.0) - diff) / (REAL(6.0) * step);
+					return Constants::Eps * norm((at(1) + at(-1)) / (static_cast<MML::Real>(2.0) * step))
+					     + norm((at(2) - at(-2)) / static_cast<MML::Real>(2.0) - diff) / (static_cast<MML::Real>(6.0) * step);
 				});
 			if (error) *error = result.error;
 			return result.value;
@@ -78,10 +78,10 @@ namespace MML
 				[&](int offset) { return f(t + offset * h); }, [](const auto& value) { return value.NormL2(); }, h, error != nullptr,
 				Stencil::value_offsets, Stencil::error_offsets,
 				[](const auto& at, const auto& norm, Real step) {
-					Real truncation = norm(at(3) - at(-3)) / REAL(2.0) + REAL(2.0) * norm(at(-2) - at(2))
-					                + REAL(5.0) * norm(at(1) - at(-1)) / REAL(2.0);
-					return std::abs(truncation) / (REAL(30.0) * step)
-					     + Constants::Eps * (norm(at(2)) + norm(at(-2)) + REAL(8.0) * (norm(at(-1)) + norm(at(1)))) / (REAL(12.0) * step);
+					Real truncation = norm(at(3) - at(-3)) / static_cast<MML::Real>(2.0) + static_cast<MML::Real>(2.0) * norm(at(-2) - at(2))
+					                + static_cast<MML::Real>(5.0) * norm(at(1) - at(-1)) / static_cast<MML::Real>(2.0);
+					return std::abs(truncation) / (static_cast<MML::Real>(30.0) * step)
+					     + Constants::Eps * (norm(at(2)) + norm(at(-2)) + static_cast<MML::Real>(8.0) * (norm(at(-1)) + norm(at(1)))) / (static_cast<MML::Real>(12.0) * step);
 				});
 			if (error) *error = result.error;
 			return result.value;

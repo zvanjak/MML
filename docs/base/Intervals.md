@@ -76,7 +76,7 @@ Interval (compound interval - union of BaseIntervals)
 ### Key Design Decisions
 
 1. **Friend Class Pattern**: `Interval` is declared as a friend of `BaseInterval` to access protected members for set operations
-2. **Vector-Based Output**: `GetEquidistantCovering` returns points via output parameter for efficiency
+2. **Vector-Based Output**: `getEquidistantCovering` returns points via output parameter for efficiency
 3. **Static Factory Methods**: Set operations (`Intersection`, `Difference`, `Complement`) available as static constructors on `Interval`
 4. **Epsilon-Based Comparisons**: All floating-point comparisons use configurable epsilon for numerical stability
 
@@ -308,12 +308,12 @@ Generates uniformly distributed points across the interval.
 ```cpp
 ClosedInterval interval(0.0, 10.0);
 std::vector<Real> points;
-interval.GetEquidistantCovering(5, points);
+interval.getEquidistantCovering(5, points);
 // points = {0.0, 2.5, 5.0, 7.5, 10.0}
 
 OpenInterval open(0.0, 10.0);
 std::vector<Real> openPoints;
-open.GetEquidistantCovering(5, openPoints);
+open.getEquidistantCovering(5, openPoints);
 // openPoints ≈ {0.0+ε, 2.5, 5.0, 7.5, 10.0-ε}
 // where ε is a small offset for open endpoints
 ```
@@ -375,7 +375,7 @@ Bracket roots before applying numerical methods.
 
 ClosedInterval<double> searchRange(0.0, 5.0);
 std::vector<double> testPoints;
-searchRange.GetEquidistantCovering(20, testPoints);
+searchRange.getEquidistantCovering(20, testPoints);
 
 // Sample function at test points to find sign changes
 // (sign changes indicate roots by Intermediate Value Theorem)
@@ -431,7 +431,7 @@ bool contains12 = compound.contains(12.0);           // true (in [10, 15])
 
 // Generate covering points
 std::vector<double> points;
-compound.GetEquidistantCovering(15, points);
+compound.getEquidistantCovering(15, points);
 // Distributes points proportionally across all sub-intervals
 ```
 
@@ -531,10 +531,10 @@ Balance point count vs. accuracy needs:
 // ✓ GOOD: Reasonable point count for numerical integration
 ClosedInterval<double> domain(0.0, 1.0);
 std::vector<double> points;
-domain.GetEquidistantCovering(100, points);  // 100 points usually sufficient
+domain.getEquidistantCovering(100, points);  // 100 points usually sufficient
 
 // ✗ AVOID: Excessive points causing performance issues
-domain.GetEquidistantCovering(1000000, points);  // Overkill for most cases
+domain.getEquidistantCovering(1000000, points);  // Overkill for most cases
 ```
 
 ### 4. Leverage Compound Intervals

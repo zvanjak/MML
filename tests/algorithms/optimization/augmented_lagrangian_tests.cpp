@@ -24,9 +24,9 @@ namespace {
 	// Classic Rosenbrock, local to this test file
 	struct Rosenbrock2D {
 		Real operator()(const VectorN<Real, 2>& x) const {
-			Real a = REAL(1.0) - x[0];
+			Real a = static_cast<MML::Real>(1.0) - x[0];
 			Real b = x[1] - x[0] * x[0];
-			return a * a + REAL(100.0) * b * b;
+			return a * a + static_cast<MML::Real>(100.0) * b * b;
 		}
 	};
 }
@@ -65,7 +65,7 @@ TEST_CASE("ALM: Construction with config", "[ALM][construction]")
 {
 	ALMConfig config;
 	config.max_outer_iterations = 50;
-	config.initial_penalty = REAL(100.0);
+	config.initial_penalty = static_cast<MML::Real>(100.0);
 
 	AugmentedLagrangian<2> alm(config);
 
@@ -88,11 +88,11 @@ TEST_CASE("ALM: Single inequality constraint", "[ALM][optimization]")
 	};
 
 	auto constraint = [](const VectorN<Real, 2>& x) -> Real {
-		return -x[0] - x[1] + REAL(1.0);  // -x - y + 1 <= 0 means x + y >= 1
+		return -x[0] - x[1] + static_cast<MML::Real>(1.0);  // -x - y + 1 <= 0 means x + y >= 1
 	};
 
 	ALMConfig config;
-	config.feasibility_tolerance = REAL(1e-4);
+	config.feasibility_tolerance = static_cast<MML::Real>(1e-4);
 	config.max_outer_iterations = 50;
 
 	AugmentedLagrangian<2> alm(config);
@@ -118,11 +118,11 @@ TEST_CASE("ALM: Single equality constraint", "[ALM][optimization]")
 	};
 
 	auto constraint = [](const VectorN<Real, 2>& x) -> Real {
-		return x[0] + x[1] - REAL(1.0);  // x + y = 1
+		return x[0] + x[1] - static_cast<MML::Real>(1.0);  // x + y = 1
 	};
 
 	ALMConfig config;
-	config.feasibility_tolerance = REAL(1e-4);
+	config.feasibility_tolerance = static_cast<MML::Real>(1e-4);
 	config.max_outer_iterations = 50;
 
 	AugmentedLagrangian<2> alm(config);
@@ -148,13 +148,13 @@ TEST_CASE("ALM: Multiple constraints", "[ALM][optimization]")
 	};
 
 	auto circleConstraint = [](const VectorN<Real, 2>& x) -> Real {
-		return x[0] * x[0] + x[1] * x[1] - REAL(1.0);
+		return x[0] * x[0] + x[1] * x[1] - static_cast<MML::Real>(1.0);
 	};
 	auto xPositive = [](const VectorN<Real, 2>& x) -> Real { return -x[0]; };
 	auto yPositive = [](const VectorN<Real, 2>& x) -> Real { return -x[1]; };
 
 	ALMConfig config;
-	config.feasibility_tolerance = REAL(1e-4);
+	config.feasibility_tolerance = static_cast<MML::Real>(1e-4);
 	config.max_outer_iterations = 100;
 
 	AugmentedLagrangian<2> alm(config);
@@ -166,12 +166,12 @@ TEST_CASE("ALM: Multiple constraints", "[ALM][optimization]")
 	VectorN<Real, 2> x0{ 0.1, 0.1 };
 	auto result = alm.Optimize(objective, x0);
 
-	Real sqrtHalf = REAL(1.0) / std::sqrt(REAL(2.0));
+	Real sqrtHalf = static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(2.0));
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.x[0], WithinAbs(sqrtHalf, REAL(0.1)));
-	REQUIRE_THAT(result.x[1], WithinAbs(sqrtHalf, REAL(0.1)));
-	REQUIRE_THAT(result.objective_value, WithinAbs(-std::sqrt(REAL(2.0)), REAL(0.1)));
+	REQUIRE_THAT(result.x[0], WithinAbs(sqrtHalf, static_cast<MML::Real>(0.1)));
+	REQUIRE_THAT(result.x[1], WithinAbs(sqrtHalf, static_cast<MML::Real>(0.1)));
+	REQUIRE_THAT(result.objective_value, WithinAbs(-std::sqrt(static_cast<MML::Real>(2.0)), static_cast<MML::Real>(0.1)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -185,11 +185,11 @@ TEST_CASE("ALM: Rosenbrock with linear constraint", "[ALM][optimization]")
 	Rosenbrock2D rosenbrock;
 
 	auto constraint = [](const VectorN<Real, 2>& x) -> Real {
-		return -(x[0] + x[1] - REAL(2.0));  // x + y >= 2
+		return -(x[0] + x[1] - static_cast<MML::Real>(2.0));  // x + y >= 2
 	};
 
 	ALMConfig config;
-	config.feasibility_tolerance = REAL(1e-4);
+	config.feasibility_tolerance = static_cast<MML::Real>(1e-4);
 	config.max_outer_iterations = 100;
 	config.max_inner_iterations = 2000;
 
@@ -210,15 +210,15 @@ TEST_CASE("ALM: Quadratic with ellipsoidal constraint", "[ALM][optimization]")
 	// The unconstrained minimum (2,2) is outside the ellipse
 
 	auto objective = [](const VectorN<Real, 2>& x) -> Real {
-		return (x[0] - REAL(2.0)) * (x[0] - REAL(2.0)) + (x[1] - REAL(2.0)) * (x[1] - REAL(2.0));
+		return (x[0] - static_cast<MML::Real>(2.0)) * (x[0] - static_cast<MML::Real>(2.0)) + (x[1] - static_cast<MML::Real>(2.0)) * (x[1] - static_cast<MML::Real>(2.0));
 	};
 
 	auto ellipse = [](const VectorN<Real, 2>& x) -> Real {
-		return x[0] * x[0] / REAL(4.0) + x[1] * x[1] / REAL(9.0) - REAL(1.0);
+		return x[0] * x[0] / static_cast<MML::Real>(4.0) + x[1] * x[1] / static_cast<MML::Real>(9.0) - static_cast<MML::Real>(1.0);
 	};
 
 	ALMConfig config;
-	config.feasibility_tolerance = REAL(1e-4);
+	config.feasibility_tolerance = static_cast<MML::Real>(1e-4);
 	config.max_outer_iterations = 100;
 
 	AugmentedLagrangian<2> alm(config);
@@ -228,8 +228,8 @@ TEST_CASE("ALM: Quadratic with ellipsoidal constraint", "[ALM][optimization]")
 	VectorN<Real, 2> x0{ 0.5, 0.5 };
 	auto result = alm.Optimize(objective, x0);
 
-	Real ellipseVal = result.x[0] * result.x[0] / REAL(4.0) + result.x[1] * result.x[1] / REAL(9.0);
-	REQUIRE(ellipseVal <= REAL(1.0) + REAL(0.01));
+	Real ellipseVal = result.x[0] * result.x[0] / static_cast<MML::Real>(4.0) + result.x[1] * result.x[1] / static_cast<MML::Real>(9.0);
+	REQUIRE(ellipseVal <= static_cast<MML::Real>(1.0) + static_cast<MML::Real>(0.01));
 	REQUIRE(result.x[0] > 0);
 	REQUIRE(result.x[1] > 0);
 }
@@ -248,11 +248,11 @@ TEST_CASE("ALM: 3D optimization with sphere constraint", "[ALM][optimization]")
 	};
 
 	auto sphere = [](const VectorN<Real, 3>& x) -> Real {
-		return x[0] * x[0] + x[1] * x[1] + x[2] * x[2] - REAL(1.0);
+		return x[0] * x[0] + x[1] * x[1] + x[2] * x[2] - static_cast<MML::Real>(1.0);
 	};
 
 	ALMConfig config;
-	config.feasibility_tolerance = REAL(1e-3);
+	config.feasibility_tolerance = static_cast<MML::Real>(1e-3);
 	config.max_outer_iterations = 100;
 
 	AugmentedLagrangian<3> alm(config);
@@ -264,8 +264,8 @@ TEST_CASE("ALM: 3D optimization with sphere constraint", "[ALM][optimization]")
 
 	Real sphereVal = result.x[0] * result.x[0] + result.x[1] * result.x[1] + result.x[2] * result.x[2];
 
-	REQUIRE(sphereVal <= REAL(1.0) + REAL(0.02));
-	REQUIRE_THAT(result.objective_value, WithinAbs(-std::sqrt(REAL(3.0)), REAL(0.2)));
+	REQUIRE(sphereVal <= static_cast<MML::Real>(1.0) + static_cast<MML::Real>(0.02));
+	REQUIRE_THAT(result.objective_value, WithinAbs(-std::sqrt(static_cast<MML::Real>(3.0)), static_cast<MML::Real>(0.2)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -282,14 +282,14 @@ TEST_CASE("ALM: Mixed equality and inequality constraints", "[ALM][optimization]
 	};
 
 	auto equalityConstraint = [](const VectorN<Real, 2>& x) -> Real {
-		return x[0] + x[1] - REAL(1.0);
+		return x[0] + x[1] - static_cast<MML::Real>(1.0);
 	};
 	auto inequalityConstraint = [](const VectorN<Real, 2>& x) -> Real {
-		return REAL(0.3) - x[0];  // x >= 0.3 means 0.3 - x <= 0
+		return static_cast<MML::Real>(0.3) - x[0];  // x >= 0.3 means 0.3 - x <= 0
 	};
 
 	ALMConfig config;
-	config.feasibility_tolerance = REAL(1e-4);
+	config.feasibility_tolerance = static_cast<MML::Real>(1e-4);
 	config.max_outer_iterations = 100;
 
 	AugmentedLagrangian<2> alm(config);
@@ -300,10 +300,10 @@ TEST_CASE("ALM: Mixed equality and inequality constraints", "[ALM][optimization]
 	VectorN<Real, 2> x0{ 0.0, 0.0 };
 	auto result = alm.Optimize(objective, x0);
 
-	REQUIRE_THAT(result.x[0] + result.x[1], WithinAbs(REAL(1.0), REAL(0.01)));
-	REQUIRE(result.x[0] >= REAL(0.3) - REAL(0.01));
-	REQUIRE_THAT(result.x[0], WithinAbs(REAL(0.5), REAL(0.05)));
-	REQUIRE_THAT(result.x[1], WithinAbs(REAL(0.5), REAL(0.05)));
+	REQUIRE_THAT(result.x[0] + result.x[1], WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.01)));
+	REQUIRE(result.x[0] >= static_cast<MML::Real>(0.3) - static_cast<MML::Real>(0.01));
+	REQUIRE_THAT(result.x[0], WithinAbs(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.05)));
+	REQUIRE_THAT(result.x[1], WithinAbs(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.05)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -317,7 +317,7 @@ TEST_CASE("ALM: Result contains multipliers", "[ALM][result]")
 	};
 
 	auto ineqConstraint = [](const VectorN<Real, 2>& x) -> Real {
-		return x[0] + x[1] - REAL(1.0);
+		return x[0] + x[1] - static_cast<MML::Real>(1.0);
 	};
 	auto eqConstraint = [](const VectorN<Real, 2>& x) -> Real {
 		return x[0] - x[1];
@@ -362,7 +362,7 @@ TEST_CASE("ALM: Result follows the IterativeResultBase contract", "[ALM][result]
 	REQUIRE(result.error_message.empty());               // empty on success (contract policy)
 	REQUIRE(result.algorithm_name == "AugmentedLagrangian");
 	REQUIRE(result.iterations_used == result.outer_iterations);
-	REQUIRE_THAT(result.achieved_tolerance, WithinAbs(result.constraint_violation, REAL(1e-15)));
+	REQUIRE_THAT(result.achieved_tolerance, WithinAbs(result.constraint_violation, static_cast<MML::Real>(1e-15)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -376,13 +376,13 @@ TEST_CASE("ALM: SolveConstrained convenience function", "[ALM][convenience]")
 	};
 
 	std::vector<std::function<Real(const VectorN<Real, 2>&)>> ineqConstraints = {
-		[](const VectorN<Real, 2>& x) -> Real { return -x[0] - x[1] + REAL(1.0); }  // x + y >= 1
+		[](const VectorN<Real, 2>& x) -> Real { return -x[0] - x[1] + static_cast<MML::Real>(1.0); }  // x + y >= 1
 	};
 
-	VectorN<Real, 2> x0{ REAL(0.0), REAL(0.0) };
+	VectorN<Real, 2> x0{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
 	auto result = SolveConstrained<2>(objective, x0, ineqConstraints);
 
-	REQUIRE_THAT(result.x[0] + result.x[1], WithinAbs(REAL(1.0), REAL(0.1)));
+	REQUIRE_THAT(result.x[0] + result.x[1], WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.1)));
 	REQUIRE(result.outer_iterations > 0);
 }
 
@@ -395,22 +395,22 @@ TEST_CASE("ALM: Unconstrained optimization (no constraints)", "[ALM][edge-cases]
 	// min (x-1)^2 + (y-2)^2 with no constraints; optimal (1, 2)
 
 	auto objective = [](const VectorN<Real, 2>& x) -> Real {
-		return (x[0] - REAL(1.0)) * (x[0] - REAL(1.0)) + (x[1] - REAL(2.0)) * (x[1] - REAL(2.0));
+		return (x[0] - static_cast<MML::Real>(1.0)) * (x[0] - static_cast<MML::Real>(1.0)) + (x[1] - static_cast<MML::Real>(2.0)) * (x[1] - static_cast<MML::Real>(2.0));
 	};
 
 	ALMConfig config;
 	config.max_outer_iterations = 10;
 	config.max_inner_iterations = 5000;
-	config.inner_simplex_delta = REAL(3.0);   // larger simplex to reach (1,2) from (0,0)
+	config.inner_simplex_delta = static_cast<MML::Real>(3.0);   // larger simplex to reach (1,2) from (0,0)
 
 	AugmentedLagrangian<2> alm(config);
 
-	VectorN<Real, 2> x0{ REAL(0.0), REAL(0.0) };
+	VectorN<Real, 2> x0{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
 	auto result = alm.Optimize(objective, x0);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.x[0], WithinAbs(REAL(1.0), REAL(0.1)));
-	REQUIRE_THAT(result.x[1], WithinAbs(REAL(2.0), REAL(0.1)));
+	REQUIRE_THAT(result.x[0], WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.1)));
+	REQUIRE_THAT(result.x[1], WithinAbs(static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.1)));
 }
 
 TEST_CASE("ALM: Infeasible starting point converges to feasible", "[ALM][edge-cases]")
@@ -422,23 +422,71 @@ TEST_CASE("ALM: Infeasible starting point converges to feasible", "[ALM][edge-ca
 	};
 
 	auto constraint = [](const VectorN<Real, 2>& x) -> Real {
-		return REAL(1.0) - x[0];  // x >= 1 means 1 - x <= 0
+		return static_cast<MML::Real>(1.0) - x[0];  // x >= 1 means 1 - x <= 0
 	};
 
 	ALMConfig config;
-	config.feasibility_tolerance = REAL(1e-4);
+	config.feasibility_tolerance = static_cast<MML::Real>(1e-4);
 	config.max_outer_iterations = 100;
 
 	AugmentedLagrangian<2> alm(config);
 	alm.AddInequalityConstraint(constraint);
 	alm.SetBounds(-10.0, 10.0);
 
-	VectorN<Real, 2> x0{ -REAL(5.0), -REAL(5.0) };
+	VectorN<Real, 2> x0{ -static_cast<MML::Real>(5.0), -static_cast<MML::Real>(5.0) };
 	auto result = alm.Optimize(objective, x0);
 
 	REQUIRE(result.converged);
-	REQUIRE(result.x[0] >= REAL(1.0) - REAL(0.01));
-	REQUIRE_THAT(result.x[1], WithinAbs(REAL(0.0), REAL(0.1)));
+	REQUIRE(result.x[0] >= static_cast<MML::Real>(1.0) - static_cast<MML::Real>(0.01));
+	REQUIRE_THAT(result.x[1], WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.1)));
+}
+
+
+TEST_CASE("ALM: stationarity_tolerance is honoured (feasible is not enough)", "[ALM][optimization][wewi.1.14]")
+{
+	// min x^2 + y^2  s.t.  x + y >= 1. The iterate from a (very) loose inner solve is feasible on
+	// purpose but far from stationary; the old code accepted it because feasibility alone ended
+	// the iteration (analysis v4, ALGORITHMS A12).
+	auto objective = [](const VectorN<Real, 2>& x) -> Real { return x[0] * x[0] + x[1] * x[1]; };
+	auto constraint = [](const VectorN<Real, 2>& x) -> Real { return -x[0] - x[1] + static_cast<MML::Real>(1.0); };
+
+	SECTION("tight stationarity: more than one outer iteration and a small final step")
+	{
+		ALMConfig config;
+		config.feasibility_tolerance = static_cast<MML::Real>(1e-4);
+		config.stationarity_tolerance = static_cast<MML::Real>(1e-6);
+		config.max_outer_iterations = 50;
+
+		AugmentedLagrangian<2> alm(config);
+		alm.AddInequalityConstraint(constraint);
+		VectorN<Real, 2> x0{ 2.0, 2.0 };   // already feasible: x + y = 4 >= 1
+		auto result = alm.Optimize(objective, x0);
+
+		REQUIRE(result.converged);
+		REQUIRE(result.outer_iterations >= 2);                      // stationarity needs a previous iterate
+		REQUIRE(result.step_norm <= static_cast<MML::Real>(1e-6) * std::max(static_cast<MML::Real>(1.0), std::abs(result.x[0])));
+		REQUIRE_THAT(result.x[0], WithinAbs(0.5, 0.05));
+		REQUIRE_THAT(result.x[1], WithinAbs(0.5, 0.05));
+	}
+
+	SECTION("infeasible problem is reported as non-convergence with both diagnostics")
+	{
+		ALMConfig config;
+		config.feasibility_tolerance = static_cast<MML::Real>(1e-4);
+		config.max_outer_iterations = 5;
+
+		AugmentedLagrangian<2> alm(config);
+		alm.AddInequalityConstraint([](const VectorN<Real, 2>& x) -> Real { return x[0] - static_cast<MML::Real>(1.0); });   // g(x) = x - 1 <= 0  ->  x <= 1
+		alm.AddInequalityConstraint([](const VectorN<Real, 2>& x) -> Real { return static_cast<MML::Real>(2.0) - x[0]; });   // 2 - x <= 0 -> x >= 2 : inconsistent with x <= 1
+		VectorN<Real, 2> x0{ 0.0, 0.0 };
+		auto result = alm.Optimize(objective, x0);
+
+		REQUIRE_FALSE(result.converged);
+		REQUIRE(result.status == AlgorithmStatus::MaxIterationsExceeded);
+		REQUIRE(result.outer_iterations == 5);
+		REQUIRE(result.constraint_violation > static_cast<MML::Real>(1e-4));
+		REQUIRE(result.error_message.find("last step") != std::string::npos);
+	}
 }
 
 } // namespace MML::Tests::Algorithms::AugmentedLagrangianTests

@@ -81,7 +81,7 @@ void Docs_Demo_FindAllRealRoots()
               << " / " << result.roots_accepted << "\n";
     for (Real root : result.roots)
         std::cout << "  root = " << root << "\n";
-    std::cout << "Status: " << ToString(result.status) << "\n\n";
+    std::cout << "Status: " << to_string(result.status) << "\n\n";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -158,6 +158,21 @@ void Docs_Demo_FindRootNewton()
     std::cout << "Root found: " << std::setprecision(15) << root << "\n";
     std::cout << "Expected:   " << std::sqrt(2.0) << "\n";
     std::cout << "Error:      " << std::scientific << std::abs(root - std::sqrt(2.0)) << "\n";
+
+    // Analytic-derivative overload (safeguarded Newton, Numerical Recipes rtsafe)
+    RealFunction df([](Real x) { return 2 * x; });
+    RootFinding::RootFindingConfig config;
+    config.tolerance = 1e-14;
+    auto analytic = RootFinding::FindRootNewtonDetailed(f, df, 1.0, 2.0, config);
+    std::cout << "With f':    " << std::setprecision(15) << std::defaultfloat << analytic.root
+              << "  (" << analytic.iterations_used << " iterations, "
+              << analytic.function_evaluations << " evaluations)\n";
+
+    // Bisection safeguard: f'(1) = 0 at the starting midpoint of [0.4, 1.6] - plain Newton divides by zero
+    RealFunction cubic([](Real x) { return x * x * x - 3 * x + 1; });
+    auto safeguarded = RootFinding::FindRootNewtonDetailed(cubic, 0.4, 1.6, RootFinding::RootFindingConfig{});
+    std::cout << "x^3-3x+1 on [0.4,1.6] (f'(midpoint)=0): converged=" << std::boolalpha << safeguarded.converged
+              << ", root=" << safeguarded.root << "\n";
     std::cout << std::fixed << "\n";
 }
 
@@ -210,11 +225,11 @@ void Docs_Demo_RootFindingDiagnostics()
     config.f_tolerance = 1e-12;
     config.relative_tolerance = 1e-12;
 
-    auto result = RootFinding::FindRootBrent(
+    auto result = RootFinding::FindRootBrentDetailed(
         [](Real x) { return x * x - 2.0; }, 1.0, 2.0, config);
 
     std::cout << "Method: " << result.algorithm_name << "\n";
-    std::cout << "Status: " << ToString(result.status) << "\n";
+    std::cout << "Status: " << to_string(result.status) << "\n";
     std::cout << "Root/residual: " << result.root << " / " << result.function_value << "\n";
     std::cout << "Iterations/evaluations: " << result.iterations_used
               << " / " << result.function_evaluations << "\n";

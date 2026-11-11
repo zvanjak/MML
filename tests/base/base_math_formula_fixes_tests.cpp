@@ -46,7 +46,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		VectorN<Complex, 3> v{Complex(3.0, 4.0), Complex(0.0, 0.0), Complex(0.0, 0.0)};
 		
 		Real norm = v.NormL2();
-		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm, WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("VectorN_NormL2_Complex_multiple_components", "[VectorN][Complex][P0]")
@@ -69,17 +69,17 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		VectorN<Complex, 2> v{Complex(0.0, 3.0), Complex(0.0, 4.0)};
 		
 		Real norm = v.NormL2();
-		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm, WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("VectorN_NormL2_Real_unchanged", "[VectorN][P0]")
 	{
 		TEST_PRECISION_INFO();
 		// Real vector should still work: v = (3, 4) -> norm = 5
-		VectorN<Real, 2> v{REAL(3.0), REAL(4.0)};
+		VectorN<Real, 2> v{static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)};
 		
 		Real norm = v.NormL2();
-		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm, WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -98,7 +98,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		M(1, 1) = Complex(0.0, 0.0);
 		
 		Real norm = MatrixAlg::FrobeniusNorm(M);
-		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm, WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("Matrix_NormL2_Complex_full_matrix", "[Matrix][Complex][P0]")
@@ -122,13 +122,13 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		TEST_PRECISION_INFO();
 		// Real matrix: M = [[3, 0], [4, 0]] -> ||M||_F = 5
 		Matrix<Real> M(2, 2);
-		M(0, 0) = REAL(3.0);
-		M(0, 1) = REAL(0.0);
-		M(1, 0) = REAL(4.0);
-		M(1, 1) = REAL(0.0);
+		M(0, 0) = static_cast<MML::Real>(3.0);
+		M(0, 1) = static_cast<MML::Real>(0.0);
+		M(1, 0) = static_cast<MML::Real>(4.0);
+		M(1, 1) = static_cast<MML::Real>(0.0);
 		
 		Real norm = MatrixAlg::FrobeniusNorm(M);
-		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm, WithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -143,15 +143,15 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		
 		// Numerical integration using trapezoidal rule
 		Real sum = 0.0;
-		Real dx = REAL(0.001);
-		Real range = REAL(5.0);  // Well beyond the peak
+		Real dx = static_cast<MML::Real>(0.001);
+		Real range = static_cast<MML::Real>(5.0);  // Well beyond the peak
 		
 		for (Real x = -range; x <= range; x += dx) {
 			sum += delta(x) * dx;
 		}
 		
 		// Should be very close to 1
-		REQUIRE_THAT(sum, WithinAbs(REAL(1.0), REAL(0.01)));
+		REQUIRE_THAT(sum, WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.01)));
 	}
 	
 	TEST_CASE("DiracExp_formula_at_origin", "[DiracDeltaFunction][DiracExp][P0]")
@@ -159,9 +159,9 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		TEST_PRECISION_INFO();
 		// At x=0: δ(0) = N/√(2π) * exp(0) = N/√(2π)
 		DiracExp delta(10);
-		Real expected = REAL(10.0) / std::sqrt(2 * Constants::PI);
+		Real expected = static_cast<MML::Real>(10.0) / std::sqrt(2 * Constants::PI);
 		
-		REQUIRE_THAT(delta(REAL(0.0)), WithinAbs(expected, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(delta(static_cast<MML::Real>(0.0)), WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -172,10 +172,10 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		TEST_PRECISION_INFO();
 		// At x=0, the limit is N/π (previously would return NaN or inf)
 		DiracSin delta(10);
-		Real expected = REAL(10.0) / Constants::PI;
+		Real expected = static_cast<MML::Real>(10.0) / Constants::PI;
 		
 		// This should NOT throw or return NaN
-		Real val = delta(REAL(0.0));
+		Real val = delta(static_cast<MML::Real>(0.0));
 		REQUIRE_FALSE(std::isnan(val));
 		REQUIRE_FALSE(std::isinf(val));
 		REQUIRE_THAT(val, WithinAbs(expected, TOL(1e-10, 1e-5)));
@@ -185,11 +185,11 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 	{
 		TEST_PRECISION_INFO();
 		DiracSin delta(10);
-		Real expected = REAL(10.0) / Constants::PI;
+		Real expected = static_cast<MML::Real>(10.0) / Constants::PI;
 		
 		// Very small x values should approach N/π
-		REQUIRE_THAT(delta(REAL(1e-16)), WithinAbs(expected, TOL(1e-8, 1e-4)));
-		REQUIRE_THAT(delta(-REAL(1e-16)), WithinAbs(expected, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(delta(static_cast<MML::Real>(1e-16)), WithinAbs(expected, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(delta(-static_cast<MML::Real>(1e-16)), WithinAbs(expected, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("DiracSin_continuous_near_origin", "[DiracDeltaFunction][DiracSin][P0]")
@@ -198,13 +198,13 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		DiracSin delta(10);
 		
 		// Should be continuous: limit from both sides equals value at 0
-		Real valAt0 = delta(REAL(0.0));
-		Real valNearPos = delta(REAL(0.0001));
-		Real valNearNeg = delta(-REAL(0.0001));
+		Real valAt0 = delta(static_cast<MML::Real>(0.0));
+		Real valNearPos = delta(static_cast<MML::Real>(0.0001));
+		Real valNearNeg = delta(-static_cast<MML::Real>(0.0001));
 		
 		// All should be close to N/π
-		REQUIRE_THAT(valAt0, WithinAbs(valNearPos, REAL(0.01)));
-		REQUIRE_THAT(valAt0, WithinAbs(valNearNeg, REAL(0.01)));
+		REQUIRE_THAT(valAt0, WithinAbs(valNearPos, static_cast<MML::Real>(0.01)));
+		REQUIRE_THAT(valAt0, WithinAbs(valNearNeg, static_cast<MML::Real>(0.01)));
 	}
 
 	/*********************************************************************/
@@ -214,7 +214,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 	{
 		TEST_PRECISION_INFO();
 		Real vx, vy, vz;
-		Real abs = REAL(5.0);
+		Real abs = static_cast<MML::Real>(5.0);
 		
 		for (int i = 0; i < 100; ++i) {
 			Random::UniformVecDirection3(vx, vy, vz, abs);
@@ -229,7 +229,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		// For uniform sphere sampling, z = cos(θ) should be uniform in [-1, 1]
 		// This is the key property that distinguishes correct from incorrect sampling
 		Real vx, vy, vz;
-		Real abs = REAL(1.0);
+		Real abs = static_cast<MML::Real>(1.0);
 		
 		// Count samples in different z regions
 		int countPosZ = 0;
@@ -244,7 +244,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		
 		// Should be roughly equal (within statistical noise)
 		Real ratio = static_cast<Real>(countPosZ) / numSamples;
-		REQUIRE_THAT(ratio, WithinAbs(REAL(0.5), REAL(0.05)));  // 5% tolerance
+		REQUIRE_THAT(ratio, WithinAbs(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.05)));  // 5% tolerance
 	}
 	
 	TEST_CASE("UniformVecDirection3_polar_angle_distribution", "[Random][P0]")
@@ -253,7 +253,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		// The old incorrect method would cluster points near the poles
 		// The correct method should have uniform cos(θ) distribution
 		Real vx, vy, vz;
-		Real abs = REAL(1.0);
+		Real abs = static_cast<MML::Real>(1.0);
 		
 		// Count samples in equatorial band vs polar caps
 		// Equatorial band: |z| < 0.5 (covers same solid angle as two polar caps |z| > 0.5)
@@ -269,7 +269,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		
 		// With uniform sampling, equatorial and polar should be equal
 		Real ratio = static_cast<Real>(countEquatorial) / numSamples;
-		REQUIRE_THAT(ratio, WithinAbs(REAL(0.5), REAL(0.05)));
+		REQUIRE_THAT(ratio, WithinAbs(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.05)));
 	}
 
 	/*********************************************************************/
@@ -278,18 +278,18 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 	TEST_CASE("AngleToVector_parallel_vectors", "[Vector3Cartesian][P0]")
 	{
 		TEST_PRECISION_INFO();
-		Vector3Cartesian a(REAL(1.0), REAL(0.0), REAL(0.0));
-		Vector3Cartesian b(REAL(2.0), REAL(0.0), REAL(0.0));  // Parallel
+		Vector3Cartesian a(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+		Vector3Cartesian b(static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));  // Parallel
 		
 		Real angle = a.AngleToVector(b);
-		REQUIRE_THAT(angle, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(angle, WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("AngleToVector_antiparallel_vectors", "[Vector3Cartesian][P0]")
 	{
 		TEST_PRECISION_INFO();
-		Vector3Cartesian a(REAL(1.0), REAL(0.0), REAL(0.0));
-		Vector3Cartesian b(-REAL(1.0), REAL(0.0), REAL(0.0));  // Antiparallel
+		Vector3Cartesian a(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+		Vector3Cartesian b(-static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));  // Antiparallel
 		
 		Real angle = a.AngleToVector(b);
 		REQUIRE_THAT(angle, WithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
@@ -298,8 +298,8 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 	TEST_CASE("AngleToVector_perpendicular_vectors", "[Vector3Cartesian][P0]")
 	{
 		TEST_PRECISION_INFO();
-		Vector3Cartesian a(REAL(1.0), REAL(0.0), REAL(0.0));
-		Vector3Cartesian b(REAL(0.0), REAL(1.0), REAL(0.0));  // Perpendicular
+		Vector3Cartesian a(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+		Vector3Cartesian b(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0));  // Perpendicular
 		
 		Real angle = a.AngleToVector(b);
 		REQUIRE_THAT(angle, WithinAbs(Constants::PI / 2, TOL(1e-10, 1e-5)));
@@ -310,33 +310,33 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		TEST_PRECISION_INFO();
 		// Test case that could produce cos > 1 due to floating-point errors
 		// if acos is not clamped
-		Vector3Cartesian a(REAL(1.0), REAL(0.0), REAL(0.0));
+		Vector3Cartesian a(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
 		
 		// Create a vector that's numerically almost identical
 		// Floating-point arithmetic might produce dot product > 1
-		Vector3Cartesian b(REAL(1.0) + TOL(1e-15, 1e-5), REAL(0.0), REAL(0.0));
-		b = b.GetAsUnitVector();  // Normalize should make it unit
+		Vector3Cartesian b(static_cast<MML::Real>(1.0) + TOL(1e-15, 1e-5), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+		b = b.Normalized();  // Normalize should make it unit
 		
 		Real angle = a.AngleToVector(b);
 		
 		// Should NOT be NaN
 		REQUIRE_FALSE(std::isnan(angle));
 		// Should be close to 0
-		REQUIRE_THAT(angle, WithinAbs(REAL(0.0), REAL(1e-6)));
+		REQUIRE_THAT(angle, WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-6)));
 	}
 	
 	TEST_CASE("AngleToVector_large_vectors_no_overflow", "[Vector3Cartesian][P0]")
 	{
 		TEST_PRECISION_INFO();
 		// Large magnitude vectors should still work correctly
-		Real large = REAL(1e10);
-		Vector3Cartesian a(large, REAL(0.0), REAL(0.0));
-		Vector3Cartesian b(REAL(0.0), large, REAL(0.0));
+		Real large = static_cast<MML::Real>(1e10);
+		Vector3Cartesian a(large, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+		Vector3Cartesian b(static_cast<MML::Real>(0.0), large, static_cast<MML::Real>(0.0));
 		
 		Real angle = a.AngleToVector(b);
 		
 		REQUIRE_FALSE(std::isnan(angle));
-		REQUIRE_THAT(angle, WithinAbs(Constants::PI / 2, REAL(1e-6)));
+		REQUIRE_THAT(angle, WithinAbs(Constants::PI / 2, static_cast<MML::Real>(1e-6)));
 	}
 
 	/*********************************************************************/
@@ -396,21 +396,21 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		Complex row1 = below[1] * sol[0] + diag[1] * sol[1] + above[1] * sol[2];
 		Complex row2 = below[2] * sol[1] + diag[2] * sol[2];
 		
-		REQUIRE_THAT(std::abs(row0 - rhs[0]), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(std::abs(row1 - rhs[1]), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(std::abs(row2 - rhs[2]), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(std::abs(row0 - rhs[0]), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(std::abs(row1 - rhs[1]), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(std::abs(row2 - rhs[2]), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("TridiagonalMatrix_Solve_throws_on_singular", "[MatrixTriDiag][P0]")
 	{
 		TEST_PRECISION_INFO();
 		// Singular system (zero on diagonal)
-		Vector<Real> below{REAL(0.0), REAL(1.0), REAL(1.0)};
-		Vector<Real> diag{REAL(0.0), REAL(2.0), REAL(2.0)};  // Zero at [0]!
-		Vector<Real> above{REAL(1.0), REAL(1.0), REAL(0.0)};
+		Vector<Real> below{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0)};
+		Vector<Real> diag{static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0)};  // Zero at [0]!
+		Vector<Real> above{static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)};
 		
 		TridiagonalMatrix<Real> T(3, below, diag, above);
-		Vector<Real> rhs{REAL(1.0), REAL(2.0), REAL(3.0)};
+		Vector<Real> rhs{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)};
 		
 		REQUIRE_THROWS_AS(T.Solve(rhs), SingularMatrixError);
 	}
@@ -431,7 +431,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		Real norm = M.NormFrobenius();
 		
 		// Frobenius: sqrt(|a00|² + 2*|a01|² + |a11|²) = sqrt(2 + 2*4 + 10) = sqrt(20)
-		Real expected = std::sqrt(REAL(2.0) + REAL(2.0) * REAL(4.0) + REAL(10.0));
+		Real expected = std::sqrt(static_cast<MML::Real>(2.0) + static_cast<MML::Real>(2.0) * static_cast<MML::Real>(4.0) + static_cast<MML::Real>(10.0));
 		
 		REQUIRE_THAT(norm, WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
@@ -449,7 +449,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		
 		// Row 0: |a00| + |a01| = 1 + 5 = 6
 		// Row 1: |a10| + |a11| = 5 + 2 = 7 (max)
-		REQUIRE_THAT(norm, WithinAbs(REAL(7.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm, WithinAbs(static_cast<MML::Real>(7.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("MatrixSym_Norm1_Complex_returns_Real", "[MatrixSym][Complex][P0]")

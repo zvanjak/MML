@@ -24,23 +24,23 @@ namespace MML::Tests::Core::DerivationParametricCurveTests {
 class TestLineCurve : public IParametricCurve<3>
 {
 public:
-    Real getMinT() const override { return -REAL(10.0); }
-    Real getMaxT() const override { return REAL(10.0); }
+    Real getMinT() const override { return -static_cast<MML::Real>(10.0); }
+    Real getMaxT() const override { return static_cast<MML::Real>(10.0); }
     
     VectorN<Real, 3> operator()(Real t) const override {
         return VectorN<Real, 3>{ t, 2*t, 3*t };
     }
     
     VectorN<Real, 3> analytical_first(Real t) const {
-        return VectorN<Real, 3>{ REAL(1.0), REAL(2.0), REAL(3.0) };
+        return VectorN<Real, 3>{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) };
     }
     
     VectorN<Real, 3> analytical_second(Real t) const {
-        return VectorN<Real, 3>{ REAL(0.0), REAL(0.0), REAL(0.0) };
+        return VectorN<Real, 3>{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
     }
     
     VectorN<Real, 3> analytical_third(Real t) const {
-        return VectorN<Real, 3>{ REAL(0.0), REAL(0.0), REAL(0.0) };
+        return VectorN<Real, 3>{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
     }
 };
 
@@ -51,23 +51,23 @@ public:
 class TestParabolicCurve : public IParametricCurve<3>
 {
 public:
-    Real getMinT() const override { return -REAL(10.0); }
-    Real getMaxT() const override { return REAL(10.0); }
+    Real getMinT() const override { return -static_cast<MML::Real>(10.0); }
+    Real getMaxT() const override { return static_cast<MML::Real>(10.0); }
     
     VectorN<Real, 3> operator()(Real t) const override {
         return VectorN<Real, 3>{ t, t*t, t*t*t };
     }
     
     VectorN<Real, 3> analytical_first(Real t) const {
-        return VectorN<Real, 3>{ REAL(1.0), 2*t, 3*t*t };
+        return VectorN<Real, 3>{ static_cast<MML::Real>(1.0), 2*t, 3*t*t };
     }
     
     VectorN<Real, 3> analytical_second(Real t) const {
-        return VectorN<Real, 3>{ REAL(0.0), REAL(2.0), 6*t };
+        return VectorN<Real, 3>{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0), 6*t };
     }
     
     VectorN<Real, 3> analytical_third(Real t) const {
-        return VectorN<Real, 3>{ REAL(0.0), REAL(0.0), REAL(6.0) };
+        return VectorN<Real, 3>{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(6.0) };
     }
 };
 
@@ -78,23 +78,23 @@ public:
 class TestCircleCurve : public IParametricCurve<3>
 {
 public:
-    Real getMinT() const override { return REAL(0.0); }
-    Real getMaxT() const override { return REAL(2.0) * Constants::PI; }
+    Real getMinT() const override { return static_cast<MML::Real>(0.0); }
+    Real getMaxT() const override { return static_cast<MML::Real>(2.0) * Constants::PI; }
     
     VectorN<Real, 3> operator()(Real t) const override {
-        return VectorN<Real, 3>{ REAL(cos(t)), REAL(sin(t)), REAL(0.0) };
+        return VectorN<Real, 3>{ static_cast<MML::Real>(cos(t)), static_cast<MML::Real>(sin(t)), static_cast<MML::Real>(0.0) };
     }
     
     VectorN<Real, 3> analytical_first(Real t) const {
-        return VectorN<Real, 3>{ REAL(-sin(t)), REAL(cos(t)), REAL(0.0) };
+        return VectorN<Real, 3>{ static_cast<MML::Real>(-sin(t)), static_cast<MML::Real>(cos(t)), static_cast<MML::Real>(0.0) };
     }
     
     VectorN<Real, 3> analytical_second(Real t) const {
-        return VectorN<Real, 3>{ REAL(-cos(t)), REAL(-sin(t)), REAL(0.0) };
+        return VectorN<Real, 3>{ static_cast<MML::Real>(-cos(t)), static_cast<MML::Real>(-sin(t)), static_cast<MML::Real>(0.0) };
     }
     
     VectorN<Real, 3> analytical_third(Real t) const {
-        return VectorN<Real, 3>{ REAL(sin(t)), REAL(-cos(t)), REAL(0.0) };
+        return VectorN<Real, 3>{ static_cast<MML::Real>(sin(t)), static_cast<MML::Real>(-cos(t)), static_cast<MML::Real>(0.0) };
     }
 };
 
@@ -105,23 +105,23 @@ public:
 class TestHelixCurve : public IParametricCurve<3>
 {
 public:
-    Real getMinT() const override { return REAL(0.0); }
-    Real getMaxT() const override { return REAL(4.0) * Constants::PI; }
+    Real getMinT() const override { return static_cast<MML::Real>(0.0); }
+    Real getMaxT() const override { return static_cast<MML::Real>(4.0) * Constants::PI; }
     
     VectorN<Real, 3> operator()(Real t) const override {
-        return VectorN<Real, 3>{ REAL(cos(t)), REAL(sin(t)), t };
+        return VectorN<Real, 3>{ static_cast<MML::Real>(cos(t)), static_cast<MML::Real>(sin(t)), t };
     }
     
     VectorN<Real, 3> analytical_first(Real t) const {
-        return VectorN<Real, 3>{ REAL(-sin(t)), REAL(cos(t)), REAL(1.0) };
+        return VectorN<Real, 3>{ static_cast<MML::Real>(-sin(t)), static_cast<MML::Real>(cos(t)), static_cast<MML::Real>(1.0) };
     }
     
     VectorN<Real, 3> analytical_second(Real t) const {
-        return VectorN<Real, 3>{ REAL(-cos(t)), REAL(-sin(t)), REAL(0.0) };
+        return VectorN<Real, 3>{ static_cast<MML::Real>(-cos(t)), static_cast<MML::Real>(-sin(t)), static_cast<MML::Real>(0.0) };
     }
     
     VectorN<Real, 3> analytical_third(Real t) const {
-        return VectorN<Real, 3>{ REAL(sin(t)), REAL(-cos(t)), REAL(0.0) };
+        return VectorN<Real, 3>{ static_cast<MML::Real>(sin(t)), static_cast<MML::Real>(-cos(t)), static_cast<MML::Real>(0.0) };
     }
 };
 
@@ -136,7 +136,7 @@ TEST_CASE("Parametric curve - NDer1 (first order forward difference)", "[paramet
     TestCircleCurve circle;
     TestHelixCurve helix;
     
-    Real t = REAL(1.0);
+    Real t = static_cast<MML::Real>(1.0);
     Real tol = TOL(1e-4, 5e-3);  // NDer1 is less accurate
     
     // Line curve
@@ -171,7 +171,7 @@ TEST_CASE("Parametric curve - NDer2 (second order central difference)", "[parame
     TestCircleCurve circle;
     TestHelixCurve helix;
     
-    Real t = REAL(1.0);
+    Real t = static_cast<MML::Real>(1.0);
     Real tol = TOL(1e-7, 1e-4);
     
     // Line curve - exact for linear functions
@@ -205,7 +205,7 @@ TEST_CASE("Parametric curve - NDer4 (fourth order)", "[parametric_curve][derivat
     TestCircleCurve circle;
     TestHelixCurve helix;
     
-    Real t = REAL(1.0);
+    Real t = static_cast<MML::Real>(1.0);
     Real tol = TOL(1e-9, 1e-4);
     
     // Parabolic curve
@@ -233,7 +233,7 @@ TEST_CASE("Parametric curve - NDer6 (sixth order)", "[parametric_curve][derivati
     TestCircleCurve circle;
     TestHelixCurve helix;
     
-    Real t = REAL(1.0);
+    Real t = static_cast<MML::Real>(1.0);
     Real tol = TOL(1e-10, 1e-5);
     
     // Parabolic curve
@@ -261,7 +261,7 @@ TEST_CASE("Parametric curve - NDer8 (eighth order)", "[parametric_curve][derivat
     TestCircleCurve circle;
     TestHelixCurve helix;
     
-    Real t = REAL(1.0);
+    Real t = static_cast<MML::Real>(1.0);
     Real tol = TOL(1e-10, 1e-5);
     
     // Parabolic curve
@@ -294,7 +294,7 @@ TEST_CASE("Parametric curve - NSecDer2 (second order second derivative)", "[para
     TestCircleCurve circle;
     TestHelixCurve helix;
     
-    Real t = REAL(1.0);
+    Real t = static_cast<MML::Real>(1.0);
     Real tol_zero = TOL3(1e-5, 1e-2, 1e-6);
     Real tol = TOL3(1e-5, 5e-3, 1e-6);
     
@@ -329,7 +329,7 @@ TEST_CASE("Parametric curve - NSecDer4 (fourth order second derivative)", "[para
     TestCircleCurve circle;
     TestHelixCurve helix;
     
-    Real t = REAL(1.0);
+    Real t = static_cast<MML::Real>(1.0);
     Real tol = TOL(1e-7, 5e-4);
     
     // Parabolic curve
@@ -361,7 +361,7 @@ TEST_CASE("Parametric curve - NThirdDer2 (second order third derivative)", "[par
     TestCircleCurve circle;
     TestHelixCurve helix;
     
-    Real t = REAL(1.0);
+    Real t = static_cast<MML::Real>(1.0);
     Real tol = TOL(1e-4, 5e-3);
     
     // Parabolic curve
@@ -389,7 +389,7 @@ TEST_CASE("Parametric curve - NThirdDer4 (fourth order third derivative)", "[par
     TestCircleCurve circle;
     TestHelixCurve helix;
     
-    Real t = REAL(1.0);
+    Real t = static_cast<MML::Real>(1.0);
     Real tol = TOL(1e-5, 2e-3);
     
     // Parabolic curve
@@ -480,7 +480,7 @@ TEST_CASE("Parametric curve - Multiple test points for robustness", "[parametric
     TestHelixCurve helix;
     Real tol = TOL(1e-9, 1e-4);
     
-    std::vector<Real> test_points = {REAL(0.0), Constants::PI/6, Constants::PI/4, Constants::PI/3, Constants::PI/2, Constants::PI};
+    std::vector<Real> test_points = {static_cast<MML::Real>(0.0), Constants::PI/6, Constants::PI/4, Constants::PI/3, Constants::PI/2, Constants::PI};
     
     for(Real t : test_points)
     {
@@ -543,7 +543,7 @@ TEST_CASE("Parametric curve - Test bed curves second derivatives", "[parametric_
     
     // Test with TwistedCubic from test bed
     // auto twisted = ParametricCurvesTestBed::getTestCurve("TwistedCubic");
-    // t = REAL(0.5);
+    // t = static_cast<MML::Real>(0.5);
     
     // num_deriv = NSecDer4(twisted._curve, t);
     // analytical = twisted._curveDerSecond(t);

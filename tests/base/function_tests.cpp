@@ -19,7 +19,7 @@ namespace MML::Tests::Core::FunctionTests
 
 	Real FunctionTests_TestFunc(Real x)
 	{
-		return sin(x) * (REAL(1.0) + REAL(0.5) * x * x);
+		return sin(x) * (static_cast<MML::Real>(1.0) + static_cast<MML::Real>(0.5) * x * x);
 	}
 
 	TEST_CASE("Test_Function_func_pointer", "[simple]") {
@@ -28,10 +28,10 @@ namespace MML::Tests::Core::FunctionTests
 		RealFunction f1(FunctionTests_TestFunc);
 
 		// or creating a function object directly
-		RealFunction f2{ [](Real x) -> Real { return sin(x) * (REAL(1.0) + x * x / REAL(2.0)); } };
+		RealFunction f2{ [](Real x) -> Real { return sin(x) * (static_cast<MML::Real>(1.0) + x * x / static_cast<MML::Real>(2.0)); } };
 
-		REQUIRE(f1(REAL(1.0)) == FunctionTests_TestFunc(REAL(1.0)));
-		REQUIRE(f2(REAL(1.0)) == FunctionTests_TestFunc(REAL(1.0)));
+		REQUIRE(f1(static_cast<MML::Real>(1.0)) == FunctionTests_TestFunc(static_cast<MML::Real>(1.0)));
+		REQUIRE(f2(static_cast<MML::Real>(1.0)) == FunctionTests_TestFunc(static_cast<MML::Real>(1.0)));
 	}
 
 	class ClassProvidingFuncToDerive
@@ -47,33 +47,33 @@ namespace MML::Tests::Core::FunctionTests
 
 	TEST_CASE("Test_Function_class_obj_overload_op()", "[simple]")
 	{
-		ClassProvidingFuncToDerive   funcObj(REAL(3.0));
+		ClassProvidingFuncToDerive   funcObj(static_cast<MML::Real>(3.0));
 
 		RealFunctionFromStdFunc f1(std::function<Real(Real)>{funcObj});
 
-		REQUIRE(f1(REAL(1.0)) == Catch::Approx(REAL(3.0) * sin(REAL(1.0))));
-		REQUIRE(funcObj(REAL(1.0)) == Catch::Approx(REAL(3.0) * sin(REAL(1.0))));
+		REQUIRE(f1(static_cast<MML::Real>(1.0)) == Catch::Approx(static_cast<MML::Real>(3.0) * sin(static_cast<MML::Real>(1.0))));
+		REQUIRE(funcObj(static_cast<MML::Real>(1.0)) == Catch::Approx(static_cast<MML::Real>(3.0) * sin(static_cast<MML::Real>(1.0))));
 
-		REQUIRE(f1(-REAL(2.0)) == funcObj(-REAL(2.0)));
-		REQUIRE(f1(REAL(1.0)) == funcObj(REAL(1.0)));
-		REQUIRE(f1(REAL(5.0)) == funcObj(REAL(5.0)));
+		REQUIRE(f1(-static_cast<MML::Real>(2.0)) == funcObj(-static_cast<MML::Real>(2.0)));
+		REQUIRE(f1(static_cast<MML::Real>(1.0)) == funcObj(static_cast<MML::Real>(1.0)));
+		REQUIRE(f1(static_cast<MML::Real>(5.0)) == funcObj(static_cast<MML::Real>(5.0)));
 
 		// VERY IMPORTANT - our f1 has a COPY of funcObj, so if we change funcObj, f1 will not change
-		funcObj.setParam(REAL(6.0));
+		funcObj.setParam(static_cast<MML::Real>(6.0));
 
-		REQUIRE(REAL(REAL(3.0) * sin(REAL(1.0))) == f1(REAL(1.0)));   // WE HAVE AN OLD VALUE OF PARAMETAR!
-		REQUIRE(REAL(REAL(6.0) * sin(REAL(1.0))) != f1(REAL(1.0)));
-		REQUIRE(REAL(REAL(6.0) * sin(REAL(1.0))) == funcObj(REAL(1.0)));
+		REQUIRE(static_cast<MML::Real>(static_cast<MML::Real>(3.0) * sin(static_cast<MML::Real>(1.0))) == f1(static_cast<MML::Real>(1.0)));   // WE HAVE AN OLD VALUE OF PARAMETAR!
+		REQUIRE(static_cast<MML::Real>(static_cast<MML::Real>(6.0) * sin(static_cast<MML::Real>(1.0))) != f1(static_cast<MML::Real>(1.0)));
+		REQUIRE(static_cast<MML::Real>(static_cast<MML::Real>(6.0) * sin(static_cast<MML::Real>(1.0))) == funcObj(static_cast<MML::Real>(1.0)));
 
-		REQUIRE(f1(REAL(1.0)) != funcObj(REAL(1.0)));
-		REQUIRE(f1(REAL(5.0)) != funcObj(REAL(5.0)));
+		REQUIRE(f1(static_cast<MML::Real>(1.0)) != funcObj(static_cast<MML::Real>(1.0)));
+		REQUIRE(f1(static_cast<MML::Real>(5.0)) != funcObj(static_cast<MML::Real>(5.0)));
 
 		// if we create a new copy f2, it gets the new value of parametar
 		RealFunctionFromStdFunc f2(std::function<Real(Real)>{funcObj});
 
-		REQUIRE(REAL(REAL(6.0) * sin(REAL(1.0))) == f2(REAL(1.0)));
-		REQUIRE(f2(REAL(1.0)) == funcObj(REAL(1.0)));
-		REQUIRE(f2(REAL(5.0)) == funcObj(REAL(5.0)));
+		REQUIRE(static_cast<MML::Real>(static_cast<MML::Real>(6.0) * sin(static_cast<MML::Real>(1.0))) == f2(static_cast<MML::Real>(1.0)));
+		REQUIRE(f2(static_cast<MML::Real>(1.0)) == funcObj(static_cast<MML::Real>(1.0)));
+		REQUIRE(f2(static_cast<MML::Real>(5.0)) == funcObj(static_cast<MML::Real>(5.0)));
 	}
 
 	class ClassProvidingFuncToDerive2 : public IRealFunction
@@ -90,17 +90,17 @@ namespace MML::Tests::Core::FunctionTests
 	TEST_CASE("Test_Function_class_inheriting_IRealFunction", "[simple]")
 	{
 			TEST_PRECISION_INFO();
-		ClassProvidingFuncToDerive2   funcObj(REAL(3.0));
+		ClassProvidingFuncToDerive2   funcObj(static_cast<MML::Real>(3.0));
 
 		IRealFunction& f1 = funcObj;
 
-		REQUIRE(f1(REAL(1.0)) == funcObj(REAL(1.0)));
-		REQUIRE(f1(REAL(5.0)) == funcObj(REAL(5.0)));
+		REQUIRE(f1(static_cast<MML::Real>(1.0)) == funcObj(static_cast<MML::Real>(1.0)));
+		REQUIRE(f1(static_cast<MML::Real>(5.0)) == funcObj(static_cast<MML::Real>(5.0)));
 
-		funcObj.setParam(REAL(6.0));
+		funcObj.setParam(static_cast<MML::Real>(6.0));
 
-		REQUIRE(f1(REAL(1.0)) == funcObj(REAL(1.0)));
-		REQUIRE(f1(REAL(5.0)) == funcObj(REAL(5.0)));
+		REQUIRE(f1(static_cast<MML::Real>(1.0)) == funcObj(static_cast<MML::Real>(1.0)));
+		REQUIRE(f1(static_cast<MML::Real>(5.0)) == funcObj(static_cast<MML::Real>(5.0)));
 	}
 
 	class BigComplexClassYouCantChange
@@ -128,20 +128,20 @@ namespace MML::Tests::Core::FunctionTests
 	TEST_CASE("Test_Function_class_unchangeable_overload_op()", "[simple]")
 	{
 		BigComplexClassYouCantChange    ref;
-		ref._param = REAL(3.0);
+		ref._param = static_cast<MML::Real>(3.0);
 
 		BigComplexDerivFunc             funcObj(ref);
 		RealFunctionFromStdFunc         f1(std::function<Real(Real)>{funcObj});
 
-		REQUIRE(f1(REAL(1.0)) == funcObj(REAL(1.0)));  // f1 and funcObj must match exactly
+		REQUIRE(f1(static_cast<MML::Real>(1.0)) == funcObj(static_cast<MML::Real>(1.0)));  // f1 and funcObj must match exactly
 
-		REQUIRE(f1(REAL(1.0)) == funcObj(REAL(1.0)));
-		REQUIRE(f1(REAL(5.0)) == funcObj(REAL(5.0)));
+		REQUIRE(f1(static_cast<MML::Real>(1.0)) == funcObj(static_cast<MML::Real>(1.0)));
+		REQUIRE(f1(static_cast<MML::Real>(5.0)) == funcObj(static_cast<MML::Real>(5.0)));
 
 		// f1 object is valid even if you changed the referenced class object
-		ref._param = REAL(6.0);
-		REQUIRE(f1(REAL(1.0)) == funcObj(REAL(1.0)));
-		REQUIRE(f1(REAL(5.0)) == funcObj(REAL(5.0)));
+		ref._param = static_cast<MML::Real>(6.0);
+		REQUIRE(f1(static_cast<MML::Real>(1.0)) == funcObj(static_cast<MML::Real>(1.0)));
+		REQUIRE(f1(static_cast<MML::Real>(5.0)) == funcObj(static_cast<MML::Real>(5.0)));
 	}
 
 	/*********************************************************************/
@@ -159,14 +159,14 @@ namespace MML::Tests::Core::FunctionTests
 		
 		ScalarFunction<3> f(ScalarFunc3D);
 		
-		VectorN<Real, 3> v1({ REAL(1.0), REAL(2.0), REAL(3.0) });
-		REQUIRE_THAT(f(v1), RealWithinAbs(REAL(14.0), TOL(1e-10, 1e-5)));  // 1 + 4 + 9 = 14
+		VectorN<Real, 3> v1({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) });
+		REQUIRE_THAT(f(v1), RealWithinAbs(static_cast<MML::Real>(14.0), TOL(1e-10, 1e-5)));  // 1 + 4 + 9 = 14
 		
-		VectorN<Real, 3> v2({ REAL(0.0), REAL(0.0), REAL(0.0) });
-		REQUIRE_THAT(f(v2), RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		VectorN<Real, 3> v2({ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) });
+		REQUIRE_THAT(f(v2), RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 		
-		VectorN<Real, 3> v3({ REAL(1.0), REAL(1.0), REAL(1.0) });
-		REQUIRE_THAT(f(v3), RealWithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+		VectorN<Real, 3> v3({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0) });
+		REQUIRE_THAT(f(v3), RealWithinAbs(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Function_ScalarFunctionFromStdFunc", "[Function]")
@@ -178,11 +178,11 @@ namespace MML::Tests::Core::FunctionTests
 			return v[0] + v[1] + v[2];  // x + y + z
 		});
 		
-		VectorN<Real, 3> v1({ REAL(1.0), REAL(2.0), REAL(3.0) });
-		REQUIRE_THAT(f(v1), RealWithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
+		VectorN<Real, 3> v1({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) });
+		REQUIRE_THAT(f(v1), RealWithinAbs(static_cast<MML::Real>(6.0), TOL(1e-10, 1e-5)));
 		
-		VectorN<Real, 3> v2({ -REAL(1.0), REAL(1.0), REAL(0.0) });
-		REQUIRE_THAT(f(v2), RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		VectorN<Real, 3> v2({ -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0) });
+		REQUIRE_THAT(f(v2), RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Function_ScalarFunction_2D", "[Function]")
@@ -194,11 +194,11 @@ namespace MML::Tests::Core::FunctionTests
 			return v[0] * v[1];
 		});
 		
-		VectorN<Real, 2> v1({ REAL(3.0), REAL(4.0) });
-		REQUIRE_THAT(f(v1), RealWithinAbs(REAL(12.0), TOL(1e-10, 1e-5)));
+		VectorN<Real, 2> v1({ static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0) });
+		REQUIRE_THAT(f(v1), RealWithinAbs(static_cast<MML::Real>(12.0), TOL(1e-10, 1e-5)));
 		
-		VectorN<Real, 2> v2({ -REAL(2.0), REAL(5.0) });
-		REQUIRE_THAT(f(v2), RealWithinAbs(-REAL(10.0), TOL(1e-10, 1e-5)));
+		VectorN<Real, 2> v2({ -static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0) });
+		REQUIRE_THAT(f(v2), RealWithinAbs(-static_cast<MML::Real>(10.0), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -207,7 +207,7 @@ namespace MML::Tests::Core::FunctionTests
 
 	VectorN<Real, 3> VectorFunc3D(const VectorN<Real, 3>& v)
 	{
-		return VectorN<Real, 3>({ v[0] * REAL(2.0), v[1] * REAL(2.0), v[2] * REAL(2.0) });
+		return VectorN<Real, 3>({ v[0] * static_cast<MML::Real>(2.0), v[1] * static_cast<MML::Real>(2.0), v[2] * static_cast<MML::Real>(2.0) });
 	}
 
 	TEST_CASE("Function_VectorFunction_func_pointer", "[Function]")
@@ -216,12 +216,12 @@ namespace MML::Tests::Core::FunctionTests
 		
 		VectorFunction<3> f(VectorFunc3D);
 		
-		VectorN<Real, 3> v1({ REAL(1.0), REAL(2.0), REAL(3.0) });
+		VectorN<Real, 3> v1({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) });
 		auto result = f(v1);
 		
-		REQUIRE_THAT(result[0], RealWithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(result[1], RealWithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(result[2], RealWithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result[0], RealWithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result[1], RealWithinAbs(static_cast<MML::Real>(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result[2], RealWithinAbs(static_cast<MML::Real>(6.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Function_VectorFunctionFromStdFunc", "[Function]")
@@ -233,11 +233,11 @@ namespace MML::Tests::Core::FunctionTests
 			return VectorN<Real, 2>({ -v[1], v[0] });  // 90-degree rotation
 		});
 		
-		VectorN<Real, 2> v1({ REAL(1.0), REAL(0.0) });
+		VectorN<Real, 2> v1({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0) });
 		auto result = f(v1);
 		
-		REQUIRE_THAT(result[0], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(result[1], RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result[0], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result[1], RealWithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -255,12 +255,12 @@ namespace MML::Tests::Core::FunctionTests
 		
 		VectorFunctionNM<3, 2> f(VectorFuncNM);
 		
-		VectorN<Real, 3> v1({ REAL(1.0), REAL(2.0), REAL(3.0) });
+		VectorN<Real, 3> v1({ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) });
 		auto result = f(v1);
 		
 		REQUIRE(result.size() == 2);
-		REQUIRE_THAT(result[0], RealWithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));  // 1 + 2
-		REQUIRE_THAT(result[1], RealWithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));  // 2 + 3
+		REQUIRE_THAT(result[0], RealWithinAbs(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5)));  // 1 + 2
+		REQUIRE_THAT(result[1], RealWithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));  // 2 + 3
 	}
 
 	TEST_CASE("Function_VectorFunctionNMFromStdFunc", "[Function]")
@@ -272,13 +272,13 @@ namespace MML::Tests::Core::FunctionTests
 			return VectorN<Real, 3>({ v[0], v[1], v[0] + v[1] });
 		});
 		
-		VectorN<Real, 2> v1({ REAL(2.0), REAL(5.0) });
+		VectorN<Real, 2> v1({ static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0) });
 		auto result = f(v1);
 		
 		REQUIRE(result.size() == 3);
-		REQUIRE_THAT(result[0], RealWithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(result[1], RealWithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(result[2], RealWithinAbs(REAL(7.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result[0], RealWithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result[1], RealWithinAbs(static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result[2], RealWithinAbs(static_cast<MML::Real>(7.0), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -296,14 +296,14 @@ namespace MML::Tests::Core::FunctionTests
 		
 		ParametricCurve<3> helix(HelixCurve);
 		
-		auto p0 = helix(REAL(0.0));
-		REQUIRE_THAT(p0[0], RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));  // cos(0) = 1
-		REQUIRE_THAT(p0[1], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));  // sin(0) = 0
-		REQUIRE_THAT(p0[2], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));  // z = 0
+		auto p0 = helix(static_cast<MML::Real>(0.0));
+		REQUIRE_THAT(p0[0], RealWithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));  // cos(0) = 1
+		REQUIRE_THAT(p0[1], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));  // sin(0) = 0
+		REQUIRE_THAT(p0[2], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));  // z = 0
 		
 		auto pPi = helix(Constants::PI);
-		REQUIRE_THAT(pPi[0], RealWithinAbs(-REAL(1.0), TOL(1e-10, 1e-5)));  // cos(π) = -1
-		REQUIRE_THAT(pPi[1], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));   // sin(π) ≈ 0
+		REQUIRE_THAT(pPi[0], RealWithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));  // cos(π) = -1
+		REQUIRE_THAT(pPi[1], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));   // sin(π) ≈ 0
 		REQUIRE_THAT(pPi[2], RealWithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
 	}
 
@@ -311,10 +311,10 @@ namespace MML::Tests::Core::FunctionTests
 	{
 		TEST_PRECISION_INFO();
 		
-		ParametricCurve<3> helix(REAL(0.0), REAL(2.0) * Constants::PI, HelixCurve);
+		ParametricCurve<3> helix(static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, HelixCurve);
 		
-		REQUIRE_THAT(helix.getMinT(), RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(helix.getMaxT(), RealWithinAbs(REAL(2.0) * Constants::PI, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(helix.getMinT(), RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(helix.getMaxT(), RealWithinAbs(static_cast<MML::Real>(2.0) * Constants::PI, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Function_ParametricCurveFromStdFunc", "[Function]")
@@ -326,13 +326,13 @@ namespace MML::Tests::Core::FunctionTests
 			return VectorN<Real, 2>({ std::cos(t), std::sin(t) });
 		});
 		
-		auto p0 = circle(REAL(0.0));
-		REQUIRE_THAT(p0[0], RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(p0[1], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		auto p0 = circle(static_cast<MML::Real>(0.0));
+		REQUIRE_THAT(p0[0], RealWithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(p0[1], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 		
-		auto pHalfPi = circle(Constants::PI / REAL(2.0));
-		REQUIRE_THAT(pHalfPi[0], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(pHalfPi[1], RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		auto pHalfPi = circle(Constants::PI / static_cast<MML::Real>(2.0));
+		REQUIRE_THAT(pHalfPi[0], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(pHalfPi[1], RealWithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Function_ParametricCurveFromStdFunc_bounded", "[Function]")
@@ -340,11 +340,11 @@ namespace MML::Tests::Core::FunctionTests
 		TEST_PRECISION_INFO();
 		
 		ParametricCurveFromStdFunc<2> arc(
-			REAL(0.0), Constants::PI,
+			static_cast<MML::Real>(0.0), Constants::PI,
 			[](Real t) { return VectorN<Real, 2>({ std::cos(t), std::sin(t) }); }
 		);
 		
-		REQUIRE_THAT(arc.getMinT(), RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(arc.getMinT(), RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 		REQUIRE_THAT(arc.getMaxT(), RealWithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
 	}
 
@@ -361,8 +361,8 @@ namespace MML::Tests::Core::FunctionTests
 		});
 	}
 
-	Real ConstantZero(Real) { return REAL(0.0); }
-	Real ConstantTwoPi(Real) { return REAL(2.0) * Constants::PI; }
+	Real ConstantZero(Real) { return static_cast<MML::Real>(0.0); }
+	Real ConstantTwoPi(Real) { return static_cast<MML::Real>(2.0) * Constants::PI; }
 
 	TEST_CASE("Function_ParametricSurface_func_pointer", "[Function]")
 	{
@@ -370,20 +370,20 @@ namespace MML::Tests::Core::FunctionTests
 		
 		// Unit sphere: θ ∈ [0, π], φ ∈ [0, 2π]
 		ParametricSurface<3> sphere(SphereSurface, 
-			REAL(0.0), Constants::PI, 
+			static_cast<MML::Real>(0.0), Constants::PI,
 			ConstantZero, ConstantTwoPi);
 		
 		// North pole: θ = 0
-		auto northPole = sphere(REAL(0.0), REAL(0.0));
-		REQUIRE_THAT(northPole[0], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(northPole[1], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(northPole[2], RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		auto northPole = sphere(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+		REQUIRE_THAT(northPole[0], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(northPole[1], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(northPole[2], RealWithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 		
 		// Equator point: θ = π/2, φ = 0
-		auto equator = sphere(Constants::PI / REAL(2.0), REAL(0.0));
-		REQUIRE_THAT(equator[0], RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(equator[1], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(equator[2], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		auto equator = sphere(Constants::PI / static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.0));
+		REQUIRE_THAT(equator[0], RealWithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(equator[1], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(equator[2], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Function_ParametricSurface_domain_bounds", "[Function]")
@@ -391,13 +391,13 @@ namespace MML::Tests::Core::FunctionTests
 		TEST_PRECISION_INFO();
 		
 		ParametricSurface<3> sphere(SphereSurface, 
-			REAL(0.0), Constants::PI, 
+			static_cast<MML::Real>(0.0), Constants::PI,
 			ConstantZero, ConstantTwoPi);
 		
-		REQUIRE_THAT(sphere.getMinU(), RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(sphere.getMinU(), RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 		REQUIRE_THAT(sphere.getMaxU(), RealWithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(sphere.getMinW(REAL(0.5)), RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(sphere.getMaxW(REAL(0.5)), RealWithinAbs(REAL(2.0) * Constants::PI, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(sphere.getMinW(static_cast<MML::Real>(0.5)), RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(sphere.getMaxW(static_cast<MML::Real>(0.5)), RealWithinAbs(static_cast<MML::Real>(2.0) * Constants::PI, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Function_ParametricSurface_domain_error", "[Function]")
@@ -405,50 +405,50 @@ namespace MML::Tests::Core::FunctionTests
 		TEST_PRECISION_INFO();
 		
 		ParametricSurface<3> sphere(SphereSurface, 
-			REAL(0.0), Constants::PI, 
+			static_cast<MML::Real>(0.0), Constants::PI,
 			ConstantZero, ConstantTwoPi);
 		
 		// x out of domain
-		REQUIRE_THROWS_AS(sphere(-REAL(0.1), REAL(0.0)), DomainError);
-		REQUIRE_THROWS_AS(sphere(Constants::PI + REAL(0.1), REAL(0.0)), DomainError);
+		REQUIRE_THROWS_AS(sphere(-static_cast<MML::Real>(0.1), static_cast<MML::Real>(0.0)), DomainError);
+		REQUIRE_THROWS_AS(sphere(Constants::PI + static_cast<MML::Real>(0.1), static_cast<MML::Real>(0.0)), DomainError);
 		
 		// y out of domain  
-		REQUIRE_THROWS_AS(sphere(REAL(0.5), -REAL(0.1)), DomainError);
-		REQUIRE_THROWS_AS(sphere(REAL(0.5), REAL(2.0) * Constants::PI + REAL(0.1)), DomainError);
+		REQUIRE_THROWS_AS(sphere(static_cast<MML::Real>(0.5), -static_cast<MML::Real>(0.1)), DomainError);
+		REQUIRE_THROWS_AS(sphere(static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.0) * Constants::PI + static_cast<MML::Real>(0.1)), DomainError);
 	}
 
 	VectorN<Real, 3> PlaneSurface(Real u, Real w)
 	{
-		return VectorN<Real, 3>({ u, w, REAL(0.0) });
+		return VectorN<Real, 3>({ u, w, static_cast<MML::Real>(0.0) });
 	}
 
 	TEST_CASE("Function_ParametricSurfaceRect_func_pointer", "[Function]")
 	{
 		TEST_PRECISION_INFO();
 		
-		ParametricSurfaceRect<3> plane(PlaneSurface, REAL(0.0), REAL(1.0), REAL(0.0), REAL(1.0));
+		ParametricSurfaceRect<3> plane(PlaneSurface, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0));
 		
-		auto p00 = plane(REAL(0.0), REAL(0.0));
-		REQUIRE_THAT(p00[0], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(p00[1], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(p00[2], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		auto p00 = plane(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+		REQUIRE_THAT(p00[0], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(p00[1], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(p00[2], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 		
-		auto p11 = plane(REAL(1.0), REAL(1.0));
-		REQUIRE_THAT(p11[0], RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(p11[1], RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(p11[2], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		auto p11 = plane(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0));
+		REQUIRE_THAT(p11[0], RealWithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(p11[1], RealWithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(p11[2], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Function_ParametricSurfaceRect_bounds", "[Function]")
 	{
 		TEST_PRECISION_INFO();
 		
-		ParametricSurfaceRect<3> plane(PlaneSurface, -REAL(1.0), REAL(2.0), -REAL(3.0), REAL(4.0));
+		ParametricSurfaceRect<3> plane(PlaneSurface, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), -static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0));
 		
-		REQUIRE_THAT(plane.getMinU(), RealWithinAbs(-REAL(1.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(plane.getMaxU(), RealWithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(plane.getMinW(), RealWithinAbs(-REAL(3.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(plane.getMaxW(), RealWithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(plane.getMinU(), RealWithinAbs(-static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(plane.getMaxU(), RealWithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(plane.getMinW(), RealWithinAbs(-static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(plane.getMaxW(), RealWithinAbs(static_cast<MML::Real>(4.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Function_ParametricSurfaceRect_unbounded", "[Function]")
@@ -471,18 +471,18 @@ namespace MML::Tests::Core::FunctionTests
 		std::function<VectorN<Real, 3>(Real, Real)> saddleFunc = 
 			[](Real u, Real w) { return VectorN<Real, 3>({ u, w, u*u - w*w }); };
 		
-		ParametricSurfaceFromStdFunc<3> saddle(saddleFunc, -REAL(1.0), REAL(1.0), -REAL(1.0), REAL(1.0));
+		ParametricSurfaceFromStdFunc<3> saddle(saddleFunc, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0));
 		
-		auto origin = saddle(REAL(0.0), REAL(0.0));
-		REQUIRE_THAT(origin[0], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(origin[1], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(origin[2], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		auto origin = saddle(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
+		REQUIRE_THAT(origin[0], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(origin[1], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(origin[2], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
 		
-		auto p11 = saddle(REAL(1.0), REAL(1.0));
-		REQUIRE_THAT(p11[2], RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));  // 1² - 1² = 0
+		auto p11 = saddle(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0));
+		REQUIRE_THAT(p11[2], RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));  // 1² - 1² = 0
 		
-		auto p10 = saddle(REAL(1.0), REAL(0.0));
-		REQUIRE_THAT(p10[2], RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));  // 1² - 0² = 1
+		auto p10 = saddle(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0));
+		REQUIRE_THAT(p10[2], RealWithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));  // 1² - 0² = 1
 	}
 
 } // namespace Tests::Core::FunctionTests

@@ -12,6 +12,7 @@
 #define MML_DISTRIBUTIONS_H
 
 #include <mml/algorithms/Statistics.h>
+#include <mml/MMLExceptions.h>
 #include <mml/base/SpecialFunctions.h>
 #include <mml/base/Random.h>
 
@@ -40,7 +41,7 @@ namespace MML
 		inline Real SampleStandardNormal(URBG& gen)
 		{
 			Real u1;
-			do { u1 = SampleUniform01(gen); } while (u1 == REAL(0.0));
+			do { u1 = SampleUniform01(gen); } while (u1 == static_cast<MML::Real>(0.0));
 			Real u2 = SampleUniform01(gen);
 			return std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * Constants::PI * u2);
 		}
@@ -52,7 +53,7 @@ namespace MML
 			if (shape < 1.0)
 			{
 				Real u;
-				do { u = SampleUniform01(gen); } while (u == REAL(0.0));
+				do { u = SampleUniform01(gen); } while (u == static_cast<MML::Real>(0.0));
 				return SampleGamma(gen, shape + 1.0, scale) * std::pow(u, 1.0 / shape);
 			}
 			Real d = shape - 1.0 / 3.0;
@@ -63,7 +64,7 @@ namespace MML
 				do { x = SampleStandardNormal(gen); v = 1.0 + c * x; } while (v <= 0.0);
 				v = v * v * v;
 				Real u = SampleUniform01(gen);
-				if (u < 1.0 - REAL(0.0331) * x * x * x * x) return d * v * scale;
+				if (u < 1.0 - static_cast<MML::Real>(0.0331) * x * x * x * x) return d * v * scale;
 				if (std::log(u) < 0.5 * x * x + d * (1.0 - v + std::log(v))) return d * v * scale;
 			}
 		}
@@ -734,8 +735,8 @@ namespace MML
 			template<class URBG> Real sample(URBG& gen) const
 			{
 				Real u = SampleUniform01(gen);
-				if (u < REAL(1e-300)) u = REAL(1e-300);
-				if (u > 1.0 - REAL(1e-16)) u = 1.0 - REAL(1e-16);
+				if (u < static_cast<MML::Real>(1e-300)) u = static_cast<MML::Real>(1e-300);
+				if (u > 1.0 - static_cast<MML::Real>(1e-16)) u = 1.0 - static_cast<MML::Real>(1e-16);
 				return mu + sigma * std::log(u / (1.0 - u));
 			}
 			/// @brief Draw a random variate using MML's thread-local engine.

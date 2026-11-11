@@ -23,8 +23,8 @@ namespace MML::Tests::Core::Derivation::ADConsistencyTests
             return sin(v[0] * v[1]) + exp(v[0]);
         };
 
-        auto forwardGrad = gradient(forwardFunc, point);
-        auto reverseGrad = gradientReverse(reverseFunc, point);
+        auto forwardGrad = CalcGradientForwardAD(forwardFunc, point);
+        auto reverseGrad = CalcGradientReverseAD(reverseFunc, point);
 
         REQUIRE(forwardGrad.size() == reverseGrad.size());
         REQUIRE(forwardGrad[0] == Catch::Approx(reverseGrad[0]).epsilon(std::numeric_limits<Real>::epsilon()));
@@ -49,8 +49,8 @@ namespace MML::Tests::Core::Derivation::ADConsistencyTests
             };
         };
 
-        auto forwardJac = jacobianForwardAD(forwardFunc, point);
-        auto reverseJac = jacobianReverseAD(reverseFunc, point);
+        auto forwardJac = CalcJacobianForwardAD(forwardFunc, point);
+        auto reverseJac = CalcJacobianReverseAD(reverseFunc, point);
 
         REQUIRE(forwardJac.rows() == reverseJac.rows());
         REQUIRE(forwardJac.cols() == reverseJac.cols());

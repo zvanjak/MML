@@ -41,10 +41,10 @@ namespace MML {
 		/// @param opts Loading options (schema validation, type inference, etc.)
 		/// @return Loaded dataset
 		/// @throws DataError on file/parse errors or schema violations (if strictSchema)
-		inline Dataset LoadCSV(const std::string& filename, const CSVLoadOptions& opts) {
+		inline IOResult LoadCSV(const std::string& filename, Dataset& output, const CSVLoadOptions& opts = {}) {
 			std::ifstream file(filename);
 			if (!file.is_open())
-				throw DataError("LoadCSV: Cannot open file '" + filename + "'");
+				return SerializeFailure(IOError::FILE_NOT_OPENED, "Cannot open file").WithFile(filename);
 
 			Dataset dataset;
 			dataset.name = filename;
@@ -52,8 +52,11 @@ namespace MML {
 			std::vector<std::vector<std::string>> allData;
 			std::string line;
 			bool firstLine = true;
+			std::int64_t lineNumber = 0;
+			std::vector<std::int64_t> sourceLines;
 
 			while (std::getline(file, line)) {
+				++lineNumber;
 				// Handle BOM on first line
 				if (firstLine) {
 					line = RemoveBOM(line);
@@ -67,12 +70,18 @@ namespace MML {
 				if (!line.empty() && line.back() == '\r')
 					line.pop_back();
 
-				std::vector<std::string> fields = SplitLine(line, opts.delimiter);
-				allData.push_back(fields);
+				try {
+					allData.push_back(SplitLine(line, opts.delimiter));
+				} catch (const DataError& error) {
+					return SerializeFailure(IOError::MALFORMED_INPUT, error.what()).WithFile(filename).At(lineNumber, IOOffsetKind::Line);
+				}
+				sourceLines.push_back(lineNumber);
 			}
+			if (file.bad() || !file.eof())
+				return SerializeFailure(IOError::READ_FAILED, "CSV stream read failed").WithFile(filename).At(lineNumber + 1, IOOffsetKind::Line);
 
 			if (allData.empty())
-				throw DataError("LoadCSV: File is empty");
+				return SerializeFailure(IOError::INVALID_FORMAT, "CSV file is empty").WithFile(filename).At(1, IOOffsetKind::Line);
 
 			// Determine column count
 			size_t numCols = allData[0].size();
@@ -100,7 +109,7 @@ namespace MML {
 						                  std::to_string(allData[r].size()) + " fields, expected " +
 						                  std::to_string(numCols);
 						if (opts.strictSchema)
-							throw DataError("LoadCSV: Schema mismatch - " + msg);
+							return SerializeFailure(IOError::SCHEMA_MISMATCH, msg).WithFile(filename).At(sourceLines[r], IOOffsetKind::Line);
 						if (opts.warnings)
 							opts.warnings->push_back(msg);
 					}
@@ -218,6 +227,15 @@ namespace MML {
 				}
 			}
 
+			output = std::move(dataset);
+			return IOResult::Success(filename);
+		}
+
+		inline Dataset LoadCSV(const std::string& filename, const CSVLoadOptions& opts) {
+			Dataset dataset;
+			const auto result = LoadCSV(filename, dataset, opts);
+			if (!result)
+				throw DataError(result.message);
 			return dataset;
 		}
 
@@ -254,21 +272,21 @@ namespace MML {
 		/// @details This function returns errors instead of throwing exceptions.
 		/// Use this for better error composition and when exceptions are not desired.
 		/// Use LoadCSV() when exception-based error handling is preferred.
-		inline LoadResult LoadCSVSafe(const std::string& filename, bool hasHeader = true,
-		                              char delimiter = ',', bool inferTypes = true) {
-			try {
-				Dataset dataset = LoadCSV(filename, hasHeader, delimiter, inferTypes);
-				return LoadResult::Success(dataset);
-			}
-			catch (const DataError& e) {
-				return LoadResult::Failure(std::string("CSV load failed: ") + e.what());
-			}
-			catch (const std::exception& e) {
-				return LoadResult::Failure(std::string("Unexpected error: ") + e.what());
-			}
-			catch (...) {
-				return LoadResult::Failure("Unknown error occurred during CSV loading");
-			}
+		inline IOResult LoadCSVSafe(const std::string& filename, Dataset& dataset, bool hasHeader = true, char delimiter = ',',
+																bool inferTypes = true) {
+			CSVLoadOptions opts;
+			opts.hasHeader = hasHeader;
+			opts.delimiter = delimiter;
+			opts.inferTypes = inferTypes;
+			return LoadCSV(filename, dataset, opts);
+		}
+
+		[[deprecated("use the IOResult overload with Dataset&")]]
+		inline LegacyDatasetResult LoadCSVSafe(const std::string& filename, bool hasHeader = true, char delimiter = ',',
+																					 bool inferTypes = true) {
+			Dataset dataset;
+			auto result = LoadCSVSafe(filename, dataset, hasHeader, delimiter, inferTypes);
+			return LegacyDatasetResult::From(std::move(result), std::move(dataset));
 		}
 
 		/// @brief Load dataset from TSV file with result-based error handling
@@ -277,8 +295,15 @@ namespace MML {
 		/// @param inferTypes If true, automatically infer column types
 		/// @return LoadResult with success status, error message, and loaded dataset
 		/// @details This function returns errors instead of throwing exceptions.
-		inline LoadResult LoadTSVSafe(const std::string& filename, bool hasHeader = true, bool inferTypes = true) {
-			return LoadCSVSafe(filename, hasHeader, '\t', inferTypes);
+		inline IOResult LoadTSVSafe(const std::string& filename, Dataset& dataset, bool hasHeader = true, bool inferTypes = true) {
+			return LoadCSVSafe(filename, dataset, hasHeader, '\t', inferTypes);
+		}
+
+		[[deprecated("use the IOResult overload with Dataset&")]]
+		inline LegacyDatasetResult LoadTSVSafe(const std::string& filename, bool hasHeader = true, bool inferTypes = true) {
+			Dataset dataset;
+			auto result = LoadTSVSafe(filename, dataset, hasHeader, inferTypes);
+			return LegacyDatasetResult::From(std::move(result), std::move(dataset));
 		}
 
 		/////////////////////////////////////////////////////////////////////////////////////

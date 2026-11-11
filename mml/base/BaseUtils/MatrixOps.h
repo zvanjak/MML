@@ -185,7 +185,7 @@ namespace MML
 			if (orig.rows() != orig.cols())
 				throw MatrixDimensionError("MatrixDecompose - matrix must be square", orig.rows(), orig.cols(), -1, -1);
 
-			auto transp = orig.transpose();
+			auto transp = orig.Transposed();
 			outSym = (orig + transp) * 0.5;
 			outAntiSym = (orig - transp) * 0.5;
 		}
@@ -194,7 +194,7 @@ namespace MML
 		template<class Type>
 		Real MaxAbsDiff(const Matrix<Type>& left, const Matrix<Type>& right)
 		{
-			Real maximum = REAL(0.0);
+			Real maximum = static_cast<MML::Real>(0.0);
 			const int rows = std::min(left.rows(), right.rows());
 			const int cols = std::min(left.cols(), right.cols());
 			for (int row = 0; row < rows; ++row)
@@ -239,7 +239,7 @@ namespace MML
 			Matrix<Type> a_pow_n(a);
 
 			double fact = 1.0;
-			ret.MakeUnitMatrix();
+			ret.SetIdentity();
 
 			for (int i = 1; i <= n; i++)
 			{
@@ -289,8 +289,8 @@ namespace MML
 			Matrix<Type> a_pow_n(a.rows(), a.cols());
 
 			double fact = 1.0;
-			ret.MakeUnitMatrix();
-			a_pow_n.MakeUnitMatrix();
+			ret.SetIdentity();
+			a_pow_n.SetIdentity();
 
 			for (int i = 1; i <= n; i+=2)
 			{
@@ -338,8 +338,8 @@ namespace MML
 			Matrix<Type> a_pow_n(a.rows(), a.cols());
 
 			double fact = 1.0;
-			ret.MakeUnitMatrix();
-			a_pow_n.MakeUnitMatrix();
+			ret.SetIdentity();
+			a_pow_n.SetIdentity();
 
 			// cosh(x) = 1 + x²/2! + x⁴/4! + ... (even powers, all positive)
 			for (int i = 2; i <= n; i += 2)
@@ -430,7 +430,7 @@ namespace MML
 
 	} // namespace Utils
 
-	inline Matrix<Real> GramSchmidt(const Matrix<Real>& matrix, Real tolerance = REAL(1e-12))
+	inline Matrix<Real> GramSchmidt(const Matrix<Real>& matrix, Real tolerance = Precision::LinearDependenceTolerance)
 	{
 		const int rows = matrix.rows();
 		const int cols = matrix.cols();
@@ -440,7 +440,7 @@ namespace MML
 			for (int row = 0; row < rows; ++row)
 				vector[row] = matrix(row, col);
 			for (int previous = 0; previous < col; ++previous) {
-				Real projection = REAL(0.0);
+				Real projection = static_cast<MML::Real>(0.0);
 				for (int row = 0; row < rows; ++row)
 					projection += vector[row] * result(row, previous);
 				for (int row = 0; row < rows; ++row)
@@ -456,7 +456,7 @@ namespace MML
 
 	template<int N>
 	std::vector<VectorN<Real, N>> GramSchmidtVectors(
-			const std::vector<VectorN<Real, N>>& vectors, Real tolerance = REAL(1e-12))
+			const std::vector<VectorN<Real, N>>& vectors, Real tolerance = Precision::LinearDependenceTolerance)
 	{
 		std::vector<VectorN<Real, N>> result;
 		result.reserve(vectors.size());
@@ -477,7 +477,7 @@ namespace MML
 			Real tolerance = Precision::OrthogonalityTolerance)
 	{
 		for (size_t left = 0; left < vectors.size(); ++left) {
-			if (std::abs(vectors[left].NormL2() - REAL(1.0)) > tolerance)
+			if (std::abs(vectors[left].NormL2() - static_cast<MML::Real>(1.0)) > tolerance)
 				return false;
 			for (size_t right = left + 1; right < vectors.size(); ++right)
 				if (std::abs(Utils::ScalarProduct<N>(vectors[left], vectors[right])) > tolerance)

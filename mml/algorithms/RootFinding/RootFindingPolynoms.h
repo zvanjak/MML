@@ -59,6 +59,11 @@ namespace MML {
       // Reference: Numerical Recipes, Press et al., "Quadratic and Cubic Equations"
       Real sqrtD = std::sqrt(D);
       Real q = Real(-0.5) * (b + std::copysign(sqrtD, b));
+      // q == 0 only when b == 0 and D == 0, i.e. c == 0: double root at x = 0 (c / q would be 0/0)
+      if (q == Real(0.0)) {
+        x1 = x2 = Complex(0);
+        return 2;
+      }
       x1 = q / a;
       x2 = c / q;
       return 2;
@@ -87,7 +92,8 @@ namespace MML {
   }
 
   /// Solve cubic equation: a*x^3 + b*x^2 + c*x + d = 0 (Cardano's formula)
-  /// @return Number of real roots (1 or 3); all roots returned via x1, x2, x3
+  /// @return Number of real roots (1 or 3); all roots returned via x1, x2, x3.
+  ///         Repeated real roots (D == 0 within rounding) count as 3 real roots, with x2 == x3.
   inline int SolveCubic(Real a, Real b, Real c, Real d, Complex &x1, Complex &x2,
                         Complex &x3) {
     // Degenerate: a=0 reduces to quadratic b*x^2 + c*x + d = 0
@@ -102,16 +108,33 @@ namespace MML {
     Real B = c / a;
     Real C = d / a;
 
-    // Calculate the discriminant
+    // Calculate the discriminant (sign convention: Q = -Q_NR, R = -R_NR, D = R_NR^2 - Q_NR^3)
     Real Q = (Real(3.0) * B - POW2(A)) / Real(9.0);
     Real R =
         (Real(9.0) * A * B - Real(27.0) * C - Real(2.0) * POW3(A)) / Real(54.0);
     Real D = POW3(Q) + POW2(R); // Discriminant
 
-    if (D >= 0) // Complex or duplicate roots
+    // D is a difference of two rounded quantities; treat |D| below their rounding noise as zero,
+    // otherwise a triple root like (x-1)^3 lands in the "one real root" branch by accident.
+    const Real scaleD = std::abs(POW3(Q)) + POW2(R);
+    const Real tolD = Real(64.0) * std::numeric_limits<Real>::epsilon() * scaleD;
+
+    if (std::abs(D) <= tolD) // Repeated real roots: x1 = -A/3 + 2S, x2 = x3 = -A/3 - S
     {
-      Real S = std::cbrt(R + std::sqrt(D));
-      Real T = std::cbrt(R - std::sqrt(D));
+      Real S = std::cbrt(R);
+      x1 = -A / Real(3.0) + Real(2.0) * S;
+      x2 = x3 = Complex(-A / Real(3.0) - S);
+      return 3;
+    }
+    else if (D > 0) // One real root and a complex conjugate pair
+    {
+      // Stable Cardano: take the cube root with no cancellation, get the other from S*T = -Q
+      // (Numerical Recipes §5.6; S + T would otherwise lose digits when |R| ≈ sqrt(D)).
+      Real sqrtD = std::sqrt(D);
+      Real big = std::copysign(std::cbrt(std::abs(R) + sqrtD), R);
+      Real small = (big != Real(0.0)) ? -Q / big : Real(0.0);
+      Real S = (R >= Real(0.0)) ? big : small;
+      Real T = (R >= Real(0.0)) ? small : big;
 
       x1 = -A / Real(3.0) + (S + T); // Real root
       x2 = -A / Real(3.0) - (S + T) / Real(2.0) +
@@ -120,9 +143,11 @@ namespace MML {
            Complex(0, std::sqrt(Real(3.0)) * (S - T) / Real(2.0)); // Complex root
 
       return 1;
-    } else // Three real roots
+    } else // Three distinct real roots (trigonometric form)
     {
-      Real theta = std::acos(R / std::sqrt(-POW3(Q)));
+      // R / sqrt(-Q^3) is ±1 up to rounding at the boundary; clamp so acos never returns NaN
+      Real ratio = std::clamp(R / std::sqrt(-POW3(Q)), Real(-1.0), Real(1.0));
+      Real theta = std::acos(ratio);
       x1 =
           Real(2.0) * std::sqrt(-Q) * std::cos(theta / Real(3.0)) - A / Real(3.0);
       x2 = Real(2.0) * std::sqrt(-Q) *
@@ -275,7 +300,7 @@ namespace MML {
 					scale += std::abs(polynomial[coefficient]) * power;
 					power *= magnitude;
 				}
-				return std::max(scale, std::numeric_limits<Real>::min());
+				return std::max(scale, std::numeric_limits<Real>::min());   // underflow guard
 			}
 		} // namespace Detail
 
@@ -595,7 +620,11 @@ namespace MML {
 					result.elapsed_time_ms = timer.elapsed_ms();
 					return result;
 				}
-				result.converged = true;
+				// Non-zero constant: no roots, nothing was iterated or checked (RESULT_POLICY: Completed)
+				result.status = AlgorithmStatus::Completed;
+				result.converged = false;
+				result.max_residual = NoEstimate;
+				result.max_relative_residual = NoEstimate;
 				result.elapsed_time_ms = timer.elapsed_ms();
 				return result;
 			}

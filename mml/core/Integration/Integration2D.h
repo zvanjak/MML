@@ -8,7 +8,7 @@
 ///  Usage:       // Integrate over triangular region                                 ///
 ///               auto y_lo = [](Real x) { return 0.0; };                             ///
 ///               auto y_hi = [](Real x) { return 1.0 - x; };                         ///
-///               auto r = Integrate2D(f, SIMPSON, 0, 1, y_lo, y_hi);                 ///
+///               auto r = Integrate2DCore(f, SIMPSON, 0, 1, y_lo, y_hi);                 ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
 ///  License:     MIT License (see LICENSE.md)                                         ///
@@ -20,7 +20,6 @@
 #include <mml/MMLBase.h>
 
 #include <mml/interfaces/IFunction.h>
-
 
 namespace MML
 {
@@ -62,15 +61,15 @@ namespace MML
 			switch (_integrMethod)
 			{
 				case SIMPSON:
-					return IntegrateSimpson(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
+					return IntegrateSimpsonCore(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
 				case ROMBERG:
-					return IntegrateRomberg(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
+					return IntegrateRombergCore(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
 				case GAUSS10:
-					return IntegrateGauss10(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
+					return IntegrateGauss10Core(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
 				case GAUSS10KRONROD21:
-					return IntegrateGK21(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
+					return IntegrateGK21Core(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
 				default:
-					return IntegrateTrap(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
+					return IntegrateTrapCore(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
 			}
 		}
 	};
@@ -80,7 +79,7 @@ namespace MML
 	/// @param x1,x2 Fixed x-integration bounds
 	/// @param y1,y2 Functions defining y-bounds: y ∈ [y1(x), y2(x)]
 	/// @return IntegrationResult with value, error_estimate, iterations, converged
-	static IntegrationResult Integrate2D(const IScalarFunction<2>& func, IntegrationMethod method, 
+	static IntegrationResult Integrate2DCore(const IScalarFunction<2>& func, IntegrationMethod method, 
 																			 const Real x1, const Real x2, 
 																			 Real y1(Real), Real y2(Real))
 	{
@@ -89,16 +88,23 @@ namespace MML
 		switch (method)
 		{
 			case SIMPSON:
-				return IntegrateSimpson(f1, x1, x2);
+				return IntegrateSimpsonCore(f1, x1, x2);
 			case ROMBERG:
-				return IntegrateRomberg(f1, x1, x2);
+				return IntegrateRombergCore(f1, x1, x2);
 			case GAUSS10:
-				return IntegrateGauss10(f1, x1, x2);  // Now returns IntegrationResult directly
+				return IntegrateGauss10Core(f1, x1, x2);  // Now returns IntegrationResult directly
 			case GAUSS10KRONROD21:
-				return IntegrateGK21(f1, x1, x2);
+				return IntegrateGK21Core(f1, x1, x2);
 			default:
-				return IntegrateTrap(f1, x1, x2);
+				return IntegrateTrapCore(f1, x1, x2);
 		}
+	}
+
+	static Real Integrate2D(const IScalarFunction<2>& func, IntegrationMethod method, 
+																			 const Real x1, const Real x2, 
+																			 Real y1(Real), Real y2(Real))
+	{
+		return Integrate2DCore(func, method, x1, x2, y1, y2).ValueOrThrow("Integrate2D");
 	}
 
 	/******************************************************************************/
@@ -115,7 +121,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"Integrate2D", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = Integrate2D(func, method, x1, x2, y1, y2);
+				auto r = Integrate2DCore(func, method, x1, x2, y1, y2);
 				IntegrationDetail::PopulateFromSimple(result, r, "Integrate2D");
 			});
 	}

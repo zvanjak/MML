@@ -7,7 +7,7 @@ using namespace MML::Testing::Matchers;
 namespace MML::Tests::TestInfrastructure::SimpleMatcherTest {
 
 TEST_CASE("Simple matcher test", "[minimal]") {
-    REQUIRE_THAT(REAL(1.0), RealEquals(REAL(1.0)));
+    REQUIRE_THAT(static_cast<MML::Real>(1.0), RealEquals(static_cast<MML::Real>(1.0)));
 }
 
 } // namespace MML::Tests::TestInfrastructure::SimpleMatcherTest

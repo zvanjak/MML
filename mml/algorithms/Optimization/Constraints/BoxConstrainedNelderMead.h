@@ -53,7 +53,7 @@ namespace MML::Optimization
 			for (int vertexIndex = 1; vertexIndex <= N; ++vertexIndex) {
 				int component = vertexIndex - 1;
 				Real delta = deltas[component];
-				if (!std::isfinite(delta) || delta == REAL(0.0))
+				if (!std::isfinite(delta) || delta == static_cast<MML::Real>(0.0))
 					throw MultidimOptimizationInputError("BoxConstrainedNelderMead: deltas[" + std::to_string(component) + "] must be finite and non-zero");
 
 				VectorN<Real, N> vertex = base;
@@ -83,7 +83,7 @@ namespace MML::Optimization
 			ValidateMultidimTolerance(_config.tolerance, "BoxConstrainedNelderMead tolerance");
 			if (_config.max_iterations <= 0)
 				throw MultidimOptimizationInputError("BoxConstrainedNelderMead max_iterations must be positive");
-			if (!std::isfinite(_config.initial_delta) || _config.initial_delta == REAL(0.0))
+			if (!std::isfinite(_config.initial_delta) || _config.initial_delta == static_cast<MML::Real>(0.0))
 				throw MultidimOptimizationInputError("BoxConstrainedNelderMead initial_delta must be finite and non-zero");
 		}
 
@@ -98,20 +98,15 @@ namespace MML::Optimization
 		const MultidimOptimizationConfig& config() const noexcept { return _config; }
 
 		template<int N>
-		MultidimMinimizationResult Minimize(const IScalarFunction<N>& func,
-			const VectorN<Real, N>& start,
-			const BoundConstraints& bounds) const
-		{
+		MultidimOptimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
+																				const BoundConstraints& bounds) const {
 			Vector<Real> deltas(N, _config.initial_delta);
 			return Minimize(func, start, bounds, deltas);
 		}
 
 		template<int N>
-		MultidimMinimizationResult Minimize(const IScalarFunction<N>& func,
-			const VectorN<Real, N>& start,
-			const BoundConstraints& bounds,
-			const Vector<Real>& deltas) const
-		{
+		MultidimOptimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, const BoundConstraints& bounds,
+																				const Vector<Real>& deltas) const {
 			validateConfig();
 			bounds.Project(start); // dimension validation
 			AlgorithmTimer timer;
@@ -119,7 +114,7 @@ namespace MML::Optimization
 			Matrix<Real> simplex = Detail::BuildBoundedSimplex(start, bounds, deltas);
 			Detail::ProjectedScalarFunction<N> projectedFunc(func, bounds);
 			NelderMead optimizer(_config.tolerance, _config.max_iterations);
-			MultidimMinimizationResult result = optimizer.Minimize(projectedFunc, simplex);
+			MultidimOptimizationResult result = optimizer.Minimize(projectedFunc, simplex);
 
 			VectorN<Real, N> rawXmin;
 			for (int component = 0; component < N; ++component)
@@ -143,22 +138,17 @@ namespace MML::Optimization
 	};
 
 	template<int N>
-	MultidimMinimizationResult BoxConstrainedNelderMeadMinimize(const IScalarFunction<N>& func,
-		const VectorN<Real, N>& start,
-		const BoundConstraints& bounds,
-		const MultidimOptimizationConfig& config = MultidimOptimizationConfig())
-	{
+	MultidimOptimizationResult BoxConstrainedNelderMeadMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
+																															const BoundConstraints& bounds,
+																															const MultidimOptimizationConfig& config = MultidimOptimizationConfig()) {
 		BoxConstrainedNelderMead optimizer(config);
 		return optimizer.Minimize(func, start, bounds);
 	}
 
 	template<int N>
-	MultidimMinimizationResult BoxConstrainedNelderMeadMinimize(const IScalarFunction<N>& func,
-		const VectorN<Real, N>& start,
-		const BoundConstraints& bounds,
-		const Vector<Real>& deltas,
-		const MultidimOptimizationConfig& config = MultidimOptimizationConfig())
-	{
+	MultidimOptimizationResult BoxConstrainedNelderMeadMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
+																															const BoundConstraints& bounds, const Vector<Real>& deltas,
+																															const MultidimOptimizationConfig& config = MultidimOptimizationConfig()) {
 		BoxConstrainedNelderMead optimizer(config);
 		return optimizer.Minimize(func, start, bounds, deltas);
 	}

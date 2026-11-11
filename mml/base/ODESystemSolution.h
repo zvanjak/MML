@@ -13,9 +13,11 @@
 #define MML_ODE_SYSTEM_SOLUTON_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/MMLExceptions.h>
 
 #include <mml/base/InterpolatedFunction.h>
+#include <mml/base/TrajectoryStorage.h>
 
 
 namespace MML
@@ -36,14 +38,16 @@ namespace MML
 		Vector<Real> _tval;
 		Matrix<Real> _xval;
 	
-		/// @brief Extend storage capacity using exponential growth (1.5x)
-		void ExtendSavedSteps()
+		/// @brief Grow storage (1.5x geometric growth) until it can hold requiredSize points.
+		/// @note Loops rather than growing once: a write at an index far beyond the current
+		///       capacity must still land inside the storage (analysis v4, BASE D2).
+		void EnsureCapacity(std::int64_t requiredSize)
 		{
-			_totalSavedSteps = static_cast<int>(_totalSavedSteps * 1.5) + 1;
-			
-			// resizing the storage while preserving old values
-			_tval.Resize(_totalSavedSteps, true);
-			_xval.Resize(_sysDim, _totalSavedSteps, true);
+			if (requiredSize <= _totalSavedSteps)
+				return;
+			const int capacity = detail::TrajectoryCapacity(_totalSavedSteps, requiredSize, max_size(), true);
+			detail::ResizeTrajectoryStorage(capacity, _tval, {&_xval});
+			_totalSavedSteps = capacity;
 		}
 
 	public:
@@ -54,10 +58,13 @@ namespace MML
 		/// @param maxSteps Initial storage capacity
 		ODESystemSolution(Real x1, Real x2, int dim, int maxSteps)
 			: _t1(x1), _t2(x2), _sysDim(dim),
-				_numStepsOK(0), _numStepsBad(0), _totalSavedSteps(maxSteps + 1), _count(0)
+				_numStepsOK(0), _numStepsBad(0), _totalSavedSteps(0), _count(0)
 		{
-			_tval.Resize(_totalSavedSteps);
-			_xval.Resize(dim, _totalSavedSteps);
+			const int capacity = detail::TrajectoryCapacity(0, static_cast<std::int64_t>(maxSteps) + 1,
+				max_size(), false);
+			_xval.resize(dim, 0);
+			detail::ResizeTrajectoryStorage(capacity, _tval, {&_xval});
+			_totalSavedSteps = capacity;
 		}
 		
 		/// @brief Construct solution container with default capacity (1000 steps)
@@ -93,21 +100,41 @@ namespace MML
 		int size() const { return _count; }
 		/// @brief Get current storage capacity
 		int capacity() const { return _totalSavedSteps; }
+		int max_size() const { return detail::TrajectoryMaxPoints({_sysDim}); }
+
+		/// Reserve a prospective point without changing the saved size or step counters.
+		void reserveForPoint(int index) {
+			if (index < 0) throw IndexError("Negative trajectory point index");
+			EnsureCapacity(static_cast<std::int64_t>(index) + 1);
+		}
 		
 		/// @brief Pre-allocate storage for specified number of points
 		/// @param n Number of points to reserve space for
 		void reserve(int n) {
+			const int capacity = detail::TrajectoryCapacity(_totalSavedSteps, n, max_size(), false);
 			if (n > _totalSavedSteps) {
-				_totalSavedSteps = n;
-				_tval.Resize(_totalSavedSteps, true);
-				_xval.Resize(_sysDim, _totalSavedSteps, true);
+				detail::ResizeTrajectoryStorage(capacity, _tval, {&_xval});
+				_totalSavedSteps = capacity;
 			}
 		}
 
-		/// @brief Get all time points as vector
-		Vector<Real> getTValues() const { return _tval; }
-		/// @brief Get all state vectors as matrix (dim x numPoints)
-		Matrix<Real> getXValues() const { return _xval; }
+		/// @brief Get all time points as vector (only the `size()` stored points, not the capacity)
+		Vector<Real> getTValues() const
+		{
+			Vector<Real> t(_count);
+			for (int i = 0; i < _count; i++)
+				t[i] = _tval[i];
+			return t;
+		}
+		/// @brief Get all state vectors as matrix (dim x size())
+		Matrix<Real> getXValues() const
+		{
+			Matrix<Real> x(_sysDim, _count);
+			for (int c = 0; c < _sysDim; c++)
+				for (int i = 0; i < _count; i++)
+					x[c][i] = _xval[c][i];
+			return x;
+		}
 		
 		/// @brief Get t-value at a specific saved point
 		/// @param ind Index of saved point
@@ -138,7 +165,9 @@ namespace MML
 			if (component < 0 || component >= _sysDim)
 				throw IndexError("Component out of range in ODESystemSolution::getXValues(component)");
 			
-			return _xval.VectorFromRow(component); 
+			Vector<Real> values(_count);
+			for (int i = 0; i < _count; ++i) values[i] = _xval[component][i];
+			return values;
 		}
 
 		/// @brief Get state vector at final saved point
@@ -162,8 +191,7 @@ namespace MML
 			if (ind < 0 )
 				throw IndexError("Index must be non-negative in ODESystemSolution::setTVal");
 			
-			if (ind >= _totalSavedSteps)
-				ExtendSavedSteps();
+			reserveForPoint(ind);
 
 			_tval[ind] = x;
 			if (ind + 1 > _count) _count = ind + 1;
@@ -181,8 +209,7 @@ namespace MML
 			if (component < 0 || component >= _sysDim)
 				throw IndexError("Component index out of range in ODESystemSolution::setXVal(component)");
 
-			if (ind >= _totalSavedSteps)
-				ExtendSavedSteps();
+			reserveForPoint(ind);
 
 			_xval[component][ind] = x;
 			if (ind + 1 > _count) _count = ind + 1;
@@ -202,8 +229,7 @@ namespace MML
 			if( y.size() != _sysDim )
 				throw ArgumentError("Vector size mismatch in ODESystemSolution::fillValues");
 
-			if(ind >= _totalSavedSteps)
-				ExtendSavedSteps();
+			reserveForPoint(ind);
 
 			_tval[ind] = x;
 			for (int i = 0; i < _sysDim; i++)
@@ -215,11 +241,10 @@ namespace MML
 		/// @note Call this after integration completes to free unused memory
 		void setFinalSize(int numDoneSteps)
 		{
-			_totalSavedSteps = numDoneSteps + 1;
-			_count = numDoneSteps + 1;
-
-			_tval.Resize(_totalSavedSteps, true);
-			_xval.Resize(_sysDim, _totalSavedSteps, true);
+			const int capacity = detail::TrajectoryCapacity(_totalSavedSteps,
+				static_cast<std::int64_t>(numDoneSteps) + 1, max_size(), false);
+			detail::ResizeTrajectoryStorage(capacity, _tval, {&_xval});
+			_totalSavedSteps = _count = capacity;
 		}
 
 		/// @brief Create linear interpolator for specified component
@@ -227,8 +252,8 @@ namespace MML
 		/// @return Linear interpolation function
 		LinearInterpRealFunc  getSolAsLinInterp(int component) const
 		{
-			Vector<Real> xsave = _tval;
-			Vector<Real> ysave = _xval.VectorFromRow(component);
+			Vector<Real> xsave = getTValues();
+			Vector<Real> ysave = getXValues(component);
 
 			return LinearInterpRealFunc(xsave, ysave);
 		}
@@ -239,8 +264,8 @@ namespace MML
 		/// @return Polynomial interpolation function
 		PolynomInterpRealFunc getSolAsPolyInterp(int component, int polyOrder) const
 		{
-			Vector<Real> xsave = _tval;
-			Vector<Real> ysave = _xval.VectorFromRow(component);
+			Vector<Real> xsave = getTValues();
+			Vector<Real> ysave = getXValues(component);
 			return PolynomInterpRealFunc(xsave, ysave, polyOrder + 1);
 		}
 		
@@ -249,8 +274,8 @@ namespace MML
 		/// @return Cubic spline interpolation function
 		SplineInterpRealFunc  getSolAsSplineInterp(int component) const
 		{
-			Vector<Real> xsave = _tval;
-			Vector<Real> ysave = _xval.VectorFromRow(component);
+			Vector<Real> xsave = getTValues();
+			Vector<Real> ysave = getXValues(component);
 			return SplineInterpRealFunc(xsave, ysave);
 		}
 
@@ -263,10 +288,11 @@ namespace MML
 			Matrix<Real> curve_points(_count, 2);
 			for (int i = 0; i < _count; i++)
 			{
-				curve_points(i, 0) = _xval[ind1][i];
-				curve_points(i, 1) = _xval[ind2][i];
+				int source = _t1 > _t2 ? _count - 1 - i : i;
+				curve_points(i, 0) = _xval[ind1][source];
+				curve_points(i, 1) = _xval[ind2][source];
 			}
-			return SplineInterpParametricCurve<2>(_t1, _t2, curve_points);
+			return SplineInterpParametricCurve<2>(std::min(_t1, _t2), std::max(_t1, _t2), curve_points);
 		}
 
 		/// @brief Create 3D parametric curve from three components
@@ -279,11 +305,12 @@ namespace MML
 			Matrix<Real> curve_points(_count, 3);
 			for (int i = 0; i < _count; i++)
 			{
-				curve_points(i, 0) = _xval[ind1][i];
-				curve_points(i, 1) = _xval[ind2][i];
-				curve_points(i, 2) = _xval[ind3][i];
+				int source = _t1 > _t2 ? _count - 1 - i : i;
+				curve_points(i, 0) = _xval[ind1][source];
+				curve_points(i, 1) = _xval[ind2][source];
+				curve_points(i, 2) = _xval[ind3][source];
 			}
-			return SplineInterpParametricCurve<3>(_t1, _t2, curve_points);
+			return SplineInterpParametricCurve<3>(std::min(_t1, _t2), std::max(_t1, _t2), curve_points);
 		}
 	};
 }

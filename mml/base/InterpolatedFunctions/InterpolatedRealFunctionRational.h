@@ -17,6 +17,7 @@
 #define MML_INTERPOLATED_REAL_FUNCTION_RATIONAL_H
 
 #include <limits>
+#include <algorithm>
 
 #include <mml/base/InterpolatedFunctions/InterpolatedRealFunctionLinear.h>
 

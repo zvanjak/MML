@@ -47,7 +47,7 @@ namespace MML
 		static Real NDer1Partial(const ITensorField2<N>& f, int i, int j, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
 			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::One>(
-				[&](const auto& x) { return f.Component(i, j, x); }, deriv_index, point, h, error);
+				[&](const auto& x) { return f.component(i, j, x); }, deriv_index, point, h, error);
 		}
 
 		template <int N>
@@ -66,7 +66,7 @@ namespace MML
 		static Real NDer1Partial(const ITensorField3<N>& f, int i, int j, int k, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
 			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::One>(
-				[&](const auto& x) { return f.Component(i, j, k, x); }, deriv_index, point, h, error);
+				[&](const auto& x) { return f.component(i, j, k, x); }, deriv_index, point, h, error);
 		}
 
 		template <int N>
@@ -79,7 +79,7 @@ namespace MML
 		static Real NDer1Partial(const ITensorField4<N>& f, int i, int j, int k, int l, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
 			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::One>(
-				[&](const auto& x) { return f.Component(i, j, k, l, x); }, deriv_index, point, h, error);
+				[&](const auto& x) { return f.component(i, j, k, l, x); }, deriv_index, point, h, error);
 		}
 
 		/********************************************************************************************************************/
@@ -89,7 +89,7 @@ namespace MML
 		static Real NDer2Partial(const ITensorField2<N>& f, int i, int j, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
 			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::Two>(
-				[&](const auto& x) { return f.Component(i, j, x); }, deriv_index, point, h, error);
+				[&](const auto& x) { return f.component(i, j, x); }, deriv_index, point, h, error);
 		}
 
 		template <int N>
@@ -108,7 +108,7 @@ namespace MML
 		static Real NDer2Partial(const ITensorField3<N>& f, int i, int j, int k, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
 			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::Two>(
-				[&](const auto& x) { return f.Component(i, j, k, x); }, deriv_index, point, h, error);
+				[&](const auto& x) { return f.component(i, j, k, x); }, deriv_index, point, h, error);
 		}
 
 		template <int N>
@@ -121,7 +121,7 @@ namespace MML
 		static Real NDer2Partial(const ITensorField4<N>& f, int i, int j, int k, int l, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
 			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::Two>(
-				[&](const auto& x) { return f.Component(i, j, k, l, x); }, deriv_index, point, h, error);
+				[&](const auto& x) { return f.component(i, j, k, l, x); }, deriv_index, point, h, error);
 		}
 		
 		/********************************************************************************************************************/
@@ -131,7 +131,7 @@ namespace MML
 		static Real NDer4Partial(const ITensorField2<N>& f, int i, int j, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
 			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::Four>(
-				[&](const auto& x) { return f.Component(i, j, x); }, deriv_index, point, h, error);
+				[&](const auto& x) { return f.component(i, j, x); }, deriv_index, point, h, error);
 		}
 
 		template <int N>
@@ -150,7 +150,7 @@ namespace MML
 		static Real NDer4Partial(const ITensorField3<N>& f, int i, int j, int k, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
 			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::Four>(
-				[&](const auto& x) { return f.Component(i, j, k, x); }, deriv_index, point, h, error);
+				[&](const auto& x) { return f.component(i, j, k, x); }, deriv_index, point, h, error);
 		}
 
 
@@ -164,7 +164,7 @@ namespace MML
 		static Real NDer4Partial(const ITensorField4<N>& f, int i, int j, int k, int l, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
 			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::Four>(
-				[&](const auto& x) { return f.Component(i, j, k, l, x); }, deriv_index, point, h, error);
+				[&](const auto& x) { return f.component(i, j, k, l, x); }, deriv_index, point, h, error);
 		}
 	}
 }

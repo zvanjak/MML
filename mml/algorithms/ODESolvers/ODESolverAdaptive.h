@@ -13,6 +13,7 @@
 #define MML_ODE_SOLVER_ADAPTIVE_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/base/AlgorithmTypes.h>
 #include <mml/interfaces/IODESystem.h>
 #include <mml/base/ODESystemSolution.h>
@@ -123,8 +124,8 @@ namespace MML {
 		void recordStep(const StepResult& result) {
 			if (result.accepted) {
 				acceptedSteps++;
-				minStepSize = std::min(minStepSize, result.hDone);
-				maxStepSize = std::max(maxStepSize, result.hDone);
+				minStepSize = std::min(minStepSize, std::abs(result.hDone));
+				maxStepSize = std::max(maxStepSize, std::abs(result.hDone));
 			} else {
 				rejectedSteps++;
 			}
@@ -187,13 +188,13 @@ namespace MML {
 			}
 
 			// Initial guess
-			Real h0 = (d0 < Real(1e-5) || d1 < Real(1e-5)) ? Real(1e-6) : Real(0.01) * d0 / d1;
+			Real h0 = (d0 < Real(1e-5) || d1 < Real(1e-5)) ? Real(1e-6) : Real(0.01) * d0 / d1;   // tol-ok: Hairer-Norsett-Wanner initial-step heuristic (I.4, algorithm 4.14)
 			h0 = std::min(h0, std::abs(tEnd - t0));
 
 			// Take one explicit Euler step
 			for (int i = 0; i < n; i++)
-				x1[i] = x0[i] + h0 * f0[i];
-			_sys.derivs(t0 + h0, x1, f1);
+				x1[i] = x0[i] + std::copysign(h0, tEnd - t0) * f0[i];
+			_sys.derivs(t0 + std::copysign(h0, tEnd - t0), x1, f1);
 
 			// Estimate second derivative
 			Real d2 = 0;
@@ -204,8 +205,8 @@ namespace MML {
 
 			// Optimal step for 5th order method
 			Real h1;
-			if (std::max(d1, d2) <= Real(1e-15)) {
-				h1 = std::max(Real(1e-6), h0 * Real(1e-3));
+			if (std::max(d1, d2) <= Real(1e-15)) {   // tol-ok: Hairer initial-step heuristic
+				h1 = std::max(Real(1e-6), h0 * Real(1e-3));   // tol-ok: Hairer initial-step heuristic
 			} else {
 				h1 = std::pow(Real(0.01) / std::max(d1, d2), Real(1.0) / Real(5.0));
 			}
@@ -223,17 +224,32 @@ namespace MML {
 		/// @param minStepSize Minimum allowed step size (default 1e-15)
 		/// @return Solution with points at regular intervals
 		ODESystemSolution integrate(const Vector<Real>& x0, Real t0, Real tEnd, Real outputInterval, Real eps = Precision::ODEDefaultTolerance, Real h0 = 0, Real minStepSize = Precision::ODEMinStepSize, int maxSteps = 0) {
-			if (tEnd <= t0)
-				throw ODESolverError("integrate: tEnd must be greater than t0 (reverse-time integration is not supported)");
-			if (outputInterval <= 0)
+			return IntegrateWithStoragePolicy(x0, t0, tEnd, outputInterval, eps, h0, minStepSize, maxSteps, false);
+		}
+
+	private:
+		ODESystemSolution IntegrateWithStoragePolicy(const Vector<Real>& x0, Real t0, Real tEnd,
+			Real outputInterval, Real eps, Real h0, Real minStepSize, int maxSteps, bool retainPartial) {
+			if (!std::isfinite(tEnd - t0) || tEnd == t0)
+				throw ODESolverError("integrate: requires distinct finite endpoints");
+			if (!std::isfinite(outputInterval) || outputInterval <= 0)
 				throw ODESolverError("outputInterval must be positive (got " + std::to_string(outputInterval) + ")");
 
 			int n = _sys.getDim();
-			int numOutputPoints = static_cast<int>(std::ceil((tEnd - t0) / outputInterval)) + 1;
-
-			ODESystemSolution sol(t0, tEnd, n, numOutputPoints - 1);
+			const Real direction = tEnd > t0 ? Real(1) : Real(-1);
+			ODESystemSolution sol(t0, tEnd, n, 0);
+			const int numOutputPoints = static_cast<int>(std::min(
+				std::ceil(std::abs(tEnd - t0) / outputInterval) + 1, Real(sol.max_size() + 1)));
 			_stats.reset();
 			_stepper.resetFSAL();
+			auto storePoint = [&](int index, Real time, const Vector<Real>& state) {
+				if (!detail::PrepareTrajectoryPoint(sol, index, _stats.status, _stats.error_message)) {
+					if (!retainPartial) throw ResourceLimitError(_stats.error_message);
+					return false;
+				}
+				sol.fillValues(index, time, state);
+				return true;
+			};
 
 			// Initialize
 			Vector<Real> x = x0;
@@ -244,16 +260,16 @@ namespace MML {
 
 			// Initial step size
 			Real h = (h0 > 0) ? h0 : estimateInitialStep(t0, x0, tEnd, eps);
-			h = std::min(h, tEnd - t0);
+			h = direction * std::min(h, std::abs(tEnd - t0));
 
 			// Store initial point
 			Real tNextOutput = t0;
 			int outputIdx = 0;
 			sol.fillValues(outputIdx++, t0, x0);
-			tNextOutput += outputInterval;
+			tNextOutput += direction * outputInterval;
 
 			// Main integration loop
-			while (t < tEnd - Constants::Eps) {
+			while (direction * (tEnd - t) > 0) {
 				// Enforce max_steps if specified
 				if (maxSteps > 0 && _stats.totalSteps() >= maxSteps) {
 					_stats.status = AlgorithmStatus::MaxIterationsExceeded;
@@ -262,9 +278,11 @@ namespace MML {
 				}
 
 				// Don't step past end
-				if (t + h > tEnd) {
+				if (direction * (t + h - tEnd) > 0) {
 					h = tEnd - t;
 				}
+				if (t + h == t)
+					throw ODESolverError("Adaptive step cannot advance floating-point time");
 
 				StepResult result = _stepper.doStep(t, x, dxdt, h, eps);
 				_stats.recordStep(result);
@@ -273,12 +291,13 @@ namespace MML {
 					Real tNew = t + result.hDone;
 
 					// Dense output: interpolate at all output points within this step
-					while (tNextOutput <= tNew + Constants::Eps && outputIdx < numOutputPoints) {
-						if (tNextOutput <= tNew) {
+					while (direction * (tNextOutput - tNew) <= Constants::Eps && outputIdx < numOutputPoints) {
+						if (direction * (tNextOutput - tNew) <= 0) {
 							Vector<Real> xInterp = _stepper.interpolate(tNextOutput);
-							sol.fillValues(outputIdx++, tNextOutput, xInterp);
+							if (!storePoint(outputIdx, tNextOutput, xInterp)) return sol;
+							++outputIdx;
 						}
-						tNextOutput += outputInterval;
+						tNextOutput += direction * outputInterval;
 					}
 
 					t = tNew;
@@ -291,22 +310,32 @@ namespace MML {
 				}
 
 				// Safety check
-				if (h < minStepSize) {
+				if (std::abs(h) < minStepSize && direction * (tEnd - t) > 0) {
 					throw ODESolverError("Step size too small in ODEAdaptiveIntegrator");
 				}
 			}
 
 			// Ensure final point is captured
-			if (outputIdx < numOutputPoints) {
-				sol.fillValues(outputIdx++, tEnd, x);
+			if (outputIdx < numOutputPoints && sol.getTValue(sol.size() - 1) != t) {
+				if (!storePoint(outputIdx, t, x)) return sol;
+				++outputIdx;
 			}
 
+			try {
+				sol.setFinalSize(sol.size() - 1);
+			}
+			catch (const ResourceLimitError& error) {
+				if (!retainPartial) throw;
+				_stats.status = AlgorithmStatus::ResourceLimitExceeded;
+				_stats.error_message = error.what();
+			}
 			return sol;
 		}
 
+	public:
 		/// @brief Integrate and return solution at specified times
 		/// @param x0 Initial conditions
-		/// @param times Vector of output times (must be sorted ascending)
+		/// @param times Strictly monotone output times (ascending or descending)
 		/// @param eps Error tolerance
 		/// @return Solution at specified times
 		ODESystemSolution integrateAt(const Vector<Real>& x0, const Vector<Real>& times, Real eps = Precision::ODEDefaultTolerance, Real h0 = 0, Real minStepSize = Precision::ODEMinStepSize) {
@@ -318,8 +347,13 @@ namespace MML {
 			int numPoints = static_cast<int>(times.size());
 			Real t0 = times[0];
 			Real tEnd = times[numPoints - 1];
+			const Real direction = tEnd > t0 ? Real(1) : Real(-1);
+			for (int i = 1; i < numPoints; ++i)
+				if (!std::isfinite(times[i - 1]) || !std::isfinite(times[i]) ||
+					direction * (times[i] - times[i - 1]) <= 0)
+					throw ODESolverError("Output times must be finite and strictly monotone");
 
-			ODESystemSolution sol(t0, tEnd, n, numPoints - 1);
+			ODESystemSolution sol(t0, tEnd, n, 0);
 			_stats.reset();
 			_stepper.resetFSAL();
 
@@ -330,6 +364,7 @@ namespace MML {
 			_sys.derivs(t, x, dxdt);
 
 			Real h = (h0 > 0) ? h0 : estimateInitialStep(t0, x0, tEnd, eps);
+			h *= direction;
 
 			// Store initial point
 			int outputIdx = 0;
@@ -339,9 +374,11 @@ namespace MML {
 			while (outputIdx < numPoints) {
 				Real tTarget = times[outputIdx];
 
-				if (t + h > tTarget) {
+				if (direction * (t + h - tTarget) > 0) {
 					h = tTarget - t;
 				}
+				if (t + h == t)
+					throw ODESolverError("Adaptive step cannot advance floating-point time");
 
 				StepResult result = _stepper.doStep(t, x, dxdt, h, eps);
 				_stats.recordStep(result);
@@ -350,7 +387,7 @@ namespace MML {
 					Real tNew = t + result.hDone;
 
 					// Output at any times within this step
-					while (outputIdx < numPoints && times[outputIdx] <= tNew + Constants::Eps) {
+					while (outputIdx < numPoints && direction * (times[outputIdx] - tNew) <= Constants::Eps) {
 						Real tOut = times[outputIdx];
 						if (std::abs(tOut - tNew) < Constants::Eps) {
 							sol.fillValues(outputIdx++, tNew, x);
@@ -366,11 +403,12 @@ namespace MML {
 					h = result.hNext;
 				}
 
-				if (h < minStepSize && t < tEnd - Constants::Eps) {
+				if (std::abs(h) < minStepSize && direction * (tEnd - t) > 0) {
 					throw ODESolverError("Step size too small in ODEAdaptiveIntegrator");
 				}
 			}
 
+			sol.setFinalSize(sol.size() - 1);
 			return sol;
 		}
 
@@ -386,10 +424,10 @@ namespace MML {
 
 			Real outputInterval = (config.output_interval > 0) 
 				? config.output_interval 
-				: (tEnd - t0) / 100.0;  // Default: 100 output points
+				: std::abs(tEnd - t0) / 100.0;  // Default: 100 output points
 
-			ODESystemSolution sol = integrate(x0, t0, tEnd, outputInterval, 
-				config.tolerance, config.initial_step_size, config.min_step_size, config.max_steps);
+			ODESystemSolution sol = IntegrateWithStoragePolicy(x0, t0, tEnd, outputInterval,
+				config.tolerance, config.initial_step_size, config.min_step_size, config.max_steps, true);
 
 			// Populate diagnostic fields in statistics
 			_stats.elapsed_time_ms = timer.elapsed_ms();
@@ -453,6 +491,10 @@ namespace MML {
 			try {
 				return execute();
 			}
+			catch (const ResourceLimitError& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::ResourceLimitExceeded, ex.what(), algorithm_name);
+			}
 			catch (const ODESolverError& ex) {
 				return MakeEvaluationFailureResult<ResultType>(
 					AlgorithmStatus::NumericalInstability, ex.what(), algorithm_name);
@@ -483,6 +525,8 @@ namespace MML {
 				result.solution = integrator.integrate(x0, t0, tEnd, config.integrator);
 
 				const auto& stats = integrator.getStatistics();
+				result.status = stats.status;
+				result.error_message = stats.error_message;
 				result.accepted_steps   = stats.acceptedSteps;
 				result.rejected_steps   = stats.rejectedSteps;
 				result.total_func_evals = stats.totalFuncEvals;

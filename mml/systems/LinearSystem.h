@@ -13,13 +13,16 @@
 #define MML_LINEAR_SYSTEM_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
 #include <mml/core/LinAlgEqSolvers.h>
 #include <mml/algorithms/MatrixAlg.h>
 #include <mml/algorithms/Analyzers/MatrixAnalyzer.h>
+#include <mml/tools/analyzers/MatrixAnalysisReports.h>
 
 #include <optional>
+#include <sstream>
 #include <string>
 #include <memory>
 #include <cmath>
@@ -130,7 +133,7 @@ namespace MML::Systems
 		///
 		/// @throws MatrixDimensionError if dimensions don't match
 		LinearSystem(const Matrix<Type>& A, const Vector<Type>& b)
-				: _A(A)
+				: _coefficientMatrix(A)
 				, _matrixAnalyzer(A)
 				, _b(b)
 				, _hasRHS(true)
@@ -146,9 +149,9 @@ namespace MML::Systems
 		///
 		/// @throws MatrixDimensionError if dimensions don't match
 		LinearSystem(const Matrix<Type>& A, const Matrix<Type>& B)
-				: _A(A)
+				: _coefficientMatrix(A)
 				, _matrixAnalyzer(A)
-				, _B(B)
+				, _rhsMatrix(B)
 				, _hasRHS(true)
 				, _multipleRHS(true) {
 			if (A.rows() != B.rows())
@@ -159,7 +162,7 @@ namespace MML::Systems
 		///
 		/// @param A Coefficient matrix (m x n)
 		explicit LinearSystem(const Matrix<Type>& A)
-				: _A(A)
+				: _coefficientMatrix(A)
 				, _matrixAnalyzer(A)
 				, _hasRHS(false)
 				, _multipleRHS(false) {}
@@ -206,12 +209,12 @@ namespace MML::Systems
 			// Use cached LU factorization (factor once, solve many)
 			LUSolver<Type>& solver = EnsureLUSolver();
 
-			int n = _A.cols();
-			int p = _B.cols();
+			int n = _coefficientMatrix.cols();
+			int p = _rhsMatrix.cols();
 			Matrix<Type> X(n, p);
 
 			for (int j = 0; j < p; ++j) {
-				Vector<Type> col = _B.VectorFromColumn(j);
+				Vector<Type> col = _rhsMatrix.VectorFromColumn(j);
 				Vector<Type> x = solver.Solve(col);
 				for (int i = 0; i < n; ++i)
 					X(i, j) = x[i];
@@ -229,7 +232,7 @@ namespace MML::Systems
 		Vector<Type> SolveByGaussJordan() const {
 			RequireRHS();
 			RequireSquare();
-			return GaussJordanSolver<Type>::SolveConst(_A, _b);
+			return GaussJordanSolver<Type>::SolveConst(_coefficientMatrix, _b);
 		}
 
 		/// @brief Solve using LU decomposition with partial pivoting
@@ -238,7 +241,7 @@ namespace MML::Systems
 		Vector<Type> SolveByLU() const {
 			RequireRHS();
 			RequireSquare();
-			LUSolver<Type> solver(_A);
+			LUSolver<Type> solver(_coefficientMatrix);
 			return solver.Solve(_b);
 		}
 
@@ -249,7 +252,7 @@ namespace MML::Systems
 		Vector<Type> SolveByCholesky() const {
 			RequireRHS();
 			RequireSquare();
-			CholeskySolver<Type> solver(_A);
+			CholeskySolver<Type> solver(_coefficientMatrix);
 			return solver.Solve(_b);
 		}
 
@@ -258,7 +261,7 @@ namespace MML::Systems
 		/// @note Works for overdetermined systems (least squares)
 		Vector<Type> SolveByQR() const {
 			RequireRHS();
-			QRSolver<Type> solver(_A);
+			QRSolver<Type> solver(_coefficientMatrix);
 			if (IsTall())
 				return solver.LeastSquaresSolve(_b);
 			else
@@ -271,7 +274,7 @@ namespace MML::Systems
 		/// @note Most robust for ill-conditioned or rank-deficient systems
 		Vector<Type> SolveBySVD(Type threshold = -1) const {
 			RequireRHS();
-			SVDecompositionSolver<Type> solver(_A);
+			SVDecompositionSolver<Type> solver(_coefficientMatrix);
 			return solver.Solve(_b, threshold);
 		}
 
@@ -303,17 +306,17 @@ namespace MML::Systems
 
 			switch (method) {
 			case IterativeMethod::Jacobi:
-				result = JacobiSolver::Solve(_A, _b, Vector<Real>(), tol, maxIter);
+				result = JacobiSolver::Solve(_coefficientMatrix, _b, Vector<Real>(), tol, maxIter);
 				break;
 			case IterativeMethod::GaussSeidel:
-				result = GaussSeidelSolver::Solve(_A, _b, Vector<Real>(), tol, maxIter);
+				result = GaussSeidelSolver::Solve(_coefficientMatrix, _b, Vector<Real>(), tol, maxIter);
 				break;
 			case IterativeMethod::SOR:
 				// SOR: Solve(A, b, omega, x0, tol, maxIter) - omega=1.5 typical choice
-				result = SORSolver::Solve(_A, _b, static_cast<Type>(1.5), Vector<Real>(), tol, maxIter);
+				result = SORSolver::Solve(_coefficientMatrix, _b, static_cast<Type>(1.5), Vector<Real>(), tol, maxIter);
 				break;
 			default:
-				result = GaussSeidelSolver::Solve(_A, _b, Vector<Real>(), tol, maxIter);
+				result = GaussSeidelSolver::Solve(_coefficientMatrix, _b, Vector<Real>(), tol, maxIter);
 			}
 
 			if (!result.converged)
@@ -329,7 +332,7 @@ namespace MML::Systems
 		/// @brief Compute residual ||Ax - b||
 		Type ResidualNorm(const Vector<Type>& x) const {
 			RequireRHS();
-			Vector<Type> r = _A * x - _b;
+			Vector<Type> r = _coefficientMatrix * x - _b;
 			return r.NormL2();
 		}
 
@@ -554,8 +557,8 @@ namespace MML::Systems
 			result.matrix = _matrixAnalyzer.Analyze(threshold);
 			if (_hasRHS) {
 				if (_multipleRHS) {
-					for (int col = 0; col < _B.cols(); ++col)
-						result.solutionStatuses.push_back(ClassifySolution(_B.VectorFromColumn(col), coefficientSVD.rank, coefficientSVD.threshold));
+					for (int col = 0; col < _rhsMatrix.cols(); ++col)
+						result.solutionStatuses.push_back(ClassifySolution(_rhsMatrix.VectorFromColumn(col), coefficientSVD.rank, coefficientSVD.threshold));
 					if (!result.solutionStatuses.empty()) {
 						const bool allSame = std::all_of(result.solutionStatuses.begin() + 1, result.solutionStatuses.end(),
 							[&](SolutionStatus status) { return status == result.solutionStatuses.front(); });
@@ -577,7 +580,10 @@ namespace MML::Systems
 		//=========================================================================
 
 		/// @brief Get the coefficient matrix
-		const Matrix<Type>& GetMatrix() const { return _A; }
+		const Matrix<Type>& getMatrix() const { return _coefficientMatrix; }
+		/// @deprecated Use getMatrix() (CONTRACT_POLICY section 11: accessors are getX()).
+		[[deprecated("use getMatrix()")]]
+		const Matrix<Type>& GetMatrix() const { return _coefficientMatrix; }
 
 		/// @brief Get the right-hand side vector
 		const Vector<Type>& GetRHS() const {
@@ -587,10 +593,10 @@ namespace MML::Systems
 
 	private:
 		// Storage
-		Matrix<Type> _A;
+		Matrix<Type> _coefficientMatrix;
 		MatrixAnalyzer<Type> _matrixAnalyzer;
 		Vector<Type> _b;
-		Matrix<Type> _B; // For multiple RHS
+		Matrix<Type> _rhsMatrix; // For multiple RHS
 		bool _hasRHS;
 		bool _multipleRHS;
 
@@ -614,7 +620,7 @@ namespace MML::Systems
 		/// @brief Get (or lazily create) the cached LU solver - factor once, solve many
 		LUSolver<Type>& EnsureLUSolver() const {
 			if (!_luSolver.has_value())
-				_luSolver.emplace(_A);
+				_luSolver.emplace(_coefficientMatrix);
 			return *_luSolver;
 		}
 
@@ -642,7 +648,7 @@ namespace MML::Systems
 			Matrix<Type> augmented(Rows(), Cols() + 1);
 			for (int row = 0; row < Rows(); ++row) {
 				for (int col = 0; col < Cols(); ++col)
-					augmented(row, col) = _A(row, col);
+					augmented(row, col) = _coefficientMatrix(row, col);
 				augmented(row, Cols()) = rhs[row];
 			}
 			if (MatrixAlg::Rank(augmented, threshold) > coefficientRank)
@@ -669,8 +675,8 @@ namespace MML::Systems
 				for (int i = n - 1; i >= 0; --i) {
 					Type sum = _b[i];
 					for (int j = i + 1; j < n; ++j)
-						sum -= _A(i, j) * x[j];
-					x[i] = sum / _A(i, i);
+						sum -= _coefficientMatrix(i, j) * x[j];
+					x[i] = sum / _coefficientMatrix(i, i);
 				}
 			} else // Lower triangular
 			{
@@ -678,8 +684,8 @@ namespace MML::Systems
 				for (int i = 0; i < n; ++i) {
 					Type sum = _b[i];
 					for (int j = 0; j < i; ++j)
-						sum -= _A(i, j) * x[j];
-					x[i] = sum / _A(i, i);
+						sum -= _coefficientMatrix(i, j) * x[j];
+					x[i] = sum / _coefficientMatrix(i, i);
 				}
 			}
 
@@ -687,8 +693,9 @@ namespace MML::Systems
 		}
 
 		std::string GenerateReport(const SystemAnalysis<Type>& analysis) const {
-			std::string report;
-			report += analysis.matrix.report;
+			std::ostringstream matrixReport;
+			AnalysisReports::PrintMatrixAnalysis(matrixReport, analysis.matrix);
+			std::string report = matrixReport.str();
 			for (size_t index = 0; index < analysis.solutionStatuses.size(); ++index) {
 				report += "RHS " + std::to_string(index) + ": ";
 				switch (analysis.solutionStatuses[index]) {

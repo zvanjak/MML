@@ -12,6 +12,7 @@
 #define MML_LP_TYPES_H
 
 #include <mml/MMLBase.h>
+#include <mml/base/AlgorithmTypes.h>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
 
@@ -68,6 +69,22 @@ enum class LPStatus {
     Error           ///< Error occurred during solution
 };
 
+[[nodiscard]] constexpr AlgorithmStatus ToAlgorithmStatus(LPStatus status) noexcept {
+	switch (status) {
+	case LPStatus::Optimal:
+		return AlgorithmStatus::Success;
+	case LPStatus::MaxIterations:
+		return AlgorithmStatus::MaxIterationsExceeded;
+	case LPStatus::NotSolved:
+		return AlgorithmStatus::InvalidInput;
+	case LPStatus::Infeasible:
+	case LPStatus::Unbounded:
+	case LPStatus::Error:
+		return AlgorithmStatus::AlgorithmSpecificFailure;
+	}
+	return AlgorithmStatus::AlgorithmSpecificFailure;
+}
+
 /// @brief Pivot selection rule
 enum class LPPivotRule {
     Dantzig,        ///< Most negative reduced cost (classic)
@@ -82,13 +99,13 @@ enum class LPPivotRule {
 struct LPConfig {
     // Algorithm settings
     int maxIterations = 10000;          ///< Maximum simplex iterations
-    Real tolerance = 1e-10;             ///< Numerical tolerance for comparisons
-    Real pivotTolerance = 1e-12;        ///< Minimum pivot element magnitude
+    Real tolerance = Precision::EqualityTolerance;             ///< Numerical tolerance for comparisons
+    Real pivotTolerance = Precision::ZeroTolerance;        ///< Minimum pivot element magnitude
     LPPivotRule pivotRule = LPPivotRule::Bland;  ///< Pivot selection rule (Bland for anti-cycling)
     
     // Two-phase settings
     bool useTwoPhase = true;            ///< Use two-phase method (vs Big-M)
-    Real bigM = 1e9;                    ///< Big-M value if not using two-phase
+    Real bigM = Precision::BigMPenalty;                    ///< Big-M value if not using two-phase
     
     // Output settings
     bool verbose = false;               ///< Print iteration progress to *verboseStream
@@ -149,46 +166,58 @@ struct LPVariable {
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 /// @brief Complete LP solution result
-struct LPResult {
-    LPStatus status = LPStatus::NotSolved;
-    
-    // Primal solution
-    Vector<Real> x;              ///< Optimal solution (original variables)
-    Real objectiveValue = 0;     ///< Optimal objective value
-    
-    // Dual solution
-    Vector<Real> dualValues;     ///< Shadow prices (one per constraint)
-    Vector<Real> reducedCosts;   ///< Reduced costs (one per variable)
-    
-    // Slack values
-    Vector<Real> slacks;         ///< Constraint slack/surplus values
-    
-    // Basis information
-    std::vector<int> basisIndices;  ///< Indices of basic variables
-    
-    // Statistics
-    int iterations = 0;          ///< Simplex iterations performed
-    int phase1Iterations = 0;    ///< Phase 1 iterations (if two-phase)
-    
-    // Sensitivity analysis (populated on request)
-    std::vector<std::pair<Real, Real>> objectiveRanges;  ///< Allowable ranges for c[j]
-    std::vector<std::pair<Real, Real>> rhsRanges;        ///< Allowable ranges for b[i]
-    Real basisConditionNumber = 0;                       ///< Condition number of basis matrix
-    
-    std::string statusMessage() const {
-        switch (status) {
-            case LPStatus::Optimal: return "Optimal solution found";
-            case LPStatus::Infeasible: return "Problem is infeasible";
-            case LPStatus::Unbounded: return "Problem is unbounded";
-            case LPStatus::MaxIterations: return "Maximum iterations reached";
-            case LPStatus::NotSolved: return "Problem not solved";
-            case LPStatus::Error: return "Error during solution";
-        }
-        return "Unknown status";
-    }
-    
-    bool IsOptimal() const { return status == LPStatus::Optimal; }
+struct [[nodiscard]] LinearProgrammingResult : IterativeResultBase {
+	LinearProgrammingResult() {
+		status = AlgorithmStatus::InvalidInput;
+		error_message = "Problem not solved";
+	}
+	LPStatus lp_status = LPStatus::NotSolved;
+
+	// Primal solution
+	Vector<Real> x;					 ///< Optimal solution (original variables)
+	Real objectiveValue = 0; ///< Optimal objective value
+
+	// Dual solution
+	Vector<Real> dualValues;	 ///< Shadow prices (one per constraint)
+	Vector<Real> reducedCosts; ///< Reduced costs (one per variable)
+
+	// Slack values
+	Vector<Real> slacks; ///< Constraint slack/surplus values
+
+	// Basis information
+	std::vector<int> basisIndices; ///< Indices of basic variables
+
+	// Statistics
+	int iterations = 0;				///< Simplex iterations performed
+	int phase1Iterations = 0; ///< Phase 1 iterations (if two-phase)
+
+	// Sensitivity analysis (populated on request)
+	std::vector<std::pair<Real, Real>> objectiveRanges; ///< Allowable ranges for c[j]
+	std::vector<std::pair<Real, Real>> rhsRanges;				///< Allowable ranges for b[i]
+	Real basisConditionNumber = NoEstimate;							///< Condition number, if sensitivity analysis computed it
+
+	std::string statusMessage() const {
+		switch (lp_status) {
+		case LPStatus::Optimal:
+			return "Optimal solution found";
+		case LPStatus::Infeasible:
+			return "Problem is infeasible";
+		case LPStatus::Unbounded:
+			return "Problem is unbounded";
+		case LPStatus::MaxIterations:
+			return "Maximum iterations reached";
+		case LPStatus::NotSolved:
+			return "Problem not solved";
+		case LPStatus::Error:
+			return "Error during solution";
+		}
+		return "Unknown status";
+	}
+
+	bool IsOptimal() const { return lp_status == LPStatus::Optimal && status == AlgorithmStatus::Success; }
 };
+
+using LPResult [[deprecated("use LinearProgrammingResult")]] = LinearProgrammingResult;
 
 } // namespace MML::Optimization
 #endif // MML_LP_TYPES_H

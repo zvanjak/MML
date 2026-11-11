@@ -13,6 +13,7 @@
 #define MML_ODE_STEPPERS_H
 
 #include <mml/MMLBase.h>
+#include <algorithm>
 #include <mml/base/AlgorithmTypes.h>
 #include <mml/interfaces/IODESystem.h>
 #include "ODERKCoefficients.h"
@@ -121,9 +122,9 @@ namespace MML {
 			, _n(sys.getDim())
 			, _haveFSAL(false) {
 			_stages.resize(DP::stages, Vector<Real>(_n));
-			_workspace.Resize(_n);
-			_xNew.Resize(_n);
-			_error.Resize(_n);
+			_workspace.resize(_n);
+			_xNew.resize(_n);
+			_error.resize(_n);
 		}
 
 		StepResult doStep(Real t, Vector<Real>& x, Vector<Real>& dxdt, Real htry, Real eps) override {
@@ -228,10 +229,10 @@ namespace MML {
 			: _sys(sys)
 			, _n(sys.getDim()) {
 			_stages.resize(CK::stages, Vector<Real>(_n));
-			_workspace.Resize(_n);
-			_xNew.Resize(_n);
-			_error.Resize(_n);
-			_dxNew.Resize(_n);
+			_workspace.resize(_n);
+			_xNew.resize(_n);
+			_error.resize(_n);
+			_dxNew.resize(_n);
 		}
 
 		StepResult doStep(Real t, Vector<Real>& x, Vector<Real>& dxdt, Real htry, Real eps) override {
@@ -339,9 +340,9 @@ namespace MML {
 			, _controller(controllerConfig()) {
 			_k.resize(DP8::extended_stages);
 			for (int i = 0; i < DP8::extended_stages; ++i)
-				_k[i].Resize(_n);
-			_workspace.Resize(_n);
-			_xNew.Resize(_n);
+				_k[i].resize(_n);
+			_workspace.resize(_n);
+			_xNew.resize(_n);
 		}
 
 		StepResult doStep(Real t, Vector<Real>& x, Vector<Real>& dxdt, Real htry, Real eps) override {

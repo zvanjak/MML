@@ -1,15 +1,16 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 // docs_demos_cookbook.cpp - runnable counterpart of docs/COOKBOOK.md
-// ALL cookbook recipes live in this one file; every recipe snippet in COOKBOOK.md
+// Core cookbook recipes live here; optional recipes move with their extensions.
+// Every retained recipe snippet in COOKBOOK.md
 // must compile and execute here (docs<->demos contract, AGENTS.md).
 ///////////////////////////////////////////////////////////////////////////////////////////
+#include "test_data/parametric_surfaces_defs.h"
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
 #else
 #include <mml/MMLBase.h>
 #include <mml/base/Function.h>
 #include <mml/base/ComplexFunction.h>
-#include <mml/base/Algebra_base.h>
 #include <mml/base/ChebyshevApproximation.h>
 #include <mml/base/Combinatorics.h>
 #include <mml/base/InterpolatedFunction.h>
@@ -83,15 +84,6 @@ using namespace MML;
 
 namespace
 {
-	using F2 = Algebra::PrimeFieldElement<2>;
-
-	struct Cookbook_GF4_Modulus
-	{
-		static Algebra::Polynomial<F2> modulus()
-		{
-			return Algebra::Polynomial<F2>({ F2(1), F2(1), F2(1) });
-		}
-	};
 
 	VectorN<Real, 3> Cookbook_CustomCurvePoint(Real t)
 	{
@@ -125,7 +117,7 @@ namespace
 
 		void algConstraints(Real, const Vector<Real>& x, const Vector<Real>& y, Vector<Real>& g) const override
 		{
-			g[0] = x[0] + y[0] - REAL(1.0);
+			g[0] = x[0] + y[0] - static_cast<MML::Real>(1.0);
 		}
 
 		std::string getDiffVarName(int) const override { return "x"; }
@@ -133,22 +125,22 @@ namespace
 
 		void jacobian_fx(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& df_dx) const override
 		{
-			df_dx(0, 0) = REAL(-1.0);
+			df_dx(0, 0) = static_cast<MML::Real>(-1.0);
 		}
 
 		void jacobian_fy(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& df_dy) const override
 		{
-			df_dy(0, 0) = REAL(1.0);
+			df_dy(0, 0) = static_cast<MML::Real>(1.0);
 		}
 
 		void jacobian_gx(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& dg_dx) const override
 		{
-			dg_dx(0, 0) = REAL(1.0);
+			dg_dx(0, 0) = static_cast<MML::Real>(1.0);
 		}
 
 		void jacobian_gy(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& dg_dy) const override
 		{
-			dg_dy(0, 0) = REAL(1.0);
+			dg_dy(0, 0) = static_cast<MML::Real>(1.0);
 		}
 	};
 
@@ -165,32 +157,32 @@ namespace
 
 		void diffEqs(Real, const Vector<Real>&, const Vector<Real>&, Vector<Real>& dxdt) const override
 		{
-			dxdt[0] = REAL(1.0);
+			dxdt[0] = static_cast<MML::Real>(1.0);
 		}
 
 		void algConstraints(Real, const Vector<Real>& x, const Vector<Real>& y, Vector<Real>& constraints) const override
 		{
-			constraints[0] = x[0] + y[0] - REAL(1.0);
+			constraints[0] = x[0] + y[0] - static_cast<MML::Real>(1.0);
 		}
 
 		void jacobian_fx(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& value) const override
 		{
-			value(0, 0) = REAL(0.0);
+			value(0, 0) = static_cast<MML::Real>(0.0);
 		}
 
 		void jacobian_fy(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& value) const override
 		{
-			value(0, 0) = REAL(0.0);
+			value(0, 0) = static_cast<MML::Real>(0.0);
 		}
 
 		void jacobian_gx(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& value) const override
 		{
-			value(0, 0) = REAL(1.0);
+			value(0, 0) = static_cast<MML::Real>(1.0);
 		}
 
 		void jacobian_gy(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& value) const override
 		{
-			value(0, 0) = REAL(1.0);
+			value(0, 0) = static_cast<MML::Real>(1.0);
 		}
 
 		int getNumEvents() const override { return 1; }
@@ -205,8 +197,8 @@ namespace
 
 		void handleEvent(int, Real, Vector<Real>& x, Vector<Real>& y) const override
 		{
-			x[0] = REAL(0.25);
-			y[0] = REAL(42.0);
+			x[0] = static_cast<MML::Real>(0.25);
+			y[0] = static_cast<MML::Real>(42.0);
 		}
 	};
 
@@ -228,52 +220,7 @@ namespace
 		return "unknown";
 	}
 
-	template<class Container>
-	std::string Cookbook_FormatIntContainer(const Container& values)
-	{
-		std::ostringstream text;
-		text << "[";
-		for (std::size_t index = 0; index < values.size(); ++index) {
-			if (index > 0) text << ",";
-			text << values[index];
-		}
-		text << "]";
-		return text.str();
-	}
 
-	template<int Modulus>
-	std::string Cookbook_FormatModInt(Algebra::ModInt<Modulus> value)
-	{
-		return std::to_string(value.value());
-	}
-
-	template<class FieldElement>
-	std::string Cookbook_FormatGFElement(const FieldElement& value)
-	{
-		std::ostringstream text;
-		text << "[";
-		const auto& coefficients = value.coefficients();
-		for (std::size_t index = 0; index < coefficients.size(); ++index) {
-			if (index > 0) text << ",";
-			text << coefficients[index].value();
-		}
-		text << "]";
-		return text.str();
-	}
-
-	std::vector<std::vector<int>> Cookbook_BinaryColorings(int count)
-	{
-		std::vector<std::vector<int>> colorings;
-		const int total = 1 << count;
-		colorings.reserve(static_cast<std::size_t>(total));
-		for (int mask = 0; mask < total; ++mask) {
-			std::vector<int> coloring(static_cast<std::size_t>(count));
-			for (int position = 0; position < count; ++position)
-				coloring[static_cast<std::size_t>(position)] = (mask >> position) & 1;
-			colorings.push_back(std::move(coloring));
-		}
-		return colorings;
-	}
 
 	///////////////////////////////////////////////////////////////////////////
 	// Recipe 1: Solving linear systems
@@ -354,7 +301,7 @@ namespace
 		// ...then hand the bracket to a robust solver
 		RootFinding::RootFindingConfig config;
 		config.tolerance = 1e-14;
-		auto result = RootFinding::FindRootBrent(kepler, x1, x2, config);
+		auto result = RootFinding::FindRootBrentDetailed(kepler, x1, x2, config);
 
 		out << "  [2.1] bracketed [" << x1 << ", " << x2 << "]: " << std::boolalpha << bracketed
 		    << ", eccentric anomaly E = " << result.root
@@ -472,7 +419,7 @@ namespace
 		// --- Adaptive: sin(x)cos(y) on [0,pi] x [0,pi/2] = 2, with error control
 		auto g2 = [](Real x, Real y) { return std::sin(x) * std::cos(y); };
 
-		auto adaptive = Integration::IntegrateAdaptive2D(g2, 0.0, Constants::PI, 0.0, Constants::PI / 2, 1e-10);
+		auto adaptive = Integration::IntegrateAdaptive2DDetailed(g2, 0.0, Constants::PI, 0.0, Constants::PI / 2, 1e-10);
 
 		out << "  [3.2] disk integral = " << disk << " (exact pi/2 = " << Constants::PI / 2 << ")"
 		    << ", adaptive = " << adaptive.value << " (exact 2, err est " << adaptive.error_estimate
@@ -495,7 +442,7 @@ namespace
 		// --- Adaptive: x*y*z over [0,1]^3 = 1/8
 		auto g3 = [](Real x, Real y, Real z) { return x * y * z; };
 
-		auto adaptive = Integration::IntegrateAdaptive3D(g3, 0, 1, 0, 1, 0, 1, 1e-10);
+		auto adaptive = Integration::IntegrateAdaptive3DDetailed(g3, 0, 1, 0, 1, 0, 1, 1e-10);
 
 		out << "  [3.3] sphere volume = " << vol << " (exact " << 4.0 / 3.0 * Constants::PI << ")"
 		    << ", adaptive xyz = " << adaptive.value << " (exact 0.125)\n";
@@ -700,8 +647,8 @@ namespace
 		VectorN<Real, 2> point{ 1.0, 2.0 };
 
 		// --- Solve: J(i,j) = dFi/dxj; H(i,j) = d2f/dxi dxj
-		MatrixNM<Real, 2, 2> jacobian = Derivation::calcJacobian(map, point);
-		MatrixNM<Real, 2, 2> hessian = Derivation::calcHessian(quadratic, point);
+		MatrixNM<Real, 2, 2> jacobian = Derivation::CalcJacobian(map, point);
+		MatrixNM<Real, 2, 2> hessian = Derivation::CalcHessian(quadratic, point);
 
 		out << "  [4.6] Jacobian = " << jacobian << ", Hessian = " << hessian << "\n";
 	}
@@ -748,8 +695,8 @@ namespace
 
 		// --- Solve: bracket once, then compare a robust golden search with Brent
 		MinimumBracket bracket = Minimization::BracketMinimum(objective, 0.0, 1.0);
-		MinimizationResult golden = Minimization::GoldenSectionSearch(objective, bracket, 1e-10);
-		MinimizationResult brent = Minimization::BrentMinimize(objective, bracket, 1e-10);
+		Minimization1DResult golden = Minimization::GoldenSectionSearch(objective, bracket, 1e-10);
+		Minimization1DResult brent = Minimization::BrentMinimize(objective, bracket, 1e-10);
 
 		out << "  [5.1] one-dimensional minimum: golden x = " << golden.xmin
 		    << ", f = " << golden.fmin << " (" << golden.iterations << " iters); Brent x = "
@@ -802,7 +749,7 @@ namespace
 		lp.AddConstraint({ 1.0, 0.0 }, Optimization::LPConstraintType::LessEqual, 40.0, "standard-demand");
 
 		// --- Solve: dense full-tableau simplex; variables are nonnegative by default
-		Optimization::LPResult result = Optimization::SolveLP(lp);
+		Optimization::LinearProgrammingResult result = Optimization::SolveLP(lp);
 
 		out << "  [5.3] LP status: " << result.statusMessage();
 		if (result.IsOptimal()) {
@@ -913,7 +860,7 @@ namespace
 			dydt[0] = -1000.0 * (y[0] - std::sin(t)) + std::cos(t);
 		}
 
-		void jacobian(const Real t, const Vector<Real>& y, Vector<Real>& dydt, Matrix<Real>& J) const override {
+		void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override {
 			J(0, 0) = -1000.0;
 		}
 	};
@@ -925,7 +872,7 @@ namespace
 
 		// --- Solve: Rosenbrock 2(3) takes large stable steps through the stiffness
 		// (2nd-order method: keep tolerances moderate, 1e-6 here)
-		Rosenbrock23Solver solver(stiff, 1e-6, 1e-6);
+		ROS2Solver solver(stiff, 1e-6, 1e-6);
 		auto sol = solver.Solve(0.0, y0, 1.0, 0.1);
 
 		out << "  [6.6] stiff y(1) = " << sol.getXValuesAtEnd()[0]
@@ -976,8 +923,8 @@ namespace
 
 		RootFinding::RootFindingConfig config;
 		config.tolerance = 1e-10;
-		auto lowSol  = RootFinding::FindRootBrent(miss,  5 * deg, 45 * deg, config);
-		auto highSol = RootFinding::FindRootBrent(miss, 45 * deg, 85 * deg, config);
+		auto lowSol  = RootFinding::FindRootBrentDetailed(miss,  5 * deg, 45 * deg, config);
+		auto highSol = RootFinding::FindRootBrentDetailed(miss, 45 * deg, 85 * deg, config);
 
 		out << "  [6.5] to land at " << targetRange << " m with v0 = " << v0 << " m/s:"
 		    << " direct fire at " << lowSol.root / deg << " deg (lands " << rangeFor(lowSol.root)
@@ -1122,7 +1069,7 @@ namespace
 		                       1.0, -1.0,  1.0 });
 
 		auto svd = MatrixAlg::SVDDecompose(A);
-		Matrix<Real> reconstructed = svd.U * Cookbook_MakeSigma(svd, A.rows(), A.cols(), svd.singularValues.size()) * svd.V.transpose();
+		Matrix<Real> reconstructed = svd.U * Cookbook_MakeSigma(svd, A.rows(), A.cols(), svd.singularValues.size()) * svd.V.Transposed();
 		Real residual = MatrixAlg::FrobeniusNorm(A - reconstructed);
 
 		out << "  [8.1] SVD singular values: " << svd.singularValues
@@ -1141,8 +1088,8 @@ namespace
 		                               2.0,  2.1,  1.2,  1.1 });
 
 		auto svd = MatrixAlg::SVDDecompose(measurements);
-		Matrix<Real> rank1 = svd.U * Cookbook_MakeSigma(svd, measurements.rows(), measurements.cols(), 1) * svd.V.transpose();
-		Matrix<Real> rank2 = svd.U * Cookbook_MakeSigma(svd, measurements.rows(), measurements.cols(), 2) * svd.V.transpose();
+		Matrix<Real> rank1 = svd.U * Cookbook_MakeSigma(svd, measurements.rows(), measurements.cols(), 1) * svd.V.Transposed();
+		Matrix<Real> rank2 = svd.U * Cookbook_MakeSigma(svd, measurements.rows(), measurements.cols(), 2) * svd.V.Transposed();
 
 		out << "  [8.2] SVD low-rank errors: rank-1 = "
 		    << MatrixAlg::FrobeniusNorm(measurements - rank1)
@@ -1174,7 +1121,7 @@ namespace
 
 		auto qr = MatrixAlg::QRDecompose(A);
 		Real reconstruction = MatrixAlg::FrobeniusNorm(A - qr.Q * qr.R);
-		Real orthogonality = MatrixAlg::FrobeniusNorm(qr.Q.transpose() * qr.Q - Matrix<Real>::Identity(qr.Q.cols()));
+		Real orthogonality = MatrixAlg::FrobeniusNorm(qr.Q.Transposed() * qr.Q - Matrix<Real>::Identity(qr.Q.cols()));
 
 		out << "  [8.4] QR: ||A-QR||F = " << reconstruction
 		    << ", ||Q^T Q-I||F = " << orthogonality << "\n";
@@ -1204,7 +1151,7 @@ namespace
 		                              0.6, 0.5, 1.5 });
 
 		auto chol = MatrixAlg::CholeskyDecompose(covariance);
-		Real residual = MatrixAlg::FrobeniusNorm(chol.L * chol.L.transpose() - covariance);
+		Real residual = MatrixAlg::FrobeniusNorm(chol.L * chol.L.Transposed() - covariance);
 
 		out << "  [8.6] Cholesky: L(0,0) = " << chol.L(0, 0)
 		    << ", ||LL^T-A||F = " << residual << "\n";
@@ -1322,7 +1269,7 @@ namespace
 		                          9.0, 10.0, 11.0, 12.0,
 		                         13.0, 14.0, 15.0, 16.0 });
 		Matrix<Real> center(samples, 1, 1, 2, 2);
-		Matrix<Real> transformed = center.transpose() * center;
+		Matrix<Real> transformed = center.Transposed() * center;
 
 		out << "  [9.6] slice transform: center trace = " << MatrixAlg::Trace(center)
 		    << ", transformed(0,0) = " << transformed(0, 0)
@@ -1652,7 +1599,7 @@ namespace
 		Pnt3Cart pointAfterTwoUnits = surveyLine(2.0);
 
 		out << "  [11.1] baseline length = " << baseline.NormL2()
-		    << ", unit direction = " << baseline.GetAsUnitVector()
+		    << ", unit direction = " << baseline.Normalized()
 		    << ", segment length = " << surveySegment.Length()
 		    << ", line(2) = " << Cookbook_FormatPoint(pointAfterTwoUnits) << "\n";
 	}
@@ -1660,7 +1607,7 @@ namespace
 	// 11.2 Intersect a line with a plane
 	void Cookbook_Recipe11_2_LinePlaneIntersection(std::ostream& out)
 	{
-		Plane3D ground = Plane3D::GetXYPlane();
+		Plane3D ground = Plane3D::XYPlane();
 		Line3D descendingPath(Pnt3Cart(2.0, -1.0, 5.0), Vec3Cart(0.0, 1.0, -2.0));
 		Line3D parallelPath(Pnt3Cart(0.0, 0.0, 3.0), Vec3Cart(1.0, 0.0, 0.0));
 
@@ -1726,15 +1673,15 @@ namespace
 		    << ", probe in cube = " << std::boolalpha << probeInBox
 		    << ", sphere volume = " << safetyZone.Volume()
 		    << ", probe in sphere = " << probeInZone
-		    << ", tank center = " << Cookbook_FormatPoint(tank.GetCenter()) << "\n";
+		    << ", tank center = " << Cookbook_FormatPoint(tank.getCenter()) << "\n";
 	}
 
 	// 11.6 Use bounding volumes for spatial checks
 	void Cookbook_Recipe11_6_BoundingVolumes(std::ostream& out)
 	{
 		Cube3D equipmentBox(2.0, Pnt3Cart(1.0, 2.0, 3.0));
-		Box3D bounds = equipmentBox.GetBoundingBox();
-		BoundingSphere3D sphereBounds = equipmentBox.GetBoundingSphere();
+		Box3D bounds = equipmentBox.getBoundingBox();
+		BoundingSphere3D sphereBounds = equipmentBox.getBoundingSphere();
 		BoundingSphere3D nearbyObject(Pnt3Cart(3.0, 2.0, 3.0), 0.75);
 
 		Pnt3Cart probe(1.8, 2.0, 3.0);
@@ -1816,7 +1763,7 @@ namespace
 	// 12.4 Intersect lines with planes and planes with planes
 	void Cookbook_Recipe12_4_LinePlaneAndPlanePlane(std::ostream& out)
 	{
-		Plane3D floor = Plane3D::GetXYPlane();
+		Plane3D floor = Plane3D::XYPlane();
 		Plane3D wall(Pnt3Cart(2.0, 0.0, 0.0), Vec3Cart(1.0, 0.0, 0.0));
 		Line3D drillPath(Pnt3Cart(2.0, 1.0, 3.0), Vec3Cart(0.0, 0.0, -1.0));
 
@@ -2212,7 +2159,7 @@ namespace
 	{
 		Surfaces::Sphere sphere(2.0);
 		Surfaces::CylinderSurface cylinder(1.5, 4.0);
-		Surfaces::Helicoid helicoid(0.4);
+		MML::TestBeds::ShowcaseSurfaces::Helicoid helicoid(0.4);
 		Real sphereU = Constants::PI / 3.0;
 		Real sphereW = Constants::PI / 5.0;
 		Real k1, k2;
@@ -2447,8 +2394,8 @@ namespace
 		Vec3Cart restored = from.Inverse().Rotate(from.Rotate(vector));
 
 		out << "  [17.5] inverse restores " << restored
-		    << ", relative orientation = " << relative.GetRotationAngle() / deg << " deg around "
-		    << relative.GetRotationAxis() << "\n";
+		    << ", relative orientation = " << relative.getRotationAngle() / deg << " deg around "
+		    << relative.getRotationAxis() << "\n";
 	}
 
 	// 17.6 Smooth interpolation with SLERP
@@ -2462,8 +2409,8 @@ namespace
 		Quaternion lerpQuarter = Quaternion::Lerp(start, finish, 0.25).Normalized();
 
 		out << "  [17.6] SLERP angles at t=0.25/0.5 = "
-		    << quarter.GetRotationAngle() / deg << "/" << halfway.GetRotationAngle() / deg
-		    << " deg; normalized LERP at t=0.25 = " << lerpQuarter.GetRotationAngle() / deg << " deg\n";
+		    << quarter.getRotationAngle() / deg << "/" << halfway.getRotationAngle() / deg
+		    << " deg; normalized LERP at t=0.25 = " << lerpQuarter.getRotationAngle() / deg << " deg\n";
 	}
 
 	void Cookbook_Recipe17_Quaternions(std::ostream& out)
@@ -2508,7 +2455,7 @@ namespace
 	void Cookbook_Recipe18_1_HealthReport(std::ostream& out)
 	{
 		RealFunctionFromStdFunc logarithm([](Real x) { return std::log(x); });
-		RealFunctionAnalyzer analyzer(logarithm, "log(x)");
+		RealFunctionAnalyzer analyzer(logarithm);
 		auto validPoint = analyzer.AnalyzePoint(1.0);
 		auto invalidPoint = analyzer.AnalyzePoint(-1.0);
 		auto interval = analyzer.AnalyzeInterval(0.25, 4.0, 200);
@@ -2529,15 +2476,15 @@ namespace
 	void Cookbook_Recipe18_2_PolynomialFeatures(std::ostream& out)
 	{
 		RealFunctionFromStdFunc polynomial([](Real x) { return x*x*x - 3.0*x; });
-		RealFunctionAnalyzer analyzer(polynomial, "x^3-3x");
+		RealFunctionAnalyzer analyzer(polynomial);
 		auto roots = analyzer.GetRoots(-2.0, 2.0, 1e-7);
 		auto extrema = analyzer.GetLocalOptimumsClassified(-2.0, 2.0, 1e-4);
 		auto inflections = analyzer.GetInflectionPoints(-2.0, 2.0, 1e-4);
 		std::vector<Real> extremaLocations;
 		for (const auto& point : extrema) extremaLocations.push_back(point.x);
 
-		bool outerLeftMonotonic = analyzer.isMonotonic(-2.0, -1.0, 100);
-		bool wholeIntervalMonotonic = analyzer.isMonotonic(-2.0, 2.0, 100);
+		bool outerLeftMonotonic = analyzer.IsMonotonicOnSamples(-2.0, -1.0, 100);
+		bool wholeIntervalMonotonic = analyzer.IsMonotonicOnSamples(-2.0, 2.0, 100);
 
 		out << "  [18.2] x^3-3x roots=" << AnalyzerValues(roots)
 		    << ", extrema=" << AnalyzerValues(extremaLocations)
@@ -2560,7 +2507,7 @@ namespace
 		auto jump = stepAnalyzer.ClassifyDiscontinuity(0.0);
 		auto hole = removableAnalyzer.ClassifyDiscontinuity(1.0);
 		auto infinite = poleAnalyzer.ClassifyDiscontinuity(2.0, 1e-8);
-		auto discovered = stepAnalyzer.FindDiscontinuities(-1.0, 1.0, 100);
+		auto discovered = stepAnalyzer.FindDiscontinuityCandidates(-1.0, 1.0, 100);
 
 		out << "  [18.3] discontinuities jump/removable/pole="
 		    << DiscontinuityName(jump.type) << "/" << DiscontinuityName(hole.type) << "/"
@@ -2575,7 +2522,7 @@ namespace
 		RealFunctionFromStdFunc damped([](Real t) {
 			return std::exp(-0.05 * t) * std::sin(5.0 * t);
 		});
-		RealFunctionAnalyzer analyzer(damped, "exp(-0.05t)sin(5t)");
+		RealFunctionAnalyzer analyzer(damped);
 		auto roots = analyzer.GetRoots(0.2, 5.5, 1e-7);
 		Real zeroSpacing = analyzer.calcRootsPeriod(0.2, 5.5, 1000);
 		Real inferredPeriod = 2.0 * zeroSpacing;
@@ -3113,13 +3060,13 @@ namespace
 	void Cookbook_Recipe25_1_Index1DAE(std::ostream& out)
 	{
 		Cookbook_LinearDAE system;
-		Vector<Real> x0{ REAL(1.0) };
-		Vector<Real> y0{ REAL(0.0) };
+		Vector<Real> x0{ static_cast<MML::Real>(1.0) };
+		Vector<Real> y0{ static_cast<MML::Real>(0.0) };
 		DAESolverConfig config;
-		config.step_size = REAL(0.05);
-		config.constraint_tol = REAL(1e-10);
+		config.step_size = static_cast<MML::Real>(0.05);
+		config.constraint_tol = static_cast<MML::Real>(1e-10);
 
-		auto result = SolveDAEBackwardEuler(system, REAL(0.0), x0, y0, REAL(1.0), config);
+		auto result = SolveDAEBackwardEuler(system, static_cast<MML::Real>(0.0), x0, y0, static_cast<MML::Real>(1.0), config);
 		Vector<Real> xEnd = result.solution.getXValuesAtEnd();
 		Vector<Real> yEnd = result.solution.getYValuesAtEnd();
 
@@ -3132,10 +3079,10 @@ namespace
 	void Cookbook_Recipe25_2_ConsistentIC(std::ostream& out)
 	{
 		Cookbook_LinearDAE system;
-		Vector<Real> x0{ REAL(0.8) };
-		Vector<Real> yGuess{ REAL(0.0) };
-		auto ic = ComputeConsistentICDetailed(system, REAL(0.0), x0, yGuess, 20, REAL(1e-12));
-		bool verified = VerifyConsistentIC(system, REAL(0.0), x0, yGuess, REAL(1e-10));
+		Vector<Real> x0{ static_cast<MML::Real>(0.8) };
+		Vector<Real> yGuess{ static_cast<MML::Real>(0.0) };
+		auto ic = ComputeConsistentICDetailed(system, static_cast<MML::Real>(0.0), x0, yGuess, 20, static_cast<MML::Real>(1e-12));
+		bool verified = VerifyConsistentIC(system, static_cast<MML::Real>(0.0), x0, yGuess, static_cast<MML::Real>(1e-10));
 
 		out << "  [25.2] consistent IC converged=" << std::boolalpha << ic.converged
 		    << ", y0=" << yGuess[0]
@@ -3146,37 +3093,43 @@ namespace
 	void Cookbook_Recipe25_3_SolverComparison(std::ostream& out)
 	{
 		Cookbook_LinearDAE system;
-		Vector<Real> x0{ REAL(1.0) };
-		Vector<Real> y0{ REAL(0.0) };
+		Vector<Real> x0{ static_cast<MML::Real>(1.0) };
+		Vector<Real> y0{ static_cast<MML::Real>(0.0) };
 		DAESolverConfig config;
-		config.step_size = REAL(0.05);
-		config.constraint_tol = REAL(1e-10);
+		config.step_size = static_cast<MML::Real>(0.05);
+		config.constraint_tol = static_cast<MML::Real>(1e-10);
 
-		auto backwardEuler = SolveDAEBackwardEuler(system, REAL(0.0), x0, y0, REAL(1.0), config);
-		auto bdf2 = SolveDAEBDF2(system, REAL(0.0), x0, y0, REAL(1.0), config);
-		auto bdf4 = SolveDAEBDF4(system, REAL(0.0), x0, y0, REAL(1.0), config);
-		auto radau = SolveDAERadauIIA(system, REAL(0.0), x0, y0, REAL(1.0), config);
+		auto backwardEuler = SolveDAEBackwardEuler(system, static_cast<MML::Real>(0.0), x0, y0, static_cast<MML::Real>(1.0), config);
+		auto bdf2 = SolveDAEBDF2(system, static_cast<MML::Real>(0.0), x0, y0, static_cast<MML::Real>(1.0), config);
+		auto bdf4 = SolveDAEBDF4(system, static_cast<MML::Real>(0.0), x0, y0, static_cast<MML::Real>(1.0), config);
+		auto radau = SolveDAERadauIIA(system, static_cast<MML::Real>(0.0), x0, y0, static_cast<MML::Real>(1.0), config);
+		auto rodas = SolveDAERODAS4(system, static_cast<MML::Real>(0.0), x0, y0, static_cast<MML::Real>(1.0), config);
+		if (rodas.status != AlgorithmStatus::Success)
+			throw ODESolverError(rodas.error_message);
 
 		out << "  [25.3] final x: BE=" << backwardEuler.solution.getXValuesAtEnd()[0]
 		    << ", BDF2=" << bdf2.solution.getXValuesAtEnd()[0]
 		    << ", BDF4=" << bdf4.solution.getXValuesAtEnd()[0]
 		    << ", Radau=" << radau.solution.getXValuesAtEnd()[0]
+		    << ", RODAS4=" << rodas.solution.getXValuesAtEnd()[0]
 		    << "; max |g| Radau=" << radau.max_constraint_violation << "\n";
+		out << "         RODAS4 accepted/rejected=" << rodas.accepted_steps << "/" << rodas.rejected_steps
+		    << ", max embedded error ratio=" << rodas.max_error_norm << "\n";
 	}
 
 	void Cookbook_Recipe25_4_EventsAndRestart(std::ostream& out)
 	{
-		Cookbook_TimedDAEEvent system(REAL(0.5));
-		Vector<Real> x0{ REAL(0.0) };
-		Vector<Real> y0{ REAL(1.0) };
+		Cookbook_TimedDAEEvent system(static_cast<MML::Real>(0.5));
+		Vector<Real> x0{ static_cast<MML::Real>(0.0) };
+		Vector<Real> y0{ static_cast<MML::Real>(1.0) };
 		DAESolverConfig config;
-		config.step_size = REAL(0.2);
-		config.constraint_tol = REAL(1e-10);
+		config.step_size = static_cast<MML::Real>(0.2);
+		config.constraint_tol = static_cast<MML::Real>(1e-10);
 
-		auto result = SolveDAEBackwardEulerWithEvents(system, REAL(0.0), x0, y0, REAL(1.0), config);
+		auto result = SolveDAEBackwardEulerWithEvents(system, static_cast<MML::Real>(0.0), x0, y0, static_cast<MML::Real>(1.0), config);
 
 		out << "  [25.4] events=" << result.events.size()
-		    << ", event t=" << (result.events.empty() ? REAL(-1.0) : result.events[0].time)
+		    << ", event t=" << (result.events.empty() ? static_cast<MML::Real>(-1.0) : result.events[0].time)
 		    << ", final x=" << result.final_differential_state[0]
 		    << ", final y=" << result.final_algebraic_state[0]
 		    << ", |g|=" << result.integration.final_constraint_norm << "\n";
@@ -3191,143 +3144,11 @@ namespace
 	}
 
 	///////////////////////////////////////////////////////////////////////////
-	// Recipe 26: Algebra
+	// Recipe 26 moved with finite/discrete algebra to MML_Ext.
 	///////////////////////////////////////////////////////////////////////////
 
 	// 26.1 Reorder real data with permutations
-	void Cookbook_Recipe26_1_DataPermutation(std::ostream& out)
-	{
-		std::array<std::string, 4> wiredChannels = { "pressure", "temperature", "humidity", "voltage" };
-		Algebra::Permutation<4> wiringFix = Algebra::Permutation<4>::from_cycles({ {0, 2, 1} });
-		auto correctedChannels = wiringFix.apply(wiredChannels);
-		auto rawChannelsAgain = wiringFix.inverse().apply(correctedChannels);
 
-		out << "  [26.1] corrected channel order = " << Cookbook_FormatIntContainer(wiringFix.images())
-		    << ", corrected[0] = " << correctedChannels[0]
-		    << ", inverse restores[0] = " << rawChannelsAgain[0]
-		    << ", order = " << wiringFix.order()
-		    << ", sign = " << wiringFix.sign() << "\n";
-	}
-
-	// 26.2 Model polygon symmetries with a dihedral group
-	void Cookbook_Recipe26_2_DihedralSymmetry(std::ostream& out)
-	{
-		Algebra::DihedralGroup square(4);
-		const auto rotation = square.rotation(1);
-		const auto reflection = square.reflection();
-		const auto relation = square.compose(square.compose(reflection, rotation), reflection);
-		const auto rotationInverse = square.inverse(rotation);
-		const auto reflectedVertices = square.permutation(reflection).images();
-		const auto generated = Algebra::GeneratedSubgroup(square, { rotation, reflection });
-
-		out << "  [26.2] D4 order = " << square.order()
-		    << ", reflection maps vertices to " << Cookbook_FormatIntContainer(reflectedVertices)
-		    << ", s*r*s = r^-1 -> " << std::boolalpha << (relation == rotationInverse)
-		    << ", generated subgroup size = " << generated.size() << "\n";
-	}
-
-	// 26.3 Count distinct binary bracelets with Burnside's lemma
-	void Cookbook_Recipe26_3_BurnsideBracelets(std::ostream& out)
-	{
-		Algebra::DihedralGroup braceletSymmetry(6);
-		const auto colorings = Cookbook_BinaryColorings(6);
-		auto action = Algebra::MakeGroupAction<Algebra::DihedralElement, std::vector<int>>(
-			[&braceletSymmetry](const Algebra::DihedralElement& element, const std::vector<int>& coloring) {
-				return braceletSymmetry.permutation(element).apply(coloring);
-			});
-
-		const std::size_t distinctBracelets = Algebra::BurnsideCount(braceletSymmetry, action, colorings);
-		const std::size_t fixedByOneStepRotation = Algebra::FixedPointCount(
-			braceletSymmetry, action, braceletSymmetry.rotation(1), colorings);
-		const auto orbits = Algebra::OrbitPartition(braceletSymmetry, action, colorings);
-
-		out << "  [26.3] binary bracelets with 6 beads: raw patterns = " << colorings.size()
-		    << ", symmetry classes = " << distinctBracelets
-		    << ", orbit partition size = " << orbits.size()
-		    << ", fixed by one-step rotation = " << fixedByOneStepRotation << "\n";
-	}
-
-	// 26.4 Exact modular arithmetic and prime fields
-	void Cookbook_Recipe26_4_ModularArithmetic(std::ostream& out)
-	{
-		using Z12 = Algebra::ModInt<12>;
-		using F7 = Algebra::PrimeFieldElement<7>;
-		Algebra::ModularRing<12> clockRing;
-		Algebra::PrimeField<7> field7;
-
-		Z12 clockValue = Z12(10) + Z12(5);
-		bool sixHasInverse = true;
-		try {
-			(void)Z12(6).inverse();
-		}
-		catch (const DomainError&) {
-			sixHasInverse = false;
-		}
-
-		F7 quotient = F7(3) / F7(2);
-		F7 primitive = Algebra::PrimitiveRoot<7>();
-		bool ringLaws = Algebra::CheckRingLaws(clockRing);
-		bool fieldLaws = Algebra::CheckFieldLaws(field7);
-
-		out << "  [26.4] 10+5 mod 12 = " << Cookbook_FormatModInt(clockValue)
-		    << ", 6 inverse exists in Z12 = " << std::boolalpha << sixHasInverse
-		    << ", 3/2 in F7 = " << Cookbook_FormatModInt(quotient)
-		    << ", primitive root F7 = " << Cookbook_FormatModInt(primitive)
-		    << ", ring/field laws = " << ringLaws << "/" << fieldLaws << "\n";
-	}
-
-	// 26.5 Solve an exact linear system over a finite field
-	void Cookbook_Recipe26_5_FiniteFieldLinearSystem(std::ostream& out)
-	{
-		using F7 = Algebra::PrimeFieldElement<7>;
-		MatrixNM<F7, 2, 2> system{{ F7(2), F7(3) }, { F7(4), F7(1) }};
-		std::array<F7, 2> rightHandSide = { F7(1), F7(6) };
-
-		const auto inverse = Algebra::FieldMatrixInverse(system);
-		const F7 determinant = Algebra::FieldMatrixDeterminant(system);
-		const std::array<F7, 2> solution = {
-			inverse(0, 0) * rightHandSide[0] + inverse(0, 1) * rightHandSide[1],
-			inverse(1, 0) * rightHandSide[0] + inverse(1, 1) * rightHandSide[1]
-		};
-		const F7 check0 = system(0, 0) * solution[0] + system(0, 1) * solution[1];
-		const F7 check1 = system(1, 0) * solution[0] + system(1, 1) * solution[1];
-
-		out << "  [26.5] exact F7 solve: det = " << Cookbook_FormatModInt(determinant)
-		    << ", solution = [" << Cookbook_FormatModInt(solution[0]) << ","
-		    << Cookbook_FormatModInt(solution[1]) << "]"
-		    << ", A*x = [" << Cookbook_FormatModInt(check0) << ","
-		    << Cookbook_FormatModInt(check1) << "]\n";
-	}
-
-	// 26.6 Build a tiny extension field from a polynomial modulus
-	void Cookbook_Recipe26_6_ExtensionField(std::ostream& out)
-	{
-		using GF4 = Algebra::FiniteFieldElement<2, 2, Cookbook_GF4_Modulus>;
-		const GF4 alpha{ F2(0), F2(1) };
-		Algebra::ExtensionField<2, 2, Cookbook_GF4_Modulus> field;
-
-		const GF4 alphaSquared = alpha * alpha;
-		const GF4 alphaPlusOne = alpha + GF4(1);
-		const GF4 inverse = alpha.inverse();
-		const bool irreducible = Algebra::IsIrreducible(Cookbook_GF4_Modulus::modulus());
-		const bool fieldLaws = Algebra::CheckFieldLaws(field);
-
-		out << "  [26.6] GF(4): alpha^2 = " << Cookbook_FormatGFElement(alphaSquared)
-		    << ", alpha+1 = " << Cookbook_FormatGFElement(alphaPlusOne)
-		    << ", alpha^-1 = " << Cookbook_FormatGFElement(inverse)
-		    << ", modulus irreducible = " << std::boolalpha << irreducible
-		    << ", field laws = " << fieldLaws << "\n";
-	}
-
-	void Cookbook_Recipe26_Algebra(std::ostream& out)
-	{
-		Cookbook_Recipe26_1_DataPermutation(out);
-		Cookbook_Recipe26_2_DihedralSymmetry(out);
-		Cookbook_Recipe26_3_BurnsideBracelets(out);
-		Cookbook_Recipe26_4_ModularArithmetic(out);
-		Cookbook_Recipe26_5_FiniteFieldLinearSystem(out);
-		Cookbook_Recipe26_6_ExtensionField(out);
-	}
 
 	///////////////////////////////////////////////////////////////////////////
 	// Recipe 27: Complex analysis
@@ -3747,8 +3568,8 @@ namespace
 
 		VectorN<Real, 3> u{ 1, 0, 0 }, w{ 0, 0, 1 };
 
-		out << "  [21.1] covar indices: " << T.NumCovar() << ", contravar: " << T.NumContravar()
-		    << ", trace (contraction) = " << T.Contract() << " (exact 9)"
+		out << "  [21.1] covar indices: " << T.numCovar() << ", contravar: " << T.numContravar()
+		    << ", trace (contraction) = " << T.contract() << " (exact 9)"
 		    << ", T(u,w) = " << T(u, w) << " (exact 1)\n";
 	}
 
@@ -3949,7 +3770,6 @@ void Docs_Demo_Cookbook()
 	Cookbook_Recipe23_FourierAlgorithms(out);
 	Cookbook_Recipe24_GraphAlgorithms(out);
 	Cookbook_Recipe25_DAESolvers(out);
-	Cookbook_Recipe26_Algebra(out);
 	Cookbook_Recipe27_ComplexAnalysis(out);
 	Cookbook_Recipe30_CombinatoricsAndNumberTheory(out);
 	out << "=== Cookbook demo done ===\n";

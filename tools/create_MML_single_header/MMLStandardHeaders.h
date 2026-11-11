@@ -15,8 +15,6 @@
 #ifndef MML_SINGLE_HEADER
 #define MML_SINGLE_HEADER
 
-#define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
-
 // Standard library headers
 #include <stdexcept>
 #include <initializer_list>
@@ -50,6 +48,11 @@
 #include <optional>
 #include <regex>
 #include <cstdint>
+#include <cctype>
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
+#include <cstring>
 
 #include <random>
 #include <chrono>
